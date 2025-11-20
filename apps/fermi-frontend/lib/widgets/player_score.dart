@@ -1,0 +1,360 @@
+import 'package:flutter/material.dart';
+
+import 'dart:async';
+
+import 'package:fermi_frontend/widgets/player_score_controller.dart';
+import 'package:fermi_frontend/theme/app_font.dart';
+import 'package:fermi_frontend/theme/app_theme.dart';
+
+class PlayerScore extends StatefulWidget {
+  const PlayerScore({
+    super.key,
+    required this.initialScore,
+    this.controller,
+    this.backgroundColor,
+  });
+
+  final int initialScore;
+  final PlayerScoreController? controller;
+  final Color? backgroundColor;
+
+  @override
+  State<PlayerScore> createState() => _PlayerScoreState();
+}
+
+class _PlayerScoreState extends State<PlayerScore> {
+  late List<int> _digits;
+  final List<GlobalKey<_AnimatedDigitState>> _digitKeys = [];
+  bool _isDisposed = false;
+  late int _currentValue;
+  late int _targetValue;
+  bool _isAnimating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentValue = widget.initialScore;
+    _targetValue = widget.initialScore;
+    _digits = _getDigits(_currentValue);
+    _updateDigitKeys(_digits.length);
+    if (widget.controller != null) {
+      widget.controller!.increment = _enqueueDelta;
+      widget.controller!.setScore = _enqueueSet;
+    }
+  }
+
+  void _updateDigitKeys(int count) {
+    if (_digitKeys.length == count) return;
+    _digitKeys.clear();
+    for (var i = 0; i < count; i++) {
+      _digitKeys.add(GlobalKey<_AnimatedDigitState>());
+    }
+  }
+
+  List<int> _getDigits(int score) {
+    // Remove any non-digit characters (e.g., minus sign) and ensure at least 0
+    final String digitsOnly = score.abs().toString();
+    return digitsOnly.split('').map(int.parse).toList();
+  }
+
+  void _enqueueDelta(int amount) {
+    if (!mounted || _isDisposed) return;
+    _targetValue = _targetValue + amount;
+    if (!_isAnimating) {
+      _runAnimation();
+    }
+  }
+
+  void _enqueueSet(int newValue) {
+    if (!mounted || _isDisposed) return;
+    _targetValue = newValue;
+    if (!_isAnimating) {
+      _runAnimation();
+    }
+  }
+
+  Future<void> _runAnimation() async {
+    if (!mounted || _isDisposed) return;
+    _isAnimating = true;
+    try {
+      while (mounted && !_isDisposed && _currentValue != _targetValue) {
+      final int start = _currentValue;
+      final int end = _targetValue;
+
+      final startDigits = _getDigits(start);
+      final endDigits = _getDigits(end);
+      final startDigitCount = startDigits.length;
+      final endDigitCount = endDigits.length;
+
+      // Determine the maximum digit count we'll need during this animation
+      final maxDigitCount =
+          startDigitCount > endDigitCount ? startDigitCount : endDigitCount;
+
+      // Pad both start and end values to the max digit count
+      final paddedStartDigits = start
+          .toString()
+          .padLeft(maxDigitCount, '0')
+          .split('')
+          .map(int.parse)
+          .toList();
+      final paddedEndDigits = end
+          .toString()
+          .padLeft(maxDigitCount, '0')
+          .split('')
+          .map(int.parse)
+          .toList();
+
+      // Expand digit count if needed, before animation starts
+      if (maxDigitCount > _digits.length) {
+        if (!mounted || _isDisposed) break;
+        setState(() {
+          _updateDigitKeys(maxDigitCount);
+          _digits = paddedStartDigits;
+        });
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted || _isDisposed) break;
+
+        // Wait for all digit keys to have valid states (handle rapid rebuilds)
+        int retries = 0;
+        while (retries < 10 && mounted && !_isDisposed) {
+          bool allKeysReady = true;
+          for (int i = 0; i < maxDigitCount; i++) {
+            if (_digitKeys[i].currentState == null) {
+              allKeysReady = false;
+              break;
+            }
+          }
+          if (allKeysReady) break;
+          await Future.delayed(const Duration(milliseconds: 16));
+          retries++;
+        }
+        if (!mounted || _isDisposed) break;
+      }
+
+      // Ensure we have enough keys (safety check for rapid updates)
+      if (maxDigitCount > _digitKeys.length) {
+        if (!mounted || _isDisposed) break;
+        setState(() {
+          _updateDigitKeys(maxDigitCount);
+        });
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted || _isDisposed) break;
+      }
+
+      // Start all digit animations simultaneously
+      // Check that all keys have valid states before animating
+      final animations = <Future<void>>[];
+      bool hasNullStates = false;
+      for (int i = 0; i < maxDigitCount; i++) {
+        final from = paddedStartDigits[i];
+        final to = paddedEndDigits[i];
+        if (from != to) {
+          final state = _digitKeys[i].currentState;
+          if (state != null) {
+            animations.add(state.animate(from, to));
+          } else {
+            hasNullStates = true;
+            // If state is null, skip this digit (widget tree not ready yet)
+            // The animation loop will retry on next iteration
+          }
+        }
+      }
+
+      // If any states were null, wait and retry on next loop iteration
+      if (hasNullStates && _currentValue != _targetValue) {
+        await Future.delayed(const Duration(milliseconds: 16));
+        continue;
+      }
+
+      // If no animations to run but values differ, something went wrong - update directly
+      if (animations.isEmpty && _currentValue != _targetValue) {
+        // Fallback: update value directly without animation
+        setState(() {
+          _currentValue = _targetValue;
+          _digits = _getDigits(_targetValue);
+        });
+        break;
+      }
+
+      // Wait for all animations to complete
+      await Future.wait(animations);
+      if (!mounted || _isDisposed) break;
+
+      // Update the current value
+      _currentValue = end;
+
+      // Contract digits if the final value has fewer digits
+      final finalDigitCount = endDigits.length;
+      if (finalDigitCount < maxDigitCount) {
+        if (!mounted || _isDisposed) break;
+        setState(() {
+          _digits = endDigits;
+          _updateDigitKeys(finalDigitCount);
+        });
+      } else {
+        setState(() {
+          _digits = paddedEndDigits;
+        });
+      }
+
+      // Loop will continue if _targetValue changed while animating
+      }
+    } finally {
+      // Always reset _isAnimating, even if an exception occurred
+      // This ensures future animations can start even after errors
+      _isAnimating = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    if (widget.controller != null) {
+      widget.controller!.increment = null;
+      widget.controller!.setScore = null;
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+
+    final digitWidgets = <Widget>[];
+    final numDigits = _digits.length;
+    for (var i = 0; i < numDigits; i++) {
+      digitWidgets.add(
+        _AnimatedDigit(
+          key: _digitKeys[i],
+          initialDigit: _digits[i],
+          textColor: appTheme.textMuted,
+        ),
+      );
+      final remainingDigits = numDigits - 1 - i;
+      if (remainingDigits > 0 && remainingDigits % 3 == 0) {
+        digitWidgets.add(_buildComma(appTheme.textMuted));
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(5.0),
+      decoration: BoxDecoration(
+        color: widget.backgroundColor ?? appTheme.bg,
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Center(
+        child: AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: digitWidgets,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildComma(Color textColor) {
+    return Text(
+      ',',
+      style: AppFont.secondaryTextStyle(
+        context,
+        fontWeight: FontWeight.w400,
+        fontSize: 16.0,
+        color: textColor,
+      ),
+    );
+  }
+}
+
+class _AnimatedDigit extends StatefulWidget {
+  const _AnimatedDigit({
+    super.key,
+    required this.initialDigit,
+    required this.textColor,
+  });
+  final int initialDigit;
+  final Color textColor;
+
+  @override
+  State<_AnimatedDigit> createState() => _AnimatedDigitState();
+}
+
+class _AnimatedDigitState extends State<_AnimatedDigit> {
+  late FixedExtentScrollController _scrollController;
+  static const double _itemHeight = 18.0; // Corresponds to fontSize
+  static const int _middleIndex = 1000;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = FixedExtentScrollController(
+      initialItem: _middleIndex + widget.initialDigit,
+    );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> animate(int from, int to) {
+    var currentItem = _scrollController.selectedItem;
+    final currentItemOnDigit = currentItem % 10;
+    if (currentItemOnDigit != from) {
+      currentItem = (currentItem ~/ 10) * 10 + from;
+    }
+    final int targetItem;
+    if (to > from) {
+      targetItem = currentItem + (to - from);
+    } else {
+      targetItem = currentItem - (from - to);
+    }
+    return _scrollController.animateToItem(
+      targetItem,
+      duration: const Duration(milliseconds: 1500),
+      curve: Curves.fastOutSlowIn,
+    );
+  }
+
+  void setDigit(int to) {
+    // Jump instantly to the desired digit without animation
+    final int currentBase = _scrollController.selectedItem ~/ 10;
+    final int targetItem = (currentBase * 10) + (to % 10);
+    _scrollController.jumpToItem(targetItem);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyle = AppFont.secondaryTextStyle(
+      context,
+      fontWeight: FontWeight.w400,
+      fontSize: 16.0,
+      color: widget.textColor,
+    );
+
+    return SizedBox(
+      height: _itemHeight,
+      width: 10,
+      child: ListWheelScrollView.useDelegate(
+        controller: _scrollController,
+        itemExtent: _itemHeight,
+        physics: const NeverScrollableScrollPhysics(),
+        perspective: 0.0001,
+        childDelegate: ListWheelChildBuilderDelegate(
+          builder: (context, index) {
+            return Center(
+              child: Text(
+                (index % 10).toString(),
+                style: textStyle,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}

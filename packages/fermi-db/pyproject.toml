@@ -1,0 +1,36 @@
+[project]
+name = "fermi-db"
+version = "0.1.0"
+description = "A data access layer for the Fermi-Gen database."
+readme = "README.md"
+authors = [
+    { name = "mo", email = "mhdmartini@github.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "pgvector>=0.2.1",
+    "pydantic>=2.8.2",
+    "python-dotenv>=1.0.1",
+    "pytest-asyncio>=1.0.0",
+    "fermi-core",
+    "sqlalchemy[mypy]>=2.0.41",
+    "aiosqlite>=0.21.0",
+    "alembic>=1.16.5",
+    "asyncpg>=0.30.0",
+    "pydantic-settings>=2.10.1",
+    "sqlmodel>=0.0.24",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = [
+    "pytest>=8.2.2",
+    "pytest-cov>=5.0.0",
+]
+
+[tool.uv.sources]
+fermi-core = { workspace = true }

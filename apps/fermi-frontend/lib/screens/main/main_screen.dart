@@ -1,0 +1,419 @@
+import 'package:fermi_frontend/widgets/vertical_percentile_text.dart';
+import 'package:flutter/material.dart';
+import 'package:fermi_frontend/theme/app_font.dart';
+import 'package:fermi_frontend/theme/app_theme.dart';
+import 'package:fermi_frontend/screens/lobby/lobby_screen_controller.dart';
+import 'package:fermi_frontend/services/api_service.dart';
+import 'package:fermi_frontend/services/auth_service.dart';
+import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
+import 'package:fermi_frontend/screens/main/widgets/top_bar_lock_avatar.dart';
+import 'package:fermi_frontend/screens/main/widgets/primary_cta.dart';
+import 'package:fermi_frontend/config/app_config.dart';
+import 'package:fermi_frontend/widgets/player_widget.dart';
+import 'package:fermi_frontend/widgets/selector_widget.dart';
+import 'package:fermi_frontend/widgets/lock_toggle_chip.dart';
+import 'package:fermi_frontend/widgets/categories/category_carousel_m3.dart';
+
+class MainScreen extends StatefulWidget {
+  const MainScreen({
+    super.key,
+    required this.apiService,
+    required this.authService,
+  });
+
+  final ApiService apiService;
+  final AuthService authService;
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  late final MainScreenController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = MainScreenController(
+      api: widget.apiService,
+      auth: widget.authService,
+    );
+    // Fire and forget; UI reacts via ChangeNotifier
+    _controller.initialize();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (widget.authService.shouldRefreshStats) {
+      widget.authService.shouldRefreshStats = false;
+      _controller.initialize();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  List<CategoryItemM3> _categories() {
+    final cfg = _controller.configDto;
+    if (cfg == null) return const <CategoryItemM3>[];
+    return cfg.categories
+        .map((c) => CategoryItemM3(
+              id: c.index.toString(),
+              title: c.slug,
+              svgPath: c.picture,
+            ))
+        .toList(growable: false);
+  }
+
+  Future<void> _onPrimaryAction() async {
+    try {
+      if (_controller.isLocked) {
+        await _createGame();
+      } else {
+        await _joinRandomGame();
+      }
+    } catch (_) {
+      // errors surfaced elsewhere
+    }
+  }
+
+  Future<void> _createGame() async {
+    try {
+      final String gameId = await _controller.createGame(
+          nQuestions: AppConfig.defaultQuestionCount);
+      if (!mounted) return;
+      Navigator.of(context).push(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => LobbyScreenController(
+            gameId: gameId,
+            realtime: _controller.buildRealtimeAdapter(),
+            api: widget.apiService,
+            initialPlayers: [
+              PlayerState(
+                isHost: true,
+                status: PlayerStatus.none,
+                avatarUrl: widget.authService.currentUser?.picture,
+                displayName: widget.authService.currentUser?.displayName,
+              ),
+            ],
+          ),
+          transitionDuration: const Duration(milliseconds: 300),
+          reverseTransitionDuration: const Duration(milliseconds: 300),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1.0, 0.0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeInOut,
+              )),
+              child: child,
+            );
+          },
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
+  }
+
+  Future<void> _joinRandomGame() async {
+    try {
+      final String gameId = await _controller.joinRandomGame(
+          nQuestions: AppConfig.defaultQuestionCount);
+      if (!mounted) return;
+      Navigator.of(context).push(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => LobbyScreenController(
+            gameId: gameId,
+            realtime: _controller.buildRealtimeAdapter(),
+            api: widget.apiService,
+          ),
+          transitionDuration: const Duration(milliseconds: 300),
+          reverseTransitionDuration: const Duration(milliseconds: 300),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1.0, 0.0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeInOut,
+              )),
+              child: child,
+            );
+          },
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final items = _categories();
+        final AppTheme appTheme =
+            Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+
+        final ThemeData themed = Theme.of(context).copyWith(
+          scaffoldBackgroundColor: appTheme.bgDark,
+          appBarTheme: AppBarTheme(
+            backgroundColor: appTheme.bgDark,
+            foregroundColor: appTheme.text,
+            elevation: 0,
+          ),
+          extensions: <ThemeExtension<dynamic>>[
+            const AppFont(), // Use default fonts (Barlow & Jura)
+            appTheme,
+          ],
+        );
+
+        if (_controller.isLoading) {
+          return Theme(
+            data: themed,
+            child: const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          );
+        }
+
+        if (_controller.errorMessage != null) {
+          return Theme(
+            data: themed,
+            child: Scaffold(
+              body: Center(
+                child: Text(_controller.errorMessage!),
+              ),
+            ),
+          );
+        }
+
+        return AnimatedTheme(
+          data: themed,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOutCubic,
+          child: Scaffold(
+            body: AnimatedContainer(
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeInOutCubic,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [appTheme.bgLight, appTheme.bg, appTheme.bgDark],
+                  stops: const [0.0, 0.25, 1.0],
+                ),
+              ),
+              child: Stack(
+                children: [
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                          left: 12, right: 12, top: 24, bottom: 48),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TopBarLockAvatar(
+                            avatarUrl: widget.authService.currentUser?.picture,
+                            displayName:
+                                widget.authService.currentUser?.displayName,
+                          ),
+                          const Spacer(),
+                          Stack(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      appTheme.highlight,
+                                      appTheme.border,
+                                      appTheme.borderMuted,
+                                    ],
+                                    stops: const [0.0, 0.5, 1.0],
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Container(
+                                  margin: const EdgeInsets.all(
+                                      1), // 1px border effect
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        // ignore: deprecated_member_use
+                                        appTheme.bgLight,
+                                        appTheme.bg,
+                                      ],
+                                      stops: const [0.0, 0.7],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(
+                                        left: 24.0,
+                                        right: 24.0,
+                                        top: 12.0,
+                                        bottom: 24.0),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'Party',
+                                              style: AppFont.primaryTextStyle(
+                                                context,
+                                                fontSize: 48,
+                                                fontWeight: FontWeight.w600,
+                                                color: appTheme.text,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              'Multiplayer round of 5 questions.',
+                                              style: AppFont.primaryTextStyle(
+                                                context,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w300,
+                                                color: appTheme.border,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 20),
+                                            Divider(
+                                              height: 1,
+                                              thickness: 1,
+                                              color: appTheme.border
+                                                  .withOpacity(0.3),
+                                            ),
+                                          ],
+                                        ),
+                                        CategoryCarouselM3(
+                                          categories: items,
+                                          initialIndex:
+                                              _controller.selectedCategoryIndex,
+                                          onCategorySelected:
+                                              _controller.selectCategoryIndex,
+                                          onCenteredIndexChanged:
+                                              _controller.selectCategoryIndex,
+                                          startColor: HSLColor.fromColor(
+                                              appTheme.primary),
+                                        ),
+                                        const SizedBox(height: 0),
+                                        SelectorWidget(
+                                          options: _controller.difficulties
+                                              .map((d) => SelectorOption(
+                                                    label: d.slug,
+                                                    value: d.name,
+                                                    iconUrl: d.picture,
+                                                  ))
+                                              .toList(),
+                                          selected:
+                                              _controller.selectedDifficulty,
+                                          onChanged: (value) {
+                                            if (value == null ||
+                                                value ==
+                                                    _controller
+                                                        .selectedDifficulty) {
+                                              _controller
+                                                  .selectDifficulty(null);
+                                            } else {
+                                              _controller
+                                                  .selectDifficulty(value);
+                                            }
+                                          },
+                                          allowNoSelection: true,
+                                        ),
+                                        const SizedBox(height: 24),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            LockToggleChip(
+                                              isLocked: _controller.isLocked,
+                                              onToggle: _controller.toggleLock,
+                                            ),
+                                            const SizedBox(width: 24),
+                                            Expanded(
+                                              child: PrimaryCta(
+                                                isLoading:
+                                                    _controller.isSubmitting,
+                                                onPressed: _onPrimaryAction,
+                                                isLocked: _controller.isLocked,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 20,
+                                right: 24,
+                                child: VerticalPercentileText(
+                                  percentile:
+                                      _controller.resolvedPercentile == 0
+                                          ? null
+                                          : _controller.resolvedPercentile,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Debug button to launch onboarding tutorial
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: SafeArea(
+                      child: Opacity(
+                        opacity: 0.2,
+                        child: IconButton(
+                          icon:
+                              Icon(Icons.help_outline, color: appTheme.borderMuted),
+                          tooltip: 'Launch Onboarding Tutorial',
+                          onPressed: () {
+                            Navigator.of(context).pushNamed('/onboarding');
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}

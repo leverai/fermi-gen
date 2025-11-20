@@ -1,0 +1,71 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: fermi-pg
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: fermi
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  emulators:
+    build:
+      context: docker/firebase-emulators
+      dockerfile: Dockerfile
+    container_name: fermi-firebase-emulators
+    working_dir: /workspace/apps/fermi-api
+    command: >-
+      firebase emulators:start --project fermi-local --only auth,firestore
+    volumes:
+      - ./apps/fermi-api:/workspace/apps/fermi-api
+    ports:
+      - "4000:4000"  # Emulator UI
+      - "8080:8080"  # Firestore
+      - "9099:9099"  # Auth
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080 >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/fermi-api/Dockerfile
+    container_name: fermi-api
+    depends_on:
+      db:
+        condition: service_healthy
+      emulators:
+        condition: service_healthy
+    env_file:
+      - ./apps/fermi-api/.env.compose
+    ports:
+      - "8000:8080"
+    working_dir: /home/app
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+
+  etl:
+    build:
+      context: .
+      dockerfile: apps/fermi-etl/Dockerfile
+    container_name: fermi-etl
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./apps/fermi-etl/.env
+    ports:
+      - "8081:8081"
+    working_dir: /home/app
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8081"]
+
+networks:
+  default:
+    name: fermi-net

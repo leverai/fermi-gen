@@ -1,0 +1,26 @@
+// apps/fermi-api/firestore.rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /games/{gameId} {
+      allow read: if request.auth != null;
+
+      match /questions/{questionId} {
+        // Allow listing (queries) for authenticated users
+        allow list: if request.auth != null;
+        // Allow getting individual docs only when revealed
+        allow get: if request.auth != null && resource.data.revealed == true;
+      }
+
+      match /answers/{answerId} {
+        allow list: if request.auth != null;
+        allow get: if request.auth != null && resource.data.revealed == true;
+      }
+
+      match /players_results/{playerAnswerId} {
+        allow list: if request.auth != null;
+        allow get: if request.auth != null && resource.data.revealed == true;
+      }
+    }
+  }
+}

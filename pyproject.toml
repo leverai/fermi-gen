@@ -1,0 +1,96 @@
+[project]
+name = "fermi-gen"
+version = "0.1.0"
+description = "Generates fermi questions for the Guesstimate game."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "functions-framework==3.8.2",
+    "langchain[ollama]>=0.3.26",
+]
+
+[tool.uv]
+environments = ["sys_platform == 'linux'"]
+required-environments = ["sys_platform == 'linux'"]
+
+[tool.uv.sources]
+fermi-db = { workspace = true }
+fermi-core = { workspace = true }
+fermi-api = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+    "apps/*",
+    "packages/*",
+]
+exclude = ["apps/sandbox", "apps/fermi-frontend"]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.2.0",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "ruff>=0.12.1",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "W2",  # whitespace
+    "W5",  # indentation
+    "W6",  # line break
+    "N",   # pep8-naming
+    "D",   # pydocstyle
+    "ANN", # flake8-annotations
+    "S",   # flake8-bandit
+    "BLE", # flake8-blind-except
+    "FBT", # flake8-boolean-trap
+    "COM", # flake8-commas
+    "DTZ", # flake8-datetimez
+    "T20", # flake8-print
+    "PT",  # flake8-pytest-style
+    "RUF", # ruff-specific rules
+]
+ignore = [
+    "ANN101", # Missing-type-self
+    "ANN102", # Missing-type-cls
+    "ANN204", # Missing-return-type-special-method
+    "S101",  # Use of assert detected
+    "T201",  # print found
+    "D205",  # 1 blank line required between summary line and description
+    "BLE001",  # Blind except
+    "S311",  # Standard pseudo-random generators are not suitable for cryptographic purposes
+    "ANN401",  # dynamic type not allowed
+]
+exclude = ["prompts.py"]
+
+
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["S101", "ANN", "D100"]
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B101", "B311"]  # Skip assert warnings in tests
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

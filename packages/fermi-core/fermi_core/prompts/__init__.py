@@ -1,0 +1,17 @@
+"""Prompts for the Fermi core."""
+
+from .prompts import (
+    ASK_PROMPT,
+    CATEGORIZE_PROMPT,
+    DIFFICULTY_PROMPT,
+    EXTRACT_INFO_PROMPT,
+    SELECT_LOCATION_PROMPT,
+)
+
+__all__ = [
+    'ASK_PROMPT',
+    'CATEGORIZE_PROMPT',
+    'DIFFICULTY_PROMPT',
+    'EXTRACT_INFO_PROMPT',
+    'SELECT_LOCATION_PROMPT',
+]
