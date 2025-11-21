@@ -78,6 +78,13 @@ jobs:
 
   build-android:
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/develop' ? 'dev' : 'prod' }}
+    env:
+      # Consider moving to gh environment variables
+      BUILD_TYPE: ${{ github.ref_name == 'develop' && 'debug' || 'release' }}
+      ARTIFACT_TYPE: ${{ github.ref_name == 'develop' && 'debug-apk' || 'release-apk' }}
+
     steps:
       - uses: actions/checkout@v5
 
@@ -104,22 +111,10 @@ jobs:
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > apps/fermi-frontend/android/app/google-services.json
 
 
-      - name: Build APK Debug
-        if: github.ref_name == 'develop'
-        run: cd apps/fermi-frontend && flutter build apk --debug
-
+      - name: Build APK ${{ env.BUILD_TYPE }}
+        run: cd apps/fermi-frontend && flutter build apk --${{ env.BUILD_TYPE }}
+        
       - uses: actions/upload-artifact@v4
-        if: github.ref_name == 'develop'
         with:
-          name: fermi-frontend-debug-apk
-          path: apps/fermi-frontend/build/app/outputs/flutter-apk/app-debug.apk
-
-      - name: Build APK Release
-        if: github.ref_name == 'main'
-        run: cd apps/fermi-frontend && flutter build apk --release
-
-      - uses: actions/upload-artifact@v4
-        if: github.ref_name == 'main'
-        with:
-          name: fermi-frontend-release-apk
-          path: apps/fermi-frontend/build/app/outputs/flutter-apk/app-release.apk
+          name: fermi-frontend-${{ env.ARTIFACT_TYPE }}
+          path: apps/fermi-frontend/build/app/outputs/flutter-apk/app-${{ env.BUILD_TYPE }}.apk

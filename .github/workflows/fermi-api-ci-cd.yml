@@ -1,6 +1,10 @@
 name: Fermi API CI/CD
 
 on:
+  pull_request:
+    branches:
+      - develop
+      - main
   push:
     branches:
       - develop
@@ -59,7 +63,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     env:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5433/fermi-db
       FIRESTORE_EMULATOR_HOST: localhost:8080
@@ -109,6 +112,8 @@ jobs:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
     needs: [unit-and-api-tests, integration-tests]
+    environment:
+      name: ${{ github.ref_name == 'develop' ? 'dev' : 'prod' }}
     permissions:
       contents: read
       id-token: write
@@ -158,12 +163,12 @@ jobs:
           echo "image=${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-api:${{ github.sha }}" >> $GITHUB_OUTPUT
 
   deploy:
-    name: Deploy to ${{ github.ref == 'refs/heads/develop' && 'Development' || 'Production' }}
+    name: Deploy to ${{ github.ref_name == 'develop' && 'Development' || 'Production' }}
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main')
     environment:
-      name: ${{ github.ref == 'refs/heads/develop' && 'dev' || 'prod' }}
+      name: ${{ github.ref_name == 'develop' ? 'dev' : 'prod' }}
       url: https://${{ steps.deploy.outputs.url }}
     permissions:
       contents: read
@@ -178,7 +183,7 @@ jobs:
       - name: Set compute resources
         id: compute
         run: |
-          if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
+          if [ "${{ github.ref_name }}" == "develop" ]; then
             echo "min_instances=0" >> $GITHUB_OUTPUT
             echo "max_instances=3" >> $GITHUB_OUTPUT
           else

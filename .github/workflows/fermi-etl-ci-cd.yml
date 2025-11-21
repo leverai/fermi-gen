@@ -1,6 +1,10 @@
 name: Fermi ETL CI/CD
 
 on:
+  pull_request:
+    branches:
+      - develop
+      - main
   push:
     branches:
       - develop
@@ -56,7 +60,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     env:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5433/fermi-db
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -85,6 +88,8 @@ jobs:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
     needs: [unit-tests, integration-tests]
+    environment:
+      name: ${{ github.ref_name == 'develop' ? 'dev' : 'prod' }}
     permissions:
       contents: read
       id-token: write
@@ -134,12 +139,12 @@ jobs:
           echo "image=${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-etl:${{ github.sha }}" >> $GITHUB_OUTPUT
 
   deploy:
-    name: Deploy to ${{ github.ref == 'refs/heads/develop' && 'Development' || 'Production' }}
+    name: Deploy to ${{ github.ref_name == 'develop' && 'Development' || 'Production' }}
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main')
     environment:
-      name: ${{ github.ref == 'refs/heads/develop' && 'dev' || 'prod' }}
+      name: ${{ github.ref_name == 'develop' && 'dev' || 'prod' }}
       url: https://${{ steps.deploy.outputs.url }}
     permissions:
       contents: read
@@ -166,12 +171,12 @@ jobs:
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v3
         with:
-          service: ${{ vars.CLOUD_RUN_SERVICE }}
+          service: ${{ vars.ETL_SERVICE }}
           image: ${{ needs.build-and-push.outputs.image }}
           region: ${{ vars.GCP_REGION }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
           secrets: |
-            DATABASE_URL=${{ vars.DATABASE_URL_SECRET }}:latest
+            DATABASE_URL=database-url:latest
             OPENAI_API_KEY=openai-api-key:latest
             SERP_API_KEY=serp-api-key:latest
           env_vars: |
