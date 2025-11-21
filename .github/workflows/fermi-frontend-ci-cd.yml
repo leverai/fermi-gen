@@ -90,11 +90,11 @@ jobs:
   build-android:
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.ref == 'refs/heads/develop' ? 'dev' : 'prod' }}
+      name: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
     env:
       # Consider moving to gh environment variables
-      BUILD_TYPE: ${{ github.ref_name == 'develop' && 'debug' || 'release' }}
-      ARTIFACT_TYPE: ${{ github.ref_name == 'develop' && 'debug-apk' || 'release-apk' }}
+      BUILD_TYPE: ${{ github.ref_name == 'main' && 'release' || 'debug' }}
+      ARTIFACT_TYPE: ${{ github.ref_name == 'main' && 'release-apk' || 'debug-apk' }}
 
     steps:
       - uses: actions/checkout@v5
