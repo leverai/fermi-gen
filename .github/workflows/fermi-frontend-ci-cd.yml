@@ -1,8 +1,19 @@
 name: Fermi Frontend CI/CD
 
 on:
-  push:
-    branches: [develop, main]
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths:
+      - 'apps/fermi-frontend/**'
+      - 'packages/fermi-core/**'
+      - 'packages/fermi-db/**'
+      - 'uv.lock'
+      - '.github/workflows/fermi-frontend-ci-cd.yml'
+      - 'Makefile'
+      - '!**/docs/**'
+      - '!**/*.md'
     paths:
       - 'apps/fermi-frontend/**'
       - 'packages/fermi-core/**'

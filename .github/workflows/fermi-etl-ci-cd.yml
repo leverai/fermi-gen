@@ -5,6 +5,16 @@ on:
     branches:
       - develop
       - main
+    paths:
+      - 'apps/fermi-etl/**'
+      - 'packages/fermi-core/**'
+      - 'packages/fermi-db/**'
+      - 'uv.lock'
+      - 'alembic.ini'
+      - '.github/workflows/fermi-etl-ci-cd.yml'
+      - 'Makefile'
+      - '!**/docs/**'
+      - '!**/*.md'
   push:
     branches:
       - develop
