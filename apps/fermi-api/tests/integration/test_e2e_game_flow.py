@@ -50,7 +50,7 @@ def _wait_ready_with_questions(
     get_firestore_doc: Callable[[str], dict[str, Any]],
     game_id: str,
     *,
-    timeout_s: float = 8.0,
+    timeout_s: float = 30.0,
     interval_s: float = 0.1,
 ) -> list[str]:
     deadline = time.time() + timeout_s
