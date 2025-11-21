@@ -85,8 +85,8 @@ jobs:
           distribution: 'corretto'
           java-version: '21'
 
-      - name: Copy firebase.json
-        run: cp apps/fermi-api/firebase.json .
+      # - name: Copy firebase.json
+      #   run: cp apps/fermi-api/firebase.json .
 
       - name: Start Firebase Emulator Suite
         uses: invertase/firebase-emulator-action@v1.0.1
