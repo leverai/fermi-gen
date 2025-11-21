@@ -30,7 +30,9 @@ PRPs/
 FEATURE.md
 data/
 # Allow test data files for integration tests
+!apps/fermi-api/tests/data
 !apps/fermi-api/tests/data/*.json
+!apps/fermi-api/firebase.json
 apps/fermi-api/emulator-data
 
 # Python project

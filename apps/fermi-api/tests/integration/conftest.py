@@ -306,16 +306,14 @@ def _seed_questions_once() -> None:
     import subprocess
 
     dsn = os.environ.get('DATABASE_URL')
-    if not dsn:
-        return
+    assert dsn, 'DATABASE_URL is not set'
 
     uv_exe = shutil.which('uv') or 'uv'
     test_data_path = (
         Path(__file__).resolve().parents[1] / 'data' / 'test_questions.json'
     )
 
-    if not test_data_path.exists():
-        return
+    assert test_data_path.exists(), 'Test data not found'
 
     subprocess.run(  # noqa: S603
         [
