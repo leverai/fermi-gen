@@ -205,12 +205,12 @@ jobs:
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v3
         with:
-          service: ${{ vars.CLOUD_RUN_SERVICE_API }}
+          service: ${{ vars.API_SERVICE }}
           image: ${{ needs.build-and-push.outputs.image }}
           region: ${{ vars.GCP_REGION }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
           secrets: |
-            DATABASE_URL=${{ vars.DATABASE_URL_SECRET }}:latest
+            DATABASE_URL=database-url:latest
             JWT_SECRET_KEY=fermi-api-jwt:latest
           env_vars: |
             USE_EMULATORS=false
