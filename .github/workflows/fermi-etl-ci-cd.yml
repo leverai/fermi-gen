@@ -1,0 +1,196 @@
+name: Fermi ETL CI/CD
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - 'apps/fermi-etl/**'
+      - 'packages/fermi-core/**'
+      - 'packages/fermi-db/**'
+      - 'uv.lock'
+      - 'alembic.ini'
+      - '.github/workflows/fermi-etl-ci-cd.yml'
+      - 'Makefile'
+      - '!**/docs/**'
+      - '!**/*.md'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --package fermi-etl
+
+      - name: Run unit tests
+        run: make test-etl-unit
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fermi-db
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5433/fermi-db
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      SERP_API_KEY: ${{ secrets.SERP_API_KEY }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --package fermi-etl
+
+      - name: Run database migrations
+        run: make migrate
+
+      - name: Run integration tests
+        run: make test-etl-integration-ci
+
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      image: ${{ steps.set-image.outputs.image }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep -oP "__version__ = ['\"]([^'\"]+)['\"]" apps/fermi-etl/app/version.py | grep -oP "[0-9]+\.[0-9]+\.[0-9]+")
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Extracted version: ${VERSION}"
+
+      - name: Build and push Docker image
+        id: build-image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/fermi-etl/Dockerfile
+          push: true
+          tags: |
+            ${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-etl:${{ github.sha }}
+            ${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-etl:${{ steps.version.outputs.version }}
+            ${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-etl:latest
+          cache-from: type=registry,ref=${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-etl:latest
+          cache-to: type=inline
+
+      - name: Set image output
+        id: set-image
+        run: |
+          echo "image=${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-etl:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: Deploy to ${{ github.ref == 'refs/heads/develop' && 'Development' || 'Production' }}
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    environment:
+      name: ${{ github.ref == 'refs/heads/develop' && 'dev' || 'prod' }}
+      url: https://${{ steps.deploy.outputs.url }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - name: Set compute resources
+        id: compute
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
+            echo "min_instances=0" >> $GITHUB_OUTPUT
+            echo "max_instances=3" >> $GITHUB_OUTPUT
+          else
+            echo "min_instances=1" >> $GITHUB_OUTPUT
+            echo "max_instances=10" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ vars.CLOUD_RUN_SERVICE }}
+          image: ${{ needs.build-and-push.outputs.image }}
+          region: ${{ vars.GCP_REGION }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          secrets: |
+            DATABASE_URL=${{ vars.DATABASE_URL_SECRET }}:latest
+            OPENAI_API_KEY=openai-api-key:latest
+            SERP_API_KEY=serp-api-key:latest
+          env_vars: |
+            SEED_SIMILARITY_THRESHOLD=0.1
+            QUESTION_SIMILARITY_THRESHOLD=0.15
+            QUESTION_GENERATION_MODEL=${{ vars.QUESTION_GENERATION_MODEL }}
+            LOCATION_MODEL=${{ vars.LOCATION_MODEL }}
+            EXTRACTION_MODEL=${{ vars.EXTRACTION_MODEL }}
+            CONFIDENCE_THRESHOLD=${{ vars.ANSWER_CONFIDENCE }}
+            CATEGORY_MODEL=${{ vars.CATEGORY_MODEL }}
+            DIFFICULTY_MODEL=${{ vars.DIFFICULTY_MODEL }}
+          flags: |
+            --service-account=fermi-etl-runner@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+            --add-cloudsql-instances=${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:${{ vars.CLOUD_SQL_INSTANCE }}
+            --port=8081
+            --min-instances=${{ steps.compute.outputs.min_instances }}
+            --max-instances=${{ steps.compute.outputs.max_instances }}
+            --memory=512Mi
+            --cpu=1
+            --timeout=300s
+            --concurrency=80
+            --allow-unauthenticated

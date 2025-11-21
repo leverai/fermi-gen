@@ -5,7 +5,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
-            android:name="com.gestimate.gestimate.MainActivity"
+            android:name="com.guesstimate.guesstimate.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -42,7 +42,7 @@
 
         <provider
             android:name="com.google.firebase.provider.FirebaseInitProvider"
-            android:authorities="com.gestimate.gestimate.firebaseinitprovider"
+            android:authorities="com.guesstimate.guesstimate.firebaseinitprovider"
             tools:node="remove" />
     </application>
 

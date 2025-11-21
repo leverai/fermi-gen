@@ -1,4 +1,4 @@
-package com.gestimate.gestimate
+package com.guesstimate.guesstimate
 
 import io.flutter.embedding.android.FlutterActivity
 
