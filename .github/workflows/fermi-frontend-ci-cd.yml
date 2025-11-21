@@ -134,3 +134,33 @@ jobs:
         with:
           name: fermi-frontend-${{ env.ARTIFACT_TYPE }}
           path: apps/fermi-frontend/build/app/outputs/flutter-apk/app-${{ env.BUILD_TYPE }}.apk
+
+  build-ios:
+    runs-on: macos-latest
+    env:
+      BUILD_TYPE: ${{ github.ref_name == 'main' && 'release' || 'debug' }}
+      ARTIFACT_TYPE: ${{ github.ref_name == 'main' && 'release' || 'debug' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.24.2
+          cache: true
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('apps/fermi-frontend/pubspec.lock') }}
+
+      - name: Install dependencies
+        run: cd apps/fermi-frontend && flutter pub get
+
+      - name: Build iOS
+        run: cd apps/fermi-frontend && flutter build ios --release --no-codesign
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fermi-frontend-ios-${{ env.ARTIFACT_TYPE }}
+          path: apps/fermi-frontend/build/ios/iphoneos/Runner.app
