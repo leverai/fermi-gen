@@ -14,6 +14,10 @@ on:
       - 'Makefile'
       - '!**/docs/**'
       - '!**/*.md'
+  push:
+    branches:
+      - develop
+      - main
     paths:
       - 'apps/fermi-frontend/**'
       - 'packages/fermi-core/**'
