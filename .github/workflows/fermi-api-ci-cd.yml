@@ -116,7 +116,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [unit-and-api-tests, integration-tests]
     environment:
-      name: ${{ github.ref_name == 'develop' && 'dev' || 'prod' }}
+      name: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
     permissions:
       contents: read
       id-token: write
@@ -166,12 +166,12 @@ jobs:
           echo "image=${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-api:${{ github.sha }}" >> $GITHUB_OUTPUT
 
   deploy:
-    name: Deploy to ${{ github.ref_name == 'develop' && 'Development' || 'Production' }}
+    name: Deploy to ${{ github.ref_name == 'main' && 'Production' || 'Development' }}
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main')
+    if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'develop')
     environment:
-      name: ${{ github.ref_name == 'develop' && 'dev' || 'prod' }}
+      name: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
       url: https://${{ steps.deploy.outputs.url }}
     permissions:
       contents: read
