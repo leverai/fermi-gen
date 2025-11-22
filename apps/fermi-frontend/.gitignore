@@ -11,35 +11,6 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
-.coverage
-*.db
-.pytest_cache/
-.ruff_cache/
-sandbox/
-.cursorignore
-.cursor/
-Design.md
-**/*.egg-info
-__pycache__/
-*.jsonl
-*.json
-.TODO
-gha-creds-*.json
-.prompts/
-PRPs/
-FEATURE.md
-data/
-# Allow test data files for integration tests
-!apps/fermi-api/tests/data
-!apps/fermi-api/tests/data/*.json
-!apps/fermi-api/firebase.json
-apps/fermi-api/emulator-data
-
-# Python project
-.python-version
-.venv/
-dist/
-wheels/
 
 # IntelliJ related
 *.iml
@@ -50,7 +21,7 @@ wheels/
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
-.vscode/
+#.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -72,18 +43,3 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-
-# Environment variables
-.env*
-
-
-# Flutter/Dart/Pub related
-.flutter-plugins-dependencies
-.pub-cache/
-.dart_tool/
-.fvm/
-build/
-app.*.symbols
-app.*.map.json
-
-coverage/
