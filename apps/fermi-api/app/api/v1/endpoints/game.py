@@ -187,6 +187,7 @@ async def invite_player(game_id: str) -> HTMLResponse:
     """Deep link trampoline for game invites."""
     # TODO: Make this configurable
     play_store_url = 'https://play.google.com/store/apps/details?id=com.fermi.app'
+    app_store_url = 'https://apps.apple.com/app/idYOUR_APP_ID'  # TODO: Replace with actual App Store URL
     deep_link = f'guesstimate://invite/{game_id}'
 
     html_content = f"""
@@ -202,13 +203,19 @@ async def invite_player(game_id: str) -> HTMLResponse:
         <script>
             var deepLink = "{deep_link}";
             var playStoreUrl = "{play_store_url}";
+            var appStoreUrl = "{app_store_url}";
 
             // Try to open the app
             window.location.href = deepLink;
 
-            // Fallback to Play Store after a timeout
+            // Fallback to Store after a timeout
             setTimeout(function() {{
-                window.location.href = playStoreUrl;
+                var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+                if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {{
+                    window.location.href = appStoreUrl;
+                }} else {{
+                    window.location.href = playStoreUrl;
+                }}
             }}, 2000);
         </script>
     </body>
