@@ -1,0 +1,94 @@
+[
+    {
+        "uid": "00000000-0000-0000-0000-000000000001",
+        "text": "How many piano tuners are there in New York City?",
+        "answer": {
+            "paragraph": "Using population and households, estimate the number of pianos and tuners; a typical Fermi estimate yields on the order of a few hundred piano tuners in NYC.",
+            "number": 300,
+            "unit": null,
+            "confidence": 0.6,
+            "references": [
+                {
+                    "url": "https://en.wikipedia.org/wiki/Fermi_problem",
+                    "title": "Fermi problem",
+                    "content": null,
+                    "score": null,
+                    "favicon": null
+                }
+            ]
+        },
+        "category": "HUMANITY_BY_NUMBERS",
+        "difficulty": "MEDIUM",
+        "embedding": null,
+        "status": "APPROVED",
+        "upvotes": 0,
+        "downvotes": 0
+    },
+    {
+        "uid": "00000000-0000-0000-0000-000000000002",
+        "text": "What is the total mass of air in a typical classroom?",
+        "answer": {
+            "paragraph": "Estimate room volume and multiply by air density (about 1.2 kg/m^3). For a 10 m × 8 m × 3 m room, mass is roughly 288 kg.",
+            "number": 288,
+            "unit": "kg",
+            "confidence": 0.7,
+            "references": [
+                {
+                    "url": "https://en.wikipedia.org/wiki/Density_of_air",
+                    "title": "Density of air",
+                    "content": null,
+                    "score": null,
+                    "favicon": null
+                }
+            ]
+        },
+        "category": "SHOWER_THOUGHTS",
+        "difficulty": "EASY",
+        "embedding": null,
+        "status": "APPROVED",
+        "upvotes": 10,
+        "downvotes": 0
+    },
+    {
+        "uid": "00000000-0000-0000-0000-000000000003",
+        "text": "How many grains of sand are on a typical beach?",
+        "answer": {
+            "paragraph": "Estimate beach dimensions and sand depth, convert volume to number of grains using ~1e-9 m^3 per grain; order of magnitude ~1e15 grains.",
+            "number": 1e15,
+            "unit": null,
+            "confidence": 0.5,
+            "references": [
+                {
+                    "url": "https://www.nature.com/scitable/knowledge/library/sand-24354590/",
+                    "title": "Sand",
+                    "content": null,
+                    "score": null,
+                    "favicon": null
+                }
+            ]
+        },
+        "category": "PLANET_EARTH",
+        "difficulty": "HARD",
+        "embedding": null,
+        "status": "APPROVED",
+        "upvotes": 20,
+        "downvotes": 0
+    },
+    {
+        "uid": "00000000-0000-0000-0000-000000000004",
+        "text": "How many eggs are in a dozen?",
+        "answer": {
+            "paragraph": "A dozen is 12, so the answer is 12.",
+            "number": 12,
+            "unit": null,
+            "confidence": 0.5,
+            "references": []
+        },
+        "category": "SHOWER_THOUGHTS",
+        "difficulty": "EASY",
+        "embedding": null,
+        "status": "APPROVED",
+        "upvotes": 30,
+        "downvotes": 0
+    }
+]
