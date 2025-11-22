@@ -4,7 +4,6 @@ import 'package:fermi_frontend/screens/question_v2/widgets/game_carousel.dart';
 import 'package:fermi_frontend/screens/question_v2/widgets/game_card.dart';
 import 'package:fermi_frontend/screens/question_v2/widgets/quick_access_bar.dart';
 import 'package:fermi_frontend/widgets/players_row.dart';
-import 'package:fermi_frontend/screens/question_v2/widgets/submit_bar.dart';
 import 'package:fermi_frontend/widgets/leave_button.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -237,8 +236,8 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
                             finalRanks: _controller.finalRanks,
                           ),
                         ),
-                        // Expanding spacer to push widgets apart and handle different screen sizes
-                        // const Spacer(),
+                        // Spacer to center carousel vertically in remaining space
+                        const Spacer(),
                         // Game carousel (fixed height, not expanded)
                         GameCarousel(
                           itemCount: widget.questionCount,
@@ -253,40 +252,21 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
                           height: carouselHeight,
                           enableUserSwipe: _controller.isReviewMode,
                         ),
-                        // Equal spacing between widgets
-                        // const Spacer(flex: 1),
-                        // Main button
-                        Builder(
-                          builder: (context) {
-                            final appTheme =
-                                Theme.of(context).extension<AppTheme>();
-                            final deadlineProgress =
-                                _controller.deadlineProgressTracker?.progress ??
-                                    0.0;
-                            final deadlineColor = appTheme != null
-                                ? Color.lerp(appTheme.info, appTheme.danger,
-                                    deadlineProgress)
-                                : null;
-                            final autoNextProgress =
-                                _controller.autoNextProgress;
-                            final autoNextColor = appTheme != null
-                                ? Color.lerp(appTheme.info, appTheme.danger,
-                                    autoNextProgress)
-                                : null;
-
-                            return SubmitBar(
-                              state: _getPaneState(),
-                              isLast: _controller.currentIndex ==
-                                  widget.questionCount - 1,
-                              isHost: _controller.isHost,
-                              onSubmit: _handleSubmit,
-                              onNext: _handleNext,
-                              autoNextProgress: autoNextProgress,
-                              questionDeadlineProgress: deadlineProgress,
-                              questionDeadlineColor: deadlineColor,
-                              autoNextColor: autoNextColor,
-                            );
-                          },
+                        // Quick access bar - expands to fill remaining space
+                        Expanded(
+                          child: QuickAccessBar(
+                            key: widget.dragIndicatorKey,
+                            enabled:
+                                _controller.currentAnswerController != null,
+                            onTrigger: () {
+                              _controller.currentAnswerController
+                                  ?.requestFocus();
+                            },
+                            onClose: () {
+                              _controller.currentAnswerController
+                                  ?.closeBottomSheets();
+                            },
+                          ),
                         ),
                       ],
                     ),
@@ -311,72 +291,6 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
                   ),
                 ),
               ),
-            // Quick access bar overlay - extends from question_answer card bottom border to submit bar top
-            Builder(
-              builder: (context) {
-                // Layout structure:
-                // - Padding(top: 20, bottom: 48) wraps Column
-                // - Column contains:
-                //   - Players row (164px)
-                //   - Spacer (expanding)
-                //   - GameCarousel (includes percentile widget + question_answer card + feedback row)
-                //   - SizedBox(height: 68) - spacing between carousel and submit bar
-                //   - SubmitBar (MainButton with dynamic height)
-                //
-                // The quick access bar extends from the bottom border of the question_answer card
-                // (not including the feedback row) to the top edge of the submit bar.
-                final screenHeight = MediaQuery.of(context).size.height;
-                const double bottomPadding = 48.0; // Column bottom padding
-                const double spacerHeight =
-                    24.0 * 4; // SizedBox height between carousel and submit bar
-                const double borderThickness =
-                    3.0; // Visual adjustment for card border thickness
-
-                // Calculate button height using the same formula as MainButton
-                const double baselineScreenHeight = 874.0;
-                const double baselineButtonHeight = 48.0;
-                final double buttonHeight = screenHeight *
-                    (baselineButtonHeight / baselineScreenHeight);
-
-                // Calculate submit bar top position from bottom of screen
-                final double submitBarTop =
-                    screenHeight - bottomPadding - buttonHeight;
-
-                // Carousel bottom is spacerHeight above submit bar top
-                final double carouselBottom = submitBarTop - spacerHeight;
-
-                // The carousel includes: percentile widget (24px + 24px spacing), question_answer card,
-                // and feedback row (48px). Quick access bar should start at the bottom border of the
-                // question_answer card, not the bottom of the entire carousel (which includes the feedback row).
-                final double questionAnswerCardBottom =
-                    carouselBottom - kGameCardFeedbackHeight;
-
-                // Quick access bar starts at question_answer card bottom border.
-                // Adjust by borderThickness to account for visual border rendering.
-                final double topPosition =
-                    questionAnswerCardBottom - borderThickness;
-
-                // Bottom offset positions the quick access bar to extend to the top of the submit bar.
-                final double bottomOffset = bottomPadding + buttonHeight;
-
-                return Positioned(
-                  top: topPosition,
-                  left: 0,
-                  right: 0,
-                  bottom: bottomOffset,
-                  child: QuickAccessBar(
-                    key: widget.dragIndicatorKey,
-                    enabled: _controller.currentAnswerController != null,
-                    onTrigger: () {
-                      _controller.currentAnswerController?.requestFocus();
-                    },
-                    onClose: () {
-                      _controller.currentAnswerController?.closeBottomSheets();
-                    },
-                  ),
-                );
-              },
-            ),
           ],
         );
       }),
@@ -401,7 +315,8 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
     final revealedColor =
         showFeedback ? _controller.getRevealedColor(index) : null;
 
-    AppLogger.debug('_buildGameCard[$index]: isCurrentQuestion=$isCurrentQuestion, showFeedback=$showFeedback, displayAnswer=$displayAnswer, revealedAnswer=$revealedAnswer, revealedColor=$revealedColor');
+    AppLogger.debug(
+        '_buildGameCard[$index]: isCurrentQuestion=$isCurrentQuestion, showFeedback=$showFeedback, displayAnswer=$displayAnswer, revealedAnswer=$revealedAnswer, revealedColor=$revealedColor');
 
     // Get player's percentile for this question
     final percentile = _controller.getMyPercentileForIndex(index);
@@ -424,6 +339,15 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
       // For non-current non-revealed questions, no submitted answer
       submittedAnswerForThisQuestion = null;
     }
+
+    // Get button-related props
+    final paneState = _getPaneStateForIndex(index);
+    final bool isLast = index == widget.questionCount - 1;
+    final deadlineProgress = isCurrentQuestion
+        ? (_controller.deadlineProgressTracker?.progress ?? 0.0)
+        : 0.0;
+    final autoNextProgress =
+        isCurrentQuestion ? _controller.autoNextProgress : 0.0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -458,7 +382,8 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
           // to enable animation when review mode activates simultaneously
           // In live mode, bind controller for current question to handle reveal animation
           answerController: (isCurrentQuestion &&
-                  (!_controller.isReviewMode || index == widget.questionCount - 1))
+                  (!_controller.isReviewMode ||
+                      index == widget.questionCount - 1))
               ? _controller.answerController
               : null,
           revealedAnswer: revealedAnswer,
@@ -488,23 +413,45 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
           answerWidgetKey: isCurrentQuestion
               ? (widget.answerWidgetKey ?? ValueKey('answer_$index'))
               : ValueKey('answer_$index'),
+          // Button-related props
+          paneState: paneState,
+          isLast: isLast,
+          isHost: _controller.isHost,
+          isCurrentQuestion: isCurrentQuestion,
+          onSubmit: isCurrentQuestion ? _handleSubmit : null,
+          onNext: isCurrentQuestion ? _handleNext : null,
+          autoNextProgress: autoNextProgress,
+          questionDeadlineProgress: deadlineProgress,
+          submitButtonKey: isCurrentQuestion ? widget.answerWidgetKey : null,
         ),
       ],
     );
   }
 
   QuestionPaneState _getPaneState() {
+    return _getPaneStateForIndex(_controller.currentIndex);
+  }
+
+  QuestionPaneState _getPaneStateForIndex(int index) {
     if (_controller.isReviewMode) {
       return QuestionPaneState.finished;
     }
-    final state = _controller.getQuestionState(_controller.currentIndex);
+    final state = _controller.getQuestionState(index);
     if (state == null) {
       return QuestionPaneState.started;
     }
     if (state.isRevealed) {
       return QuestionPaneState.finished;
     }
-    if (_controller.localSubmittedAnswer != null) {
+    // Check if this question has a submitted answer
+    final myId = widget.realtime.currentPlayerId;
+    final bool hasSubmittedAnswer = state.submittedAnswers.containsKey(myId);
+    // For current question, also check localSubmittedAnswer
+    if (index == _controller.currentIndex &&
+        _controller.localSubmittedAnswer != null) {
+      return QuestionPaneState.locked;
+    }
+    if (hasSubmittedAnswer) {
       return QuestionPaneState.locked;
     }
     return QuestionPaneState.started;
