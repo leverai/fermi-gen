@@ -6,6 +6,9 @@ import 'package:fermi_frontend/widgets/answer_widget.dart';
 import 'package:fermi_frontend/widgets/animated_like_dislike.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
+import 'package:fermi_frontend/widgets/main_button.dart';
+import 'package:fermi_frontend/screens/question_v2/models/question_state.dart';
+import 'package:fermi_frontend/widgets/circular_determinate_spinner.dart';
 
 const double kGameCardQuestionHeight = 24.0 *
     6; // Height for three-line questions with 28px font: text (118px) + spacing (12px) + tags (21px) + bottom spacing (24px) + padding (16px)
@@ -22,6 +25,9 @@ const double kAnswerPercentileMaxHeight = 28.0; // AnswerPercentileText height
 const double kAnswerPercentileSpacing =
     24.0; // Spacing between percentile and card
 
+const double kGameCardButtonHeight = 48.0;
+const double kGameCardButtonSpacing = 24.0; // Spacing between answer and button
+
 // Total height calculation:
 // This constant defines the fixed height of the GameCard to ensure consistent
 // layout in the carousel.
@@ -33,16 +39,18 @@ const double kAnswerPercentileSpacing =
 // - Spacing (question-to-divider): 0px (question widget touches divider)
 // - Spacing (divider-to-mirror): 24px
 // - Spacing (mirror-to-answer): 24px
+// - Spacing (answer-to-button): 24px
+// - Button: 48px
 // - Divider: 1px
 // ---
-// Subtotal (Card Content): 333px
+// Subtotal (Card Content): 405px
 //
 // The card's container adds padding and a 1px margin (for the border effect),
 // but these are included in the container's rendered height automatically. We do
 // not add them to the manual calculation of the content's height.
 //
 // The feedback section below the card has a fixed height.
-// - Feedback: 60px
+// - Feedback: 48px
 //
 // The total height is the sum of all visible components stacked vertically.
 const double kGameCardTotalHeight = kGameCardQuestionHeight +
@@ -51,6 +59,8 @@ const double kGameCardTotalHeight = kGameCardQuestionHeight +
     kGameCardQuestionToDividerSpacing + // Spacing between question and divider
     (kGameCardSpacing *
         2) + // 2 SizedBox widgets (divider-to-mirror, mirror-to-answer)
+    kGameCardButtonSpacing + // Spacing between answer and button (NEW)
+    kGameCardButtonHeight + // Button height (NEW)
     kGameCardFeedbackHeight +
     kGameCardPadding + // Padding around content (24px top + 24px bottom)
     kGameCardMargin + // Margin around container (1px all)
@@ -90,6 +100,17 @@ class GameCard extends StatelessWidget {
     this.allDigitsKey,
     this.unitKey,
     this.answerWidgetKey,
+    // Button-related props
+    this.paneState,
+    this.isLast = false,
+    this.isHost = false,
+    this.isCurrentQuestion = false,
+    this.onSubmit,
+    this.onNext,
+    this.autoNextProgress = 0.0,
+    this.questionDeadlineProgress = 0.0,
+    this.mainButtonController,
+    this.submitButtonKey,
   });
 
   final String questionText;
@@ -121,6 +142,17 @@ class GameCard extends StatelessWidget {
   final Key? allDigitsKey;
   final Key? unitKey;
   final Key? answerWidgetKey;
+  // Button-related props
+  final QuestionPaneState? paneState;
+  final bool isLast;
+  final bool isHost;
+  final bool isCurrentQuestion;
+  final VoidCallback? onSubmit;
+  final VoidCallback? onNext;
+  final double autoNextProgress;
+  final double questionDeadlineProgress;
+  final MainButtonController? mainButtonController;
+  final Key? submitButtonKey;
 
   void _copyToClipboard(BuildContext context) {
     Clipboard.setData(ClipboardData(text: questionText));
@@ -131,6 +163,118 @@ class GameCard extends StatelessWidget {
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  Widget _buildMainButton(BuildContext context) {
+    if (paneState == null) {
+      return const SizedBox.shrink();
+    }
+
+    // Calculate colors for progress indicators
+    final appTheme = Theme.of(context).extension<AppTheme>();
+    final Color? calculatedAutoNextColor = appTheme != null && autoNextProgress > 0
+        ? Color.lerp(appTheme.info, appTheme.danger, autoNextProgress)
+        : null;
+
+    switch (paneState!) {
+      case QuestionPaneState.started:
+        return SizedBox(
+          width: double.infinity,
+          child: MainButton(
+            key: submitButtonKey,
+            onPressed: isCurrentQuestion ? onSubmit : null,
+            label: MainButtonLabel.submit,
+            showSpacebarGlyph: true,
+          ),
+        );
+      case QuestionPaneState.locked:
+        return const SizedBox(
+          width: double.infinity,
+          child: MainButton(
+            onPressed: null,
+            isLoading: true,
+          ),
+        );
+      case QuestionPaneState.finished:
+        if (isLast) {
+          return Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: MainButton(
+                  onPressed: isCurrentQuestion ? onNext : null,
+                  label: MainButtonLabel.finish,
+                  showSpacebarGlyph: true,
+                  controller: mainButtonController,
+                ),
+              ),
+              if (isHost &&
+                  isCurrentQuestion &&
+                  autoNextProgress > 0 &&
+                  autoNextProgress < 1.0)
+                Positioned(
+                  right: -2,
+                  top: -2,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      // ignore: deprecated_member_use
+                      color: Colors.white.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: CircularDeterminateSpinner(
+                        progress: autoNextProgress,
+                        color: calculatedAutoNextColor,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        }
+        return Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: MainButton(
+                onPressed: (isHost && isCurrentQuestion) ? onNext : null,
+                label: MainButtonLabel.next,
+                showSpacebarGlyph: true,
+                isLoading: false,
+                controller: mainButtonController,
+              ),
+            ),
+            if (isCurrentQuestion &&
+                autoNextProgress > 0 &&
+                autoNextProgress < 1.0)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    // ignore: deprecated_member_use
+                    color: Colors.white.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: CircularDeterminateSpinner(
+                      progress: autoNextProgress,
+                      color: calculatedAutoNextColor,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+    }
   }
 
   @override
@@ -237,6 +381,10 @@ class GameCard extends StatelessWidget {
                         allDigitsKey: allDigitsKey,
                         unitKey: unitKey,
                       ),
+                      const SizedBox(height: kGameCardButtonSpacing),
+                      // Main button
+                      if (paneState != null)
+                        _buildMainButton(context),
                     ],
                   ),
                 ),

@@ -117,40 +117,43 @@ class _QuickAccessBarState extends State<QuickAccessBar> {
             right: 0,
             child: Transform.translate(
               offset: Offset(0, -_dragDistance * 0.25),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Swipe ',
-                    style: AppFont.primaryTextStyle(
-                      context,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: textColor,
-                      decoration: TextDecoration.none,
-                    ).copyWith(letterSpacing: 1),
-                  ),
-                  SvgPicture.asset(
-                    'assets/icons/up-arrow.svg',
-                    width: 14,
-                    height: 14,
-                    colorFilter: ColorFilter.mode(
-                      textColor,
-                      BlendMode.srcIn,
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Swipe ',
+                      style: AppFont.primaryTextStyle(
+                        context,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: textColor,
+                        decoration: TextDecoration.none,
+                      ).copyWith(letterSpacing: 1),
                     ),
-                  ),
-                  Text(
-                    ' for Numpad',
-                    style: AppFont.primaryTextStyle(
-                      context,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: textColor,
-                      decoration: TextDecoration.none,
-                    ).copyWith(letterSpacing: 1),
-                  ),
-                ],
+                    SvgPicture.asset(
+                      'assets/icons/up-arrow.svg',
+                      width: 14,
+                      height: 14,
+                      colorFilter: ColorFilter.mode(
+                        textColor,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                    Text(
+                      ' for Numpad',
+                      style: AppFont.primaryTextStyle(
+                        context,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: textColor,
+                        decoration: TextDecoration.none,
+                      ).copyWith(letterSpacing: 1),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
