@@ -329,6 +329,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Theme(
       data: themedData,
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         body: IgnorePointer(
           ignoring: _blockInteractions,
           child: _QuestionScreenWrapper(
