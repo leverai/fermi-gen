@@ -11,8 +11,8 @@ import 'package:fermi_frontend/screens/question_v2/models/question_state.dart';
 import 'package:fermi_frontend/widgets/circular_determinate_spinner.dart';
 
 const double kGameCardQuestionHeight = 24.0 *
-    6; // Height for three-line questions with 28px font: text (118px) + spacing (12px) + tags (21px) + bottom spacing (24px) + padding (16px)
-const double kGameCardAnswerHeight = 72.0;
+    5; // Height for three-line questions with 28px font: text (118px) + spacing (12px) + tags (21px) + bottom spacing (24px) + padding (16px)
+const double kGameCardAnswerHeight = 59.0;
 const double kGameCardSpacing = 24.0;
 const double kGameCardQuestionToDividerSpacing =
     0.0; // No spacing - question widget touches divider
@@ -33,8 +33,8 @@ const double kGameCardButtonSpacing = 24.0; // Spacing between answer and button
 // layout in the carousel.
 //
 // Breakdown of the content height:
-// - Question: 190px
-// - Answer: 72px
+// - Question: 144px (24.0 * 6)
+// - Answer: 59px
 // - Mirror Text: 22px
 // - Spacing (question-to-divider): 0px (question widget touches divider)
 // - Spacing (divider-to-mirror): 24px
@@ -43,7 +43,7 @@ const double kGameCardButtonSpacing = 24.0; // Spacing between answer and button
 // - Button: 48px
 // - Divider: 1px
 // ---
-// Subtotal (Card Content): 405px
+// Subtotal (Card Content): 346px
 //
 // The card's container adds padding and a 1px margin (for the border effect),
 // but these are included in the container's rendered height automatically. We do
@@ -172,9 +172,10 @@ class GameCard extends StatelessWidget {
 
     // Calculate colors for progress indicators
     final appTheme = Theme.of(context).extension<AppTheme>();
-    final Color? calculatedAutoNextColor = appTheme != null && autoNextProgress > 0
-        ? Color.lerp(appTheme.info, appTheme.danger, autoNextProgress)
-        : null;
+    final Color? calculatedAutoNextColor =
+        appTheme != null && autoNextProgress > 0
+            ? Color.lerp(appTheme.info, appTheme.danger, autoNextProgress)
+            : null;
 
     switch (paneState!) {
       case QuestionPaneState.started:
@@ -352,7 +353,7 @@ class GameCard extends StatelessWidget {
                             // ignore: deprecated_member_use
                             appTheme.border.withOpacity(0.3),
                       ),
-                      const SizedBox(height: kGameCardSpacing),
+                      const SizedBox(height: 20),
                       // Mirror text
                       AnswerMirrorText(
                         value: currentAnswer,
@@ -360,7 +361,7 @@ class GameCard extends StatelessWidget {
                         submittedAnswer: submittedAnswer,
                         editable: editable,
                       ),
-                      const SizedBox(height: kGameCardSpacing),
+                      const SizedBox(height: 20),
                       // Answer widget
                       AnswerWidget(
                         key: answerWidgetKey,
@@ -383,8 +384,7 @@ class GameCard extends StatelessWidget {
                       ),
                       const SizedBox(height: kGameCardButtonSpacing),
                       // Main button
-                      if (paneState != null)
-                        _buildMainButton(context),
+                      if (paneState != null) _buildMainButton(context),
                     ],
                   ),
                 ),

@@ -557,118 +557,128 @@ class _AnswerWidgetState extends State<AnswerWidget> {
     final Color revealColor = widget.revealColor ?? appTheme.danger;
 
     // Fixed height for answer elements (digits, OM, unit)
-    final double elementHeight = widget.height;
+    // The Container margin (1px all around) is part of the widget.height allocation
+    // So we need to reduce elementHeight by the margin to fit inside
+    const double containerMargin = 2.0; // 1px top + 1px bottom
+    final double elementHeight = widget.height - containerMargin;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          margin: const EdgeInsets.all(1.0),
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.max,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Digit wheels
-              // flex: 7 accounts for 3 digits + 24px internal spacing
-              // to make each digit equal width to OM (flex: 2) and unit (flex: 2)
-              Expanded(
-                flex: 7,
-                child: DigitWheels(
-                  controller: _digitsController,
-                  initialValue: _currentNumber,
-                  height: elementHeight,
-                  itemExtent: elementHeight,
-                  enabled: widget.editable,
-                  borderColor: Colors.transparent,
-                  draggingBorderColor: appTheme.primary,
-                  focusedBorderColor: appTheme.primary,
-                  borderWidth: 1,
-                  digitBackgroundColor: Colors.transparent,
-                  digitTextStyle: AppFont.secondaryTextStyle(
-                    context,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w500,
-                    color: appTheme.text,
-                    decoration: TextDecoration.none,
+    return SizedBox(
+      height: widget.height,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            margin: const EdgeInsets.all(1.0),
+            constraints: BoxConstraints(
+              maxHeight: widget.height - containerMargin,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Digit wheels
+                // flex: 7 accounts for 3 digits + 24px internal spacing
+                // to make each digit equal width to OM (flex: 2) and unit (flex: 2)
+                Expanded(
+                  flex: 7,
+                  child: DigitWheels(
+                    controller: _digitsController,
+                    initialValue: _currentNumber,
+                    height: elementHeight,
+                    itemExtent: elementHeight,
+                    enabled: widget.editable,
+                    borderColor: Colors.transparent,
+                    draggingBorderColor: appTheme.primary,
+                    focusedBorderColor: appTheme.primary,
+                    borderWidth: 1,
+                    digitBackgroundColor: Colors.transparent,
+                    digitTextStyle: AppFont.secondaryTextStyle(
+                      context,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w500,
+                      color: appTheme.text,
+                      decoration: TextDecoration.none,
+                    ),
+                    revealDigitTextStyle: AppFont.secondaryTextStyle(
+                      context,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w500,
+                      color: _digitsOverrideColor ?? revealColor,
+                      decoration: TextDecoration.none,
+                    ),
+                    focusedDigitTextStyle: AppFont.secondaryTextStyle(
+                      context,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w500,
+                      color: appTheme.primary,
+                      decoration: TextDecoration.none,
+                    ),
+                    onChanged: _onDigitsChanged,
+                    onLastDigitComplete: () {
+                      // Auto-focus OM label when last digit is entered
+                      _omController.requestFocus();
+                    },
+                    middleWheelKey: widget.digitsKey,
+                    allWheelsKey: widget.allDigitsKey,
                   ),
-                  revealDigitTextStyle: AppFont.secondaryTextStyle(
-                    context,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w500,
-                    color: _digitsOverrideColor ?? revealColor,
-                    decoration: TextDecoration.none,
-                  ),
-                  focusedDigitTextStyle: AppFont.secondaryTextStyle(
-                    context,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w500,
-                    color: appTheme.primary,
-                    decoration: TextDecoration.none,
-                  ),
-                  onChanged: _onDigitsChanged,
-                  onLastDigitComplete: () {
-                    // Auto-focus OM label when last digit is entered
-                    _omController.requestFocus();
-                  },
-                  middleWheelKey: widget.digitsKey,
-                  allWheelsKey: widget.allDigitsKey,
                 ),
-              ),
-              const SizedBox(width: 12),
-              // OM label
-              Expanded(
-                flex: 2,
-                child: OmLabel(
-                  key: widget.omKey,
-                  initialValue: _currentOm,
-                  editable: widget.editable,
-                  revealColor: _digitsOverrideColor,
-                  controller: _omController,
-                  onChanged: _onOmChanged,
-                  onBeforeOpen: () {
-                    // Close any open numpad before opening OM selector
-                    _digitsController.clearFocus();
-                  },
-                  onSelectorComplete: () {
-                    // Auto-focus unit tape when OM selection completes
-                    if (widget.units.isNotEmpty && widget.editable) {
-                      _unitController.requestFocus();
-                    }
-                  },
+                const SizedBox(width: 12),
+                // OM label
+                Expanded(
+                  flex: 2,
+                  child: OmLabel(
+                    key: widget.omKey,
+                    initialValue: _currentOm,
+                    editable: widget.editable,
+                    revealColor: _digitsOverrideColor,
+                    controller: _omController,
+                    onChanged: _onOmChanged,
+                    onBeforeOpen: () {
+                      // Close any open numpad before opening OM selector
+                      _digitsController.clearFocus();
+                    },
+                    onSelectorComplete: () {
+                      // Auto-focus unit tape when OM selection completes
+                      if (widget.units.isNotEmpty && widget.editable) {
+                        _unitController.requestFocus();
+                      }
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              // Unit tape (always render area to preserve layout)
-              Expanded(
-                flex: 2,
-                child: widget.units.isNotEmpty
-                    ? UnitTape(
-                        key: widget.unitKey,
-                        units: widget.units,
-                        unitOptions: widget.unitOptions,
-                        initialValue: _currentUnit,
-                        currentLocale: widget.currentLocale,
-                        onUnitChanged: _onUnitChanged,
-                        onLocaleChanged: widget.onLocaleChanged,
-                        editable: widget.editable,
-                        revealColor: _digitsOverrideColor,
-                        controller: _unitController,
-                        unitOptionsNotifier: widget.unitOptionsNotifier,
-                        onBeforeOpen: () {
-                          // Close any open numpad before opening unit selector
-                          _digitsController.clearFocus();
-                        },
-                      )
-                    : const SizedBox(), // Placeholder preserves layout
-              ),
-            ], // Close Row children
-          ), // Close Row
-        ), // Close outer Container
-      ],
-    ); // Close Column
+                const SizedBox(width: 12),
+                // Unit tape (always render area to preserve layout)
+                Expanded(
+                  flex: 2,
+                  child: widget.units.isNotEmpty
+                      ? UnitTape(
+                          key: widget.unitKey,
+                          units: widget.units,
+                          unitOptions: widget.unitOptions,
+                          initialValue: _currentUnit,
+                          currentLocale: widget.currentLocale,
+                          onUnitChanged: _onUnitChanged,
+                          onLocaleChanged: widget.onLocaleChanged,
+                          editable: widget.editable,
+                          revealColor: _digitsOverrideColor,
+                          controller: _unitController,
+                          unitOptionsNotifier: widget.unitOptionsNotifier,
+                          onBeforeOpen: () {
+                            // Close any open numpad before opening unit selector
+                            _digitsController.clearFocus();
+                          },
+                        )
+                      : const SizedBox(), // Placeholder preserves layout
+                ),
+              ], // Close Row children
+            ), // Close Row
+          ), // Close outer Container
+        ],
+      ), // Close Column
+    ); // Close SizedBox
   }
 }
