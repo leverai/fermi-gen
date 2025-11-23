@@ -211,7 +211,7 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
                             : bottomSheetHeight;
                         // Sliding amount = (height of numpad/sheet - height of expanded quick access container)
                         final double adjustedOffset =
-                            (activeInputHeight - quickAccessBarHeight)
+                            (activeInputHeight - quickAccessBarHeight - 8)
                                 .clamp(0.0, double.infinity);
                         return MediaQuery(
                           data: MediaQuery.of(context)
