@@ -422,7 +422,8 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
           onNext: isCurrentQuestion ? _handleNext : null,
           autoNextProgress: autoNextProgress,
           questionDeadlineProgress: deadlineProgress,
-          submitButtonKey: isCurrentQuestion ? widget.answerWidgetKey : null,
+          submitButtonKey:
+              null, // Don't use answerWidgetKey for submit button to avoid key conflicts
         ),
       ],
     );
