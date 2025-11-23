@@ -298,6 +298,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _tutorialCoachMark!.show(context: context);
   }
 
+  /// Temporarily dismisses the tutorial overlay to allow interactions with dialogs.
+  ///
+  /// Called before showing dialogs (like the leave dialog) so they can be interacted with.
+  /// The tutorial will remain dismissed after this is called.
+  void _dismissTutorialForDialog() {
+    if (_tutorialCoachMark != null && !_isDisposing) {
+      _tutorialCoachMark!.skip();
+      // Mark tutorial as ended so it doesn't interfere with dialog interactions
+      if (mounted && !_isDisposing) {
+        setState(() {
+          _blockInteractions = false;
+        });
+      }
+    }
+  }
+
   /// Exits the onboarding screen and navigates to the main screen.
   ///
   /// Called when the user completes answering the question (via QuestionScreenV2's
@@ -343,6 +359,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             omKey: _omKey,
             dragIndicatorKey: _dragIndicatorKey,
             onExit: _exitOnboarding,
+            onDismissTutorial: _dismissTutorialForDialog,
           ),
         ),
       ),
@@ -363,6 +380,7 @@ class _QuestionScreenWrapper extends StatefulWidget {
     required this.omKey,
     required this.dragIndicatorKey,
     required this.onExit,
+    required this.onDismissTutorial,
   });
 
   final OnboardingRealtime realtime;
@@ -374,6 +392,7 @@ class _QuestionScreenWrapper extends StatefulWidget {
   final GlobalKey omKey;
   final GlobalKey dragIndicatorKey;
   final VoidCallback onExit;
+  final VoidCallback onDismissTutorial;
 
   @override
   State<_QuestionScreenWrapper> createState() => _QuestionScreenWrapperState();
@@ -396,6 +415,7 @@ class _QuestionScreenWrapperState extends State<_QuestionScreenWrapper> {
       dragIndicatorKey: widget.dragIndicatorKey,
       answerWidgetKey: widget.answerOmKey, // Map answerOmKey to answerWidgetKey
       onFinish: widget.onExit, // Handle Finish button click
+      onBeforeShowDialog: widget.onDismissTutorial, // Dismiss tutorial before showing dialogs
     );
   }
 }

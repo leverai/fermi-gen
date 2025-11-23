@@ -41,6 +41,7 @@ class QuestionScreenV2 extends StatefulWidget {
     this.answerWidgetKey,
     this.onControllerCreated,
     this.onFinish,
+    this.onBeforeShowDialog,
   });
 
   final String gameId;
@@ -63,6 +64,8 @@ class QuestionScreenV2 extends StatefulWidget {
   final ValueChanged<QuestionScreenV2Controller>? onControllerCreated;
   // Optional callback for finish button (for onboarding)
   final VoidCallback? onFinish;
+  // Optional callback called before showing dialogs (e.g., to dismiss tutorial overlay)
+  final VoidCallback? onBeforeShowDialog;
 
   @override
   State<QuestionScreenV2> createState() => _QuestionScreenV2State();
@@ -112,6 +115,10 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
       }
       return;
     }
+
+    // Dismiss tutorial overlay if present (e.g., during onboarding)
+    // This allows the dialog to be interacted with
+    widget.onBeforeShowDialog?.call();
 
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
