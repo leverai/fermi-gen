@@ -82,8 +82,8 @@ class GameCarousel extends StatelessWidget {
           ),
           // Dots indicator - positioned 24px below the question_answer card bottom
           Positioned(
-            bottom: 24 -
-                6, // 24px from question_answer card bottom (48px feedback row - 24px)
+            bottom: 24 +
+                4, // 24px from question_answer card bottom (48px feedback row - 24px)
             left: 0,
             right: 0,
             child: Center(
