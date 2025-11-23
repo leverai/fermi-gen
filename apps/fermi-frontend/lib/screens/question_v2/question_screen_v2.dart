@@ -72,6 +72,8 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
   late final QuestionScreenV2Controller _controller;
   final ValueNotifier<double> _bottomSheetHeightNotifier =
       ValueNotifier<double>(0.0);
+  final ValueNotifier<double> _quickAccessBarHeightNotifier =
+      ValueNotifier<double>(0.0);
 
   @override
   void initState() {
@@ -98,6 +100,7 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     _bottomSheetHeightNotifier.dispose();
+    _quickAccessBarHeightNotifier.dispose();
     super.dispose();
   }
 
@@ -198,18 +201,31 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
                 child: ValueListenableBuilder<double>(
                   valueListenable: _bottomSheetHeightNotifier,
                   builder: (context, bottomSheetHeight, child) {
-                    final double totalOffset =
-                        keyboardHeight + bottomSheetHeight;
-                    return MediaQuery(
-                      data: MediaQuery.of(context)
-                          .copyWith(viewInsets: EdgeInsets.zero),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 100),
-                        curve: Curves.linear,
-                        transform:
-                            Matrix4.translationValues(0, -totalOffset, 0),
-                        child: child,
-                      ),
+                    return ValueListenableBuilder<double>(
+                      valueListenable: _quickAccessBarHeightNotifier,
+                      builder: (context, quickAccessBarHeight, _) {
+                        // Only one input is active at a time (numpad OR bottom sheet)
+                        // Calculate the height of the active input (numpad/sheet)
+                        final double activeInputHeight = keyboardHeight > 0
+                            ? keyboardHeight
+                            : bottomSheetHeight;
+                        // Sliding amount = (height of numpad/sheet - height of expanded quick access container)
+                        final double adjustedOffset =
+                            (activeInputHeight - quickAccessBarHeight)
+                                .clamp(0.0, double.infinity);
+                        return MediaQuery(
+                          data: MediaQuery.of(context)
+                              .copyWith(viewInsets: EdgeInsets.zero),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 100),
+                            curve: Curves.linear,
+                            transform: Matrix4.translationValues(
+                                0, -adjustedOffset, 0),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: child,
                     );
                   },
                   child: Padding(
@@ -254,18 +270,21 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
                         ),
                         // Quick access bar - expands to fill remaining space
                         Expanded(
-                          child: QuickAccessBar(
-                            key: widget.dragIndicatorKey,
-                            enabled:
-                                _controller.currentAnswerController != null,
-                            onTrigger: () {
-                              _controller.currentAnswerController
-                                  ?.requestFocus();
-                            },
-                            onClose: () {
-                              _controller.currentAnswerController
-                                  ?.closeBottomSheets();
-                            },
+                          child: _MeasureQuickAccessBar(
+                            heightNotifier: _quickAccessBarHeightNotifier,
+                            child: QuickAccessBar(
+                              key: widget.dragIndicatorKey,
+                              enabled:
+                                  _controller.currentAnswerController != null,
+                              onTrigger: () {
+                                _controller.currentAnswerController
+                                    ?.requestFocus();
+                              },
+                              onClose: () {
+                                _controller.currentAnswerController
+                                    ?.closeBottomSheets();
+                              },
+                            ),
                           ),
                         ),
                       ],
@@ -456,5 +475,79 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
       return QuestionPaneState.locked;
     }
     return QuestionPaneState.started;
+  }
+}
+
+/// Widget that measures the actual rendered height of its child and notifies via ValueNotifier
+/// Uses a GlobalKey to measure the RenderBox after layout is complete
+class _MeasureQuickAccessBar extends StatefulWidget {
+  const _MeasureQuickAccessBar({
+    required this.heightNotifier,
+    required this.child,
+  });
+
+  final ValueNotifier<double> heightNotifier;
+  final Widget child;
+
+  @override
+  State<_MeasureQuickAccessBar> createState() => _MeasureQuickAccessBarState();
+}
+
+class _MeasureQuickAccessBarState extends State<_MeasureQuickAccessBar> {
+  final GlobalKey _measureKey = GlobalKey();
+
+  void _measureHeight() {
+    // Get keyboard and bottom sheet heights to check if any input is active
+    final keyboardHeight = KeyboardHeightProvider.of(context);
+    final bottomSheetHeightNotifier =
+        BottomSheetHeightProvider.maybeOf(context);
+    final bottomSheetHeight = bottomSheetHeightNotifier?.value ?? 0.0;
+    final bool noInputActive = keyboardHeight == 0 && bottomSheetHeight == 0;
+
+    final RenderBox? box =
+        _measureKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box != null && mounted) {
+      final measuredHeight = box.size.height;
+
+      // The Expanded widget height doesn't include the bottom padding (48px)
+      // from the parent Padding widget. We need to add it to get the total
+      // visual height of the quick access area.
+      const double bottomPadding = 48.0;
+      final double totalHeight = measuredHeight + bottomPadding;
+
+      // Only update when no input is active (resting state)
+      // This captures the "baseline" height of the QuickAccessBar area
+      if (noInputActive) {
+        if (widget.heightNotifier.value != totalHeight) {
+          widget.heightNotifier.value = totalHeight;
+        }
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Measure after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureHeight());
+  }
+
+  @override
+  void didUpdateWidget(_MeasureQuickAccessBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.heightNotifier != widget.heightNotifier) {
+      // Re-measure if notifier changed
+      WidgetsBinding.instance.addPostFrameCallback((_) => _measureHeight());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Measure after each build to catch size changes
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureHeight());
+    return SizedBox(
+      key: _measureKey,
+      child: widget.child,
+    );
   }
 }
