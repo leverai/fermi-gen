@@ -189,7 +189,7 @@ jobs:
         run: cd apps/fermi-frontend && flutter pub get
 
       - name: Build iOS
-        run: cd apps/fermi-frontend && flutter build ios --release --export-options-plist=ios/Runner/ExportOptions.plist --no-codesign
+        run: cd apps/fermi-frontend && flutter build ios --release --no-codesign
 
       - uses: actions/upload-artifact@v4
         with:
