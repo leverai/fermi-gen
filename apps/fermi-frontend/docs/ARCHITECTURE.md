@@ -80,6 +80,11 @@ apps/fermi-frontend/
     │   ├── question_v2/                    # NEW: Question Screen V2 (current)
     │   │   ├── question_screen_v2.dart
     │   │   ├── question_screen_v2_controller.dart
+    │   │   ├── controllers/                # NEW: Sub-controllers
+    │   │   │   └── game_timer_manager.dart
+    │   │   ├── models/                     # NEW: Local models
+    │   │   │   ├── question_state.dart
+    │   │   │   └── question_pane_state.dart
     │   │   └── widgets/
     │   │       ├── game_carousel.dart
     │   │       ├── game_card.dart
@@ -340,6 +345,9 @@ Question Screen V2 orchestrates one round (or a sequence of rounds) of the Fermi
 - `widgets/carousel_page_wrapper.dart`: Wrapper widget using `AutomaticKeepAliveClientMixin` to preserve card state when scrolled away.
 - `widgets/game_card.dart`: Composite widget containing question text, answer input, and feedback (like widget).
 - `widgets/quick_access_bar.dart`: Draggable quick-access bar widget that fills space between carousel and submit button. Triggers numpad input when dragged up, closes bottom sheets when dragged down.
+- `controllers/game_timer_manager.dart`: Manages all game timers (deadline, auto-next, review mode) and exposes progress streams.
+- `models/question_state.dart`: Data model for per-question state.
+- `models/question_pane_state.dart`: Enum for question pane UI state.
 
 **Related services and state**:
 - `services/game_realtime.dart`: Backend-agnostic realtime interface.
@@ -437,6 +445,9 @@ class QuestionState {
   `PlayerWidget` reads `PlayerState.roundScore` to show the transient “+N” chip, and clears it as soon as the controller reports a zero round score (when the host advances). This keeps the cycle: baseline 0 → reveal animation → next question reset.
 
 ### Timer System
+
+**GameTimerManager**:
+All timer logic is encapsulated in `GameTimerManager`, which exposes methods to start/stop timers and streams/callbacks for events.
 
 **Deadline Timer (Auto-Submit)**:
 - Uses `QuestionDeadlineProgressTracker` to track progress from 0.0 to 1.0

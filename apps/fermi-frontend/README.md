@@ -103,7 +103,7 @@ The frontend follows a **controller-driven architecture** with clear separation 
 ### Key Components
 
 - **Screens**: Top-level views (MainScreen, LobbyScreen, QuestionScreenV2)
-- **Controllers**: State management (`MainScreenController`, `LobbyScreenController`, `QuestionScreenV2Controller`)
+- **Controllers**: State management (`MainScreenController`, `LobbyScreenController`, `QuestionScreenV2Controller`, `GameTimerManager`)
 - **Services**: Backend adapters (`GameRealtime`, `ApiService`, `AuthService`)
 - **Widgets**: Reusable presentational components (`AnswerWidget`, `PlayerWidget`, `PlayerRingProgress`, `QuestionWidget`, `GameCard`, `GameCarousel`)
 - **Theme**: Centralized theming (`AppTheme`)
