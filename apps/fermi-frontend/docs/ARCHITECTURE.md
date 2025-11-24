@@ -340,12 +340,19 @@ Question Screen V2 orchestrates one round (or a sequence of rounds) of the Fermi
 ### Directory Layout
 
 - `question_screen_v2.dart`: Main screen widget; arranges players row, carousel, quick-access bar, and action button in a column layout.
-- `question_screen_v2_controller.dart`: Centralized controller (`ChangeNotifier`) that manages all game state, caches historical data, and coordinates carousel navigation. Provides `currentAnswerController` getter for quick-access bar integration.
+- `question_screen_v2_controller.dart`: Centralized orchestration controller (`ChangeNotifier`) that delegates to specialized manager classes. Provides public API for UI and coordinates stream subscriptions.
+- `controllers/` - **Manager Classes** (refactored from monolithic controller):
+  - `question_state_manager.dart`: Manages question state cache, display answer priority logic, and state queries
+  - `player_state_manager.dart`: Manages player controllers, player summaries, and player state updates
+  - `animation_state_manager.dart`: Manages reveal animations with correct start/end values
+  - `game_timer_manager.dart`: Manages all game timers (deadline, auto-next, review mode activation)
+  - `confetti_manager.dart`: Manages game-end and per-question confetti state and triggers
+  - `answer_submission_handler.dart`: Handles answer submission logic, validation, and unit conversion
+  - `navigation_coordinator.dart`: Manages carousel navigation and question index changes
 - `widgets/game_carousel.dart`: Horizontal carousel widget using `PageView` with `DotsIndicator` for question navigation.
 - `widgets/carousel_page_wrapper.dart`: Wrapper widget using `AutomaticKeepAliveClientMixin` to preserve card state when scrolled away.
 - `widgets/game_card.dart`: Composite widget containing question text, answer input, and feedback (like widget).
 - `widgets/quick_access_bar.dart`: Draggable quick-access bar widget that fills space between carousel and submit button. Triggers numpad input when dragged up, closes bottom sheets when dragged down.
-- `controllers/game_timer_manager.dart`: Manages all game timers (deadline, auto-next, review mode) and exposes progress streams.
 - `models/question_state.dart`: Data model for per-question state.
 - `models/question_pane_state.dart`: Enum for question pane UI state.
 
@@ -358,18 +365,39 @@ Question Screen V2 orchestrates one round (or a sequence of rounds) of the Fermi
 
 ### High-Level Architecture
 
-**Centralized State Management**:
-- Single `QuestionScreenV2Controller` is the source of truth for the entire game session
-- Historical state caching: `Map<int, QuestionState>` stores complete state for every question
-- UI widgets receive immutable state from the controller; no complex calculations in widgets
-- **Per-Question State Retention**: Each question maintains its own state (`userAnswer`, `submittedAnswers`, `scores`, etc.) that persists as cards scroll away
+**Refactored Controller Architecture** (as of Nov 2024):
+
+The `QuestionScreenV2Controller` has been refactored from a monolithic 1577-line class into a lean orchestration layer (~700 lines) that delegates to specialized manager classes. This follows the Single Responsibility Principle and improves maintainability, testability, and code organization.
+
+**Manager-Based Design**:
+- **`QuestionStateManager`**: Owns the question state cache (`Map<int, QuestionState>`) and provides state query methods with correct priority logic (animation > revealed > user > default)
+- **`PlayerStateManager`**: Manages player widget controllers, player summaries, and player state updates from game snapshots
+- **`AnimationStateManager`**: Handles reveal animations with correct start/end values and display format conversion
+- **`GameTimerManager`**: Consolidates ALL timer logic (deadline auto-submit, auto-next countdown, review mode activation delay)
+- **`ConfettiManager`**: Manages game-end confetti for top 3 players and per-question confetti for highest scorers
+- **`AnswerSubmissionHandler`**: Handles answer submission with validation, unit conversion (abbreviation → ID), and fallback logic
+- **`NavigationCoordinator`**: Manages carousel `PageController`, question index changes, and answer controller synchronization
+
+**Controller Responsibilities** (orchestration only):
+- Initialize and coordinate all managers
+- Subscribe to game stream (`watchGame`) and delegate to managers
+- Bind question-specific streams (`QuestionPaneBindings`)
+- Provide public API that delegates to managers
+- Handle locale changes and vote actions
+- Manage stream subscriptions and disposal
 
 **State Flow**:
 1. **Backend → Controller**: `watchGame` stream updates controller state
-2. **Controller → Cache**: Question states cached as they're revealed (question text, answers, scores, player states)
-3. **Controller → UI**: UI reads from controller's cached state for any question index (not just current)
-4. **User Action → Controller**: User interactions call controller methods, which update state for the current question
-5. **Controller → Backend**: Controller calls `realtime` methods
+2. **Controller → Managers**: Controller delegates updates to appropriate managers
+3. **Managers → State**: Managers update their internal state (question cache, player controllers, etc.)
+4. **Controller → UI**: UI reads from controller's public API, which delegates to managers
+5. **User Action → Controller → Managers**: User interactions call controller methods, which delegate to managers
+6. **Managers → Backend**: Managers call `realtime` methods for backend updates
+
+**Historical State Caching**:
+- `QuestionStateManager` stores complete state for every question in `Map<int, QuestionState>`
+- UI widgets receive immutable state from the controller; no complex calculations in widgets
+- **Per-Question State Retention**: Each question maintains its own state (`userAnswer`, `submittedAnswers`, `scores`, etc.) that persists as cards scroll away
 
 **Carousel Navigation**:
 - Uses `PageView` with `PageController` for programmatic navigation
