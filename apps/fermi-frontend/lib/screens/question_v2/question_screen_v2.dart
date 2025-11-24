@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fermi_frontend/screens/question_v2/question_screen_v2_controller.dart';
 import 'package:fermi_frontend/screens/question_v2/widgets/game_carousel.dart';
 import 'package:fermi_frontend/screens/question_v2/widgets/game_card.dart';
+import 'package:fermi_frontend/screens/question_v2/models/question_pane_state.dart';
 import 'package:fermi_frontend/screens/question_v2/widgets/quick_access_bar.dart';
 import 'package:fermi_frontend/widgets/players_row.dart';
 import 'package:fermi_frontend/widgets/leave_button.dart';
@@ -12,7 +13,7 @@ import 'package:fermi_frontend/services/game_session.dart';
 import 'package:fermi_frontend/screens/question_v2/helpers/leave.dart'
     as leave_helper;
 import 'package:fermi_frontend/screens/question_v2/helpers/snack.dart' as snack;
-import 'package:fermi_frontend/screens/question_v2/models/question_state.dart';
+
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/widgets/keyboard_height_provider.dart';
 import 'package:fermi_frontend/widgets/bottom_sheet_height_provider.dart';

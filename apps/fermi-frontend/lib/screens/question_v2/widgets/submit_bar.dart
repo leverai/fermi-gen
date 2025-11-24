@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
-import 'package:fermi_frontend/screens/question_v2/models/question_state.dart';
+import 'package:fermi_frontend/screens/question_v2/models/question_pane_state.dart';
+
 import 'package:fermi_frontend/widgets/circular_determinate_spinner.dart';
 
 class SubmitBar extends StatelessWidget {

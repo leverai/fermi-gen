@@ -7,7 +7,8 @@ import 'package:fermi_frontend/widgets/animated_like_dislike.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
-import 'package:fermi_frontend/screens/question_v2/models/question_state.dart';
+
+import 'package:fermi_frontend/screens/question_v2/models/question_pane_state.dart';
 import 'package:fermi_frontend/widgets/circular_determinate_spinner.dart';
 
 const double kGameCardQuestionHeight = 24.0 *
