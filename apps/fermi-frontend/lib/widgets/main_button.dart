@@ -111,19 +111,6 @@ class _MainButtonState extends State<MainButton>
   static const Color _hoverOverlayColor =
       Color(0x1AFFFFFF); // rgba(255, 255, 255, 0.1)
 
-  // Color helpers to derive edge/face tints from the active theme.
-  Color _darken(Color color, [double amount = 0.1]) {
-    final hsl = HSLColor.fromColor(color);
-    final l = (hsl.lightness - amount).clamp(0.0, 1.0);
-    return hsl.withLightness(l).toColor();
-  }
-
-  Color _lighten(Color color, [double amount = 0.1]) {
-    final hsl = HSLColor.fromColor(color);
-    final l = (hsl.lightness + amount).clamp(0.0, 1.0);
-    return hsl.withLightness(l).toColor();
-  }
-
   void _onTapDown(TapDownDetails details) {
     if (_isEnabled) {
       setState(() {
@@ -172,13 +159,10 @@ class _MainButtonState extends State<MainButton>
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
     final Color buttonFaceColor = appTheme.primary;
     final Color iconFgColor = appTheme.bg;
-    // Derive edge color from the face for consistent depth
-    final Color edgeColor = _darken(buttonFaceColor, 0.28);
 
     // Use fixed height of 48px
-    const double pressOffset = 8;
     const double buttonHeight = 48.0;
-    const double borderRadius = 12.0;
+    final double borderRadius = appTheme.borderRadius;
 
     // Use calculated width for spacebar glyph sizing, but allow button to fill available width
     final Size screenSize = MediaQuery.of(context).size;
@@ -202,39 +186,18 @@ class _MainButtonState extends State<MainButton>
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // 3D Edge (bottom layer)
+                // Shadow Layer (static)
                 Positioned(
-                  top: pressOffset,
-                  left: 0,
-                  right: 0,
+                  top: appTheme.shadowOffset.dy,
+                  left: appTheme.shadowOffset.dx,
+                  right: -appTheme.shadowOffset
+                      .dx, // Extend to match width shift if needed, but here we just offset
+                  bottom: -appTheme.shadowOffset.dy,
                   child: Container(
-                    height: buttonHeight - pressOffset,
+                    height: buttonHeight,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          _lighten(edgeColor, 0.04),
-                          _darken(edgeColor, 0.06),
-                        ],
-                      ),
+                      color: appTheme.shadowColor,
                       borderRadius: BorderRadius.circular(borderRadius),
-                      boxShadow: [
-                        BoxShadow(
-                          // ignore: deprecated_member_use
-                          color: Colors.black.withOpacity(0.25),
-                          offset: const Offset(0, 16),
-                          blurRadius: 24,
-                          spreadRadius: 0,
-                        ),
-                        BoxShadow(
-                          // ignore: deprecated_member_use
-                          color: Colors.black.withOpacity(0.18),
-                          offset: const Offset(0, 8),
-                          blurRadius: 12,
-                          spreadRadius: 0,
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -242,25 +205,23 @@ class _MainButtonState extends State<MainButton>
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 50),
                   curve: Curves.easeOut,
-                  top: _isPressed ? pressOffset : 0.0,
-                  left: 0,
-                  right: 0,
+                  top: _isPressed ? appTheme.shadowOffset.dy : 0.0,
+                  left: _isPressed ? appTheme.shadowOffset.dx : 0.0,
+                  right: _isPressed
+                      ? -appTheme.shadowOffset.dx
+                      : 0.0, // Keep width consistent
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
                       Container(
-                        height: buttonHeight - pressOffset,
+                        height: buttonHeight,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              _lighten(buttonFaceColor, 0.06),
-                              buttonFaceColor,
-                            ],
-                          ),
+                          color: buttonFaceColor,
                           borderRadius: BorderRadius.circular(borderRadius),
-                          boxShadow: const [], // No glow effect
+                          border: Border.all(
+                            color: appTheme.border,
+                            width: appTheme.borderWidth,
+                          ),
                         ),
                         child: Stack(
                           children: [

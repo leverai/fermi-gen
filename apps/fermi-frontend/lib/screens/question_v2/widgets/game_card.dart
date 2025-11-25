@@ -291,108 +291,95 @@ class GameCard extends StatelessWidget {
         // Question-Answer Card
         Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomCenter,
-              colors: [
-                appTheme.highlight,
-                appTheme.border,
-                appTheme.borderMuted,
-              ],
-              stops: const [0.0, 0.5, 1.0],
+            color: appTheme.bg,
+            border: Border.all(
+              color: appTheme.border,
+              width: appTheme.borderWidth,
             ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Container(
-            margin: const EdgeInsets.all(1), // 1px border effect
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomCenter,
-                colors: [
-                  // ignore: deprecated_member_use
-                  appTheme.bgLight,
-                  appTheme.bg,
-                ],
-                stops: const [0.0, 0.7],
+            borderRadius: BorderRadius.circular(appTheme.borderRadius),
+            boxShadow: [
+              BoxShadow(
+                color: appTheme.shadowColor,
+                offset: appTheme.shadowOffset,
+                blurRadius: 0,
               ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-              child: InkWell(
-                onLongPress: allowCopy ? () => _copyToClipboard(context) : null,
-                borderRadius: BorderRadius.circular(12),
-                splashColor:
-                    // ignore: deprecated_member_use
-                    appTheme.primary.withOpacity(0.12),
-                highlightColor:
-                    // ignore: deprecated_member_use
-                    appTheme.primary.withOpacity(0.08),
-                child: Padding(
-                  padding: const EdgeInsets.all(kGameCardSpacing),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Question widget (without border, just text + tags)
-                      QuestionWidget(
-                        key: questionWidgetKey,
-                        text: questionText,
-                        tags: tags,
-                        height: kGameCardQuestionHeight,
-                        showBorder: false,
-                        bottomSpacing: 24.0,
-                        revealedColor: revealedColor,
-                      ),
-                      const SizedBox(height: kGameCardQuestionToDividerSpacing),
-                      // Horizontal separator between question and answer area
-                      Divider(
-                        height: 1,
-                        thickness: 1,
-                        color:
-                            // ignore: deprecated_member_use
-                            appTheme.border.withOpacity(0.3),
-                      ),
-                      const SizedBox(height: 20),
-                      // Mirror text
-                      AnswerMirrorText(
-                        value: currentAnswer,
-                        unitOptions: unitOptions,
-                        submittedAnswer: submittedAnswer,
-                        editable: editable,
-                      ),
-                      const SizedBox(height: 20),
-                      // Answer widget
-                      AnswerWidget(
-                        key: answerWidgetKey,
-                        value: currentAnswer,
-                        units: units,
-                        unitOptions: unitOptions,
-                        currentLocale: currentLocale,
-                        onChanged: onAnswerChanged,
-                        onLocaleChanged: onLocaleChanged,
-                        editable: editable,
-                        controller: answerController,
-                        revealedAnswer: revealedAnswer,
-                        revealedColor: revealedColor,
-                        height: kGameCardAnswerHeight,
-                        unitOptionsNotifier: unitOptionsNotifier,
-                        digitsKey: digitsKey,
-                        omKey: omKey,
-                        allDigitsKey: allDigitsKey,
-                        unitKey: unitKey,
-                      ),
-                      const SizedBox(height: kGameCardButtonSpacing),
-                      // Main button
-                      if (paneState != null) _buildMainButton(context),
-                    ],
-                  ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(appTheme.borderRadius),
+            child: InkWell(
+              onLongPress: allowCopy ? () => _copyToClipboard(context) : null,
+              borderRadius: BorderRadius.circular(appTheme.borderRadius),
+              splashColor:
+                  // ignore: deprecated_member_use
+                  appTheme.primary.withOpacity(0.12),
+              highlightColor:
+                  // ignore: deprecated_member_use
+                  appTheme.primary.withOpacity(0.08),
+              child: Padding(
+                padding: const EdgeInsets.all(kGameCardSpacing),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Question widget (without border, just text + tags)
+                    QuestionWidget(
+                      key: questionWidgetKey,
+                      text: questionText,
+                      tags: tags,
+                      height: kGameCardQuestionHeight,
+                      showBorder: false,
+                      bottomSpacing: 24.0,
+                      revealedColor: revealedColor,
+                    ),
+                    const SizedBox(height: kGameCardQuestionToDividerSpacing),
+                    // Horizontal separator between question and answer area
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color:
+                          // ignore: deprecated_member_use
+                          appTheme.border.withOpacity(0.3),
+                    ),
+                    const SizedBox(height: 20),
+                    // Mirror text
+                    AnswerMirrorText(
+                      value: currentAnswer,
+                      unitOptions: unitOptions,
+                      submittedAnswer: submittedAnswer,
+                      editable: editable,
+                    ),
+                    const SizedBox(height: 20),
+                    // Answer widget
+                    AnswerWidget(
+                      key: answerWidgetKey,
+                      value: currentAnswer,
+                      units: units,
+                      unitOptions: unitOptions,
+                      currentLocale: currentLocale,
+                      onChanged: onAnswerChanged,
+                      onLocaleChanged: onLocaleChanged,
+                      editable: editable,
+                      controller: answerController,
+                      revealedAnswer: revealedAnswer,
+                      revealedColor: revealedColor,
+                      height: kGameCardAnswerHeight,
+                      unitOptionsNotifier: unitOptionsNotifier,
+                      digitsKey: digitsKey,
+                      omKey: omKey,
+                      allDigitsKey: allDigitsKey,
+                      unitKey: unitKey,
+                    ),
+                    const SizedBox(height: kGameCardButtonSpacing),
+                    // Main button
+                    if (paneState != null) _buildMainButton(context),
+                  ],
                 ),
               ),
             ),
           ),
         ),
+
         // Feedback row (right-aligned like widget)
         // Always reserve space to prevent card from shrinking when feedback appears
         SizedBox(

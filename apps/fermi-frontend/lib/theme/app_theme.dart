@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 /// to RGB Color objects using Flutter's HSLColor class.
 @immutable
 class AppTheme extends ThemeExtension<AppTheme> {
-  // Background colors (dark theme)
+  // Background colors
   final Color bgDark;
   final Color bg;
   final Color bgLight;
@@ -34,6 +34,12 @@ class AppTheme extends ThemeExtension<AppTheme> {
   final Color success;
   final Color info;
 
+  // Neubrutalism specific properties
+  final double borderWidth;
+  final double borderRadius;
+  final Offset shadowOffset;
+  final Color shadowColor;
+
   const AppTheme({
     required this.bgDark,
     required this.bg,
@@ -51,43 +57,42 @@ class AppTheme extends ThemeExtension<AppTheme> {
     required this.warning,
     required this.success,
     required this.info,
+    this.borderWidth = 3.0,
+    this.borderRadius = 0.0,
+    this.shadowOffset = const Offset(4, 4),
+    this.shadowColor = Colors.black,
   });
 
-  /// Default theme with HSL colors (dark-green-tee configuration)
+  /// Default theme with Neubrutalism colors
   factory AppTheme.defaultTheme() {
-    return AppTheme(
-      // hsl(349, 7%, 4%) - Very dark (bgDark)
-      bgDark: const HSLColor.fromAHSL(1.0, 349, 0.07, 0.04).toColor(),
-      // hsl(349, 7%, 8%) - Dark (bg)
-      bg: const HSLColor.fromAHSL(1.0, 349, 0.07, 0.08).toColor(),
-      // hsl(349, 7%, 12%) - Slightly lighter dark (bgLight)
-      bgLight: const HSLColor.fromAHSL(1.0, 349, 0.07, 0.12).toColor(),
-      // hsl(349, 7%, 91%) - Almost white (text)
-      text: const HSLColor.fromAHSL(1.0, 349, 0.07, 0.91).toColor(),
-      // hsl(349, 7%, 100%) - White (textMuted)
-      textMuted: const HSLColor.fromAHSL(1.0, 349, 0.07, 1.0).toColor(),
-      // hsl(349, 7%, 41%) - Medium gray (highlight)
-      highlight: const HSLColor.fromAHSL(1.0, 349, 0.07, 0.41).toColor(),
-      // hsl(349, 7%, 52%) - Light gray (border)
-      border: const HSLColor.fromAHSL(1.0, 349, 0.07, 0.52).toColor(),
-      // hsl(349, 7%, 40%) - Medium-light gray (borderMuted)
-      borderMuted: const HSLColor.fromAHSL(1.0, 349, 0.07, 0.32).toColor(),
-      // hsl(146, 17%, 59%) - Green (primary)
-      primary: const HSLColor.fromAHSL(1.0, 146, 0.17, 0.59).toColor(),
-      // hsl(146, 17%, 29.5%) - Dark green (primaryMuted)
-      primaryMuted: const HSLColor.fromAHSL(1.0, 146, 0.04, 0.40).toColor(),
-      // hsl(221, 79%, 76%) - Light blue (secondary)
-      secondary: const HSLColor.fromAHSL(1.0, 221, 0.79, 0.76).toColor(),
-      // hsl(221, 79%, 38%) - Medium blue (secondaryMuted)
-      secondaryMuted: const HSLColor.fromAHSL(1.0, 221, 0.79, 0.38).toColor(),
-      // hsl(9, 26%, 64%) - Reddish (danger)
-      danger: const HSLColor.fromAHSL(1.0, 9, 0.26, 0.64).toColor(),
-      // hsl(52, 19%, 57%) - Yellowish (warning)
-      warning: const HSLColor.fromAHSL(1.0, 52, 0.19, 0.57).toColor(),
-      // hsl(146, 17%, 59%) - Greenish (success)
-      success: const HSLColor.fromAHSL(1.0, 146, 0.17, 0.59).toColor(),
-      // hsl(217, 28%, 65%) - Blueish (info)
-      info: const HSLColor.fromAHSL(1.0, 252, 0.17, 0.59).toColor(),
+    return const AppTheme(
+      // Backgrounds
+      bgDark: Color(0xFFE0E0E0), // Light grey for depth
+      bg: Color(0xFFFFF8E7), // Light beige/off-white
+      bgLight: Color(0xFFFFFFFF), // Pure white
+
+      // Text
+      text: Color(0xFF000000), // Stark black
+      textMuted: Color(0xFF4A4A4A), // Dark grey
+
+      // UI Elements
+      highlight: Color(0xFF000000), // Black for highlights
+      border: Color(0xFF000000), // Black borders
+      borderMuted: Color(0xFF000000), // Black borders (consistent)
+
+      // Brand - Vibrant Purple
+      primary: Color(0xFF8854D0),
+      primaryMuted: Color(0xFF6C42A5),
+
+      // Secondary - Vibrant Teal
+      secondary: Color(0xFF4ECDC4),
+      secondaryMuted: Color(0xFF3B9C96),
+
+      // Semantic
+      danger: Color(0xFFFF6B6B), // Bright Red
+      warning: Color(0xFFFFE66D), // Bright Yellow
+      success: Color(0xFF6BCB77), // Bright Green
+      info: Color(0xFF4D96FF), // Bright Blue
     );
   }
 
@@ -203,6 +208,10 @@ class AppTheme extends ThemeExtension<AppTheme> {
     Color? warning,
     Color? success,
     Color? info,
+    double? borderWidth,
+    double? borderRadius,
+    Offset? shadowOffset,
+    Color? shadowColor,
   }) {
     return AppTheme(
       bgDark: bgDark ?? this.bgDark,
@@ -221,6 +230,10 @@ class AppTheme extends ThemeExtension<AppTheme> {
       warning: warning ?? this.warning,
       success: success ?? this.success,
       info: info ?? this.info,
+      borderWidth: borderWidth ?? this.borderWidth,
+      borderRadius: borderRadius ?? this.borderRadius,
+      shadowOffset: shadowOffset ?? this.shadowOffset,
+      shadowColor: shadowColor ?? this.shadowColor,
     );
   }
 
@@ -246,6 +259,17 @@ class AppTheme extends ThemeExtension<AppTheme> {
       warning: Color.lerp(warning, other.warning, t)!,
       success: Color.lerp(success, other.success, t)!,
       info: Color.lerp(info, other.info, t)!,
+      borderWidth: lerpDouble(borderWidth, other.borderWidth, t)!,
+      borderRadius: lerpDouble(borderRadius, other.borderRadius, t)!,
+      shadowOffset: Offset.lerp(shadowOffset, other.shadowOffset, t)!,
+      shadowColor: Color.lerp(shadowColor, other.shadowColor, t)!,
     );
   }
+}
+
+double? lerpDouble(double? a, double? b, double t) {
+  if (a == null && b == null) return null;
+  a ??= 0.0;
+  b ??= 0.0;
+  return a + (b - a) * t;
 }
