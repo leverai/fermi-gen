@@ -19,13 +19,54 @@ You are an expert at analyzing answer paragraphs and extracting the quantitative
 A valid answer paragraph is one which:
 -   Can confidently be viewed as the answer to the provided Fermi Question.
 -   Is clearly giving sufficient information about a *DQ* or *SQ*.
--   The unit in the pargraph (if any) is is one of the units defined below.
+-   The unit in the pargraph (if any) **MUST BE ONE OF THE FOLLOWING**:
+    -   `"ounce"`
+    -   `"pound"`
+    -   `"ton"`
+    -   `"gram"`
+    -   `"kilogram"`
+    -   `"metric_ton"`
+    -   `"inch"`
+    -   `"foot"`
+    -   `"mile"`
+    -   `"centimeter"`
+    -   `"meter"`
+    -   `"kilometer"`
+    -   `"foot ** 2"`
+    -   `"acre"`
+    -   `"mile ** 2"`
+    -   `"meter ** 2"`
+    -   `"hectare"`
+    -   `"km ** 2"`
+    -   `"quart"`
+    -   `"gallon"`
+    -   `"liter"`
+    -   `"meter ** 3"`
+    -   `"foot ** 3"`
+    -   `"km ** 3"`
+    -   `"mile ** 3"`
+    -   `"second"`
+    -   `"minute"`
+    -   `"hour"`
+    -   `"day"`
+    -   `"week"`
+    -   `"month"`
+    -   `"year"`
+    -   `"century"`
+    -   `"millennium"`
+    -   `"fahrenheit"`
+    -   `"celsius"`
+    -   `"kilobyte"`
+    -   `"megabyte"`
+    -   `"gigabyte"`
+    -   `"terabyte"`
+    -   `"petabyte"`
 
 #### **Valid paragraph examples:**
 -   Question: How many starts can be seen by the naked eye from Earth on a clear night."
 -   Answer Paragraph: On a clear night, about 2,500 to 4,500 stars are visible to the naked eye from Earth. This number varies based on location and sky conditions. The exact number depends on individual eyesight and local light pollution.
     -   Info extracted:
-        -   `number`: 2.50e3
+        -   `number`: 3.50e3
         -   `unit`: "dimensionless"
         -   `confidence`: 1
 -   Question: How much is the Sun brighter than a full moon?
@@ -94,52 +135,9 @@ Your task is to read each Question, Answer Paragraph pair I give you and:
             1.  **Extract the most likely numeric answer** from the paragraph.
                 -   If the paragraph provides a range of values (e.g., "100 to 200"), use the average.
                 -   The number portion of the answer MUST be provided in **Scientific Notation**. For example, if the paragraph says the answer is "1.5 billion", you MUST output "1.50e9".
-            2.  **Extract the most likely unit** from the paragraph IF the paragraph references a *DQ* with a clear unit.
-                -   The extracted unit string **MUST BE ONE OF THE FOLLOWING**:
-                    -   `"ounce"`
-                    -   `"pound"`
-                    -   `"ton"`
-                    -   `"gram"`
-                    -   `"kilogram"`
-                    -   `"metric_ton"`
-                    -   `"inch"`
-                    -   `"foot"`
-                    -   `"mile"`
-                    -   `"centimeter"`
-                    -   `"meter"`
-                    -   `"kilometer"`
-                    -   `"foot ** 2"`
-                    -   `"acre"`
-                    -   `"mile ** 2"`
-                    -   `"meter ** 2"`
-                    -   `"hectare"`
-                    -   `"km ** 2"`
-                    -   `"quart"`
-                    -   `"gallon"`
-                    -   `"liter"`
-                    -   `"meter ** 3"`
-                    -   `"foot ** 3"`
-                    -   `"km ** 3"`
-                    -   `"mile ** 3"`
-                    -   `"second"`
-                    -   `"minute"`
-                    -   `"hour"`
-                    -   `"day"`
-                    -   `"week"`
-                    -   `"month"`
-                    -   `"year"`
-                    -   `"century"`
-                    -   `"millennium"`
-                    -   `"fahrenheit"`
-                    -   `"celsius"`
-                    -   `"kilobyte"`
-                    -   `"megabyte"`
-                    -   `"gigabyte"`
-                    -   `"terabyte"`
-                    -   `"petabyte"`
+            2.  **Extract the most likely unit** from the paragraph IF the paragraph references a *DQ* with a clear and recognized unit.
                 -   If the paragraph answers with a *SQ*, you MUST output `"dimensionless"` as the unit.
             3.  **Provide a confidence score** between 0 and 1, to indicate how confident you are about the info extraction.
-
         2.  If the paragraph is not valid:
             -   Set the numeric answer to 0.
             -   Set the unit to 'dimensionless'

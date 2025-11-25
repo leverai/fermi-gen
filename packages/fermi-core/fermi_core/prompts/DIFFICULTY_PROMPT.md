@@ -23,7 +23,7 @@ Analyze the given Fermi question and classify its difficulty level as one of: EA
 - Complex multi-step reasoning (5+ steps)
 - Requires creative thinking about abstract or unfamiliar concepts
 - May involve scientific, technical, or historical knowledge
-- Examples: "How many atoms are in the observable universe?", "What's the total length of DNA in all humans alive?"
+- Examples: "How much gas does it take to travel to the moon?", "How many diapers are used in the US each year?"
 
 ## Guidelines
 

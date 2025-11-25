@@ -12,8 +12,8 @@ A Fermi Question is an estimation puzzle that rewards logical thinking over memo
 
 ## **The Game & Audience**
 
-- **Target Users:** Adults (18-45) seeking casual, intellectually stimulating entertainment
-- **Primary Regions:** Americas, Europe, Australia (English-speaking)
+- **Target Users:** Adults seeking casual, intellectually stimulating entertainment
+- **Primary Regions:** Americas (primarily), Europe, Australia (English-speaking)
 - **Mindset:** They want to feel smart without feeling stressed. Fun > Facts.
 - **Success Metric:** Questions that make users think "That's such a cool question!" and keep playing
 
@@ -32,21 +32,21 @@ The "wow factor" is critical. Questions should spark curiosity, surprise, or del
 
 **What makes questions engaging:**
 - Pop culture references ("How many hours of Netflix are watched globally each day?")
-- Surprising scales ("How many atoms of gold are in all the wedding rings in the US?")
+- Surprising scales ("How much gold is in all the wedding rings in the US?")
 - Everyday mysteries ("How many pigeons are in New York City?")
-- Fun juxtapositions ("How many Olympic swimming pools could you fill with all the coffee consumed in the US each year?")
+- Fun juxtapositions ("How many Olympic swimming pools could you fill with all the coffee consumed in the US in a year?")
 
 - ✅ **GOOD:** "How many monks live across all monasteries in Asia?" (Intriguing, unexpected)
-- ✅ **GOOD:** "How many hairs are on all the cats in the United States?" (Fun, relatable)
+- ✅ **GOOD:** "How many hairs shed on all the cats in the United States in a day?" (Fun, relatable)
 - ❌ **BORING:** "How many hospitals are in California?" (Dry, no emotional hook)
 
 ### **Rule 3: MUST Be Reasonably Answerable**
 
 Avoid impossible estimations that would stump even experts, or questions based on myths/unknowable facts.
 
-- ❌ **BAD:** "How many apples fell on Isaac Newton's head?" (Myth, not real data)
+- ❌ **BAD:** "How many times did Isaac Newton say hello?" (Myth, not real data)
 - ❌ **BAD:** "How many grains of sand are on all Asian beaches combined?" (Too vast, no reasonable estimation path)
-- ✅ **GOOD:** "How many grains of sand would fill a standard sandbox?" (Specific, estimable)
+- ✅ **GOOD:** "How many grains of sand would fill a teaspoon?" (Specific, estimable)
 
 **Avoid Trivial Complications:**
 Don't add unnecessary arithmetic that doesn't enhance the puzzle.
@@ -61,7 +61,7 @@ Ambiguity kills engagement. Every question should have ONE reasonable interpreta
 **Be Specific Enough:**
 - ❌ **BAD:** "How many marbles can fit inside a swimming pool" (What size pool?)
 - ✅ **GOOD:** "How many marbles can fit inside an olympic swimming pool?"
-- ❌ **BAD:** "How many 2.56 inch circular marbles can fit inside a 256x412x12 foot swimming pool?" (too specific, too dry, too boring.)
+- ❌ **BAD:** "How many 2.56-inch circular marbles can fit inside a 256x412x12 foot swimming pool?" (too specific, too dry, too boring.)
 - ✅ **GOOD:** "How many marbles can fit inside an olympic swimming pool?"
 
 **Provide Context:**
@@ -108,16 +108,7 @@ Questions should engage 80%+ of your audience, not just niche enthusiasts.
 
 ## **Question Diversity & Creativity**
 
-Each batch should include variety across the following dimensions, inspired by the provided "seed".
-
-**Topic Categories:**
-- 🌍 **Nature & Animals:** "How many ants are alive on Earth right now?"
-- 🍔 **Food & Consumption:** "How many Big Macs are sold at McDonald's each year worldwide?"
-- 🎬 **Pop Culture & Entertainment:** "How many hours of content are uploaded to YouTube every day?"
-- 🏙️ **Urban & Infrastructure:** "How many stop signs are there in the United States?"
-- 🔬 **Science & Scale:** "How many cells are in the human body?"
-- 💰 **Economics & Business:** "How much does the entire fleet of Amazon delivery trucks weigh?"
-- 🏃 **Human Behavior:** "How many steps does the average American take in a lifetime?"
+Each batch should include variety across multiple dimensions, inspired by the provided "seed".
 
 **Scale Variety:**
 - Mix small-scale ("How many words are in an average novel?")
