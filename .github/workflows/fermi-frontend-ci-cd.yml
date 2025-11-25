@@ -92,17 +92,28 @@ jobs:
         run: echo "Pending implementation"
 
 
-  build-android:
+  build-and-publish-android:
+    name: Build and Publish Android
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+      name: ${{ github.event_name == 'push' && (github.ref_name == 'main' && 'prod' || 'dev') || '' }}
+    permissions:
+      contents: read
+      id-token: write
     env:
-      # Consider moving to gh environment variables
-      BUILD_TYPE: ${{ github.ref_name == 'main' && 'release' || 'debug' }}
-      ARTIFACT_TYPE: ${{ github.ref_name == 'main' && 'release-apk' || 'debug-apk' }}
+      BUILD_TYPE: ${{ github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main') && 'release' || 'debug' }}
+      PUBLISH_TRACK: ${{ github.ref_name == 'develop' && 'internal' || 'production' }}
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main')
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.PLAY_STORE_SERVICE_ACCOUNT }}
 
       - uses: subosito/flutter-action@v2
         with:
@@ -126,14 +137,35 @@ jobs:
         run: |
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > apps/fermi-frontend/android/app/google-services.json
 
+      - name: Decode and save keystore
+        if: env.BUILD_TYPE == 'release'
+        run: |
+          echo "${{ secrets.KEYSTORE_FILE_BASE64 }}" | base64 -d > ${{ runner.temp }}/release.keystore
 
-      - name: Build APK ${{ env.BUILD_TYPE }}
-        run: cd apps/fermi-frontend && flutter build apk --${{ env.BUILD_TYPE }}
-        
-      - uses: actions/upload-artifact@v4
+      - name: Build AAB
+        env:
+          KEYSTORE_FILE: ${{ runner.temp }}/release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ vars.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: cd apps/fermi-frontend && flutter build appbundle --${{ env.BUILD_TYPE }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: fermi-frontend-${{ env.ARTIFACT_TYPE }}
-          path: apps/fermi-frontend/build/app/outputs/flutter-apk/app-${{ env.BUILD_TYPE }}.apk
+          name: fermi-frontend-${{ env.BUILD_TYPE }}-aab
+          path: apps/fermi-frontend/build/app/outputs/bundle/${{ env.BUILD_TYPE }}/app-${{ env.BUILD_TYPE }}.aab
+
+      - name: Upload to Google Play
+        if: github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main')
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
+          packageName: com.guesstimate.guesstimate
+          releaseFiles: apps/fermi-frontend/build/app/outputs/bundle/release/app-release.aab
+          track: ${{ env.PUBLISH_TRACK }}
+          status: completed
+
 
   build-ios:
     runs-on: macos-latest

@@ -26,9 +26,6 @@ This document describes the deployment configuration and process for the Fermi A
 
 The Fermi API is deployed to Google Cloud Run with separate environments for development and production:
 
-- **Development**: `fermi-api-dev` (auto-deploys from `develop` branch)
-- **Production**: `fermi-api-prod` (auto-deploys from `main` branch)
-
 The deployment uses:
 - **Cloud Run**: Serverless container platform
 - **Cloud SQL**: PostgreSQL 17 database
@@ -192,12 +189,7 @@ gcloud run services logs read fermi-api-dev --region=us-central1
 
 ```bash
 # Development
-SERVICE_URL=$(gcloud run services describe fermi-api-dev \
-  --region=us-central1 \
-  --format='value(status.url)')
-
-# Production
-SERVICE_URL=$(gcloud run services describe fermi-api-prod \
+SERVICE_URL=$(gcloud run services describe fermi-api \
   --region=us-central1 \
   --format='value(status.url)')
 ```
@@ -313,7 +305,7 @@ Error: Firebase emulators not ready
 **Recent logs:**
 
 ```bash
-gcloud run services logs read fermi-api-dev \
+gcloud run services logs read fermi-api \
   --region=us-central1 \
   --limit=50
 ```
@@ -321,7 +313,7 @@ gcloud run services logs read fermi-api-dev \
 **Filter by severity:**
 
 ```bash
-gcloud run services logs read fermi-api-dev \
+gcloud run services logs read fermi-api \
   --region=us-central1 \
   --log-filter='severity>=ERROR'
 ```
@@ -329,7 +321,7 @@ gcloud run services logs read fermi-api-dev \
 **Follow logs in real-time:**
 
 ```bash
-gcloud run services logs tail fermi-api-dev \
+gcloud run services logs tail fermi-api \
   --region=us-central1
 ```
 
