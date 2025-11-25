@@ -205,13 +205,7 @@ git push
 ### Get Service URL
 
 ```bash
-# Development
-SERVICE_URL=$(gcloud run services describe fermi-etl-dev \
-  --region=us-central1 \
-  --format='value(status.url)')
-
-# Production
-SERVICE_URL=$(gcloud run services describe fermi-etl-prod \
+SERVICE_URL=$(gcloud run services describe fermi-etl \
   --region=us-central1 \
   --format='value(status.url)')
 ```
@@ -355,7 +349,7 @@ Timeout after 300s
 **Recent logs:**
 
 ```bash
-gcloud run services logs read fermi-etl-dev \
+gcloud run services logs read fermi-etl \
   --region=us-central1 \
   --limit=50
 ```
@@ -363,7 +357,7 @@ gcloud run services logs read fermi-etl-dev \
 **Filter by severity:**
 
 ```bash
-gcloud run services logs read fermi-etl-dev \
+gcloud run services logs read fermi-etl \
   --region=us-central1 \
   --log-filter='severity>=ERROR'
 ```
@@ -371,14 +365,14 @@ gcloud run services logs read fermi-etl-dev \
 **Follow logs in real-time:**
 
 ```bash
-gcloud run services logs tail fermi-etl-dev \
+gcloud run services logs tail fermi-etl \
   --region=us-central1
 ```
 
 **Filter by specific endpoint:**
 
 ```bash
-gcloud run services logs read fermi-etl-dev \
+gcloud run services logs read fermi-etl \
   --region=us-central1 \
   --log-filter='textPayload=~"POST /insert_llm"'
 ```

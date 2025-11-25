@@ -49,9 +49,18 @@ if (flutterVersionName == null) {
         versionName = flutterVersionName
     }
 
+    signingConfigs {
+        release {
+            storeFile file("$System.env.KEYSTORE_FILE")
+            storePassword "$System.env.KEYSTORE_PASSWORD"
+            keyAlias "$System.env.KEY_ALIAS"
+            keyPassword "$System.env.KEY_PASSWORD"
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.debug
+            signingConfig = signingConfigs.release
         }
     }
 }
