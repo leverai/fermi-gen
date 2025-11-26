@@ -93,7 +93,7 @@ jobs:
 
 
   build-android:
-    name: Build and Publish Android
+    name: Build Android
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.event_name == 'push' && (github.ref_name == 'main' && 'prod' || 'dev') || '' }}
@@ -148,7 +148,11 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ vars.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        run: cd apps/fermi-frontend && flutter build appbundle --${{ env.BUILD_TYPE }}
+        run: |
+          cd apps/fermi-frontend
+          flutter build appbundle --${{ env.BUILD_TYPE }} \
+            --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }} \
+            --dart-define=USE_EMULATORS=false
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
