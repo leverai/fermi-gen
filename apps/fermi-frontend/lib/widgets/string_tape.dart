@@ -167,32 +167,46 @@ class _StringTapeState extends State<StringTape> {
 
     return Stack(
       children: [
-        SizedBox(
-          height: widget.itemExtent *
-              4, // Show 4 items total (1-2 above, center, 1-2 below)
-          child: ListWheelScrollView.useDelegate(
-            controller: _controller,
-            itemExtent: widget.itemExtent,
-            physics: widget.enabled
-                ? const FixedExtentScrollPhysics()
-                : const NeverScrollableScrollPhysics(),
-            perspective: 0.003,
-            diameterRatio:
-                1.5, // Show more items around center (smaller = more visible items)
-            onSelectedItemChanged: (index) {
-              setState(() => _selectedIndex = index);
-            },
-            childDelegate: ListWheelChildBuilderDelegate(
-              builder: (context, index) {
-                if (index < 0 || index >= widget.values.length) return null;
+        GestureDetector(
+          onTapUp: (details) {
+            if (!widget.enabled) return;
+            // Calculate which item was tapped based on Y position
+            final double tapY = details.localPosition.dy;
+            final double centerY =
+                widget.itemExtent * 2; // Center of the 4-item view
+            final double offsetFromCenter = tapY - centerY;
+            final int itemOffset =
+                (offsetFromCenter / widget.itemExtent).round();
+            final int tappedIndex = (_selectedIndex + itemOffset)
+                .clamp(0, widget.values.length - 1);
+            _onItemTapped(tappedIndex);
+          },
+          child: SizedBox(
+            height: widget.itemExtent *
+                4, // Show 4 items total (1-2 above, center, 1-2 below)
+            child: ListWheelScrollView.useDelegate(
+              controller: _controller,
+              itemExtent: widget.itemExtent,
+              physics: widget.enabled
+                  ? const FixedExtentScrollPhysics()
+                  : const NeverScrollableScrollPhysics(),
+              perspective: 0.003,
+              diameterRatio:
+                  1.5, // Show more items around center (smaller = more visible items)
+              onSelectedItemChanged: (index) {
+                setState(() => _selectedIndex = index);
+              },
+              childDelegate: ListWheelChildBuilderDelegate(
+                builder: (context, index) {
+                  if (index < 0 || index >= widget.values.length) return null;
 
-                final String value = widget.values[index];
-                final String label = widget.labelBuilder?.call(value) ?? value;
-                final bool isSelected = index == _selectedIndex;
+                  final String value = widget.values[index];
+                  final String label =
+                      widget.labelBuilder?.call(value) ?? value;
+                  final bool isSelected = index == _selectedIndex;
 
-                return GestureDetector(
-                  onTap: () => _onItemTapped(index),
-                  child: Container(
+                  return Container(
+                    height: widget.itemExtent,
                     alignment: Alignment.center,
                     child: Text(
                       label,
@@ -200,10 +214,10 @@ class _StringTapeState extends State<StringTape> {
                           isSelected ? defaultSelectedStyle : defaultTextStyle,
                       textAlign: TextAlign.center,
                     ),
-                  ),
-                );
-              },
-              childCount: widget.values.length,
+                  );
+                },
+                childCount: widget.values.length,
+              ),
             ),
           ),
         ),
@@ -225,7 +239,7 @@ class _StringTapeState extends State<StringTape> {
                     height: widget.itemExtent,
                     decoration: BoxDecoration(
                       color: appTheme.primary,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.zero,
                     ),
                     child: Opacity(
                       opacity: 0, // Hide the text, we only need it for sizing
