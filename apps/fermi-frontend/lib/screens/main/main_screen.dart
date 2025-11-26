@@ -238,138 +238,122 @@ class _MainScreenState extends State<MainScreen> {
                             children: [
                               Container(
                                 decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      appTheme.highlight,
-                                      appTheme.border,
-                                      appTheme.borderMuted,
-                                    ],
-                                    stops: const [0.0, 0.5, 1.0],
+                                  color: appTheme.bg,
+                                  border: Border.all(
+                                    color: appTheme.border,
+                                    width: appTheme.borderWidth,
                                   ),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(
+                                      appTheme.borderRadius),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: appTheme.shadowColor,
+                                      offset: appTheme.shadowOffset,
+                                      blurRadius: 0,
+                                    ),
+                                  ],
                                 ),
-                                child: Container(
-                                  margin: const EdgeInsets.all(
-                                      1), // 1px border effect
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        // ignore: deprecated_member_use
-                                        appTheme.bgLight,
-                                        appTheme.bg,
-                                      ],
-                                      stops: const [0.0, 0.7],
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(
-                                        left: 24.0,
-                                        right: 24.0,
-                                        top: 12.0,
-                                        bottom: 24.0),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              'Party',
-                                              style: AppFont.primaryTextStyle(
-                                                context,
-                                                fontSize: 48,
-                                                fontWeight: FontWeight.w600,
-                                                color: appTheme.text,
-                                              ),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                      left: 24.0,
+                                      right: 24.0,
+                                      top: 12.0,
+                                      bottom: 24.0),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Party',
+                                            style: AppFont.primaryTextStyle(
+                                              context,
+                                              fontSize: 48,
+                                              fontWeight: FontWeight.w600,
+                                              color: appTheme.text,
                                             ),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              'Multiplayer round of 5 questions.',
-                                              style: AppFont.primaryTextStyle(
-                                                context,
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w300,
-                                                color: appTheme.border,
-                                              ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Multiplayer round of 5 questions.',
+                                            style: AppFont.primaryTextStyle(
+                                              context,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w300,
+                                              color: appTheme.border,
                                             ),
-                                            const SizedBox(height: 20),
-                                            Divider(
-                                              height: 1,
-                                              thickness: 1,
-                                              color: appTheme.border
-                                                  .withOpacity(0.3),
-                                            ),
-                                          ],
-                                        ),
-                                        CategoryCarouselM3(
-                                          categories: items,
-                                          initialIndex:
-                                              _controller.selectedCategoryIndex,
-                                          onCategorySelected:
-                                              _controller.selectCategoryIndex,
-                                          onCenteredIndexChanged:
-                                              _controller.selectCategoryIndex,
-                                          startColor: HSLColor.fromColor(
-                                              appTheme.primary),
-                                        ),
-                                        const SizedBox(height: 0),
-                                        SelectorWidget(
-                                          options: _controller.difficulties
-                                              .map((d) => SelectorOption(
-                                                    label: d.slug,
-                                                    value: d.name,
-                                                    iconUrl: d.picture,
-                                                  ))
-                                              .toList(),
-                                          selected:
-                                              _controller.selectedDifficulty,
-                                          onChanged: (value) {
-                                            if (value == null ||
-                                                value ==
-                                                    _controller
-                                                        .selectedDifficulty) {
-                                              _controller
-                                                  .selectDifficulty(null);
-                                            } else {
-                                              _controller
-                                                  .selectDifficulty(value);
-                                            }
-                                          },
-                                          allowNoSelection: true,
-                                        ),
-                                        const SizedBox(height: 24),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            LockToggleChip(
+                                          ),
+                                          const SizedBox(height: 20),
+                                          Divider(
+                                            height: 1,
+                                            thickness: 1,
+                                            color: appTheme.border
+                                                .withOpacity(0.3),
+                                          ),
+                                        ],
+                                      ),
+                                      CategoryCarouselM3(
+                                        categories: items,
+                                        initialIndex:
+                                            _controller.selectedCategoryIndex,
+                                        onCategorySelected:
+                                            _controller.selectCategoryIndex,
+                                        onCenteredIndexChanged:
+                                            _controller.selectCategoryIndex,
+                                        startColor: HSLColor.fromColor(
+                                            appTheme.primary),
+                                      ),
+                                      const SizedBox(height: 0),
+                                      SelectorWidget(
+                                        options: _controller.difficulties
+                                            .map((d) => SelectorOption(
+                                                  label: d.slug,
+                                                  value: d.name,
+                                                  iconUrl: d.picture,
+                                                ))
+                                            .toList(),
+                                        selected:
+                                            _controller.selectedDifficulty,
+                                        onChanged: (value) {
+                                          if (value == null ||
+                                              value ==
+                                                  _controller
+                                                      .selectedDifficulty) {
+                                            _controller.selectDifficulty(null);
+                                          } else {
+                                            _controller.selectDifficulty(value);
+                                          }
+                                        },
+                                        allowNoSelection: true,
+                                      ),
+                                      const SizedBox(height: 24),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          LockToggleChip(
+                                            isLocked: _controller.isLocked,
+                                            onToggle: _controller.toggleLock,
+                                          ),
+                                          const SizedBox(width: 24),
+                                          Expanded(
+                                            child: PrimaryCta(
+                                              isLoading:
+                                                  _controller.isSubmitting,
+                                              onPressed: _onPrimaryAction,
                                               isLocked: _controller.isLocked,
-                                              onToggle: _controller.toggleLock,
                                             ),
-                                            const SizedBox(width: 24),
-                                            Expanded(
-                                              child: PrimaryCta(
-                                                isLoading:
-                                                    _controller.isSubmitting,
-                                                onPressed: _onPrimaryAction,
-                                                isLocked: _controller.isLocked,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -398,8 +382,8 @@ class _MainScreenState extends State<MainScreen> {
                       child: Opacity(
                         opacity: 0.2,
                         child: IconButton(
-                          icon:
-                              Icon(Icons.help_outline, color: appTheme.borderMuted),
+                          icon: Icon(Icons.help_outline,
+                              color: appTheme.borderMuted),
                           tooltip: 'Launch Onboarding Tutorial',
                           onPressed: () {
                             Navigator.of(context).pushNamed('/onboarding');
