@@ -92,7 +92,7 @@ jobs:
         run: echo "Pending implementation"
 
 
-  build-and-publish-android:
+  build-android:
     name: Build and Publish Android
     runs-on: ubuntu-latest
     environment:
@@ -156,8 +156,36 @@ jobs:
           name: fermi-frontend-${{ env.BUILD_TYPE }}-aab
           path: apps/fermi-frontend/build/app/outputs/bundle/${{ env.BUILD_TYPE }}/app-${{ env.BUILD_TYPE }}.aab
 
+
+  publish-android:
+    name: Publish Android to Google Play
+    runs-on: ubuntu-latest
+    needs: build-android
+    if: github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main')
+    environment:
+      name: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      BUILD_TYPE: release
+      PUBLISH_TRACK: ${{ github.ref_name == 'develop' && 'internal' || 'production' }}
+
+    steps:
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.PLAY_STORE_SERVICE_ACCOUNT }}
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: fermi-frontend-release-aab
+          path: apps/fermi-frontend/build/app/outputs/bundle/release
+
       - name: Upload to Google Play
-        if: github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main')
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
