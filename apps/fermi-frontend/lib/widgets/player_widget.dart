@@ -386,7 +386,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                                         '+${_formatWithCommas(visibleRound)}',
                                         style: AppFont.secondaryTextStyle(
                                           context,
-                                          fontWeight: FontWeight.w300,
+                                          fontWeight: FontWeight.w400,
                                           fontSize: 14.0,
                                           color: fg,
                                         ),
