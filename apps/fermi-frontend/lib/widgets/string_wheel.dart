@@ -48,8 +48,8 @@ class StringWheel extends StatefulWidget {
     this.textStyle,
     this.controller,
     this.borderColor,
-    this.borderWidth = 1.0,
-    this.borderRadius = 8.0,
+    this.borderWidth = 2.0,
+    this.borderRadius = 0.0,
     this.draggingBorderColor,
     this.onDraggingChanged,
   });
@@ -122,8 +122,10 @@ class _StringWheelState extends State<StringWheel> {
     }
     final int idx = _indexOf(value).clamp(0, widget.values.length - 1);
     final int currentIdx = _controller.selectedItem;
-    AppLogger.debug('StringWheel._animateTo: value=$value, idx=$idx, currentIdx=$currentIdx, duration=${duration.inMilliseconds}ms');
-    AppLogger.debug('StringWheel._animateTo: Calling animateToItem($idx, duration=$duration)');
+    AppLogger.debug(
+        'StringWheel._animateTo: value=$value, idx=$idx, currentIdx=$currentIdx, duration=${duration.inMilliseconds}ms');
+    AppLogger.debug(
+        'StringWheel._animateTo: Calling animateToItem($idx, duration=$duration)');
     await _controller.animateToItem(
       idx,
       duration: duration,
@@ -152,7 +154,6 @@ class _StringWheelState extends State<StringWheel> {
           height: widget.itemExtent,
           child: Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(widget.borderRadius),
               border: Border.all(
                 color: _dragging
                     ? (widget.draggingBorderColor ??
@@ -164,7 +165,6 @@ class _StringWheelState extends State<StringWheel> {
               ),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(widget.borderRadius),
               child: ClipRect(
                 child: NotificationListener<ScrollNotification>(
                   onNotification: (n) {

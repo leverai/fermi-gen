@@ -118,8 +118,8 @@ class DigitWheels extends StatefulWidget {
     this.enabled = true,
     this.digitTextStyle,
     this.borderColor,
-    this.borderWidth = 1.0,
-    this.borderRadius = 8.0,
+    this.borderWidth = 2.0,
+    this.borderRadius = 0.0,
     this.revealDigitTextStyle,
     this.draggingBorderColor,
     this.focusedDigitTextStyle,
@@ -295,8 +295,10 @@ class _DigitWheelsState extends State<DigitWheels>
     final v = _clampValue(value);
     final d = _decompose(v);
     final current = _compose();
-    AppLogger.debug('DigitWheels._animateTo: value=$value, clamped=$v, current=$current, decomposed=hundreds=${d.hundreds}, tens=${d.tens}, ones=${d.ones}, duration=${duration.inMilliseconds}ms');
-    AppLogger.debug('DigitWheels._animateTo: Calling animateToItem on all wheels');
+    AppLogger.debug(
+        'DigitWheels._animateTo: value=$value, clamped=$v, current=$current, decomposed=hundreds=${d.hundreds}, tens=${d.tens}, ones=${d.ones}, duration=${duration.inMilliseconds}ms');
+    AppLogger.debug(
+        'DigitWheels._animateTo: Calling animateToItem on all wheels');
     await Future.wait([
       _hundreds.animateToItem(d.hundreds,
           duration: duration, curve: Curves.easeInOutCubic),
@@ -305,12 +307,14 @@ class _DigitWheelsState extends State<DigitWheels>
       _ones.animateToItem(d.ones,
           duration: duration, curve: Curves.easeInOutCubic),
     ]);
-    AppLogger.debug('DigitWheels._animateTo: All animateToItem calls completed');
+    AppLogger.debug(
+        'DigitWheels._animateTo: All animateToItem calls completed');
     // onChanged will be emitted from listeners below
   }
 
   Future<void> _revealTo(int value, Duration duration) async {
-    AppLogger.debug('DigitWheels._revealTo: value=$value, duration=${duration.inMilliseconds}ms, currentValue=${_compose()}');
+    AppLogger.debug(
+        'DigitWheels._revealTo: value=$value, duration=${duration.inMilliseconds}ms, currentValue=${_compose()}');
     setState(() => _revealed = true);
     // Fade borders to transparent alongside the reveal animation.
     // Stop any existing animation and ensure controller starts at 1.0 (fully visible) before animating to 0.0
@@ -318,7 +322,8 @@ class _DigitWheelsState extends State<DigitWheels>
     _borderOpacityController.value = 1.0;
     _borderOpacityController.duration = duration;
     _borderOpacityController.animateTo(0.0, curve: Curves.easeInOutCubic);
-    AppLogger.debug('DigitWheels._revealTo: Calling _animateTo($value, $duration)');
+    AppLogger.debug(
+        'DigitWheels._revealTo: Calling _animateTo($value, $duration)');
     await _animateTo(value, duration);
     AppLogger.debug('DigitWheels._revealTo: _animateTo returned');
   }

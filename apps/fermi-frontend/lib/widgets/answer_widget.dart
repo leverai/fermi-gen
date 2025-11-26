@@ -573,9 +573,8 @@ class _AnswerWidgetState extends State<AnswerWidget> {
             constraints: BoxConstraints(
               maxHeight: widget.height - containerMargin,
             ),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.max,
@@ -595,8 +594,8 @@ class _AnswerWidgetState extends State<AnswerWidget> {
                     borderColor: Colors.transparent,
                     draggingBorderColor: appTheme.primary,
                     focusedBorderColor: appTheme.primary,
-                    borderWidth: 1,
-                    digitBackgroundColor: Colors.transparent,
+                    borderWidth: 2,
+                    digitBackgroundColor: appTheme.bgDark,
                     digitTextStyle: AppFont.secondaryTextStyle(
                       context,
                       fontSize: 24,
@@ -638,6 +637,7 @@ class _AnswerWidgetState extends State<AnswerWidget> {
                     revealColor: _digitsOverrideColor,
                     controller: _omController,
                     onChanged: _onOmChanged,
+                    backgroundColor: appTheme.bgDark,
                     onBeforeOpen: () {
                       // Close any open numpad before opening OM selector
                       _digitsController.clearFocus();
@@ -667,6 +667,7 @@ class _AnswerWidgetState extends State<AnswerWidget> {
                           revealColor: _digitsOverrideColor,
                           controller: _unitController,
                           unitOptionsNotifier: widget.unitOptionsNotifier,
+                          backgroundColor: appTheme.bgDark,
                           onBeforeOpen: () {
                             // Close any open numpad before opening unit selector
                             _digitsController.clearFocus();

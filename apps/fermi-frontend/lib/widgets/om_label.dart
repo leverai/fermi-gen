@@ -66,6 +66,7 @@ class OmLabel extends StatefulWidget {
     this.controller,
     this.onSelectorComplete,
     this.onBeforeOpen,
+    this.backgroundColor,
   });
 
   final String initialValue;
@@ -77,6 +78,8 @@ class OmLabel extends StatefulWidget {
       onSelectorComplete; // Called when selector popup closes with selection
   final VoidCallback?
       onBeforeOpen; // Called before selector opens (to close other inputs)
+  final Color?
+      backgroundColor; // Background color that fades to transparent when revealed
 
   @override
   State<OmLabel> createState() => _OmLabelState();
@@ -196,10 +199,6 @@ class _OmLabelState extends State<OmLabel> with SingleTickerProviderStateMixin {
               constraints: const BoxConstraints(minWidth: 400),
               decoration: BoxDecoration(
                 color: appTheme.bg,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
               ),
               padding: const EdgeInsets.all(24),
               child: SafeArea(
@@ -214,7 +213,6 @@ class _OmLabelState extends State<OmLabel> with SingleTickerProviderStateMixin {
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
                         color: appTheme.border,
-                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -416,58 +414,70 @@ class _OmLabelState extends State<OmLabel> with SingleTickerProviderStateMixin {
         _isFocused ? appTheme.primary : Colors.transparent;
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(8.0),
       ),
       child: GestureDetector(
         onTap: widget.editable ? _showOmSelector : null,
-        child: Stack(
-          children: [
-            StringWheel(
-              values: _magnitudeValues,
-              initialValue: _current,
-              controller: _wheel,
-              enabled: widget.editable && !_isFocused,
-              height: 72,
-              itemExtent: 72,
-              width: 60,
-              borderColor: borderColor,
-              draggingBorderColor: appTheme.primary,
-              borderWidth: 1.5,
-              borderRadius: 8.0,
-              textStyle: AppFont.secondaryTextStyle(
-                context,
-                fontSize: 24,
-                fontWeight: FontWeight.w500,
-                color: textColor,
-                decoration: TextDecoration.none,
+        child: AnimatedBuilder(
+          animation: _indicatorFadeController,
+          builder: (context, child) {
+            return Container(
+              decoration: BoxDecoration(
+                color: widget.backgroundColor == null ||
+                        widget.backgroundColor == Colors.transparent
+                    ? Colors.transparent
+                    : widget.backgroundColor!
+                        // ignore: deprecated_member_use
+                        .withOpacity(_indicatorFadeController.value),
               ),
-              onChanged: (v) {
-                _current = v;
-                widget.onChanged?.call(v);
-              },
-              onDraggingChanged: (dragging) {
-                setState(() {
-                  _isDragging = dragging;
-                });
-              },
-            ),
-            // Tap indicator line at bottom
-            // Hide when focused or dragging (scroll indicator is showing)
-            AnimatedBuilder(
-              animation: _indicatorFadeController,
-              builder: (context, child) {
-                // Hide tap indicator when scroll indicator is showing (focused or dragging)
-                final double effectiveOpacity = (_isFocused || _isDragging)
-                    ? 0.0
-                    : _indicatorFadeController.value;
-                return TapIndicator(
-                  opacity: effectiveOpacity,
-                );
-              },
-            ),
-          ],
+              child: Stack(
+                children: [
+                  StringWheel(
+                    values: _magnitudeValues,
+                    initialValue: _current,
+                    controller: _wheel,
+                    enabled: widget.editable && !_isFocused,
+                    height: 72,
+                    itemExtent: 72,
+                    width: 60,
+                    borderColor: borderColor,
+                    draggingBorderColor: appTheme.primary,
+                    borderWidth: 1.5,
+                    textStyle: AppFont.secondaryTextStyle(
+                      context,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w500,
+                      color: textColor,
+                      decoration: TextDecoration.none,
+                    ),
+                    onChanged: (v) {
+                      _current = v;
+                      widget.onChanged?.call(v);
+                    },
+                    onDraggingChanged: (dragging) {
+                      setState(() {
+                        _isDragging = dragging;
+                      });
+                    },
+                  ),
+                  // Tap indicator line at bottom
+                  // Hide when focused or dragging (scroll indicator is showing)
+                  Builder(
+                    builder: (context) {
+                      // Hide tap indicator when scroll indicator is showing (focused or dragging)
+                      final double effectiveOpacity = (_isFocused || _isDragging)
+                          ? 0.0
+                          : _indicatorFadeController.value;
+                      return TapIndicator(
+                        opacity: effectiveOpacity,
+                      );
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
