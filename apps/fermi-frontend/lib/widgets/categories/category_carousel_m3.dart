@@ -89,8 +89,8 @@ class _CategoryCarouselM3State extends State<CategoryCarouselM3> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+            // borderRadius: BorderRadius.circular(12),
+            ),
         padding: const EdgeInsets.only(
           top: glowPadding,
           bottom: glowPadding,
@@ -286,7 +286,7 @@ class CategoryCardM3 extends StatelessWidget {
         height: height,
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(12),
+          // borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? categoryColor : Colors.transparent,
             width: 2,
