@@ -7,7 +7,7 @@ import 'package:fermi_frontend/theme/app_font.dart';
 /// Can be configured to allow no selection or enforce a default selection.
 /// Uses AppTheme colors:
 /// - Unselected: `bg` background, `border` text
-/// - Selected: `bgDark` background, `text` text with shadow
+/// - Selected: `bgDark` background, `text` text with border
 ///
 /// The grid contains a configurable number of columns and as many rows as needed.
 /// Chips always have equal widths and heights.
@@ -82,10 +82,7 @@ class SelectorWidget extends StatelessWidget {
 
     // Wrap in container with styling
     final container = Container(
-      decoration: BoxDecoration(
-        color: appTheme.bgLight,
-        borderRadius: BorderRadius.circular(13),
-      ),
+      decoration: const BoxDecoration(),
       padding: const EdgeInsets.all(_spacing),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -149,24 +146,13 @@ class SelectorWidget extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: isSelected ? appTheme.bg : appTheme.bgLight,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    // ignore: deprecated_member_use
-                    color: appTheme.text.withOpacity(0.1),
-                    blurRadius: 4,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 0),
-                  ),
-                  BoxShadow(
-                    // ignore: deprecated_member_use
-                    color: appTheme.bgDark.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
+          color: isSelected ? appTheme.bgDark : appTheme.bg,
+          // borderRadius: BorderRadius.circular(8),
+          border: isSelected
+              ? Border.all(
+                  color: appTheme.border,
+                  width: 2,
+                )
               : null,
         ),
         child: Row(

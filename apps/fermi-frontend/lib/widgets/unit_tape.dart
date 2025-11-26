@@ -409,9 +409,8 @@ class _UnitTapeState extends State<UnitTape>
         _isFocused ? appTheme.primary : Colors.transparent;
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(8.0),
       ),
       child: GestureDetector(
         onTap: widget.editable ? _showUnitSelector : null,
@@ -426,7 +425,6 @@ class _UnitTapeState extends State<UnitTape>
                     : widget.backgroundColor!
                         // ignore: deprecated_member_use
                         .withOpacity(_indicatorFadeController.value),
-                borderRadius: BorderRadius.circular(8.0),
               ),
               child: Stack(
                 children: [
@@ -441,7 +439,6 @@ class _UnitTapeState extends State<UnitTape>
                     borderColor: borderColor,
                     draggingBorderColor: appTheme.primary,
                     borderWidth: 1.5,
-                    borderRadius: 8.0,
                     textStyle: AppFont.secondaryTextStyle(
                       context,
                       fontSize: 20,
@@ -464,9 +461,10 @@ class _UnitTapeState extends State<UnitTape>
                   Builder(
                     builder: (context) {
                       // Hide tap indicator when scroll indicator is showing (focused or dragging)
-                      final double effectiveOpacity = (_isFocused || _isDragging)
-                          ? 0.0
-                          : _indicatorFadeController.value;
+                      final double effectiveOpacity =
+                          (_isFocused || _isDragging)
+                              ? 0.0
+                              : _indicatorFadeController.value;
                       return TapIndicator(
                         opacity: effectiveOpacity,
                       );
@@ -509,10 +507,6 @@ class _UnitSelectorSheet extends StatelessWidget {
         constraints: const BoxConstraints(minWidth: 400),
         decoration: BoxDecoration(
           color: appTheme.bg,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
-          ),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: SafeArea(
@@ -527,7 +521,6 @@ class _UnitSelectorSheet extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   color: appTheme.border,
-                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
 
@@ -538,9 +531,8 @@ class _UnitSelectorSheet extends StatelessWidget {
                   onLocaleChanged(newLocale);
                 },
                 child: Container(
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -557,8 +549,7 @@ class _UnitSelectorSheet extends StatelessWidget {
                           context,
                           fontSize: 16,
                           fontWeight: FontWeight.w400,
-                          color:
-                              isUS ? appTheme.primary : appTheme.borderMuted,
+                          color: isUS ? appTheme.primary : appTheme.borderMuted,
                         ),
                       ),
                     ],
