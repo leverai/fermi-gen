@@ -19,8 +19,12 @@ from fermi_db.schemas import (
 MAX_INT = 2_147_483_647
 
 
-class Fermi(SQLModel, table=False):
+class Fermi(SQLModel, table=True):
     """Materialized view combining questions and answers for game selection.
+
+    Note: While this is a materialized view in the database, we use table=True
+    to ensure SQLAlchemy can properly select from it. The actual materialized
+    view is created via Alembic migrations.
 
     The uid is generated deterministically using uuid_generate_v5() based on
     fermi_questions.id, ensuring it remains stable across materialized view
