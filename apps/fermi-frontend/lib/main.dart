@@ -25,37 +25,88 @@ final GlobalKey<ScaffoldMessengerState> _appScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final FirebaseOptions base = DefaultFirebaseOptions.currentPlatform;
-  final FirebaseOptions initOptions = useEmulators
-      ? FirebaseOptions(
-          apiKey: base.apiKey,
-          appId: base.appId,
-          messagingSenderId: base.messagingSenderId,
-          projectId: 'fermi-local',
-          storageBucket: base.storageBucket,
-        )
-      : base;
-  await Firebase.initializeApp(options: initOptions);
+  // Catch configuration errors and display them to the user
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    final FirebaseOptions base = DefaultFirebaseOptions.currentPlatform;
+    final FirebaseOptions initOptions = useEmulators
+        ? FirebaseOptions(
+            apiKey: base.apiKey,
+            appId: base.appId,
+            messagingSenderId: base.messagingSenderId,
+            projectId: 'fermi-local',
+            storageBucket: base.storageBucket,
+          )
+        : base;
+    await Firebase.initializeApp(options: initOptions);
 
-  if (useEmulators) {
-    const String configuredAuthHost =
-        String.fromEnvironment('FIREBASE_AUTH_EMULATOR_HOST');
-    const String configuredFsHost =
-        String.fromEnvironment('FIRESTORE_EMULATOR_HOST');
-    if (configuredAuthHost.isEmpty || configuredFsHost.isEmpty) {
-      throw StateError(
-          'Missing required dart-defines: FIREBASE_AUTH_EMULATOR_HOST and/or FIRESTORE_EMULATOR_HOST');
+    if (useEmulators) {
+      const String configuredAuthHost =
+          String.fromEnvironment('FIREBASE_AUTH_EMULATOR_HOST');
+      const String configuredFsHost =
+          String.fromEnvironment('FIRESTORE_EMULATOR_HOST');
+      if (configuredAuthHost.isEmpty || configuredFsHost.isEmpty) {
+        throw StateError(
+            'Missing required dart-defines: FIREBASE_AUTH_EMULATOR_HOST and/or FIRESTORE_EMULATOR_HOST');
+      }
+      final String emulatorHost = Platform.isAndroid ? '10.0.2.2' : 'localhost';
+      final int fsPort = int.tryParse(configuredFsHost.split(':').last) ?? 8080;
+      final int authPort =
+          int.tryParse(configuredAuthHost.split(':').last) ?? 9099;
+      FirebaseFirestore.instance.useFirestoreEmulator(emulatorHost, fsPort);
+      FirebaseAuth.instance.useAuthEmulator(emulatorHost, authPort);
     }
-    final String emulatorHost = Platform.isAndroid ? '10.0.2.2' : 'localhost';
-    final int fsPort = int.tryParse(configuredFsHost.split(':').last) ?? 8080;
-    final int authPort =
-        int.tryParse(configuredAuthHost.split(':').last) ?? 9099;
-    FirebaseFirestore.instance.useFirestoreEmulator(emulatorHost, fsPort);
-    FirebaseAuth.instance.useAuthEmulator(emulatorHost, authPort);
-  }
 
-  runApp(const MyApp());
+    runApp(const MyApp());
+  } catch (e, stackTrace) {
+    // Log error for debugging (works in release builds)
+    print('❌ Fatal error during app initialization:');
+    print(e);
+    print(stackTrace);
+
+    // Show error UI instead of blank screen
+    runApp(MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.red.shade900,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline,
+                      color: Colors.white, size: 64),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'App Configuration Error',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    e.toString(),
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Please contact support or check the app logs for more details.',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ));
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -97,7 +148,8 @@ class _MyAppState extends State<MyApp> {
     // The DeepLinkService stores the pending ID, and we'll check it after sign-in.
     if (_authService.currentUser == null) {
       debugPrint('MyApp: User not authenticated, redirecting to sign-in');
-      _navigatorKey.currentState?.pushNamedAndRemoveUntil('/sign-in', (route) => false);
+      _navigatorKey.currentState
+          ?.pushNamedAndRemoveUntil('/sign-in', (route) => false);
       return;
     }
 
@@ -132,7 +184,9 @@ class _MyAppState extends State<MyApp> {
       // We can replicate that logic here or make it static/shared.
 
       // Replicating logic for now to keep it simple:
-      final realtime = MainScreenController(api: _apiService, auth: _authService).buildRealtimeAdapter();
+      final realtime =
+          MainScreenController(api: _apiService, auth: _authService)
+              .buildRealtimeAdapter();
 
       _navigatorKey.currentState?.push(
         MaterialPageRoute(
@@ -179,107 +233,107 @@ class _MyAppState extends State<MyApp> {
             const AppFont(),
           ],
         ),
-      initialRoute:
-          FirebaseAuth.instance.currentUser == null ? '/sign-in' : '/main',
-      routes: {
-        '/sign-in': (context) {
-          return SignInScreen(
-            providers: providers,
-            actions: [
-              AuthStateChangeAction<UserCreated>((context, state) async {
-                final ok = await _authService.exchangeToken();
-                if (!context.mounted) return;
-                if (ok) {
-                  // Check if user has seen onboarding
-                  final prefs = await SharedPreferences.getInstance();
-                  final seen = prefs.getBool('onboarding_seen') ?? false;
+        initialRoute:
+            FirebaseAuth.instance.currentUser == null ? '/sign-in' : '/main',
+        routes: {
+          '/sign-in': (context) {
+            return SignInScreen(
+              providers: providers,
+              actions: [
+                AuthStateChangeAction<UserCreated>((context, state) async {
+                  final ok = await _authService.exchangeToken();
                   if (!context.mounted) return;
-                  if (!seen) {
-                    Navigator.pushReplacementNamed(context, '/onboarding');
+                  if (ok) {
+                    // Check if user has seen onboarding
+                    final prefs = await SharedPreferences.getInstance();
+                    final seen = prefs.getBool('onboarding_seen') ?? false;
+                    if (!context.mounted) return;
+                    if (!seen) {
+                      Navigator.pushReplacementNamed(context, '/onboarding');
+                    } else {
+                      Navigator.pushReplacementNamed(context, '/main');
+                      // Check for pending deep link join
+                      _checkPendingJoin();
+                    }
                   } else {
+                    _appScaffoldMessengerKey.currentState?.showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Sign-in succeeded but token exchange failed.'),
+                      ),
+                    );
+                  }
+                }),
+                AuthStateChangeAction<SignedIn>((context, state) async {
+                  final ok = await _authService.exchangeToken();
+                  if (!context.mounted) return;
+                  if (ok) {
                     Navigator.pushReplacementNamed(context, '/main');
                     // Check for pending deep link join
                     _checkPendingJoin();
+                  } else {
+                    _appScaffoldMessengerKey.currentState?.showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Sign-in succeeded but token exchange failed.'),
+                      ),
+                    );
                   }
-                } else {
-                  _appScaffoldMessengerKey.currentState?.showSnackBar(
-                    const SnackBar(
-                      content:
-                          Text('Sign-in succeeded but token exchange failed.'),
-                    ),
+                }),
+                AuthStateChangeAction<AuthFailed>((context, state) {
+                  debugPrint('Auth error: ${state.exception}');
+                }),
+              ],
+            );
+          },
+          '/onboarding': (context) => const OnboardingScreen(),
+          '/onboarding-test': (context) {
+            // Quick and dirty bypass for testing - clears the flag on entry
+            // and uses testMode to prevent setting it on exit
+            SharedPreferences.getInstance().then((prefs) {
+              prefs.setBool('onboarding_seen', false);
+            });
+            return const OnboardingScreen(testMode: true);
+          },
+          '/profile': (context) {
+            return ProfileScreen(
+              providers: providers,
+              actions: [
+                SignedOutAction((context) {
+                  Navigator.pushReplacementNamed(context, '/sign-in');
+                }),
+              ],
+            );
+          },
+          '/main': (context) {
+            return FutureBuilder<bool>(
+              future: _authService.accessToken != null
+                  ? Future<bool>.value(true)
+                  : _authService.exchangeToken(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
                   );
                 }
-              }),
-              AuthStateChangeAction<SignedIn>((context, state) async {
-                final ok = await _authService.exchangeToken();
-                if (!context.mounted) return;
-                if (ok) {
-                  Navigator.pushReplacementNamed(context, '/main');
-                  // Check for pending deep link join
-                  _checkPendingJoin();
-                } else {
+                if (snapshot.data == true) {
+                  return MainScreen(
+                      apiService: _apiService, authService: _authService);
+                }
+                WidgetsBinding.instance.addPostFrameCallback((_) {
                   _appScaffoldMessengerKey.currentState?.showSnackBar(
                     const SnackBar(
-                      content:
-                          Text('Sign-in succeeded but token exchange failed.'),
+                      content: Text(
+                          'Authentication required. Please sign in again.'),
                     ),
                   );
-                }
-              }),
-              AuthStateChangeAction<AuthFailed>((context, state) {
-                debugPrint('Auth error: ${state.exception}');
-              }),
-            ],
-          );
+                  Navigator.pushReplacementNamed(context, '/sign-in');
+                });
+                return const SizedBox.shrink();
+              },
+            );
+          }
         },
-        '/onboarding': (context) => const OnboardingScreen(),
-        '/onboarding-test': (context) {
-          // Quick and dirty bypass for testing - clears the flag on entry
-          // and uses testMode to prevent setting it on exit
-          SharedPreferences.getInstance().then((prefs) {
-            prefs.setBool('onboarding_seen', false);
-          });
-          return const OnboardingScreen(testMode: true);
-        },
-        '/profile': (context) {
-          return ProfileScreen(
-            providers: providers,
-            actions: [
-              SignedOutAction((context) {
-                Navigator.pushReplacementNamed(context, '/sign-in');
-              }),
-            ],
-          );
-        },
-        '/main': (context) {
-          return FutureBuilder<bool>(
-            future: _authService.accessToken != null
-                ? Future<bool>.value(true)
-                : _authService.exchangeToken(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
-              if (snapshot.data == true) {
-                return MainScreen(
-                    apiService: _apiService, authService: _authService);
-              }
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _appScaffoldMessengerKey.currentState?.showSnackBar(
-                  const SnackBar(
-                    content:
-                        Text('Authentication required. Please sign in again.'),
-                  ),
-                );
-                Navigator.pushReplacementNamed(context, '/sign-in');
-              });
-              return const SizedBox.shrink();
-            },
-          );
-        }
-      },
       ),
     );
   }

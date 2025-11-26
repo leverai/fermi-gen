@@ -56,7 +56,6 @@ class MainScreenController extends ChangeNotifier {
     return categories[i].slug;
   }
 
-
   int get resolvedPercentile {
     final stats = _playerStatsDto;
     final categoryKey = currentCategoryBackendName;
@@ -125,7 +124,8 @@ class MainScreenController extends ChangeNotifier {
       }
     } catch (e, st) {
       errorMessage = e.toString();
-      debugPrintStack(stackTrace: st);
+      print('❌ MainScreenController.initialize error: $e');
+      print(st);
     } finally {
       isLoading = false;
       notifyListeners();
@@ -168,7 +168,8 @@ class MainScreenController extends ChangeNotifier {
       return gameId;
     } catch (e, st) {
       errorMessage = e.toString();
-      debugPrintStack(stackTrace: st);
+      print('❌ MainScreenController.createGame error: $e');
+      print(st);
       rethrow;
     } finally {
       isSubmitting = false;
@@ -199,8 +200,8 @@ class MainScreenController extends ChangeNotifier {
       return gameId;
     } catch (e, st) {
       errorMessage = e.toString();
-      debugPrint('MainScreenController.joinRandomGame error: $e');
-      debugPrintStack(stackTrace: st);
+      print('❌ MainScreenController.joinRandomGame error: $e');
+      print(st);
       rethrow;
     } finally {
       isSubmitting = false;
