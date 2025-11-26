@@ -19,7 +19,7 @@ from fermi_db.schemas import (
 MAX_INT = 2_147_483_647
 
 
-class Fermi(SQLModel, table=True):
+class Fermi(SQLModel, table=False):
     """Materialized view combining questions and answers for game selection.
 
     The uid is generated deterministically using uuid_generate_v5() based on
