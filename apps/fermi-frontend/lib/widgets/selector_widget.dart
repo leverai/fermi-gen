@@ -147,7 +147,6 @@ class SelectorWidget extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: isSelected ? appTheme.bgDark : appTheme.bg,
-          // borderRadius: BorderRadius.circular(8),
           border: isSelected
               ? Border.all(
                   color: appTheme.border,
