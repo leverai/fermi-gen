@@ -156,10 +156,10 @@ CONFIDENCE_THRESHOLD: "0.8"                # Minimum confidence for accepting an
 https://github.com/MhdMartini/fermi-gen/actions
 
 # Check service status
-gcloud run services describe fermi-etl-dev --region=us-central1
+gcloud run services describe fermi-etl --region=us-central1
 
 # View logs
-gcloud run services logs read fermi-etl-dev --region=us-central1
+gcloud run services logs read fermi-etl --region=us-central1
 ```
 
 ### To Production
