@@ -293,6 +293,7 @@ class _MainScreenState extends State<MainScreen> {
                                             height: 1,
                                             thickness: 1,
                                             color: appTheme.border
+                                                // ignore: deprecated_member_use
                                                 .withOpacity(0.3),
                                           ),
                                         ],
