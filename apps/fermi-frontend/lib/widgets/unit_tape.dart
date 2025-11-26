@@ -70,6 +70,7 @@ class UnitTape extends StatefulWidget {
     this.controller,
     this.unitOptionsNotifier,
     this.onBeforeOpen,
+    this.backgroundColor,
   });
 
   final List<String> units; // Available unit abbreviations
@@ -85,6 +86,8 @@ class UnitTape extends StatefulWidget {
       unitOptionsNotifier; // Optional external notifier
   final VoidCallback?
       onBeforeOpen; // Called before selector opens (to close other inputs)
+  final Color?
+      backgroundColor; // Background color that fades to transparent when revealed
 
   @override
   State<UnitTape> createState() => _UnitTapeState();
@@ -412,52 +415,67 @@ class _UnitTapeState extends State<UnitTape>
       ),
       child: GestureDetector(
         onTap: widget.editable ? _showUnitSelector : null,
-        child: Stack(
-          children: [
-            StringWheel(
-              values: widget.units,
-              initialValue: _current,
-              controller: _wheel,
-              enabled: widget.editable && !_isFocused,
-              height: 72,
-              itemExtent: 72,
-              width: 60,
-              borderColor: borderColor,
-              draggingBorderColor: appTheme.primary,
-              borderWidth: 1.5,
-              borderRadius: 8.0,
-              textStyle: AppFont.secondaryTextStyle(
-                context,
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-                color: textColor,
-                decoration: TextDecoration.none,
+        child: AnimatedBuilder(
+          animation: _indicatorFadeController,
+          builder: (context, child) {
+            return Container(
+              decoration: BoxDecoration(
+                color: widget.backgroundColor == null ||
+                        widget.backgroundColor == Colors.transparent
+                    ? Colors.transparent
+                    : widget.backgroundColor!
+                        // ignore: deprecated_member_use
+                        .withOpacity(_indicatorFadeController.value),
+                borderRadius: BorderRadius.circular(8.0),
               ),
-              onChanged: (v) {
-                setState(() => _current = v);
-                widget.onUnitChanged(v);
-              },
-              onDraggingChanged: (dragging) {
-                setState(() {
-                  _isDragging = dragging;
-                });
-              },
-            ),
-            // Tap indicator line at bottom
-            // Hide when focused or dragging (scroll indicator is showing)
-            AnimatedBuilder(
-              animation: _indicatorFadeController,
-              builder: (context, child) {
-                // Hide tap indicator when scroll indicator is showing (focused or dragging)
-                final double effectiveOpacity = (_isFocused || _isDragging)
-                    ? 0.0
-                    : _indicatorFadeController.value;
-                return TapIndicator(
-                  opacity: effectiveOpacity,
-                );
-              },
-            ),
-          ],
+              child: Stack(
+                children: [
+                  StringWheel(
+                    values: widget.units,
+                    initialValue: _current,
+                    controller: _wheel,
+                    enabled: widget.editable && !_isFocused,
+                    height: 72,
+                    itemExtent: 72,
+                    width: 60,
+                    borderColor: borderColor,
+                    draggingBorderColor: appTheme.primary,
+                    borderWidth: 1.5,
+                    borderRadius: 8.0,
+                    textStyle: AppFont.secondaryTextStyle(
+                      context,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w500,
+                      color: textColor,
+                      decoration: TextDecoration.none,
+                    ),
+                    onChanged: (v) {
+                      setState(() => _current = v);
+                      widget.onUnitChanged(v);
+                    },
+                    onDraggingChanged: (dragging) {
+                      setState(() {
+                        _isDragging = dragging;
+                      });
+                    },
+                  ),
+                  // Tap indicator line at bottom
+                  // Hide when focused or dragging (scroll indicator is showing)
+                  Builder(
+                    builder: (context) {
+                      // Hide tap indicator when scroll indicator is showing (focused or dragging)
+                      final double effectiveOpacity = (_isFocused || _isDragging)
+                          ? 0.0
+                          : _indicatorFadeController.value;
+                      return TapIndicator(
+                        opacity: effectiveOpacity,
+                      );
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
