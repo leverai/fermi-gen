@@ -88,7 +88,7 @@ class _CategoryCarouselM3State extends State<CategoryCarouselM3> {
         shrinkExtent: _cardWidth + _spacing, // Prevent cards from shrinking
         backgroundColor: Colors.transparent,
         elevation: 0,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
             // borderRadius: BorderRadius.circular(12),
             ),
         padding: const EdgeInsets.only(

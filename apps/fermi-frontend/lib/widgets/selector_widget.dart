@@ -145,6 +145,8 @@ class SelectorWidget extends StatelessWidget {
             : option.value);
       },
       child: Container(
+        height: _chipHeight,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? appTheme.bgDark : appTheme.bg,
           border: isSelected
