@@ -166,7 +166,7 @@ class SelectorWidget extends StatelessWidget {
                 option.icon,
                 isSelected ? appTheme.text : appTheme.border,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 6),
             ],
             Flexible(
               child: Text(

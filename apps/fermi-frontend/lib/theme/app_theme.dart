@@ -78,7 +78,8 @@ class AppTheme extends ThemeExtension<AppTheme> {
       // UI Elements
       highlight: Color(0xFF000000), // Black for highlights
       border: Color(0xFF000000), // Black borders
-      borderMuted: Color(0xFF000000), // Black borders (consistent)
+      borderMuted:
+          Color.fromARGB(255, 146, 146, 146), // Black borders (consistent)
 
       // Brand - Vibrant Purple
       primary: Color(0xFF8854D0),

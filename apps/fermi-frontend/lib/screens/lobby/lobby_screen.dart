@@ -67,7 +67,7 @@ class LobbyScreen extends StatelessWidget {
                 SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.only(
-                        left: 24, right: 24, top: 24, bottom: 48),
+                        left: 24, right: 24, top: 0, bottom: 48),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
