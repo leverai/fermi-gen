@@ -224,7 +224,7 @@ class _MainScreenState extends State<MainScreen> {
                   SafeArea(
                     child: Padding(
                       padding: const EdgeInsets.only(
-                          left: 12, right: 12, top: 24, bottom: 48),
+                          left: 12, right: 12, top: 0, bottom: 48),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [

@@ -91,7 +91,7 @@ class _AnswerMirrorTextState extends State<AnswerMirrorText> {
     final baseStyle = AppFont.primaryTextStyle(
       context,
       fontSize: 12,
-      fontWeight: FontWeight.w300,
+      fontWeight: FontWeight.w400,
       decoration: TextDecoration.none,
     ).copyWith(
       letterSpacing: 1.5,

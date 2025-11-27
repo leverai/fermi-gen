@@ -88,9 +88,10 @@ class _CategoryCarouselM3State extends State<CategoryCarouselM3> {
         shrinkExtent: _cardWidth + _spacing, // Prevent cards from shrinking
         backgroundColor: Colors.transparent,
         elevation: 0,
-        shape: const RoundedRectangleBorder(
-            // borderRadius: BorderRadius.circular(12),
-            ),
+        shape: const HorizontalInsetShape(
+          horizontalInset: 12.0,
+          baseShape: RoundedRectangleBorder(),
+        ),
         padding: const EdgeInsets.only(
           top: glowPadding,
           bottom: glowPadding,
@@ -115,7 +116,6 @@ class _CategoryCarouselM3State extends State<CategoryCarouselM3> {
                 isSelected: isSelected,
                 width: _cardWidth,
                 height: _cardHeight,
-                onTap: () => _onCardTap(index),
               ),
             );
           },
@@ -146,7 +146,6 @@ class CategoryCardM3 extends StatelessWidget {
   final bool isSelected;
   final double width;
   final double height;
-  final VoidCallback onTap;
 
   const CategoryCardM3({
     super.key,
@@ -156,7 +155,6 @@ class CategoryCardM3 extends StatelessWidget {
     required this.isSelected,
     required this.width,
     required this.height,
-    required this.onTap,
   });
 
   /// Insert a zero-width space in the middle of text to encourage wrapping to two lines
@@ -279,81 +277,139 @@ class CategoryCardM3 extends StatelessWidget {
     // 2 lines = 16.8 * 2 = 33.6px, round up to 44px to account for font rendering, spacing, and overflow
     const double textAreaHeight = 44.0;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: bgColor,
-          border: Border.all(
-            color: isSelected ? categoryColor : Colors.transparent,
-            width: 2,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    // ignore: deprecated_member_use
-                    color: categoryColor.withOpacity(0.3),
-                    blurRadius: 8,
-                    spreadRadius: 0,
-                  ),
-                ]
-              : null,
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: bgColor,
+        border: Border.all(
+          color: isSelected ? categoryColor : Colors.transparent,
+          width: 2,
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(cardPadding),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              // Use actual Column constraints instead of calculated values
-              final availableHeight = constraints.maxHeight;
-              // Calculate icon height based on actual available space
-              final double actualIconHeight = availableHeight - textAreaHeight;
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  // ignore: deprecated_member_use
+                  color: categoryColor.withOpacity(0.3),
+                  blurRadius: 8,
+                  spreadRadius: 0,
+                ),
+              ]
+            : null,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(cardPadding),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Use actual Column constraints instead of calculated values
+            final availableHeight = constraints.maxHeight;
+            // Calculate icon height based on actual available space
+            final double actualIconHeight = availableHeight - textAreaHeight;
 
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Icon fills its allocated height
-                  SizedBox(
-                    height: actualIconHeight,
-                    width: double.infinity,
-                    child: _buildIcon(
-                        context, svgPath, categoryColor, actualIconHeight),
-                  ),
-                  // Title text at bottom - fixed height for consistency
-                  SizedBox(
-                    height: textAreaHeight,
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: SizedBox(
-                        // Constrain width to force wrapping to two lines
-                        // Card width: 120px, padding: 12px each side = 96px available
-                        // Constrain to ~80px to force wrapping
-                        width: width - (2 * cardPadding) - 16,
-                        child: Text(
-                          _forceTwoLineText(title),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppFont.primaryTextStyle(
-                            context,
-                            fontSize: 16,
-                            fontWeight:
-                                isSelected ? FontWeight.w600 : FontWeight.w400,
-                            color: isSelected ? appTheme.text : appTheme.border,
-                            height: 1.2,
-                          ).copyWith(letterSpacing: 0.8),
-                        ),
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Icon fills its allocated height
+                SizedBox(
+                  height: actualIconHeight,
+                  width: double.infinity,
+                  child: _buildIcon(
+                      context, svgPath, categoryColor, actualIconHeight),
+                ),
+                // Title text at bottom - fixed height for consistency
+                SizedBox(
+                  height: textAreaHeight,
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: SizedBox(
+                      // Constrain width to force wrapping to two lines
+                      // Card width: 120px, padding: 12px each side = 96px available
+                      // Constrain to ~80px to force wrapping
+                      width: width - (2 * cardPadding) - 16,
+                      child: Text(
+                        _forceTwoLineText(title),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppFont.primaryTextStyle(
+                          context,
+                          fontSize: 16,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w400,
+                          color: isSelected ? appTheme.text : appTheme.border,
+                          height: 1.2,
+                        ).copyWith(letterSpacing: 0.8),
                       ),
                     ),
                   ),
-                ],
-              );
-            },
-          ),
+                ),
+              ],
+            );
+          },
         ),
       ),
+    );
+  }
+}
+
+class HorizontalInsetShape extends OutlinedBorder {
+  final double horizontalInset;
+  final OutlinedBorder baseShape;
+
+  const HorizontalInsetShape({
+    this.horizontalInset = 0,
+    this.baseShape = const RoundedRectangleBorder(),
+  });
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) {
+    return baseShape.getInnerPath(
+      EdgeInsets.symmetric(horizontal: horizontalInset).deflateRect(rect),
+      textDirection: textDirection,
+    );
+  }
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    return baseShape.getOuterPath(
+      Rect.fromLTRB(
+        rect.left + horizontalInset,
+        rect.top,
+        rect.right - horizontalInset,
+        rect.bottom,
+      ),
+      textDirection: textDirection,
+    );
+  }
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
+    baseShape.paint(
+      canvas,
+      Rect.fromLTRB(
+        rect.left + horizontalInset,
+        rect.top,
+        rect.right - horizontalInset,
+        rect.bottom,
+      ),
+      textDirection: textDirection,
+    );
+  }
+
+  @override
+  ShapeBorder scale(double t) {
+    return HorizontalInsetShape(
+      horizontalInset: horizontalInset * t,
+      baseShape: baseShape.scale(t) as OutlinedBorder,
+    );
+  }
+
+  @override
+  HorizontalInsetShape copyWith({BorderSide? side, double? horizontalInset}) {
+    return HorizontalInsetShape(
+      horizontalInset: horizontalInset ?? this.horizontalInset,
+      baseShape: baseShape.copyWith(side: side) as OutlinedBorder,
     );
   }
 }
