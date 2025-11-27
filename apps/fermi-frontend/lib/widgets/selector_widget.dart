@@ -49,7 +49,7 @@ class SelectorWidget extends StatelessWidget {
   final int columns;
 
   static const double _chipHeight = 40.0;
-  static const double _spacing = 4.0;
+  static const double _spacing = 0.0;
   static const double _fontSize = 16.0;
 
   Widget _buildIcon(String? iconUrl, IconData? icon, Color color) {

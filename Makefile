@@ -151,3 +151,15 @@ run-frontend:
 	  --dart-define=FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
 	  --dart-define=API_BASE_URL=http://localhost:8000/api/v1 \
 	  --dart-define=SUPPRESS_TEST_LOGS=true
+
+.PHONY: build-frontend-android-release
+build-frontend-android-release:
+	cd apps/fermi-frontend && \
+        fvm flutter clean && \
+        fvm flutter pub get && \
+        cd android && ./gradlew clean && cd ../ &&\
+	fvm flutter build appbundle \
+	  --release \
+	  --dart-define=API_BASE_URL=https://fermi-api-bwuxx6eogq-uc.a.run.app/api/v1 \
+	  --dart-define=USE_EMULATORS=false \
+	  --dart-define=SUPPRESS_TEST_LOGS=true
