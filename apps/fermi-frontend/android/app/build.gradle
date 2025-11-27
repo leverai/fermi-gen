@@ -74,4 +74,5 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.android.gms:play-services-auth:21.4.0")
     implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.android.play:integrity:1.6.0'
 }

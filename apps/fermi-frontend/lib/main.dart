@@ -2,9 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
+import 'package:firebase_auth/firebase_auth.dart'
+    hide EmailAuthProvider, AuthProvider;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
+import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
 import 'dart:io' show Platform;
 import 'package:fermi_frontend/firebase_options.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
@@ -221,7 +223,10 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    final providers = [EmailAuthProvider()];
+    final List<AuthProvider> providers = [
+      EmailAuthProvider(),
+      GoogleProvider(clientId: ''),
+    ];
     final AppTheme appTheme = _themeConfigService.computeTheme();
 
     return ThemeConfigProvider(
