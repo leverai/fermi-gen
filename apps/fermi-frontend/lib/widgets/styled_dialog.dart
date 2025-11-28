@@ -82,7 +82,7 @@ class StyledDialog extends StatelessWidget {
   Widget _buildContent(BuildContext context, AppTheme appTheme) {
     final container = Container(
       decoration: BoxDecoration(
-        color: appTheme.bg,
+        color: appTheme.bgLight,
         border: Border.all(
           color: appTheme.border,
           width: appTheme.borderWidth,
