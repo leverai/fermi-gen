@@ -9,7 +9,8 @@ import 'player_widget.dart';
 /// Features:
 /// - Uses CircularProgressIndicator for smooth progress animation
 /// - Inverts progress for countdown (100→0 display)
-/// - Colors based on ring state and player role (self/host/other)
+/// - Ring color indicates self vs others (info for self, border for others)
+/// - Gap color indicates host status (primary for host, transparent otherwise)
 /// - Maintains consistent dimensions with transparent background
 class PlayerRingProgress extends StatelessWidget {
   const PlayerRingProgress({
@@ -47,8 +48,8 @@ class PlayerRingProgress extends StatelessWidget {
         ? (1.0 - ringProgress) // Invert: 100→0
         : 1.0; // Completed/Review: show full
 
-    // Get gap color (matches screen background)
-    final Color ringGapColor = appTheme.bgLight;
+    // Get gap color: host uses primary, others use transparent
+    final Color ringGapColor = isHost ? appTheme.primary : Colors.transparent;
     // ignore: deprecated_member_use
     final Color trackColor = ringColor.withOpacity(0.2);
 
@@ -87,21 +88,16 @@ class PlayerRingProgress extends StatelessWidget {
   Color _getRingColor(AppTheme appTheme) {
     switch (ringState) {
       case RingState.countdown:
-        // Countdown phase: host uses info, self uses primary, others use border
-        if (isHost) return appTheme.info;
-        if (isSelf) return appTheme.primary;
-        return appTheme.border; // Other players have a neutral ring
+        // Ring color: self uses info, others use border
+        return isSelf ? appTheme.info : appTheme.border;
 
       case RingState.completed:
-        // Completed: host uses info, others use success (green)
-        if (isHost) return appTheme.info;
-        return appTheme.success;
+        // Completed: self uses info, others use success (green)
+        return isSelf ? appTheme.info : appTheme.success;
 
       case RingState.review:
-        // Review mode: host uses info, self uses primary, others use border
-        if (isHost) return appTheme.info;
-        if (isSelf) return appTheme.primary;
-        return appTheme.border;
+        // Ring color: self uses info, others use border
+        return isSelf ? appTheme.info : appTheme.border;
     }
   }
 }

@@ -238,7 +238,7 @@ class _StringTapeState extends State<StringTape> {
                         const EdgeInsets.symmetric(horizontal: _pressPadding),
                     height: widget.itemExtent,
                     decoration: BoxDecoration(
-                      color: appTheme.primary,
+                      color: appTheme.info,
                       borderRadius: BorderRadius.zero,
                     ),
                     child: Opacity(

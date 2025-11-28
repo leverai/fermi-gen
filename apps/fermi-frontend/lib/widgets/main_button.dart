@@ -233,6 +233,14 @@ class _MainButtonState extends State<MainButton>
                                       BorderRadius.circular(borderRadius),
                                 ),
                               ),
+                            if (_isPressed)
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: appTheme.text.withOpacity(0.2),
+                                  borderRadius:
+                                      BorderRadius.circular(borderRadius),
+                                ),
+                              ),
                             // Show content when not loading
                             if (!widget.isLoading) ...[
                               // Optional label placed near the top center
