@@ -103,8 +103,9 @@ class PlayerWidget extends StatefulWidget {
   /// Selects the animation style used by the rank icon when shown.
   final RankAnimationStyle rankAnimationStyle;
 
-  /// When true, shows a ring around the avatar using the theme's foreground color.
-  /// If the player is also a host, the host ring (golden) takes precedence.
+  /// When true, shows a ring around the avatar using the theme's info color.
+  /// When false, shows a ring using the theme's border color.
+  /// Host status is indicated separately via the ring gap color (primary for host).
   final bool isSelf;
 
   /// Notifier for deadline progress
