@@ -31,7 +31,7 @@ class PlayerRingProgress extends StatelessWidget {
   // Ring dimensions
   static const double avatarSize = 70.0;
   static const double ringGap = 4.0;
-  static const double ringThickness = 4.0;
+  static const double ringThickness = 6.0;
   static const double totalSize =
       avatarSize + (ringGap * 2) + (ringThickness * 2);
 
@@ -49,7 +49,7 @@ class PlayerRingProgress extends StatelessWidget {
         : 1.0; // Completed/Review: show full
 
     // Get gap color: host uses primary, others use transparent
-    final Color ringGapColor = isHost ? appTheme.primary : Colors.transparent;
+    final Color ringGapColor = isHost ? appTheme.secondary : Colors.transparent;
     // ignore: deprecated_member_use
     final Color trackColor = ringColor.withOpacity(0.2);
 
@@ -89,15 +89,15 @@ class PlayerRingProgress extends StatelessWidget {
     switch (ringState) {
       case RingState.countdown:
         // Ring color: self uses info, others use border
-        return isSelf ? appTheme.info : appTheme.border;
+        return isSelf ? appTheme.primary : appTheme.border;
 
       case RingState.completed:
         // Completed: self uses info, others use success (green)
-        return isSelf ? appTheme.info : appTheme.success;
+        return isSelf ? appTheme.primary : appTheme.success;
 
       case RingState.review:
         // Ring color: self uses info, others use border
-        return isSelf ? appTheme.info : appTheme.border;
+        return isSelf ? appTheme.primary : appTheme.border;
     }
   }
 }

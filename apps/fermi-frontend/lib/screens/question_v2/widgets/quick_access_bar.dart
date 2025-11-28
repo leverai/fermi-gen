@@ -50,7 +50,7 @@ class _QuickAccessBarState extends State<QuickAccessBar> {
     final dragProgress = (_dragDistance / _dragThreshold).clamp(0.0, 1.0);
     final textColor = Color.lerp(
       appTheme.borderMuted,
-      appTheme.info,
+      appTheme.secondary,
       dragProgress,
     )!;
 
