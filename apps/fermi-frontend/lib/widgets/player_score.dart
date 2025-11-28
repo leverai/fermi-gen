@@ -78,126 +78,126 @@ class _PlayerScoreState extends State<PlayerScore> {
     _isAnimating = true;
     try {
       while (mounted && !_isDisposed && _currentValue != _targetValue) {
-      final int start = _currentValue;
-      final int end = _targetValue;
+        final int start = _currentValue;
+        final int end = _targetValue;
 
-      final startDigits = _getDigits(start);
-      final endDigits = _getDigits(end);
-      final startDigitCount = startDigits.length;
-      final endDigitCount = endDigits.length;
+        final startDigits = _getDigits(start);
+        final endDigits = _getDigits(end);
+        final startDigitCount = startDigits.length;
+        final endDigitCount = endDigits.length;
 
-      // Determine the maximum digit count we'll need during this animation
-      final maxDigitCount =
-          startDigitCount > endDigitCount ? startDigitCount : endDigitCount;
+        // Determine the maximum digit count we'll need during this animation
+        final maxDigitCount =
+            startDigitCount > endDigitCount ? startDigitCount : endDigitCount;
 
-      // Pad both start and end values to the max digit count
-      final paddedStartDigits = start
-          .toString()
-          .padLeft(maxDigitCount, '0')
-          .split('')
-          .map(int.parse)
-          .toList();
-      final paddedEndDigits = end
-          .toString()
-          .padLeft(maxDigitCount, '0')
-          .split('')
-          .map(int.parse)
-          .toList();
+        // Pad both start and end values to the max digit count
+        final paddedStartDigits = start
+            .toString()
+            .padLeft(maxDigitCount, '0')
+            .split('')
+            .map(int.parse)
+            .toList();
+        final paddedEndDigits = end
+            .toString()
+            .padLeft(maxDigitCount, '0')
+            .split('')
+            .map(int.parse)
+            .toList();
 
-      // Expand digit count if needed, before animation starts
-      if (maxDigitCount > _digits.length) {
-        if (!mounted || _isDisposed) break;
-        setState(() {
-          _updateDigitKeys(maxDigitCount);
-          _digits = paddedStartDigits;
-        });
-        await WidgetsBinding.instance.endOfFrame;
-        if (!mounted || _isDisposed) break;
+        // Expand digit count if needed, before animation starts
+        if (maxDigitCount > _digits.length) {
+          if (!mounted || _isDisposed) break;
+          setState(() {
+            _updateDigitKeys(maxDigitCount);
+            _digits = paddedStartDigits;
+          });
+          await WidgetsBinding.instance.endOfFrame;
+          if (!mounted || _isDisposed) break;
 
-        // Wait for all digit keys to have valid states (handle rapid rebuilds)
-        int retries = 0;
-        while (retries < 10 && mounted && !_isDisposed) {
-          bool allKeysReady = true;
-          for (int i = 0; i < maxDigitCount; i++) {
-            if (_digitKeys[i].currentState == null) {
-              allKeysReady = false;
-              break;
+          // Wait for all digit keys to have valid states (handle rapid rebuilds)
+          int retries = 0;
+          while (retries < 10 && mounted && !_isDisposed) {
+            bool allKeysReady = true;
+            for (int i = 0; i < maxDigitCount; i++) {
+              if (_digitKeys[i].currentState == null) {
+                allKeysReady = false;
+                break;
+              }
+            }
+            if (allKeysReady) break;
+            await Future.delayed(const Duration(milliseconds: 16));
+            retries++;
+          }
+          if (!mounted || _isDisposed) break;
+        }
+
+        // Ensure we have enough keys (safety check for rapid updates)
+        if (maxDigitCount > _digitKeys.length) {
+          if (!mounted || _isDisposed) break;
+          setState(() {
+            _updateDigitKeys(maxDigitCount);
+          });
+          await WidgetsBinding.instance.endOfFrame;
+          if (!mounted || _isDisposed) break;
+        }
+
+        // Start all digit animations simultaneously
+        // Check that all keys have valid states before animating
+        final animations = <Future<void>>[];
+        bool hasNullStates = false;
+        for (int i = 0; i < maxDigitCount; i++) {
+          final from = paddedStartDigits[i];
+          final to = paddedEndDigits[i];
+          if (from != to) {
+            final state = _digitKeys[i].currentState;
+            if (state != null) {
+              animations.add(state.animate(from, to));
+            } else {
+              hasNullStates = true;
+              // If state is null, skip this digit (widget tree not ready yet)
+              // The animation loop will retry on next iteration
             }
           }
-          if (allKeysReady) break;
+        }
+
+        // If any states were null, wait and retry on next loop iteration
+        if (hasNullStates && _currentValue != _targetValue) {
           await Future.delayed(const Duration(milliseconds: 16));
-          retries++;
+          continue;
         }
-        if (!mounted || _isDisposed) break;
-      }
 
-      // Ensure we have enough keys (safety check for rapid updates)
-      if (maxDigitCount > _digitKeys.length) {
-        if (!mounted || _isDisposed) break;
-        setState(() {
-          _updateDigitKeys(maxDigitCount);
-        });
-        await WidgetsBinding.instance.endOfFrame;
-        if (!mounted || _isDisposed) break;
-      }
-
-      // Start all digit animations simultaneously
-      // Check that all keys have valid states before animating
-      final animations = <Future<void>>[];
-      bool hasNullStates = false;
-      for (int i = 0; i < maxDigitCount; i++) {
-        final from = paddedStartDigits[i];
-        final to = paddedEndDigits[i];
-        if (from != to) {
-          final state = _digitKeys[i].currentState;
-          if (state != null) {
-            animations.add(state.animate(from, to));
-          } else {
-            hasNullStates = true;
-            // If state is null, skip this digit (widget tree not ready yet)
-            // The animation loop will retry on next iteration
-          }
+        // If no animations to run but values differ, something went wrong - update directly
+        if (animations.isEmpty && _currentValue != _targetValue) {
+          // Fallback: update value directly without animation
+          setState(() {
+            _currentValue = _targetValue;
+            _digits = _getDigits(_targetValue);
+          });
+          break;
         }
-      }
 
-      // If any states were null, wait and retry on next loop iteration
-      if (hasNullStates && _currentValue != _targetValue) {
-        await Future.delayed(const Duration(milliseconds: 16));
-        continue;
-      }
-
-      // If no animations to run but values differ, something went wrong - update directly
-      if (animations.isEmpty && _currentValue != _targetValue) {
-        // Fallback: update value directly without animation
-        setState(() {
-          _currentValue = _targetValue;
-          _digits = _getDigits(_targetValue);
-        });
-        break;
-      }
-
-      // Wait for all animations to complete
-      await Future.wait(animations);
-      if (!mounted || _isDisposed) break;
-
-      // Update the current value
-      _currentValue = end;
-
-      // Contract digits if the final value has fewer digits
-      final finalDigitCount = endDigits.length;
-      if (finalDigitCount < maxDigitCount) {
+        // Wait for all animations to complete
+        await Future.wait(animations);
         if (!mounted || _isDisposed) break;
-        setState(() {
-          _digits = endDigits;
-          _updateDigitKeys(finalDigitCount);
-        });
-      } else {
-        setState(() {
-          _digits = paddedEndDigits;
-        });
-      }
 
-      // Loop will continue if _targetValue changed while animating
+        // Update the current value
+        _currentValue = end;
+
+        // Contract digits if the final value has fewer digits
+        final finalDigitCount = endDigits.length;
+        if (finalDigitCount < maxDigitCount) {
+          if (!mounted || _isDisposed) break;
+          setState(() {
+            _digits = endDigits;
+            _updateDigitKeys(finalDigitCount);
+          });
+        } else {
+          setState(() {
+            _digits = paddedEndDigits;
+          });
+        }
+
+        // Loop will continue if _targetValue changed while animating
       }
     } finally {
       // Always reset _isAnimating, even if an exception occurred
@@ -228,22 +228,24 @@ class _PlayerScoreState extends State<PlayerScore> {
         _AnimatedDigit(
           key: _digitKeys[i],
           initialDigit: _digits[i],
-          textColor: appTheme.textMuted,
+          textColor: appTheme.text,
         ),
       );
       final remainingDigits = numDigits - 1 - i;
       if (remainingDigits > 0 && remainingDigits % 3 == 0) {
-        digitWidgets.add(_buildComma(appTheme.textMuted));
+        digitWidgets.add(_buildComma(appTheme.text));
       }
     }
 
     return Container(
       padding: const EdgeInsets.all(5.0),
       decoration: BoxDecoration(
-        color: widget.backgroundColor ?? appTheme.bg,
+        color: widget.backgroundColor ?? appTheme.bgLight,
         borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: appTheme.border),
       ),
-      child: Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4.0),
         child: AnimatedSize(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
@@ -347,9 +349,12 @@ class _AnimatedDigitState extends State<_AnimatedDigit> {
         childDelegate: ListWheelChildBuilderDelegate(
           builder: (context, index) {
             return Center(
-              child: Text(
-                (index % 10).toString(),
-                style: textStyle,
+              child: Transform.translate(
+                offset: const Offset(0, -2),
+                child: Text(
+                  (index % 10).toString(),
+                  style: textStyle,
+                ),
               ),
             );
           },
