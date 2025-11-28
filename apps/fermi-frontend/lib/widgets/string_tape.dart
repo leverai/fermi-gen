@@ -258,7 +258,7 @@ class _StringTapeState extends State<StringTape> {
         if (showTopBorder)
           Container(
             height: 1.0,
-            color: appTheme.bgLight,
+            color: appTheme.borderMuted.withOpacity(.2),
           ),
       ],
     );

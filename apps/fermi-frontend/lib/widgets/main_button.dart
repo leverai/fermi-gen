@@ -249,7 +249,7 @@ class _MainButtonState extends State<MainButton>
                                       style: AppFont.primaryTextStyle(context,
                                               fontSize: 14,
                                               fontWeight: FontWeight.w400,
-                                              color: iconFgColor,
+                                              color: appTheme.text,
                                               decoration: TextDecoration.none)
                                           .copyWith(letterSpacing: 1.5),
                                     ),
@@ -291,7 +291,7 @@ class _MainButtonState extends State<MainButton>
                                       width: calculatedButtonWidth * 0.30,
                                       height: 8,
                                       colorFilter: ColorFilter.mode(
-                                        iconFgColor,
+                                        appTheme.text,
                                         BlendMode.srcIn,
                                       ),
                                     ),
@@ -317,7 +317,7 @@ class _MainButtonState extends State<MainButton>
                             child: const Center(
                               child: CircularDeterminateSpinner(
                                 progress: null, // null = indeterminate
-                                size: 14,
+                                size: 16,
                               ),
                             ),
                           ),

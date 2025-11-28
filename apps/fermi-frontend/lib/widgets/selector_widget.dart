@@ -148,7 +148,7 @@ class SelectorWidget extends StatelessWidget {
         height: _chipHeight,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? appTheme.primaryMuted : appTheme.bg,
+          color: isSelected ? appTheme.primaryMuted : appTheme.bgLight,
           border: isSelected
               ? Border.all(
                   color: appTheme.border,

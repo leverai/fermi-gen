@@ -55,8 +55,8 @@ class LobbyScreen extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [appTheme.bgLight, appTheme.bg, appTheme.bgDark],
-                stops: const [0.0, 0.5, 1.0],
+                colors: [appTheme.bg, appTheme.bg, appTheme.bgDark],
+                stops: const [0.0, 0.8, 1.0],
               ),
             ),
           ),

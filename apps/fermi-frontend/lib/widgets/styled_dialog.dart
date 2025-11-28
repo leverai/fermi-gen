@@ -162,6 +162,15 @@ class StyledDialog extends StatelessWidget {
                         ),
                         foregroundColor: appTheme.text,
                         padding: const EdgeInsets.symmetric(horizontal: 24),
+                      ).copyWith(
+                        overlayColor: WidgetStateProperty.resolveWith<Color?>(
+                          (Set<WidgetState> states) {
+                            if (states.contains(WidgetState.pressed)) {
+                              return appTheme.text.withOpacity(0.2);
+                            }
+                            return Colors.transparent;
+                          },
+                        ),
                       ),
                       child: Text(
                         secondaryButtonLabel!,
@@ -182,7 +191,7 @@ class StyledDialog extends StatelessWidget {
                     onPressed: onPrimaryPressed,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryButtonColor,
-                      foregroundColor: appTheme.bg,
+                      foregroundColor: appTheme.bgLight,
                       elevation: 0,
                       side: BorderSide(
                         color: appTheme.border,
@@ -195,6 +204,15 @@ class StyledDialog extends StatelessWidget {
                       shadowColor: Colors
                           .transparent, // We'll handle shadow manually if needed, or just flat
                       padding: const EdgeInsets.symmetric(horizontal: 24),
+                    ).copyWith(
+                      overlayColor: MaterialStateProperty.resolveWith<Color?>(
+                        (Set<MaterialState> states) {
+                          if (states.contains(MaterialState.pressed)) {
+                            return appTheme.text.withOpacity(0.2);
+                          }
+                          return Colors.transparent;
+                        },
+                      ),
                     ),
                     child: primaryButtonWidget ??
                         Text(
@@ -203,7 +221,7 @@ class StyledDialog extends StatelessWidget {
                             context,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: appTheme.bg, // Contrast text
+                            color: appTheme.bgLight, // Contrast text
                           ).copyWith(letterSpacing: 0.2),
                         ),
                   ),

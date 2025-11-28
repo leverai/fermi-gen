@@ -404,9 +404,8 @@ class _UnitTapeState extends State<UnitTape>
 
     // Determine colors based on focus and reveal state
     final Color textColor =
-        _isFocused ? appTheme.primary : (widget.revealColor ?? appTheme.text);
-    final Color borderColor =
-        _isFocused ? appTheme.primary : Colors.transparent;
+        _isFocused ? appTheme.info : (widget.revealColor ?? appTheme.text);
+    final Color borderColor = _isFocused ? appTheme.info : Colors.transparent;
 
     return Container(
       decoration: const BoxDecoration(
@@ -437,7 +436,7 @@ class _UnitTapeState extends State<UnitTape>
                     itemExtent: 72,
                     width: 60,
                     borderColor: borderColor,
-                    draggingBorderColor: appTheme.primary,
+                    draggingBorderColor: appTheme.info,
                     borderWidth: 1.5,
                     textStyle: AppFont.secondaryTextStyle(
                       context,
@@ -540,7 +539,7 @@ class _UnitSelectorSheet extends StatelessWidget {
                       Icon(
                         isUS ? Icons.check_circle : Icons.circle_outlined,
                         size: 14,
-                        color: isUS ? appTheme.primary : appTheme.borderMuted,
+                        color: isUS ? appTheme.info : appTheme.textMuted,
                       ),
                       const SizedBox(width: 12),
                       Text(
@@ -549,7 +548,7 @@ class _UnitSelectorSheet extends StatelessWidget {
                           context,
                           fontSize: 16,
                           fontWeight: FontWeight.w400,
-                          color: isUS ? appTheme.primary : appTheme.borderMuted,
+                          color: isUS ? appTheme.info : appTheme.textMuted,
                         ),
                       ),
                     ],
@@ -567,7 +566,7 @@ class _UnitSelectorSheet extends StatelessWidget {
                   context,
                   fontSize: 20,
                   fontWeight: FontWeight.w400,
-                  color: appTheme.highlight,
+                  color: appTheme.borderMuted,
                   height: 1.2,
                 ).copyWith(
                   letterSpacing: 1.5,

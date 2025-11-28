@@ -68,24 +68,23 @@ class AppTheme extends ThemeExtension<AppTheme> {
     return AppTheme(
       // Backgrounds
       // bgDark: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 0.8784).toColor(),
-      bgDark: const HSLColor.fromAHSL(1.0, 265.16, 0.12, 0.85).toColor(),
-      bg: const HSLColor.fromAHSL(1.0, 265.16, 0.12, 0.94).toColor(),
-      bgLight: const HSLColor.fromAHSL(1.0, 265.16, 0.12, 0.99).toColor(),
+      bgDark: const HSLColor.fromAHSL(1.0, 70, 0.3, 0.87).toColor(),
+      bg: const HSLColor.fromAHSL(1.0, 70, 0.3, 0.94).toColor(),
+      bgLight: const HSLColor.fromAHSL(1.0, 70, 0.3, 0.99).toColor(),
       // bgLight: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 1.0).toColor(),
 
       // Text
-      text: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 0.0).toColor(),
-      textMuted: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 0.2902).toColor(),
+      text: const HSLColor.fromAHSL(1.0, 78, 0.19, 0.14).toColor(),
+      textMuted: const HSLColor.fromAHSL(1.0, 78, 0.19, 0.3).toColor(),
 
       // UI Elements
       highlight: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 0.0).toColor(),
-      border: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 0.0).toColor(),
-      borderMuted: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 0.57).toColor(),
+      border: const HSLColor.fromAHSL(1.0, 78, 0.19, 0.14).toColor(),
+      borderMuted: const HSLColor.fromAHSL(1.0, 78, 0.19, 0.44).toColor(),
 
       // Brand - Vibrant Purple
-      primary: const HSLColor.fromAHSL(1.0, 265.16, 0.57, 0.57).toColor(),
-      primaryMuted:
-          const HSLColor.fromAHSL(1.0, 265.16, 0.5688, 0.85).toColor(),
+      primary: const HSLColor.fromAHSL(1.0, 58, 0.59, 0.76).toColor(),
+      primaryMuted: const HSLColor.fromAHSL(1.0, 58, 0.59, 0.94).toColor(),
 
       // Secondary - Vibrant Teal
       secondary: const HSLColor.fromAHSL(1.0, 175.75, 0.5595, 0.5549).toColor(),

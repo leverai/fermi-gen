@@ -415,7 +415,8 @@ class _QuestionScreenWrapperState extends State<_QuestionScreenWrapper> {
       dragIndicatorKey: widget.dragIndicatorKey,
       answerWidgetKey: widget.answerOmKey, // Map answerOmKey to answerWidgetKey
       onFinish: widget.onExit, // Handle Finish button click
-      onBeforeShowDialog: widget.onDismissTutorial, // Dismiss tutorial before showing dialogs
+      onBeforeShowDialog:
+          widget.onDismissTutorial, // Dismiss tutorial before showing dialogs
     );
   }
 }
@@ -470,7 +471,7 @@ class _TutorialDialog extends StatelessWidget {
                 context,
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: appTheme.bg,
+                color: appTheme.text,
               ).copyWith(letterSpacing: 0.2),
             ),
             TextSpan(
@@ -479,7 +480,7 @@ class _TutorialDialog extends StatelessWidget {
                 context,
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: appTheme.bg,
+                color: appTheme.text,
               ).copyWith(letterSpacing: 0.2),
             ),
           ],
