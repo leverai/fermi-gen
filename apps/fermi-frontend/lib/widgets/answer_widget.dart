@@ -305,7 +305,7 @@ class _AnswerWidgetState extends State<AnswerWidget> {
             'AnswerWidget.didUpdateWidget: Priority 1 - Animation pending/animating, updating color only');
         if (_digitsOverrideColor != widget.revealedColor) {
           setState(() {
-            _digitsOverrideColor = widget.revealedColor;
+            _digitsOverrideColor = null; // Don't use revealed color for text
           });
         }
         return;
@@ -402,7 +402,7 @@ class _AnswerWidgetState extends State<AnswerWidget> {
       _unitController.setRevealed(true);
     }
     setState(() {
-      _digitsOverrideColor = color;
+      _digitsOverrideColor = null; // Don't use revealed color for text
     });
   }
 
@@ -439,7 +439,7 @@ class _AnswerWidgetState extends State<AnswerWidget> {
     AppLogger.debug(
         'AnswerWidget._revealToValue: Setting colors and revealed state at start');
     setState(() {
-      _digitsOverrideColor = color;
+      _digitsOverrideColor = null; // Don't use revealed color for text
     });
 
     // Start tap indicator fade animations for OM and unit with matching duration
@@ -554,8 +554,6 @@ class _AnswerWidgetState extends State<AnswerWidget> {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    final Color revealColor = widget.revealColor ?? appTheme.danger;
-
     // Fixed height for answer elements (digits, OM, unit)
     // The Container margin (1px all around) is part of the widget.height allocation
     // So we need to reduce elementHeight by the margin to fit inside
@@ -607,7 +605,7 @@ class _AnswerWidgetState extends State<AnswerWidget> {
                       context,
                       fontSize: 24,
                       fontWeight: FontWeight.w500,
-                      color: _digitsOverrideColor ?? revealColor,
+                      color: appTheme.text, // Keep text color static
                       decoration: TextDecoration.none,
                     ),
                     focusedDigitTextStyle: AppFont.secondaryTextStyle(
@@ -634,7 +632,7 @@ class _AnswerWidgetState extends State<AnswerWidget> {
                     key: widget.omKey,
                     initialValue: _currentOm,
                     editable: widget.editable,
-                    revealColor: _digitsOverrideColor,
+                    revealColor: null, // Don't use revealed color for text
                     controller: _omController,
                     onChanged: _onOmChanged,
                     backgroundColor: appTheme.bg,
@@ -664,7 +662,8 @@ class _AnswerWidgetState extends State<AnswerWidget> {
                           onUnitChanged: _onUnitChanged,
                           onLocaleChanged: widget.onLocaleChanged,
                           editable: widget.editable,
-                          revealColor: _digitsOverrideColor,
+                          revealColor:
+                              null, // Don't use revealed color for text
                           controller: _unitController,
                           unitOptionsNotifier: widget.unitOptionsNotifier,
                           backgroundColor: appTheme.bg,

@@ -126,8 +126,8 @@ class _QuestionWidgetState extends State<QuestionWidget> {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    // Determine text color: use revealedColor if provided, otherwise use theme text color
-    final Color textColor = widget.revealedColor ?? appTheme.text;
+    // Determine text color: use theme text color (static)
+    final Color textColor = appTheme.text;
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,8 +189,8 @@ class _QuestionWidgetState extends State<QuestionWidget> {
             bounds.right,
             bounds.bottom + 1.0,
           );
-          // Use revealedColor for gradient if available, otherwise use theme text color
-          final Color gradientColor = widget.revealedColor ?? appTheme.text;
+          // Use theme text color for gradient
+          final Color gradientColor = appTheme.text;
           return LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -203,8 +203,8 @@ class _QuestionWidgetState extends State<QuestionWidget> {
           ).createShader(extendedBounds);
         } else {
           // No fade effect when content fits within the available space.
-          // Use revealedColor for gradient if available, otherwise use theme text color
-          final Color gradientColor = widget.revealedColor ?? appTheme.text;
+          // Use theme text color for gradient
+          final Color gradientColor = appTheme.text;
           return LinearGradient(
             colors: [gradientColor, gradientColor],
           ).createShader(bounds);

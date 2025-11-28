@@ -289,9 +289,14 @@ class GameCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         // Question-Answer Card
-        Container(
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
           decoration: BoxDecoration(
-            color: appTheme.bgLight,
+            // ignore: deprecated_member_use
+            color: Color.alphaBlend(
+                revealedColor?.withOpacity(0.1) ?? Colors.transparent,
+                appTheme.bgLight),
             border: Border.all(
               color: appTheme.border,
               width: appTheme.borderWidth,
@@ -299,7 +304,7 @@ class GameCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(appTheme.borderRadius),
             boxShadow: [
               BoxShadow(
-                color: appTheme.shadowColor,
+                color: revealedColor ?? appTheme.shadowColor,
                 offset: appTheme.shadowOffset,
                 blurRadius: 0,
               ),
