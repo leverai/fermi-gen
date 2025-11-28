@@ -537,8 +537,7 @@ void main() {
       expect(find.text('Question copied to clipboard'), findsNothing);
     });
 
-    testWidgets('should enable copy after reveal',
-        (WidgetTester tester) async {
+    testWidgets('should enable copy after reveal', (WidgetTester tester) async {
       // Arrange
       final widget = GameCard(
         questionText: QuestionDataFixtures.sampleQuestion1,
