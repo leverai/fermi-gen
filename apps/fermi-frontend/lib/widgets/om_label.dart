@@ -409,9 +409,8 @@ class _OmLabelState extends State<OmLabel> with SingleTickerProviderStateMixin {
 
     // Determine colors based on focus and reveal state
     final Color textColor =
-        _isFocused ? appTheme.primary : (widget.revealColor ?? appTheme.text);
-    final Color borderColor =
-        _isFocused ? appTheme.primary : Colors.transparent;
+        _isFocused ? appTheme.info : (widget.revealColor ?? appTheme.text);
+    final Color borderColor = _isFocused ? appTheme.info : Colors.transparent;
 
     return Container(
       decoration: const BoxDecoration(
@@ -442,7 +441,7 @@ class _OmLabelState extends State<OmLabel> with SingleTickerProviderStateMixin {
                     itemExtent: 72,
                     width: 60,
                     borderColor: borderColor,
-                    draggingBorderColor: appTheme.primary,
+                    draggingBorderColor: appTheme.info,
                     borderWidth: 1.5,
                     textStyle: AppFont.secondaryTextStyle(
                       context,
@@ -466,9 +465,10 @@ class _OmLabelState extends State<OmLabel> with SingleTickerProviderStateMixin {
                   Builder(
                     builder: (context) {
                       // Hide tap indicator when scroll indicator is showing (focused or dragging)
-                      final double effectiveOpacity = (_isFocused || _isDragging)
-                          ? 0.0
-                          : _indicatorFadeController.value;
+                      final double effectiveOpacity =
+                          (_isFocused || _isDragging)
+                              ? 0.0
+                              : _indicatorFadeController.value;
                       return TapIndicator(
                         opacity: effectiveOpacity,
                       );

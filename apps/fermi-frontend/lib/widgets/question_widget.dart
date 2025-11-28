@@ -168,7 +168,10 @@ class _QuestionWidgetState extends State<QuestionWidget> {
       physics: _isScrollable
           ? const BouncingScrollPhysics()
           : const NeverScrollableScrollPhysics(),
-      child: content,
+      child: SizedBox(
+        width: double.infinity,
+        child: content,
+      ),
     );
 
     // Apply fade effect using ShaderMask to indicate scrollability.

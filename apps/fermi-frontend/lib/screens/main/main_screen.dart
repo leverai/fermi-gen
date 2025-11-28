@@ -215,7 +215,7 @@ class _MainScreenState extends State<MainScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [appTheme.bgLight, appTheme.bgLight, appTheme.bg],
+                  colors: [appTheme.bg, appTheme.bg, appTheme.bgDark],
                   stops: const [0.0, 0.8, 1.0],
                 ),
               ),
@@ -238,7 +238,7 @@ class _MainScreenState extends State<MainScreen> {
                             children: [
                               Container(
                                 decoration: BoxDecoration(
-                                  color: appTheme.bg,
+                                  color: appTheme.bgLight,
                                   border: Border.all(
                                     color: appTheme.border,
                                     width: appTheme.borderWidth,
