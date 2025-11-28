@@ -138,7 +138,7 @@ class _QuestionWidgetState extends State<QuestionWidget> {
           curve: Curves.easeInOut,
           style: AppFont.primaryTextStyle(
             context,
-            fontSize: 20,
+            fontSize: 16,
             fontWeight: FontWeight.w600,
             color: textColor,
             decoration: TextDecoration.none,
