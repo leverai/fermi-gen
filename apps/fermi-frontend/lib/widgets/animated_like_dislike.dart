@@ -102,14 +102,12 @@ class _AnimatedLikeDislikeState extends State<AnimatedLikeDislike>
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
     // Target colors based on state
-    final Color targetThumbUpColor =
-        _state == VoteState.upvoted ? appTheme.success : appTheme.border;
-    final Color targetThumbDownColor =
-        _state == VoteState.downvoted ? appTheme.danger : appTheme.border;
+    final Color targetThumbUpColor = appTheme.border;
+    final Color targetThumbDownColor = appTheme.border;
     final Color targetTextColor = _state == VoteState.upvoted
-        ? appTheme.success
+        ? appTheme.border
         : _state == VoteState.downvoted
-            ? appTheme.danger
+            ? appTheme.border
             : appTheme.border;
     final Color separatorColor = appTheme.borderMuted;
 
@@ -201,19 +199,19 @@ class _AnimatedLikeDislikeState extends State<AnimatedLikeDislike>
                       return true;
                     },
                     bubblesColor: BubblesColor(
-                      dotPrimaryColor: appTheme.primary,
+                      dotPrimaryColor: appTheme.border,
                       // ignore: deprecated_member_use
-                      dotSecondaryColor: appTheme.primary.withOpacity(0.8),
+                      dotSecondaryColor: appTheme.border.withOpacity(0.8),
                       // ignore: deprecated_member_use
-                      dotThirdColor: appTheme.primary.withOpacity(0.6),
+                      dotThirdColor: appTheme.border.withOpacity(0.6),
                       // ignore: deprecated_member_use
-                      dotLastColor: appTheme.primary.withOpacity(0.4),
+                      dotLastColor: appTheme.border.withOpacity(0.4),
                     ),
                     circleColor: CircleColor(
                       // ignore: deprecated_member_use
-                      start: appTheme.primary.withOpacity(0.3),
+                      start: appTheme.border.withOpacity(0.3),
                       // ignore: deprecated_member_use
-                      end: appTheme.primary.withOpacity(0.8),
+                      end: appTheme.border.withOpacity(0.8),
                     ),
                   ),
                   const SizedBox(width: 12), // 20% larger
@@ -268,19 +266,19 @@ class _AnimatedLikeDislikeState extends State<AnimatedLikeDislike>
                       return true;
                     },
                     bubblesColor: BubblesColor(
-                      dotPrimaryColor: appTheme.danger,
+                      dotPrimaryColor: appTheme.border,
                       // ignore: deprecated_member_use
-                      dotSecondaryColor: appTheme.danger.withOpacity(0.8),
+                      dotSecondaryColor: appTheme.border.withOpacity(0.8),
                       // ignore: deprecated_member_use
-                      dotThirdColor: appTheme.danger.withOpacity(0.6),
+                      dotThirdColor: appTheme.border.withOpacity(0.6),
                       // ignore: deprecated_member_use
-                      dotLastColor: appTheme.danger.withOpacity(0.4),
+                      dotLastColor: appTheme.border.withOpacity(0.4),
                     ),
                     circleColor: CircleColor(
                       // ignore: deprecated_member_use
-                      start: appTheme.danger.withOpacity(0.3),
+                      start: appTheme.border.withOpacity(0.3),
                       // ignore: deprecated_member_use
-                      end: appTheme.danger.withOpacity(0.8),
+                      end: appTheme.border.withOpacity(0.8),
                     ),
                   ),
                 ],

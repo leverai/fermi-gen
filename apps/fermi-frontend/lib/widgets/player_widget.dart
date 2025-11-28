@@ -494,7 +494,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
     // Use app theme's bg color for SVG background
-    final Color svgBackgroundColor = appTheme.bg;
+    final Color svgBackgroundColor = appTheme.bgLight;
 
     // Build the avatar content based on whether it's SVG or raster image
     Widget avatarContent;

@@ -48,7 +48,7 @@ class PlayerRingProgress extends StatelessWidget {
         : 1.0; // Completed/Review: show full
 
     // Get gap color (matches screen background)
-    final Color ringGapColor = appTheme.bgDark;
+    final Color ringGapColor = appTheme.bgLight;
     // ignore: deprecated_member_use
     final Color trackColor = ringColor.withOpacity(0.2);
 

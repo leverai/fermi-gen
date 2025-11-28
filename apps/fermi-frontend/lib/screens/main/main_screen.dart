@@ -213,10 +213,10 @@ class _MainScreenState extends State<MainScreen> {
               curve: Curves.easeInOutCubic,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [appTheme.bgLight, appTheme.bg, appTheme.bgDark],
-                  stops: const [0.0, 0.25, 1.0],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [appTheme.bgLight, appTheme.bgLight, appTheme.bg],
+                  stops: const [0.0, 0.8, 1.0],
                 ),
               ),
               child: Stack(

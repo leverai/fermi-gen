@@ -195,10 +195,10 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                   colors: [appTheme.bg, appTheme.bg, appTheme.bgDark],
-                  stops: const [0.0, 0.5, 1.0],
+                  stops: const [0.0, 0.8, 1.0],
                 ),
               ),
             ),

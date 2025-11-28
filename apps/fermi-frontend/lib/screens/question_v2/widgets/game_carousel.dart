@@ -92,14 +92,10 @@ class GameCarousel extends StatelessWidget {
                 position: currentIndex,
                 decorator: DotsDecorator(
                   color: enableUserSwipe
-                      ?
-                      // ignore: deprecated_member_use
-                      appTheme.primary.withOpacity(0.3)
-                      :
-                      // ignore: deprecated_member_use
-                      appTheme.highlight.withOpacity(0.3),
+                      ? appTheme.primaryMuted
+                      : appTheme.borderMuted,
                   activeColor:
-                      enableUserSwipe ? appTheme.primary : appTheme.highlight,
+                      enableUserSwipe ? appTheme.primary : appTheme.border,
                   size: const Size.square(6.0),
                   activeSize: const Size(10.0, 6.0),
                   spacing: const EdgeInsets.all(4.0),
