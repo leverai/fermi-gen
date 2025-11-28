@@ -223,7 +223,7 @@ class _OmLabelState extends State<OmLabel> with SingleTickerProviderStateMixin {
                         context,
                         fontSize: 16,
                         fontWeight: FontWeight.w400,
-                        color: appTheme.border,
+                        color: appTheme.textMuted,
                         height: 1.2,
                       ).copyWith(
                         letterSpacing: 1.5,
@@ -409,8 +409,9 @@ class _OmLabelState extends State<OmLabel> with SingleTickerProviderStateMixin {
 
     // Determine colors based on focus and reveal state
     final Color textColor =
-        _isFocused ? appTheme.info : (widget.revealColor ?? appTheme.text);
-    final Color borderColor = _isFocused ? appTheme.info : Colors.transparent;
+        _isFocused ? appTheme.secondary : (widget.revealColor ?? appTheme.text);
+    final Color borderColor =
+        _isFocused ? appTheme.secondary : Colors.transparent;
 
     return Container(
       decoration: const BoxDecoration(
@@ -441,7 +442,7 @@ class _OmLabelState extends State<OmLabel> with SingleTickerProviderStateMixin {
                     itemExtent: 72,
                     width: 60,
                     borderColor: borderColor,
-                    draggingBorderColor: appTheme.info,
+                    draggingBorderColor: appTheme.secondary,
                     borderWidth: 1.5,
                     textStyle: AppFont.secondaryTextStyle(
                       context,
