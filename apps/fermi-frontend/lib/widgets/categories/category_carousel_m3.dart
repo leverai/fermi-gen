@@ -268,7 +268,7 @@ class CategoryCardM3 extends StatelessWidget {
         .withLightness(0.80)
         .toColor()
         // ignore: deprecated_member_use
-        .withOpacity(0.1);
+        .withOpacity(0.2);
 
     // Card padding: 12px all around
     const double cardPadding = 12.0;

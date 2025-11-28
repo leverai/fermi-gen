@@ -65,35 +65,38 @@ class AppTheme extends ThemeExtension<AppTheme> {
 
   /// Default theme with Neubrutalism colors
   factory AppTheme.defaultTheme() {
-    return const AppTheme(
+    return AppTheme(
       // Backgrounds
-      bgDark: Color(0xFFE0E0E0), // Light grey for depth
-      bg: Color(0xFFFFF8E7), // Light beige/off-white
-      bgLight: Color(0xFFFFFFFF), // Pure white
+      // bgDark: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 0.8784).toColor(),
+      bgDark: const HSLColor.fromAHSL(1.0, 265.16, 0.12, 0.85).toColor(),
+      bg: const HSLColor.fromAHSL(1.0, 265.16, 0.12, 0.94).toColor(),
+      bgLight: const HSLColor.fromAHSL(1.0, 265.16, 0.12, 0.99).toColor(),
+      // bgLight: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 1.0).toColor(),
 
       // Text
-      text: Color(0xFF000000), // Stark black
-      textMuted: Color(0xFF4A4A4A), // Dark grey
+      text: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 0.0).toColor(),
+      textMuted: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 0.2902).toColor(),
 
       // UI Elements
-      highlight: Color(0xFF000000), // Black for highlights
-      border: Color(0xFF000000), // Black borders
-      borderMuted:
-          Color.fromARGB(255, 146, 146, 146), // Black borders (consistent)
+      highlight: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 0.0).toColor(),
+      border: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 0.0).toColor(),
+      borderMuted: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 0.57).toColor(),
 
       // Brand - Vibrant Purple
-      primary: Color(0xFF8854D0),
-      primaryMuted: Color(0xFF6C42A5),
+      primary: const HSLColor.fromAHSL(1.0, 265.16, 0.57, 0.57).toColor(),
+      primaryMuted:
+          const HSLColor.fromAHSL(1.0, 265.16, 0.5688, 0.85).toColor(),
 
       // Secondary - Vibrant Teal
-      secondary: Color(0xFF4ECDC4),
-      secondaryMuted: Color(0xFF3B9C96),
+      secondary: const HSLColor.fromAHSL(1.0, 175.75, 0.5595, 0.5549).toColor(),
+      secondaryMuted:
+          const HSLColor.fromAHSL(1.0, 176.29, 0.4512, 0.4216).toColor(),
 
       // Semantic
-      danger: Color(0xFFFF6B6B), // Bright Red
-      warning: Color(0xFFFFE66D), // Bright Yellow
-      success: Color(0xFF6BCB77), // Bright Green
-      info: Color(0xFF4D96FF), // Bright Blue
+      danger: const HSLColor.fromAHSL(1.0, 0.0, 1.0, 0.7098).toColor(),
+      warning: const HSLColor.fromAHSL(1.0, 49.73, 1.0, 0.7137).toColor(),
+      success: const HSLColor.fromAHSL(1.0, 82, 0.60, 0.46).toColor(),
+      info: const HSLColor.fromAHSL(1.0, 215.39, 1.0, 0.651).toColor(),
     );
   }
 

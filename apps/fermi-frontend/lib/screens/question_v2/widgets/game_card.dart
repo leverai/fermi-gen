@@ -175,7 +175,7 @@ class GameCard extends StatelessWidget {
     final appTheme = Theme.of(context).extension<AppTheme>();
     final Color? calculatedAutoNextColor =
         appTheme != null && autoNextProgress > 0
-            ? Color.lerp(appTheme.info, appTheme.danger, autoNextProgress)
+            ? Color.lerp(appTheme.success, appTheme.danger, autoNextProgress)
             : null;
 
     switch (paneState!) {
@@ -291,7 +291,7 @@ class GameCard extends StatelessWidget {
         // Question-Answer Card
         Container(
           decoration: BoxDecoration(
-            color: appTheme.bg,
+            color: appTheme.bgLight,
             border: Border.all(
               color: appTheme.border,
               width: appTheme.borderWidth,

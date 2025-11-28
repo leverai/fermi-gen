@@ -595,7 +595,7 @@ class _AnswerWidgetState extends State<AnswerWidget> {
                     draggingBorderColor: appTheme.primary,
                     focusedBorderColor: appTheme.primary,
                     borderWidth: 2,
-                    digitBackgroundColor: appTheme.bgDark,
+                    digitBackgroundColor: appTheme.bg,
                     digitTextStyle: AppFont.secondaryTextStyle(
                       context,
                       fontSize: 24,
@@ -637,7 +637,7 @@ class _AnswerWidgetState extends State<AnswerWidget> {
                     revealColor: _digitsOverrideColor,
                     controller: _omController,
                     onChanged: _onOmChanged,
-                    backgroundColor: appTheme.bgDark,
+                    backgroundColor: appTheme.bg,
                     onBeforeOpen: () {
                       // Close any open numpad before opening OM selector
                       _digitsController.clearFocus();
@@ -667,7 +667,7 @@ class _AnswerWidgetState extends State<AnswerWidget> {
                           revealColor: _digitsOverrideColor,
                           controller: _unitController,
                           unitOptionsNotifier: widget.unitOptionsNotifier,
-                          backgroundColor: appTheme.bgDark,
+                          backgroundColor: appTheme.bg,
                           onBeforeOpen: () {
                             // Close any open numpad before opening unit selector
                             _digitsController.clearFocus();
