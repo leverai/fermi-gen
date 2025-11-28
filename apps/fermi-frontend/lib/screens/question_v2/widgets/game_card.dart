@@ -295,6 +295,7 @@ class GameCard extends StatelessWidget {
           decoration: BoxDecoration(
             // ignore: deprecated_member_use
             color: Color.alphaBlend(
+                // ignore: deprecated_member_use
                 revealedColor?.withOpacity(0.1) ?? Colors.transparent,
                 appTheme.bgLight),
             border: Border.all(

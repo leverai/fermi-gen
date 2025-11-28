@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:fermi_frontend/services/game_realtime.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/widgets/answer_widget.dart';
@@ -242,7 +243,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
             myPlayerId: realtime.currentPlayerId,
             isReviewMode: _isReviewMode,
             reviewModePending: _reviewModePending,
-            onUpdate: notifyListeners,
+            onUpdate: _safeNotifyListeners,
           );
           _confettiManager.scheduleConfettiCheck(
             questionCount: questionCount,
@@ -250,7 +251,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
             myPlayerId: realtime.currentPlayerId,
             isReviewMode: _isReviewMode,
             reviewModePending: _reviewModePending,
-            onUpdate: notifyListeners,
+            onUpdate: _safeNotifyListeners,
           );
         }
 
@@ -259,15 +260,15 @@ class QuestionScreenV2Controller extends ChangeNotifier {
           _confettiManager.calculateFinalRanks(
             questionCount: questionCount,
             stateManager: _stateManager,
-            onUpdate: notifyListeners,
+            onUpdate: _safeNotifyListeners,
           );
         }
 
-        notifyListeners();
+        _safeNotifyListeners();
       },
       onError: (Object err, StackTrace st) {
         _errorMessage = 'Connection issue. Retrying…';
-        notifyListeners();
+        _safeNotifyListeners();
       },
     );
   }
@@ -349,7 +350,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       _timerManager.startDeadlineTimer(_perQuestionDuration);
     }
 
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void _onQuestionIndexChanged(int newIndex) {
@@ -434,7 +435,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
                 myPlayerId: realtime.currentPlayerId,
                 isReviewMode: _isReviewMode,
                 reviewModePending: _reviewModePending,
-                onUpdate: notifyListeners,
+                onUpdate: _safeNotifyListeners,
               );
               _confettiManager.scheduleConfettiCheck(
                 questionCount: questionCount,
@@ -442,13 +443,13 @@ class QuestionScreenV2Controller extends ChangeNotifier {
                 myPlayerId: realtime.currentPlayerId,
                 isReviewMode: _isReviewMode,
                 reviewModePending: _reviewModePending,
-                onUpdate: notifyListeners,
+                onUpdate: _safeNotifyListeners,
               );
-              notifyListeners();
+              _safeNotifyListeners();
             }
           });
         }
-        notifyListeners();
+        _safeNotifyListeners();
       },
     );
   }
@@ -541,13 +542,16 @@ class QuestionScreenV2Controller extends ChangeNotifier {
     }
 
     // Trigger per-question confetti for highest scorer
-    _confettiManager.triggerPerQuestionConfetti(
-      index: index,
-      scores: snapshot.scores,
-      playerStateManager: _playerManager,
-      isReviewMode: _isReviewMode,
-      questionCount: questionCount,
-    );
+    // Schedule this to avoid setState during build (since this is called from stream listener)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _confettiManager.triggerPerQuestionConfetti(
+        index: index,
+        scores: snapshot.scores,
+        playerStateManager: _playerManager,
+        isReviewMode: _isReviewMode,
+        questionCount: questionCount,
+      );
+    });
 
     _playerManager.applyScoresToPlayerStates(
       index: index,
@@ -564,7 +568,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       final currentState = _stateManager.getQuestionState(index);
       if (currentState?.isRevealed == true) {
         // Trigger rebuild to update revealedColor prop (color is computed by getRevealedColor)
-        notifyListeners();
+        _safeNotifyListeners();
       }
     }
 
@@ -598,7 +602,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
         myPlayerId: realtime.currentPlayerId,
         isReviewMode: _isReviewMode,
         reviewModePending: _reviewModePending,
-        onUpdate: notifyListeners,
+        onUpdate: _safeNotifyListeners,
       );
       _confettiManager.scheduleConfettiCheck(
         questionCount: questionCount,
@@ -606,13 +610,13 @@ class QuestionScreenV2Controller extends ChangeNotifier {
         myPlayerId: realtime.currentPlayerId,
         isReviewMode: _isReviewMode,
         reviewModePending: _reviewModePending,
-        onUpdate: notifyListeners,
+        onUpdate: _safeNotifyListeners,
       );
 
       // Calculate final ranks if not already calculated (handles case where scores arrive after review mode activates)
       _confettiManager.calculateFinalRanksFromScores(
         cumulativeScores: cumulativeScores,
-        onUpdate: notifyListeners,
+        onUpdate: _safeNotifyListeners,
       );
     }
 
@@ -723,7 +727,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
   /// Note: Confetti state persists across carousel navigation in review mode
   /// (scrolling between questions) as it's a game-end effect, not per-question.
   void clearConfetti() {
-    _confettiManager.clearConfetti(notifyListeners);
+    _confettiManager.clearConfetti(_safeNotifyListeners);
   }
 
   /// Request next question (host only)
@@ -766,6 +770,18 @@ class QuestionScreenV2Controller extends ChangeNotifier {
   /// Check if a question is revealed (for onboarding tutorial)
   bool isQuestionRevealed(int index) {
     return _stateManager.isQuestionRevealed(index);
+  }
+
+  /// Notify listeners safely (schedules if during build)
+  void _safeNotifyListeners() {
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
+    } else {
+      notifyListeners();
+    }
   }
 
   @override
