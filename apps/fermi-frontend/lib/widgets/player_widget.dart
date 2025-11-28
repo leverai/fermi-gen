@@ -352,7 +352,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                             ),
                           ),
                         Positioned(
-                          bottom: -overflowDistance,
+                          bottom: -overflowDistance - 2,
                           left: 0,
                           right: 0,
                           child: Center(
