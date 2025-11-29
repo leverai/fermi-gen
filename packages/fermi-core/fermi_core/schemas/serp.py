@@ -153,7 +153,7 @@ class ExtractedInfo(BaseModel):
     """Information extracted from snippet - with validated unit."""
 
     number: float = Field(description='Numeric answer in scientific notation')
-    unit: VALID_UNITS = Field(description='Unit from predefined list')
+    unit: VALID_UNITS = Field(description='Unit from predefined list.')
     confidence: float = Field(ge=0, le=1, description='Extraction confidence')
 
     def to_base_unit(self) -> tuple[float, str | None]:
@@ -181,3 +181,11 @@ class SerpAnswer(BaseModel):
         le=1.0,
         description='Extraction confidence (min 0.8)',
     )
+
+    @field_validator('unit', mode='after')
+    @classmethod
+    def _no_unit_as_none(cls, v: Literal['dimensionless'] | str) -> str | None:
+        """Convert 'dimensionless' to None."""
+        if v == 'dimensionless':
+            return None
+        return v
