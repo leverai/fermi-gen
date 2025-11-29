@@ -66,13 +66,14 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBEuwflWzwOzaGeDUgtLfrptKD6uDJgRqA',
-    appId: '1:811437731406:ios:0c2eb1e88943ec3e3c1d1f',
+    appId: '1:811437731406:ios:60a0edb8ff1e85a53c1d1f',
     messagingSenderId: '811437731406',
     projectId: 'guesstimate-dev-478820',
     storageBucket: 'guesstimate-dev-478820.firebasestorage.app',
-    androidClientId: '811437731406-a2shalhol9694hb8pm3859gb50n1tmm0.apps.googleusercontent.com',
-    iosClientId: '811437731406-94h9o9u8u62djjerc7tsrf6ubf1nalvd.apps.googleusercontent.com',
-    iosBundleId: 'com.guesstimate.fermiFrontend',
+    androidClientId:
+        '811437731406-a2shalhol9694hb8pm3859gb50n1tmm0.apps.googleusercontent.com',
+    iosClientId:
+        '811437731406-t4fflfp570e92mh5nsrsgh6kpplpq31a.apps.googleusercontent.com',
+    iosBundleId: 'com.guesstimate.guesstimate',
   );
-
 }
