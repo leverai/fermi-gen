@@ -278,6 +278,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       colorShadow: Colors.black,
       paddingFocus: 10,
       opacityShadow: 0.8,
+      // Skip focus-out animation for faster transitions (bubble appears to move directly)
+      unFocusAnimationDuration: const Duration(milliseconds: 10),
+      // Faster focus-in animation (still smooth but quicker)
+      focusAnimationDuration: const Duration(milliseconds: 500),
+      // Disable pulse animation for cleaner, faster feel
+      pulseEnable: false,
       onFinish: () {
         // Tutorial completed successfully - ensure interactions are enabled
         // Note: onFinish is called when user completes all steps via Next buttons
