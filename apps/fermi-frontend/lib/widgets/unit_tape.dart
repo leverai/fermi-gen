@@ -6,6 +6,7 @@ import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/tap_indicator.dart';
 import 'package:fermi_frontend/widgets/string_tape.dart';
 import 'package:fermi_frontend/widgets/selector_widget.dart';
+import 'package:fermi_frontend/widgets/unit_system_switch.dart';
 import 'package:fermi_frontend/utils/logger.dart';
 
 class UnitTapeController {
@@ -524,36 +525,51 @@ class _UnitSelectorSheet extends StatelessWidget {
                 ),
               ),
 
-              // U.S. Units toggle chip
+              // Unit system switch: Imperial / Metric
               GestureDetector(
                 onTap: () {
                   final newLocale = isUS ? 'EU' : 'US';
                   onLocaleChanged(newLocale);
                 },
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.transparent,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isUS ? Icons.check_circle : Icons.circle_outlined,
-                        size: 14,
-                        color: isUS ? appTheme.secondary : appTheme.textMuted,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'U.S. Units',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Imperial label - fixed width to prevent toggle shifting
+                    SizedBox(
+                      width: 80,
+                      child: Text(
+                        'Imperial',
+                        textAlign: TextAlign.left,
                         style: AppFont.primaryTextStyle(
                           context,
                           fontSize: 16,
-                          fontWeight: FontWeight.w400,
+                          fontWeight: isUS ? FontWeight.w600 : FontWeight.w400,
                           color: isUS ? appTheme.secondary : appTheme.textMuted,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    // Switch container
+                    UnitSystemSwitch(
+                      isUS: isUS,
+                      appTheme: appTheme,
+                    ),
+                    const SizedBox(width: 12),
+                    // Metric label - fixed width to prevent toggle shifting
+                    SizedBox(
+                      width: 80,
+                      child: Text(
+                        'Metric',
+                        textAlign: TextAlign.left,
+                        style: AppFont.primaryTextStyle(
+                          context,
+                          fontSize: 16,
+                          fontWeight: !isUS ? FontWeight.w600 : FontWeight.w400,
+                          color:
+                              !isUS ? appTheme.secondary : appTheme.textMuted,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 20),

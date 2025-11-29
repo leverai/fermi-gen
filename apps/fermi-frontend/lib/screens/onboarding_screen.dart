@@ -234,7 +234,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               return _TutorialDialog(
                 key: const ValueKey('unit-card'),
                 message: 'Unit',
-                secondaryMessage: 'U.S. and Metric units',
+                secondaryMessage: 'Imperial and Metric units',
                 foregroundColor: appTheme.primary,
                 stepIndex: 5,
                 totalSteps: 6,
