@@ -529,7 +529,7 @@ class _UnitSelectorSheet extends StatelessWidget {
               Container(
                 width: 40,
                 height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
+                margin: const EdgeInsets.only(bottom: 22),
                 decoration: BoxDecoration(
                   color: appTheme.border,
                 ),
