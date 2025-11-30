@@ -288,7 +288,13 @@ class _DigitWheelsState extends State<DigitWheels>
     _hundreds.jumpToItem(d.hundreds);
     _tens.jumpToItem(d.tens);
     _ones.jumpToItem(d.ones);
-    _emitChanged();
+    // Defer onChanged callback to after current build phase to prevent
+    // "setState() called during build" errors when jumpTo is called from didUpdateWidget
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _emitChanged();
+      }
+    });
   }
 
   Future<void> _animateTo(int value, Duration duration) async {

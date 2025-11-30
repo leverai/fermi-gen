@@ -621,5 +621,71 @@ void main() {
       // Assert
       expect(find.text('Question copied to clipboard'), findsOneWidget);
     });
+
+    testWidgets('should not throw setState during build when revealing answer',
+        (WidgetTester tester) async {
+      // This test reproduces the bug where updating GameCard with revealed props
+      // triggers setState during build via the following chain:
+      // didUpdateWidget -> _jumpToRevealedValue -> _digitsController.jumpTo() ->
+      // _emitChanged() -> widget.onChanged -> controller.onAnswerChanged ->
+      // notifyListeners() -> setState() during build
+      //
+      // The fix defers _emitChanged() to after the build phase.
+
+      // Arrange - Start with non-revealed state
+      Widget buildWidget({required bool revealed}) {
+        return GameCard(
+          questionText: QuestionDataFixtures.sampleQuestion1,
+          tags: QuestionDataFixtures.geographyTags,
+          currentAnswer:
+              const AnswerValue(number: 123, orderOfMagnitude: 'K', unit: 'km'),
+          submittedAnswer: null,
+          unitOptions: QuestionDataFixtures.usUnitOptions,
+          units: QuestionDataFixtures.countUnits,
+          currentLocale: 'US',
+          onAnswerChanged: (_) {},
+          onLocaleChanged: (_) {},
+          answerController: null,
+          revealedAnswer: revealed
+              ? const AnswerValue(
+                  number: 500, orderOfMagnitude: 'M', unit: 'km')
+              : null,
+          revealedColor: revealed ? Colors.green : null,
+          editable: !revealed,
+          showFeedback: revealed,
+          initialLikes: 0,
+          initialVoteState: VoteState.none,
+          onUpvote: revealed ? () async {} : null,
+          onDeUpvote: revealed ? () async {} : null,
+          onDownvote: revealed ? () async {} : null,
+          onDeDownvote: revealed ? () async {} : null,
+          unitOptionsNotifier: null,
+        );
+      }
+
+      // Act - Start with non-revealed state
+      await pumpWithMaterialApp(tester, buildWidget(revealed: false));
+      await tester.pumpAndSettle();
+
+      // Act - Update to revealed state (this triggers didUpdateWidget)
+      // Before the fix, this would throw "setState() called during build"
+      await pumpWithMaterialApp(tester, buildWidget(revealed: true));
+
+      // The fix defers the callback, so we need to pump to let it execute
+      await tester.pump();
+
+      // Assert - No exception should be thrown
+      // The test passing means no setState during build error occurred
+      expect(tester.takeException(), isNull);
+
+      // Verify the answer widget is in revealed state
+      final answerWidget = tester.widget<AnswerWidget>(
+        find.byType(AnswerWidget),
+      );
+      expect(answerWidget.revealedAnswer,
+          const AnswerValue(number: 500, orderOfMagnitude: 'M', unit: 'km'));
+      expect(answerWidget.revealedColor, Colors.green);
+      expect(answerWidget.editable, false);
+    });
   });
 }
