@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/services/game_realtime.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
+import 'package:fermi_frontend/utils/number_decompose.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 
 /// Production Firestore-backed implementation of GameRealtime.
@@ -388,37 +389,9 @@ class FirestoreGameRealtime implements GameRealtime {
 
   /// Converts a backend answer (single number) to UI format (number + OM).
   /// Backend stores 1000 as {number: 1000}, UI needs {number: 1, om: 'K'}.
+  /// Applies capping for values outside displayable range (>999Qa or <1).
   AnswerValue _parseBackendAnswer(double rawNumber, String unit) {
-    if (rawNumber == 0) {
-      return AnswerValue(number: 0, orderOfMagnitude: '', unit: unit);
-    }
-
-    // Order of magnitude symbols in ascending order
-    const omSymbols = ['', 'K', 'M', 'B', 'T', 'Qa'];
-
-    // Find the appropriate order of magnitude
-    double absNumber = rawNumber.abs();
-    int omIndex = 0;
-
-    // Divide by 1000 until we get a number < 1000
-    while (absNumber >= 1000 && omIndex < omSymbols.length - 1) {
-      absNumber /= 1000;
-      omIndex++;
-    }
-
-    // Round to nearest integer and clamp to 1-999 range
-    int displayNumber = absNumber.round();
-    if (displayNumber < 1) displayNumber = 1;
-    if (displayNumber > 999) displayNumber = 999;
-
-    // Preserve sign
-    if (rawNumber < 0) displayNumber = -displayNumber;
-
-    return AnswerValue(
-      number: displayNumber,
-      orderOfMagnitude: omSymbols[omIndex],
-      unit: unit,
-    );
+    return decomposeNumber(rawNumber, unit);
   }
 
   PlayersAnswersSnapshot _mapPlayersAnswersDoc(Map<String, dynamic> data) {
