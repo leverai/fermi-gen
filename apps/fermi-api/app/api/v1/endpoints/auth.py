@@ -62,6 +62,7 @@ async def verify_token(
             email=user.email,
             display_name=user.display_name,
             picture=user.picture,
+            locale=user.locale,
         ),
     )
 
@@ -97,6 +98,7 @@ async def refresh_token(
             email=user.email,
             display_name=user.display_name,
             picture=user.picture,
+            locale=user.locale,
         ),
     )
 
