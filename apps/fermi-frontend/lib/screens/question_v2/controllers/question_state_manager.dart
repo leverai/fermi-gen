@@ -148,16 +148,8 @@ class QuestionStateManager {
     // Try to get abbreviation from ID mapping
     final String abbr = state.unitIdToAbbreviation[idOrAbbr] ?? idOrAbbr;
 
-    // If the answer already has an order of magnitude, just map the unit
-    if (raw.orderOfMagnitude.isNotEmpty) {
-      return AnswerValue(
-        number: raw.number,
-        orderOfMagnitude: raw.orderOfMagnitude,
-        unit: abbr,
-      );
-    }
-
-    // Otherwise, decompose the absolute number into number + OM
+    // Answer is already decomposed by _parseBackendAnswer in firestore_game_realtime.dart
+    // Just map the unit ID to abbreviation
     return AnswerValue(
       number: raw.number,
       orderOfMagnitude: raw.orderOfMagnitude,

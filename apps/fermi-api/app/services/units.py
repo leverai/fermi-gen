@@ -168,17 +168,13 @@ def convert_answer_to_user_unit(
     player_unit_id: str,
     correct_answer: AnswerBare,
 ) -> AnswerBare:
-    """Convert an answer to the user's unit, or smaller units until magnitude >= 1."""
+    """Convert an answer to the user's unit.
+    
+    Returns the correct answer converted to the same unit as the player's answer.
+    The frontend is responsible for handling display constraints (e.g., capping values).
+    """
     correct_quantity = ureg.Quantity(correct_answer['number'], correct_answer['unit'])
-    converted_quantity = correct_quantity
-    too_small = True
-    for unit_id in step_down_units_ladder(player_unit_id):
-        converted_quantity = correct_quantity.to(unit_id)
-        if converted_quantity.magnitude >= 1:
-            too_small = False
-            break
-    if too_small:
-        logger.warning('Answer %s is too small with all units', correct_answer)
+    converted_quantity = correct_quantity.to(player_unit_id)
     return AnswerBare(
         number=converted_quantity.magnitude,
         unit=None

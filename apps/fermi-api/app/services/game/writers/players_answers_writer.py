@@ -132,16 +132,16 @@ class GamePlayersAnswersWriter:
             #     correct_answer,
             #     locale=user_locale,
             # )
-            correct_answer_user_base_unit = convert_answer_to_user_unit(
+            correct_answer_user_unit = convert_answer_to_user_unit(
                 player_unit_id=answer['unit'],
                 correct_answer=correct_answer,
             )
         else:
-            correct_answer_user_base_unit = correct_answer
+            correct_answer_user_unit = correct_answer
 
         player_result = PlayerResult(
             answer=answer,
-            correct_answer=correct_answer_user_base_unit,
+            correct_answer=correct_answer_user_unit,
             score=Score(
                 number=score_number,
                 quantile=quantile,
