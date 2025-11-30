@@ -133,8 +133,13 @@ class _UnitTapeState extends State<UnitTape>
       jumpTo: (v) {
         setState(() => _current = v);
         _wheel.jumpTo(v);
-        // Notify parent to sync state when jumping programmatically
-        widget.onUnitChanged(v);
+        // Defer onUnitChanged callback to after current build phase to prevent
+        // "setState() called during build" errors when jumpTo is called from didUpdateWidget
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            widget.onUnitChanged(v);
+          }
+        });
       },
       animateTo: (v, d) async {
         AppLogger.debug(
@@ -187,8 +192,13 @@ class _UnitTapeState extends State<UnitTape>
         jumpTo: (v) {
           setState(() => _current = v);
           _wheel.jumpTo(v);
-          // Notify parent to sync state when jumping programmatically
-          widget.onUnitChanged(v);
+          // Defer onUnitChanged callback to after current build phase to prevent
+          // "setState() called during build" errors when jumpTo is called from didUpdateWidget
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              widget.onUnitChanged(v);
+            }
+          });
         },
         animateTo: (v, d) async {
           setState(() => _current = v);

@@ -120,8 +120,13 @@ class _OmLabelState extends State<OmLabel> with SingleTickerProviderStateMixin {
       jumpTo: (v) {
         setState(() => _current = v);
         _wheel.jumpTo(v);
-        // Notify parent to sync state when jumping programmatically
-        widget.onChanged?.call(v);
+        // Defer onChanged callback to after current build phase to prevent
+        // "setState() called during build" errors when jumpTo is called from didUpdateWidget
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            widget.onChanged?.call(v);
+          }
+        });
       },
       animateTo: (v, d) async {
         AppLogger.debug(
@@ -368,8 +373,13 @@ class _OmLabelState extends State<OmLabel> with SingleTickerProviderStateMixin {
         jumpTo: (v) {
           setState(() => _current = v);
           _wheel.jumpTo(v);
-          // Notify parent to sync state when jumping programmatically
-          widget.onChanged?.call(v);
+          // Defer onChanged callback to after current build phase to prevent
+          // "setState() called during build" errors when jumpTo is called from didUpdateWidget
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              widget.onChanged?.call(v);
+            }
+          });
         },
         animateTo: (v, d) async {
           AppLogger.debug(
