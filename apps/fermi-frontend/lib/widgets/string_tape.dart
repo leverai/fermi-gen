@@ -33,6 +33,7 @@ class StringTape extends StatefulWidget {
     required this.values,
     this.initialValue,
     this.onSelected,
+    this.onCenteredValueChanged,
     this.itemExtent = 56.0,
     this.enabled = true,
     this.textStyle,
@@ -44,6 +45,8 @@ class StringTape extends StatefulWidget {
   final List<String> values;
   final String? initialValue;
   final ValueChanged<String>? onSelected; // Called when user taps centered item
+  final ValueChanged<String>?
+      onCenteredValueChanged; // Called when centered value changes (scroll)
   final double itemExtent;
   final bool enabled;
   final TextStyle? textStyle;
@@ -195,6 +198,10 @@ class _StringTapeState extends State<StringTape> {
                   1.5, // Show more items around center (smaller = more visible items)
               onSelectedItemChanged: (index) {
                 setState(() => _selectedIndex = index);
+                // Notify listeners of centered value change (for real-time widget updates)
+                if (index >= 0 && index < widget.values.length) {
+                  widget.onCenteredValueChanged?.call(widget.values[index]);
+                }
               },
               childDelegate: ListWheelChildBuilderDelegate(
                 builder: (context, index) {
