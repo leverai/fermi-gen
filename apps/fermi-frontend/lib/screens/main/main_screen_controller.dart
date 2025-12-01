@@ -28,6 +28,7 @@ class MainScreenController extends ChangeNotifier {
   bool isLoading = true;
   bool isSubmitting = false;
   String? errorMessage;
+  DateTime? _lastRefreshTime;
 
   // Public accessors
   GameConfig? get configDto => _configDto;
@@ -131,6 +132,41 @@ class MainScreenController extends ChangeNotifier {
     } finally {
       isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Refreshes data in the background without blocking the UI.
+  /// Skips refresh if data was refreshed less than 30 seconds ago.
+  Future<void> refreshInBackground() async {
+    // Debounce: skip if we refreshed recently
+    final now = DateTime.now();
+    if (_lastRefreshTime != null &&
+        now.difference(_lastRefreshTime!).inSeconds < 30) {
+      debugPrint('MainScreenController: Skipping refresh (too soon)');
+      return;
+    }
+    _lastRefreshTime = now;
+
+    try {
+      // Fetch data without setting isLoading to true
+      // This allows the UI to remain responsive
+      final GameConfig config = await api.getGameConfigTyped();
+      PlayerStatsResponse? stats;
+      if (auth.firebaseUid != null) {
+        stats = await api.getPlayerStatsTyped(playerId: auth.firebaseUid!);
+      }
+
+      // Update data
+      _configDto = config;
+      _playerStatsDto = stats;
+
+      // Notify listeners to update UI with fresh data
+      notifyListeners();
+    } catch (e, st) {
+      // Log error but don't show error message to user
+      // Keep showing cached data instead
+      print('⚠️ MainScreenController.refreshInBackground error: $e');
+      print(st);
     }
   }
 
