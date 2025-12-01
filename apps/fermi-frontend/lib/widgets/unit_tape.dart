@@ -354,6 +354,16 @@ class _UnitTapeState extends State<UnitTape>
                     // Notify parent
                     widget.onLocaleChanged(newLocale);
                   },
+                  onCenteredValueChanged: (value) {
+                    // Update widget value in real-time as wheel scrolls
+                    if (mounted) {
+                      setModalState(() {
+                        _current = value;
+                      });
+                      _wheel.jumpTo(value);
+                      widget.onUnitChanged(value);
+                    }
+                  },
                   onUnitSelected: (value) {
                     if (mounted && value != null) {
                       // Update modal state first to show visual feedback
@@ -499,6 +509,7 @@ class _UnitSelectorSheet extends StatelessWidget {
     required this.options,
     required this.selectedUnit,
     required this.onLocaleChanged,
+    required this.onCenteredValueChanged,
     required this.onUnitSelected,
   });
 
@@ -507,6 +518,7 @@ class _UnitSelectorSheet extends StatelessWidget {
   final List<SelectorOption> options;
   final String? selectedUnit;
   final ValueChanged<String> onLocaleChanged;
+  final ValueChanged<String> onCenteredValueChanged;
   final ValueChanged<String?> onUnitSelected;
 
   @override
@@ -613,9 +625,8 @@ class _UnitSelectorSheet extends StatelessWidget {
                   );
                   return option.label;
                 },
-                onSelected: (value) {
-                  onUnitSelected(value);
-                },
+                onCenteredValueChanged: onCenteredValueChanged,
+                onSelected: onUnitSelected,
               ),
             ],
           ),

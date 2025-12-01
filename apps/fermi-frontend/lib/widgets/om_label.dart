@@ -271,6 +271,16 @@ class _OmLabelState extends State<OmLabel> with SingleTickerProviderStateMixin {
                         }
                         return value;
                       },
+                      onCenteredValueChanged: (value) {
+                        // Update widget value in real-time as wheel scrolls
+                        if (mounted) {
+                          setModalState(() {
+                            _current = value;
+                          });
+                          _wheel.jumpTo(value);
+                          widget.onChanged?.call(value);
+                        }
+                      },
                       onSelected: (value) {
                         // Update modal state first to show visual feedback
                         if (mounted) {
