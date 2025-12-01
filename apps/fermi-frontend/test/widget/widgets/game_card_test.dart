@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fermi_frontend/screens/question_v2/widgets/game_card.dart';
 import 'package:fermi_frontend/widgets/question_widget.dart';
 import 'package:fermi_frontend/widgets/answer_widget.dart';
-import 'package:fermi_frontend/widgets/answer_mirror_text.dart';
+import 'package:fermi_frontend/widgets/answer_accuracy_scale.dart';
 import 'package:fermi_frontend/widgets/animated_like_dislike.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 
@@ -87,7 +87,7 @@ void main() {
       expect(find.byType(AnswerWidget), findsOneWidget);
     });
 
-    testWidgets('should display answer mirror text',
+    testWidgets('should display answer accuracy scale',
         (WidgetTester tester) async {
       // Arrange
       final widget = GameCard(
@@ -119,7 +119,7 @@ void main() {
       await pumpWithMaterialApp(tester, widget);
 
       // Assert
-      expect(find.byType(AnswerMirrorText), findsOneWidget);
+      expect(find.byType(AnswerAccuracyScale), findsOneWidget);
     });
 
     testWidgets('should not display feedback row before reveal',
@@ -406,7 +406,7 @@ void main() {
       expect(answerWidget.revealedColor, revealedColor);
     });
 
-    testWidgets('should show submitted answer in mirror text after reveal',
+    testWidgets('should show submitted answer in accuracy scale after reveal',
         (WidgetTester tester) async {
       // Arrange
       const submittedAnswer =
@@ -443,13 +443,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // Assert
-      // Verify AnswerMirrorText received both submitted and current answers
-      final mirrorText = tester.widget<AnswerMirrorText>(
-        find.byType(AnswerMirrorText),
+      // Verify AnswerAccuracyScale received both submitted and current answers
+      final scaleWidget = tester.widget<AnswerAccuracyScale>(
+        find.byType(AnswerAccuracyScale),
       );
-      expect(mirrorText.value, revealedAnswer);
-      expect(mirrorText.submittedAnswer, submittedAnswer);
-      expect(mirrorText.editable, false);
+      expect(scaleWidget.revealedAnswer, revealedAnswer);
+      expect(scaleWidget.submittedAnswer, submittedAnswer);
+      expect(scaleWidget.editable, false);
     });
 
     testWidgets('should pass revealed color to question widget',
