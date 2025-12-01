@@ -63,7 +63,7 @@ async def asearch_google(
 
     # Build search params for standard Google search
     params = {
-        'q': f'Estimate: {truncated_query}',
+        'q': f'Estimate the Fermi problem: {truncated_query}',
         'gl': gl,
         'hl': 'en',
         'engine': 'google',
