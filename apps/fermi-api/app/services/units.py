@@ -179,7 +179,7 @@ def convert_answer_to_user_unit(
         number=converted_quantity.magnitude,
         unit=None
         if converted_quantity.dimensionless
-        else str(converted_quantity.units),
+        else player_unit_id,
     )
 
 

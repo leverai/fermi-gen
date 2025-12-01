@@ -408,7 +408,7 @@ wheels = [
 
 [[package]]
 name = "fermi-api"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "apps/fermi-api" }
 dependencies = [
     { name = "asyncpg", marker = "sys_platform == 'linux'" },
