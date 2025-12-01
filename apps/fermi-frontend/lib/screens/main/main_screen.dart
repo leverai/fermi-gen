@@ -28,12 +28,14 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late final MainScreenController _controller;
+  DateTime? _lastResumeTime;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = MainScreenController(
       api: widget.apiService,
       auth: widget.authService,
@@ -43,16 +45,33 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Debounce: only refresh if it's been more than 2 seconds since last resume
+      final now = DateTime.now();
+      if (_lastResumeTime == null ||
+          now.difference(_lastResumeTime!).inSeconds > 2) {
+        _lastResumeTime = now;
+        // Refresh data in background without blocking UI
+        _controller.refreshInBackground();
+      }
+    }
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (widget.authService.shouldRefreshStats) {
       widget.authService.shouldRefreshStats = false;
-      _controller.initialize();
+      // Use non-blocking refresh instead of initialize
+      _controller.refreshInBackground();
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
   }
