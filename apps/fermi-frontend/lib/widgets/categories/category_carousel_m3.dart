@@ -409,7 +409,7 @@ class HorizontalInsetShape extends OutlinedBorder {
   HorizontalInsetShape copyWith({BorderSide? side, double? horizontalInset}) {
     return HorizontalInsetShape(
       horizontalInset: horizontalInset ?? this.horizontalInset,
-      baseShape: baseShape.copyWith(side: side) as OutlinedBorder,
+      baseShape: baseShape.copyWith(side: side),
     );
   }
 }
