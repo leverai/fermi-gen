@@ -205,9 +205,9 @@ class StyledDialog extends StatelessWidget {
                           .transparent, // We'll handle shadow manually if needed, or just flat
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                     ).copyWith(
-                      overlayColor: MaterialStateProperty.resolveWith<Color?>(
-                        (Set<MaterialState> states) {
-                          if (states.contains(MaterialState.pressed)) {
+                      overlayColor: WidgetStateProperty.resolveWith<Color?>(
+                        (Set<WidgetState> states) {
+                          if (states.contains(WidgetState.pressed)) {
                             return appTheme.text.withOpacity(0.2);
                           }
                           return Colors.transparent;
