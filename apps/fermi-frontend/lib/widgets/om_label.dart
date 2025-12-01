@@ -6,6 +6,7 @@ import 'string_wheel.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/tap_indicator.dart';
 import 'package:fermi_frontend/widgets/string_tape.dart';
+import 'package:fermi_frontend/widgets/scroll_hint.dart';
 import 'package:fermi_frontend/utils/logger.dart';
 
 class OmLabelController {
@@ -432,60 +433,58 @@ class _OmLabelState extends State<OmLabel> with SingleTickerProviderStateMixin {
         child: AnimatedBuilder(
           animation: _indicatorFadeController,
           builder: (context, child) {
-            return Container(
-              decoration: BoxDecoration(
-                color: widget.backgroundColor == null ||
-                        widget.backgroundColor == Colors.transparent
-                    ? Colors.transparent
-                    : widget.backgroundColor!
-                        // ignore: deprecated_member_use
-                        .withOpacity(_indicatorFadeController.value),
-              ),
-              child: Stack(
-                children: [
-                  StringWheel(
-                    values: _magnitudeValues,
-                    initialValue: _current,
-                    controller: _wheel,
-                    enabled: widget.editable && !_isFocused,
-                    height: 72,
-                    itemExtent: 72,
-                    width: 60,
-                    borderColor: borderColor,
-                    draggingBorderColor: appTheme.secondary,
-                    borderWidth: 1.5,
-                    textStyle: AppFont.secondaryTextStyle(
-                      context,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w500,
-                      color: textColor,
-                      decoration: TextDecoration.none,
+            // Hide indicators when focused or dragging
+            final double effectiveOpacity = (_isFocused || _isDragging)
+                ? 0.0
+                : _indicatorFadeController.value;
+
+            return ScrollHint(
+              opacity: effectiveOpacity,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: widget.backgroundColor == null ||
+                          widget.backgroundColor == Colors.transparent
+                      ? Colors.transparent
+                      : widget.backgroundColor!
+                          // ignore: deprecated_member_use
+                          .withOpacity(_indicatorFadeController.value),
+                ),
+                child: Stack(
+                  children: [
+                    StringWheel(
+                      values: _magnitudeValues,
+                      initialValue: _current,
+                      controller: _wheel,
+                      enabled: widget.editable && !_isFocused,
+                      height: 72,
+                      itemExtent: 72,
+                      width: 60,
+                      borderColor: borderColor,
+                      draggingBorderColor: appTheme.secondary,
+                      borderWidth: 1.5,
+                      textStyle: AppFont.secondaryTextStyle(
+                        context,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w500,
+                        color: textColor,
+                        decoration: TextDecoration.none,
+                      ),
+                      onChanged: (v) {
+                        _current = v;
+                        widget.onChanged?.call(v);
+                      },
+                      onDraggingChanged: (dragging) {
+                        setState(() {
+                          _isDragging = dragging;
+                        });
+                      },
                     ),
-                    onChanged: (v) {
-                      _current = v;
-                      widget.onChanged?.call(v);
-                    },
-                    onDraggingChanged: (dragging) {
-                      setState(() {
-                        _isDragging = dragging;
-                      });
-                    },
-                  ),
-                  // Tap indicator line at bottom
-                  // Hide when focused or dragging (scroll indicator is showing)
-                  Builder(
-                    builder: (context) {
-                      // Hide tap indicator when scroll indicator is showing (focused or dragging)
-                      final double effectiveOpacity =
-                          (_isFocused || _isDragging)
-                              ? 0.0
-                              : _indicatorFadeController.value;
-                      return TapIndicator(
-                        opacity: effectiveOpacity,
-                      );
-                    },
-                  ),
-                ],
+                    // Tap indicator line at bottom
+                    TapIndicator(
+                      opacity: effectiveOpacity,
+                    ),
+                  ],
+                ),
               ),
             );
           },
