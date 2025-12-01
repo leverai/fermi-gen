@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fermi_frontend/widgets/question_widget.dart';
-import 'package:fermi_frontend/widgets/answer_mirror_text.dart';
+import 'package:fermi_frontend/widgets/answer_accuracy_scale.dart';
 import 'package:fermi_frontend/widgets/answer_widget.dart';
 import 'package:fermi_frontend/widgets/animated_like_dislike.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
@@ -18,8 +18,8 @@ const double kGameCardSpacing = 24.0;
 const double kGameCardQuestionToDividerSpacing =
     0.0; // No spacing - question widget touches divider
 const double kGameCardFeedbackHeight = 48;
-const double kGameCardMirrorTextHeight =
-    22.0; // Approximate height of AnswerMirrorText (fontSize 14, line height ~22px)
+const double kGameCardAccuracyScaleHeight =
+    48.0; // Height of AnswerAccuracyScale
 const double kGameCardPadding = 48.0; // Padding top + bottom (24px * 2)
 const double kGameCardMargin = 2.0; // Margin top + bottom (1px * 2)
 const double kAnswerPercentileMaxHeight = 28.0; // AnswerPercentileText height
@@ -36,15 +36,15 @@ const double kGameCardButtonSpacing = 24.0; // Spacing between answer and button
 // Breakdown of the content height:
 // - Question: 144px (24.0 * 6)
 // - Answer: 59px
-// - Mirror Text: 22px
+// - Accuracy Scale: 48px
 // - Spacing (question-to-divider): 0px (question widget touches divider)
-// - Spacing (divider-to-mirror): 24px
-// - Spacing (mirror-to-answer): 24px
+// - Spacing (divider-to-scale): 24px
+// - Spacing (scale-to-answer): 24px
 // - Spacing (answer-to-button): 24px
 // - Button: 48px
 // - Divider: 1px
 // ---
-// Subtotal (Card Content): 346px
+// Subtotal (Card Content): 372px
 //
 // The card's container adds padding and a 1px margin (for the border effect),
 // but these are included in the container's rendered height automatically. We do
@@ -56,10 +56,10 @@ const double kGameCardButtonSpacing = 24.0; // Spacing between answer and button
 // The total height is the sum of all visible components stacked vertically.
 const double kGameCardTotalHeight = kGameCardQuestionHeight +
     kGameCardAnswerHeight +
-    kGameCardMirrorTextHeight +
+    kGameCardAccuracyScaleHeight +
     kGameCardQuestionToDividerSpacing + // Spacing between question and divider
     (kGameCardSpacing *
-        2) + // 2 SizedBox widgets (divider-to-mirror, mirror-to-answer)
+        2) + // 2 SizedBox widgets (divider-to-scale, scale-to-answer)
     kGameCardButtonSpacing + // Spacing between answer and button (NEW)
     kGameCardButtonHeight + // Button height (NEW)
     kGameCardFeedbackHeight +
@@ -348,11 +348,12 @@ class GameCard extends StatelessWidget {
                           appTheme.border.withOpacity(0.3),
                     ),
                     const SizedBox(height: 20),
-                    // Mirror text
-                    AnswerMirrorText(
-                      value: currentAnswer,
-                      unitOptions: unitOptions,
+                    // Answer Accuracy Scale
+                    AnswerAccuracyScale(
+                      currentAnswer: currentAnswer,
                       submittedAnswer: submittedAnswer,
+                      revealedAnswer: revealedAnswer,
+                      revealedColor: revealedColor,
                       editable: editable,
                     ),
                     const SizedBox(height: 20),
