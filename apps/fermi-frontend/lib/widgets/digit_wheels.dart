@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/keyboard_height_provider.dart';
 import 'package:fermi_frontend/widgets/tap_indicator.dart';
+import 'package:fermi_frontend/widgets/scroll_hint.dart';
 import 'package:fermi_frontend/utils/logger.dart';
 
 /// Custom scroll physics that prevents scrolling below a minimum index
@@ -567,113 +568,133 @@ class _DigitWheelsState extends State<DigitWheels>
         key: wheelKey,
         height: widget.height,
         child: Center(
-          child: SizedBox(
-            height: widget.itemExtent,
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: widget.digitBackgroundColor == null ||
-                            widget.digitBackgroundColor == Colors.transparent
-                        ? Colors.transparent
-                        : widget.digitBackgroundColor!
-                            // ignore: deprecated_member_use
-                            .withOpacity(_borderOpacityController.value),
-                    borderRadius: BorderRadius.circular(widget.borderRadius),
-                    border: Border.all(
-                      color: _borderColorFor(kind, context),
-                      width: widget.borderWidth,
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(widget.borderRadius),
-                    child: ClipRect(
-                      child: NotificationListener<ScrollNotification>(
-                        onNotification: (n) {
-                          if (n is ScrollStartNotification) {
-                            _setDragging(kind, true);
-                            // Clear focus when user starts scrolling manually
-                            // BUT NOT when scrolling is triggered programmatically (keyboard input)
-                            if (_focusedWheel == kind &&
-                                !_isProgrammaticScroll) {
-                              setState(() => _focusedWheel = null);
-                              _focusNode.unfocus();
-                            }
-                          } else if (n is ScrollEndNotification) {
-                            _setDragging(kind, false);
-                            _emitChanged();
-                          }
-                          return false;
-                        },
-                        child: ListWheelScrollView.useDelegate(
-                          controller: controller,
-                          itemExtent: widget.itemExtent,
-                          physics: enabled
-                              ? (kind == _WheelKind.ones &&
-                                      _hundreds.hasClients &&
-                                      _tens.hasClients &&
-                                      _hundreds.selectedItem == 0 &&
-                                      _tens.selectedItem == 0
-                                  ? _MinIndexScrollPhysics(
-                                      minIndex: 1,
-                                      itemExtent: widget.itemExtent,
-                                    )
-                                  : const FixedExtentScrollPhysics())
-                              : const NeverScrollableScrollPhysics(),
-                          perspective: 0.003,
-                          diameterRatio: 1.6,
-                          onSelectedItemChanged: (_) => _emitChanged(),
-                          childDelegate: ListWheelChildBuilderDelegate(
-                            builder: (context, index) {
-                              if (index < 0 || index > 9) return null;
+          child: AnimatedBuilder(
+            animation: _borderOpacityController,
+            builder: (context, child) {
+              final bool isFocused = _focusedWheel == kind;
+              final bool dragging = switch (kind) {
+                _WheelKind.hundreds => _hundredsDragging,
+                _WheelKind.tens => _tensDragging,
+                _WheelKind.ones => _onesDragging,
+              };
+              // Hide indicators when dragging or focused
+              final double effectiveOpacity = (isFocused || dragging)
+                  ? 0.0
+                  : _borderOpacityController.value;
 
-                              // Prevent selecting 0 on the ones wheel when hundreds and tens are also 0
-                              // This ensures minimum value is 001, not 000
-                              if (kind == _WheelKind.ones &&
-                                  index == 0 &&
-                                  _hundreds.hasClients &&
-                                  _tens.hasClients &&
-                                  _hundreds.selectedItem == 0 &&
-                                  _tens.selectedItem == 0) {
-                                return null;
-                              }
+              return ScrollHint(
+                opacity: effectiveOpacity,
+                child: SizedBox(
+                  height: widget.itemExtent,
+                  child: Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: widget.digitBackgroundColor == null ||
+                                  widget.digitBackgroundColor ==
+                                      Colors.transparent
+                              ? Colors.transparent
+                              : widget.digitBackgroundColor!
+                                  // ignore: deprecated_member_use
+                                  .withOpacity(_borderOpacityController.value),
+                          borderRadius:
+                              BorderRadius.circular(widget.borderRadius),
+                          border: Border.all(
+                            color: _borderColorFor(kind, context),
+                            width: widget.borderWidth,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius:
+                              BorderRadius.circular(widget.borderRadius),
+                          child: ClipRect(
+                            child: NotificationListener<ScrollNotification>(
+                              onNotification: (n) {
+                                if (n is ScrollStartNotification) {
+                                  _setDragging(kind, true);
+                                  // Clear focus when user starts scrolling manually
+                                  // BUT NOT when scrolling is triggered programmatically (keyboard input)
+                                  if (_focusedWheel == kind &&
+                                      !_isProgrammaticScroll) {
+                                    setState(() => _focusedWheel = null);
+                                    _focusNode.unfocus();
+                                  }
+                                } else if (n is ScrollEndNotification) {
+                                  _setDragging(kind, false);
+                                  _emitChanged();
+                                }
+                                return false;
+                              },
+                              child: ListWheelScrollView.useDelegate(
+                                controller: controller,
+                                itemExtent: widget.itemExtent,
+                                physics: enabled
+                                    ? () {
+                                        // Only apply special physics for ones wheel when both hundreds and tens are 0
+                                        if (kind == _WheelKind.ones &&
+                                            _hundreds.hasClients &&
+                                            _tens.hasClients) {
+                                          try {
+                                            if (_hundreds.selectedItem == 0 &&
+                                                _tens.selectedItem == 0) {
+                                              return _MinIndexScrollPhysics(
+                                                minIndex: 1,
+                                                itemExtent: widget.itemExtent,
+                                              );
+                                            }
+                                          } catch (_) {
+                                            // Controllers not fully initialized yet
+                                          }
+                                        }
+                                        return const FixedExtentScrollPhysics();
+                                      }()
+                                    : const NeverScrollableScrollPhysics(),
+                                perspective: 0.003,
+                                diameterRatio: 1.6,
+                                onSelectedItemChanged: (_) => _emitChanged(),
+                                childDelegate: ListWheelChildBuilderDelegate(
+                                  builder: (context, index) {
+                                    if (index < 0 || index > 9) return null;
 
-                              return Center(
-                                child: Text(
-                                  index.toString(),
-                                  style: _textStyleFor(kind, context),
+                                    // Prevent selecting 0 on the ones wheel when hundreds and tens are also 0
+                                    // This ensures minimum value is 001, not 000
+                                    if (kind == _WheelKind.ones &&
+                                        index == 0 &&
+                                        _hundreds.hasClients &&
+                                        _tens.hasClients) {
+                                      try {
+                                        if (_hundreds.selectedItem == 0 &&
+                                            _tens.selectedItem == 0) {
+                                          return null;
+                                        }
+                                      } catch (_) {
+                                        // Controllers not fully initialized yet
+                                      }
+                                    }
+
+                                    return Center(
+                                      child: Text(
+                                        index.toString(),
+                                        style: _textStyleFor(kind, context),
+                                      ),
+                                    );
+                                  },
+                                  childCount: 10,
                                 ),
-                              );
-                            },
-                            childCount: 10,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                      // Tap indicator line at bottom
+                      TapIndicator(
+                        opacity: effectiveOpacity,
+                      ),
+                    ],
                   ),
                 ),
-                // Tap indicator line at bottom
-                // Hide when dragging or focused (scroll indicator is showing)
-                AnimatedBuilder(
-                  animation: _borderOpacityController,
-                  builder: (context, child) {
-                    final bool isFocused = _focusedWheel == kind;
-                    final bool dragging = switch (kind) {
-                      _WheelKind.hundreds => _hundredsDragging,
-                      _WheelKind.tens => _tensDragging,
-                      _WheelKind.ones => _onesDragging,
-                    };
-                    // Hide tap indicator when scroll indicator is showing (dragging or focused)
-                    final double effectiveOpacity = (isFocused || dragging)
-                        ? 0.0
-                        : _borderOpacityController.value;
-                    return TapIndicator(
-                      opacity: effectiveOpacity,
-                    );
-                  },
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),

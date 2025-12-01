@@ -669,7 +669,16 @@ void main() {
 
       // Act - Update to revealed state (this triggers didUpdateWidget)
       // Before the fix, this would throw "setState() called during build"
-      await pumpWithMaterialApp(tester, buildWidget(revealed: true));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 800, // Constrain height to prevent overflow
+              child: buildWidget(revealed: true),
+            ),
+          ),
+        ),
+      );
 
       // The fix defers the callback, so we need to pump to let it execute
       await tester.pump();
