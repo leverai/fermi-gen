@@ -346,7 +346,7 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
     final percentile = _controller.getMyPercentileForIndex(index);
     final percentileValue =
         percentile != null ? (percentile * 100).round() : null;
-    final showPercentile = showFeedback && percentile != null;
+    final showPercentile = showFeedback && percentile != null && percentile > 0;
 
     // Get submitted answer for THIS question (per-question, not shared)
     final AnswerValue? submittedAnswerForThisQuestion;
