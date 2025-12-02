@@ -1,4 +1,4 @@
-"""Auth endpoints."""
+"""User endpoints."""
 
 from typing import Annotated, Literal
 
@@ -25,4 +25,15 @@ async def set_locale(
         user_id=current_user.id,
         locale=payload.locale,
     )
+    return status.HTTP_200_OK
+
+
+@router.post('/delete')
+async def delete_user(
+    current_user: Annotated[User, Depends(get_current_user)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
+) -> Literal[200]:
+    """Delete a user and all associated data."""
+    assert current_user.id is not None
+    await user_service.delete_user(user_id=current_user.id)
     return status.HTTP_200_OK
