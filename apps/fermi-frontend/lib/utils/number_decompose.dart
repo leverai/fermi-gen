@@ -16,18 +16,24 @@ import 'package:fermi_frontend/utils/om_constants.dart';
 AnswerValue decomposeNumber(double absoluteValue, String unit) {
   // Handle edge cases
   if (absoluteValue <= 0 || absoluteValue.isNaN || absoluteValue.isInfinite) {
-    return AnswerValue(number: 1, orderOfMagnitude: '', unit: unit);
+    return AnswerValue(
+        number: 1, orderOfMagnitude: '', unit: unit, rawValue: absoluteValue);
   }
 
   // Cap at minimum displayable value (1)
   if (absoluteValue < 1) {
-    return AnswerValue(number: 1, orderOfMagnitude: '', unit: unit);
+    return AnswerValue(
+        number: 1, orderOfMagnitude: '', unit: unit, rawValue: absoluteValue);
   }
 
   // Cap at maximum displayable value (999Qa = 999e15)
   const double maxDisplayable = 999e15;
   if (absoluteValue > maxDisplayable) {
-    return AnswerValue(number: 999, orderOfMagnitude: 'Qa', unit: unit);
+    return AnswerValue(
+        number: 999,
+        orderOfMagnitude: 'Qa',
+        unit: unit,
+        rawValue: absoluteValue);
   }
 
   // Find the appropriate order of magnitude
@@ -40,10 +46,15 @@ AnswerValue decomposeNumber(double absoluteValue, String unit) {
     // If quotient is >= 1 and < 1000, we found the right OM
     if (quotient >= 1 && quotient < 1000) {
       final int number = quotient.round().clamp(1, 999);
-      return AnswerValue(number: number, orderOfMagnitude: om, unit: unit);
+      return AnswerValue(
+          number: number,
+          orderOfMagnitude: om,
+          unit: unit,
+          rawValue: absoluteValue);
     }
   }
 
   // Fallback (should not reach here due to capping logic above)
-  return AnswerValue(number: 1, orderOfMagnitude: '', unit: unit);
+  return AnswerValue(
+      number: 1, orderOfMagnitude: '', unit: unit, rawValue: absoluteValue);
 }

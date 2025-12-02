@@ -144,6 +144,7 @@ class AnimationStateManager {
         number: raw.number,
         orderOfMagnitude: raw.orderOfMagnitude,
         unit: abbr,
+        rawValue: raw.rawValue,
       );
     }
 
@@ -152,6 +153,7 @@ class AnimationStateManager {
       number: raw.number,
       orderOfMagnitude: raw.orderOfMagnitude,
       unit: abbr,
+      rawValue: raw.rawValue,
     );
   }
 }

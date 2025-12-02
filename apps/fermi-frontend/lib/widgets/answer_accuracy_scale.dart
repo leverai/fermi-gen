@@ -79,6 +79,21 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
     return exponent + logNum;
   }
 
+  String _formatAnswerText(AnswerValue value) {
+    if (value.rawValue != null) {
+      final double raw = value.rawValue!;
+      // Check if out of bounds (same logic as decomposeNumber)
+      const double maxDisplayable = 999e15;
+      if (raw < 1 || raw > maxDisplayable) {
+        // Use scientific notation
+        // Remove trailing zeros and + sign if preferred, but standard is fine
+        return raw.toStringAsExponential(2);
+      }
+    }
+    // Fallback to decomposed format
+    return '${value.number} ${value.orderOfMagnitude} ${value.unit}'.trim();
+  }
+
   @override
   Widget build(BuildContext context) {
     final appTheme =
@@ -92,24 +107,116 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
         : widget.currentAnswer;
 
     final userLogValue = _getLogValue(userAnswer);
-    final correctLogValue = widget.revealedAnswer != null
-        ? _getLogValue(widget.revealedAnswer!)
-        : null;
+
+    // Clip correct log value to 0..18 range for the circle position
+    // But we use the raw value for the text
+    double? correctLogValue;
+    if (widget.revealedAnswer != null) {
+      final rawLog = _getLogValue(widget.revealedAnswer!);
+      correctLogValue = rawLog.clamp(0.0, 18.0);
+    }
 
     return SizedBox(
       height: 48, // Fixed height as per requirements
       width: double.infinity,
-      child: AnimatedBuilder(
-        animation: _animation,
-        builder: (context, child) {
-          return CustomPaint(
-            painter: _ScalePainter(
-              userLogValue: userLogValue,
-              correctLogValue: correctLogValue,
-              revealProgress: _animation.value,
-              appTheme: appTheme,
-              revealedColor: widget.revealedColor,
-            ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final w = constraints.maxWidth;
+          const padding = 12.0;
+          final drawWidth = w - (padding * 2);
+
+          return AnimatedBuilder(
+            animation: _animation,
+            builder: (context, child) {
+              // Calculate correct indicator position
+              double? currentCorrectX;
+              if (correctLogValue != null) {
+                final userX = padding + (userLogValue / 18.0) * drawWidth;
+                final correctX = padding + (correctLogValue / 18.0) * drawWidth;
+                currentCorrectX = userX + (correctX - userX) * _animation.value;
+              }
+
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CustomPaint(
+                    size: Size(w, 48),
+                    painter: _ScalePainter(
+                      userLogValue: userLogValue,
+                      correctLogValue: correctLogValue,
+                      revealProgress: _animation.value,
+                      appTheme: appTheme,
+                      revealedColor: widget.revealedColor,
+                    ),
+                  ),
+                  // User Answer Text Box
+                  Positioned(
+                    left: padding + (userLogValue / 18.0) * drawWidth,
+                    top: -12, // Position above the scale
+                    child: FractionalTranslation(
+                      translation: const Offset(-0.5, 0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: appTheme.bgLight,
+                          border: Border.all(color: appTheme.border, width: 1),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: appTheme.shadowColor.withOpacity(0.1),
+                              blurRadius: 2,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          _formatAnswerText(userAnswer),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: appTheme.text,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Correct Answer Text Box
+                  if (currentCorrectX != null && widget.revealedAnswer != null)
+                    Positioned(
+                      left: currentCorrectX,
+                      bottom: -12, // Position above the scale
+                      child: FractionalTranslation(
+                        translation: const Offset(-0.5, 0),
+                        child: Opacity(
+                          opacity: _animation.value
+                              .clamp(0.0, 1.0), // Fade in with movement
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: appTheme.primary,
+                              border: Border.all(
+                                  color:
+                                      appTheme.border,
+                                  width: 1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              _formatAnswerText(widget.revealedAnswer!),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: appTheme.text,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           );
         },
       ),

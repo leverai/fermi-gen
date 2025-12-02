@@ -154,6 +154,7 @@ class QuestionStateManager {
       number: raw.number,
       orderOfMagnitude: raw.orderOfMagnitude,
       unit: abbr,
+      rawValue: raw.rawValue,
     );
   }
 
