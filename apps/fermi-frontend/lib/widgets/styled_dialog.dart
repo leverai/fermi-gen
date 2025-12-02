@@ -71,7 +71,7 @@ class StyledDialog extends StatelessWidget {
     if (showAsDialog) {
       return Dialog(
         backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 48),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         child: content,
       );
     }
@@ -233,10 +233,10 @@ class StyledDialog extends StatelessWidget {
       ),
     );
 
-    // When not showing as dialog, add 28px horizontal margin and fill parent width
+    // When not showing as dialog, add 4px horizontal margin and fill parent width
     if (!showAsDialog) {
       return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 28),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
         child: container,
       );
     }

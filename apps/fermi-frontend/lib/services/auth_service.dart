@@ -123,6 +123,60 @@ class AuthService {
     }
     return false;
   }
+
+  Future<void> signOut() async {
+    try {
+      // 1. Call backend sign-out
+      if (accessToken != null) {
+        await _httpClient.post(
+          Uri.parse("$_apiBaseUrl/auth/sign-out"),
+          headers: {
+            "Authorization": "Bearer $accessToken",
+            "Accept": "application/json",
+          },
+        );
+      }
+    } catch (e) {
+      debugPrint("Backend sign-out error: $e");
+    } finally {
+      // 2. Clear local state
+      accessToken = null;
+      currentUser = null;
+      firebaseUid = null;
+      // 3. Sign out from Firebase
+      await _auth.signOut();
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    try {
+      if (accessToken != null) {
+        final response = await _httpClient.post(
+          Uri.parse("$_apiBaseUrl/user/delete"),
+          headers: {
+            "Authorization": "Bearer $accessToken",
+            "Accept": "application/json",
+          },
+        );
+
+        if (response.statusCode != 200) {
+          throw Exception('Failed to delete account: ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      debugPrint("Account deletion error: $e");
+      rethrow; // Propagate error so UI can show it
+    } finally {
+      // Always sign out locally after delete attempt (or if successful)
+      // If the backend delete succeeded, the token is invalid anyway.
+      // If it failed, we might want to keep the user logged in?
+      // The requirement says "Deleting-account/sign-out should take the user to the auth screen when done."
+      // I'll assume if it throws, we stay logged in (so user can retry).
+      // But if it succeeds (no throw), we proceed to sign out.
+    }
+    // Only sign out if no error was thrown
+    await signOut();
+  }
 }
 
 class LastRoundSettings {
