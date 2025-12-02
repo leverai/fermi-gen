@@ -13,6 +13,9 @@ import 'package:fermi_frontend/widgets/player_widget.dart';
 import 'package:fermi_frontend/widgets/selector_widget.dart';
 import 'package:fermi_frontend/widgets/lock_toggle_chip.dart';
 import 'package:fermi_frontend/widgets/categories/category_carousel_m3.dart';
+import 'package:fermi_frontend/widgets/settings_menu.dart';
+import 'package:fermi_frontend/widgets/styled_dialog.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({
@@ -31,6 +34,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late final MainScreenController _controller;
   DateTime? _lastResumeTime;
+  bool _isSettingsOpen = false;
 
   @override
   void initState() {
@@ -175,6 +179,51 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
+    }
+  }
+
+  void _toggleSettings() {
+    setState(() {
+      _isSettingsOpen = !_isSettingsOpen;
+    });
+  }
+
+  Future<void> _handleSignOut() async {
+    _toggleSettings();
+    await widget.authService.signOut();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed('/sign-in');
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    _toggleSettings();
+    final AppTheme appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => StyledDialog(
+        message: 'Delete Account?',
+        secondaryMessage: 'This action cannot be undone.',
+        primaryButtonLabel: 'Delete',
+        primaryButtonColor: appTheme.danger,
+        onPrimaryPressed: () => Navigator.of(context).pop(true),
+        secondaryButtonLabel: 'Cancel',
+        onSecondaryPressed: () => Navigator.of(context).pop(false),
+        showAsDialog: true,
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await widget.authService.deleteAccount();
+        if (!mounted) return;
+        Navigator.of(context).pushReplacementNamed('/sign-in');
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting account: $e')),
+        );
+      }
     }
   }
 
@@ -412,6 +461,37 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
+                  // Settings FAB
+                  Positioned(
+                    bottom:
+                        24, // Centered vertically in the bottom padding area (48px padding bottom)
+                    right: 24,
+                    child: FloatingActionButton(
+                      onPressed: _toggleSettings,
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                      hoverElevation: 0,
+                      focusElevation: 0,
+                      highlightElevation: 0,
+                      shape: const CircleBorder(),
+                      child: SvgPicture.asset(
+                        'assets/icons/gear.svg',
+                        colorFilter:
+                            ColorFilter.mode(appTheme.border, BlendMode.srcIn),
+                        width: 48,
+                        height: 48,
+                      ),
+                    ),
+                  ),
+                  // Settings Menu Overlay
+                  if (_isSettingsOpen)
+                    Positioned.fill(
+                      child: SettingsMenu(
+                        onSignOut: _handleSignOut,
+                        onDeleteAccount: _handleDeleteAccount,
+                        onClose: _toggleSettings,
+                      ),
+                    ),
                 ],
               ),
             ),
