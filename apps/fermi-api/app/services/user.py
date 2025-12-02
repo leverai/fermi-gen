@@ -18,3 +18,7 @@ class UserService:
     async def set_locale(self, user_id: int, locale: Locale) -> None:
         """Set a user's locale."""
         await self._user_repository.update_locale(user_id, locale)
+
+    async def delete_user(self, user_id: int) -> None:
+        """Delete a user and all associated data."""
+        await self._user_repository.delete_user(user_id)

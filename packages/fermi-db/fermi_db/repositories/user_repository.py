@@ -3,8 +3,9 @@
 from typing import Any
 
 from fermi_core import utcnow_naive
-from sqlmodel import select
+from sqlmodel import delete, select
 
+from fermi_db.models.game import AnswerEvent, QuestionVote, UserQuestionHistory
 from fermi_db.models.user import User
 from fermi_db.schemas import Locale
 
@@ -103,3 +104,46 @@ class UserRepository(BaseRepository):
 
         user.last_login_at = now
         return user
+
+    async def delete_user(self, user_id: int) -> None:
+        """Delete a user and all associated data.
+
+        Deletes user-related data in this order:
+        1. user_question_history (where user_id = user's firebase_uid)
+        2. answer_events (where user_firebase_id = user's firebase_uid)
+        3. questions_votes (where user_firebase_uid = user's firebase_uid)
+        4. user table (by id)
+
+        This operation is idempotent - if the user doesn't exist, it returns
+        without error.
+        """
+        # Get user to retrieve firebase_uid
+        user = await self.get_by_id(user_id)
+        if user is None:
+            # Idempotent: user doesn't exist, nothing to delete
+            return
+
+        firebase_uid = user.firebase_uid
+
+        # Delete user-related data in order
+        # 1. Delete user_question_history
+        stmt = delete(UserQuestionHistory).where(
+            UserQuestionHistory.user_id == firebase_uid,  # type: ignore
+        )
+        await self.session.execute(stmt)
+
+        # 2. Delete answer_events
+        stmt = delete(AnswerEvent).where(
+            AnswerEvent.user_firebase_id == firebase_uid,  # type: ignore
+        )
+        await self.session.execute(stmt)
+
+        # 3. Delete questions_votes
+        stmt = delete(QuestionVote).where(
+            QuestionVote.user_firebase_uid == firebase_uid,  # type: ignore
+        )
+        await self.session.execute(stmt)
+
+        # 4. Delete user record
+        await self.session.delete(user)
+        await self.session.commit()

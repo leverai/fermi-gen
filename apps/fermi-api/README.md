@@ -459,6 +459,20 @@ Setting the user's locale to US/EU
     ```
 -   **Response (200 OK):** Literal[200]
 
+#### `POST /user/delete`
+Deletes the authenticated user and all associated data from the database.
+
+-   **Request:** (No body)
+-   **Response (200 OK):** Literal[200]
+-   **Errors:**
+    -   `401 Unauthorized`: If the access token is missing or invalid.
+-   **Side Effects:**
+    -   The user record is deleted from the `user` table.
+    -   All associated data is deleted:
+        -   `user_question_history` entries for the user
+        -   `answer_events` entries for the user
+        -   `questions_votes` entries for the user
+    -   The operation is idempotent: calling it multiple times has no additional effect after the first successful deletion.
 
 ## Game Flow Walkthrough
 
