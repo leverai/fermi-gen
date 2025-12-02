@@ -28,6 +28,7 @@ void main() {
               of: find.byType(AnswerAccuracyScale),
               matching: find.byType(CustomPaint)),
           findsOneWidget);
+      expect(find.text('1 K m'), findsOneWidget); // User answer text box
     });
 
     testWidgets('should show submitted answer when revealed',
@@ -114,6 +115,35 @@ void main() {
       // Assert
       await tester.pump(); // Start animation
       await tester.pumpAndSettle(); // Finish
+    });
+
+    testWidgets('should show scientific notation for out of bounds answer',
+        (WidgetTester tester) async {
+      // Arrange
+      const currentAnswer =
+          AnswerValue(number: 1, orderOfMagnitude: 'K', unit: 'm');
+      const revealedAnswer = AnswerValue(
+        number: 1,
+        orderOfMagnitude: '',
+        unit: 'm',
+        rawValue: 0.0005, // Out of bounds (< 1)
+      );
+
+      // Act
+      await pumpWithMaterialApp(
+        tester,
+        const AnswerAccuracyScale(
+          currentAnswer: currentAnswer,
+          revealedAnswer: revealedAnswer,
+          revealedColor: Colors.green,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Assert
+      // 0.0005 -> 5.00e-4
+      expect(find.text('5.00e-4'), findsOneWidget);
     });
   });
 }

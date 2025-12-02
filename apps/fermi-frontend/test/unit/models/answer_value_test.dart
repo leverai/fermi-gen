@@ -74,6 +74,46 @@ void main() {
       expect(value1, isNot(equals(value2)));
       expect(value1 == value2, isFalse);
     });
+
+    test('should not be equal when rawValue differs', () {
+      // ARRANGE
+      const value1 = AnswerValue(
+        number: 42,
+        orderOfMagnitude: 'K',
+        unit: 'm',
+        rawValue: null,
+      );
+      final value2 = AnswerValue(
+        number: 42,
+        orderOfMagnitude: 'K',
+        unit: 'm',
+        rawValue: 42000.0,
+      );
+
+      // ACT & ASSERT
+      expect(value1, isNot(equals(value2)));
+      expect(value1 == value2, isFalse);
+    });
+
+    test('should be equal when rawValue matches', () {
+      // ARRANGE
+      final value1 = AnswerValue(
+        number: 42,
+        orderOfMagnitude: 'K',
+        unit: 'm',
+        rawValue: 42000.0,
+      );
+      final value2 = AnswerValue(
+        number: 42,
+        orderOfMagnitude: 'K',
+        unit: 'm',
+        rawValue: 42000.0,
+      );
+
+      // ACT & ASSERT
+      expect(value1, equals(value2));
+      expect(value1 == value2, isTrue);
+    });
   });
 
   group('AnswerValue - Hash Code', () {
@@ -149,9 +189,9 @@ void main() {
       final string3 = value3.toString();
 
       // ASSERT
-      expect(string1, equals('AnswerValue(number: 42, om: K, unit: m)'));
-      expect(string2, equals('AnswerValue(number: 100, om: , unit: kg)'));
-      expect(string3, equals('AnswerValue(number: 5, om: M, unit: )'));
+      expect(string1, equals('AnswerValue(number: 42, om: K, unit: m, rawValue: null)'));
+      expect(string2, equals('AnswerValue(number: 100, om: , unit: kg, rawValue: null)'));
+      expect(string3, equals('AnswerValue(number: 5, om: M, unit: , rawValue: null)'));
     });
   });
 }
