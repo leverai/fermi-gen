@@ -17,7 +17,6 @@ import 'package:fermi_frontend/screens/question_v2/helpers/snack.dart' as snack;
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/widgets/keyboard_height_provider.dart';
 import 'package:fermi_frontend/widgets/bottom_sheet_height_provider.dart';
-import 'package:fermi_frontend/widgets/simple_percentile_text.dart';
 import 'package:fermi_frontend/utils/logger.dart';
 import 'package:fermi_frontend/widgets/rank_confetti_overlay.dart';
 
@@ -176,11 +175,9 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
     final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    // Height is now fixed based on GameCard's intrinsic content height plus percentile.
+    // Height is now fixed based on GameCard's intrinsic content height.
     // See game_card.dart for the breakdown of this value.
-    const double carouselHeight = kGameCardTotalHeight +
-        kAnswerPercentileMaxHeight +
-        kAnswerPercentileSpacing;
+    const double carouselHeight = kGameCardTotalHeight;
 
     return PopScope(
       canPop: false,
@@ -349,8 +346,7 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
     final percentile = _controller.getMyPercentileForIndex(index);
     final percentileValue =
         percentile != null ? (percentile * 100).round() : null;
-    final showPercentile =
-        showFeedback && percentile != null && percentile >= 0.5;
+    final showPercentile = showFeedback && percentile != null;
 
     // Get submitted answer for THIS question (per-question, not shared)
     final AnswerValue? submittedAnswerForThisQuestion;
@@ -376,83 +372,63 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
     final autoNextProgress =
         isCurrentQuestion ? _controller.autoNextProgress : 0.0;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Always reserve space for percentile widget to prevent layout shifts
-        SizedBox(
-          height: kAnswerPercentileMaxHeight,
-          child: SimplePercentileText(
-            percentile: percentileValue,
-            visible: showPercentile,
-            prefixText: 'More accurate than  ',
-            suffixText: '  of players!',
-          ),
-        ),
-        // Spacing between percentile widget and game card (24px)
-        const SizedBox(height: kAnswerPercentileSpacing),
-        GameCard(
-          questionText: state.questionText,
-          tags: state.tags,
-          currentAnswer: displayAnswer,
-          submittedAnswer: submittedAnswerForThisQuestion,
-          unitOptions: state.unitOptions,
-          units: state.units,
-          currentLocale: _controller.currentLocale,
-          onAnswerChanged:
-              isCurrentQuestion ? _controller.onAnswerChanged : (_) {},
-          onLocaleChanged:
-              isCurrentQuestion ? _controller.onLocaleChanged : (_) {},
-          // In review mode, don't bind controller - use prop-based reveal instead
-          // EXCEPTION: For last question, allow controller binding even in review mode
-          // to enable animation when review mode activates simultaneously
-          // In live mode, bind controller for current question to handle reveal animation
-          answerController: (isCurrentQuestion &&
-                  (!_controller.isReviewMode ||
-                      index == widget.questionCount - 1))
-              ? _controller.answerController
-              : null,
-          revealedAnswer: revealedAnswer,
-          revealedColor: revealedColor,
-          editable:
-              isCurrentQuestion && !_controller.isReviewMode && !showFeedback,
-          showFeedback: showFeedback,
-          initialLikes: state.upvotes,
-          initialVoteState: state.voteState,
-          onUpvote: isCurrentQuestion ? _controller.onUpvote : null,
-          onDeUpvote: isCurrentQuestion ? _controller.onDeUpvote : null,
-          onDownvote: isCurrentQuestion ? _controller.onDownvote : null,
-          onDeDownvote: isCurrentQuestion ? _controller.onDeDownvote : null,
-          unitOptionsNotifier:
-              isCurrentQuestion ? _controller.unitOptionsNotifier : null,
-          reviewMode: _controller.isReviewMode,
-          // Pass tutorial keys only for current question
-          questionWidgetKey:
-              isCurrentQuestion ? widget.questionWidgetKey : null,
-          likeWidgetKey: isCurrentQuestion ? widget.likeWidgetKey : null,
-          digitsKey: isCurrentQuestion ? widget.digitsKey : null,
-          omKey: isCurrentQuestion ? widget.omKey : null,
-          allDigitsKey: isCurrentQuestion ? widget.allDigitsKey : null,
-          unitKey: isCurrentQuestion ? widget.unitKey : null,
-          // Use unique key per question index to prevent widget reuse and value leakage
-          // For current question, use tutorial key if provided, otherwise use index-based key
-          answerWidgetKey: isCurrentQuestion
-              ? (widget.answerWidgetKey ?? ValueKey('answer_$index'))
-              : ValueKey('answer_$index'),
-          // Button-related props
-          paneState: paneState,
-          isLast: isLast,
-          isHost: _controller.isHost,
-          isCurrentQuestion: isCurrentQuestion,
-          onSubmit: isCurrentQuestion ? _handleSubmit : null,
-          onNext: isCurrentQuestion ? _handleNext : null,
-          autoNextProgress: autoNextProgress,
-          questionDeadlineProgress: deadlineProgress,
-          submitButtonKey:
-              null, // Don't use answerWidgetKey for submit button to avoid key conflicts
-        ),
-      ],
+    return GameCard(
+      questionText: state.questionText,
+      tags: state.tags,
+      currentAnswer: displayAnswer,
+      submittedAnswer: submittedAnswerForThisQuestion,
+      unitOptions: state.unitOptions,
+      units: state.units,
+      currentLocale: _controller.currentLocale,
+      onAnswerChanged: isCurrentQuestion ? _controller.onAnswerChanged : (_) {},
+      onLocaleChanged: isCurrentQuestion ? _controller.onLocaleChanged : (_) {},
+      // In review mode, don't bind controller - use prop-based reveal instead
+      // EXCEPTION: For last question, allow controller binding even in review mode
+      // to enable animation when review mode activates simultaneously
+      // In live mode, bind controller for current question to handle reveal animation
+      answerController: (isCurrentQuestion &&
+              (!_controller.isReviewMode || index == widget.questionCount - 1))
+          ? _controller.answerController
+          : null,
+      revealedAnswer: revealedAnswer,
+      revealedColor: revealedColor,
+      editable: isCurrentQuestion && !_controller.isReviewMode && !showFeedback,
+      showFeedback: showFeedback,
+      initialLikes: state.upvotes,
+      initialVoteState: state.voteState,
+      onUpvote: isCurrentQuestion ? _controller.onUpvote : null,
+      onDeUpvote: isCurrentQuestion ? _controller.onDeUpvote : null,
+      onDownvote: isCurrentQuestion ? _controller.onDownvote : null,
+      onDeDownvote: isCurrentQuestion ? _controller.onDeDownvote : null,
+      unitOptionsNotifier:
+          isCurrentQuestion ? _controller.unitOptionsNotifier : null,
+      reviewMode: _controller.isReviewMode,
+      // Pass tutorial keys only for current question
+      questionWidgetKey: isCurrentQuestion ? widget.questionWidgetKey : null,
+      likeWidgetKey: isCurrentQuestion ? widget.likeWidgetKey : null,
+      digitsKey: isCurrentQuestion ? widget.digitsKey : null,
+      omKey: isCurrentQuestion ? widget.omKey : null,
+      allDigitsKey: isCurrentQuestion ? widget.allDigitsKey : null,
+      unitKey: isCurrentQuestion ? widget.unitKey : null,
+      // Use unique key per question index to prevent widget reuse and value leakage
+      // For current question, use tutorial key if provided, otherwise use index-based key
+      answerWidgetKey: isCurrentQuestion
+          ? (widget.answerWidgetKey ?? ValueKey('answer_$index'))
+          : ValueKey('answer_$index'),
+      // Button-related props
+      paneState: paneState,
+      isLast: isLast,
+      isHost: _controller.isHost,
+      isCurrentQuestion: isCurrentQuestion,
+      onSubmit: isCurrentQuestion ? _handleSubmit : null,
+      onNext: isCurrentQuestion ? _handleNext : null,
+      autoNextProgress: autoNextProgress,
+      questionDeadlineProgress: deadlineProgress,
+      submitButtonKey:
+          null, // Don't use answerWidgetKey for submit button to avoid key conflicts
+      // Percentile props
+      percentile: percentileValue ?? 0,
+      showPercentile: showPercentile,
     );
   }
 

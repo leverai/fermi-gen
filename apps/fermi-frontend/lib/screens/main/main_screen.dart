@@ -1,4 +1,4 @@
-import 'package:fermi_frontend/widgets/vertical_percentile_text.dart';
+import 'package:fermi_frontend/widgets/percentile_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -380,7 +380,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                               Positioned(
                                 top: 20,
                                 right: 24,
-                                child: VerticalPercentileText(
+                                child: PercentileWidget(
                                   percentile:
                                       _controller.resolvedPercentile == 0
                                           ? null
