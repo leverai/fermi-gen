@@ -74,6 +74,6 @@ class DefaultFirebaseOptions {
         '811437731406-a2shalhol9694hb8pm3859gb50n1tmm0.apps.googleusercontent.com',
     iosClientId:
         '811437731406-t4fflfp570e92mh5nsrsgh6kpplpq31a.apps.googleusercontent.com',
-    iosBundleId: 'com.guesstimate.guesstimate',
+    iosBundleId: 'tech.leverai.guesstimate',
   );
 }
