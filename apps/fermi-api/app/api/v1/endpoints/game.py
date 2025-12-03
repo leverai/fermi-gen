@@ -188,7 +188,7 @@ async def invite_player(game_id: str) -> HTMLResponse:
     # TODO: Make this configurable
     play_store_url = 'https://play.google.com/store/apps/details?id=com.fermi.app'
     app_store_url = 'https://apps.apple.com/app/idYOUR_APP_ID'  # TODO: Replace with actual App Store URL
-    deep_link = f'guesstimate://invite/{game_id}'
+    deep_link = f'numberroyale://invite/{game_id}'
 
     html_content = f"""
     <!DOCTYPE html>
