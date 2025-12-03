@@ -116,7 +116,32 @@ The frontend follows a **controller-driven architecture** with clear separation 
     - `AnswerSubmissionHandler` - Answer submission logic
     - `NavigationCoordinator` - Carousel navigation and index management
 - **Services**: Backend adapters (`GameRealtime`, `ApiService`, `AuthService`)
-- **Widgets**: Reusable presentational components (`AnswerWidget`, `PlayerWidget`, `PlayerRingProgress`, `QuestionWidget`, `GameCard`, `GameCarousel`)
+- **Widgets**: Reusable presentational components
+    └── widgets/
+        ├── answer_widget.dart          # Unified answer input (digits + OM + unit)
+        ├── answer_accuracy_scale.dart  # Logarithmic scale for answer display and reveal
+        ├── percentile_widget.dart      # Compact "Top X%" display with animations
+        ├── digit_wheels.dart           # Three-digit scrollable wheels with numpad
+        ├── om_label.dart               # Order of magnitude selector
+        ├── unit_tape.dart              # Unit selector with locale toggle
+        ├── styled_dialog.dart          # Reusable dialog with gradient borders
+        ├── settings_menu.dart          # Settings menu (sign out, delete account)
+        ├── animated_like_dislike.dart  # Question voting with animations
+        ├── circular_determinate_spinner.dart # Progress indicators
+        ├── player_widget.dart          # Avatar, status, score display
+        ├── player_ring_progress.dart   # Circular countdown ring around player avatars
+        ├── player_score.dart           # Animated score counter
+        ├── players_row.dart            # Row layout for player chips
+        ├── question_widget.dart        # Question text with tags and like widget
+        ├── question_deadline_progress_tracker.dart # Deadline timer
+        ├── tag_widget.dart             # Category/difficulty tags
+        ├── selector_widget.dart        # Multi-option filter chips
+        ├── lock_toggle_chip.dart       # Privacy toggle (public/private)
+        ├── submitted_answer_chip.dart  # Displays submitted answer after reveal
+        ├── rank_confetti_overlay.dart  # Game-end confetti
+        ├── player_confetti_overlay.dart # Per-question confetti
+        └── categories/
+            └── category_carousel_m3.dart
 - **Theme**: Centralized theming (`AppTheme`)
 
 For complete architecture details, see **[Architecture Documentation](docs/ARCHITECTURE.md)**.
@@ -194,16 +219,18 @@ For complete troubleshooting guide, see **[Deployment Documentation](docs/DEPLOY
 
 ## Dependencies of Note
 
-- **`carousel_slider` (^5.1.1)**: Horizontal carousel widget for Question Screen V2 navigation
 - **`dots_indicator` (^3.0.0)**: Dots indicator for carousel position display
-- **`share_plus`**: Native share sheet for private lobby invites
-- **`like_button` (v2.1.0)**: Animated like/dislike buttons with bubble and circle effects
-- **`confetti`**: Celebratory confetti animations for top 3 finishers and per-question highest scorers
-- **`flutter_svg`**: SVG rendering for icons and avatars
-- **`flutter_typing_indicator`**: Animated dots for "waiting" player status
-- **`firebase_auth`**: Firebase authentication
-- **`cloud_firestore`**: Real-time database for game state
-- **`firebase_ui_auth`**: Pre-built authentication UI
+- **`share_plus` (^10.0.2)**: Native share sheet for private lobby invites
+- **`like_button` (^2.1.0)**: Animated like/dislike buttons with bubble and circle effects
+- **`confetti` (^0.7.0)**: Celebratory confetti animations for top 3 finishers and per-question highest scorers
+- **`flutter_svg` (^2.0.10+1)**: SVG rendering for icons and avatars
+- **`flutter_typing_indicator` (^0.0.4)**: Animated dots for "waiting" player status
+- **`firebase_auth` (^5.6.0)**: Firebase authentication
+- **`cloud_firestore` (^5.6.9)**: Real-time database for game state
+- **`firebase_ui_auth` (^1.16.0)**: Pre-built authentication UI
+- **`google_fonts` (^6.1.0)**: Google Fonts integration
+- **`logger` (^2.4.0)**: Logging utility
+- **`app_links` (6.3.0)**: Deep linking support
 
 ---
 
