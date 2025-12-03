@@ -9,7 +9,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
-            android:name="com.guesstimate.guesstimate.MainActivity"
+            android:name="tech.leverai.numberroyale.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -35,7 +35,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="guesstimate" android:host="invite" />
+                <data android:scheme="numberroyale" android:host="invite" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
@@ -46,7 +46,7 @@
 
         <provider
             android:name="com.google.firebase.provider.FirebaseInitProvider"
-            android:authorities="com.guesstimate.guesstimate.firebaseinitprovider"
+            android:authorities="tech.leverai.numberroyale.firebaseinitprovider"
             tools:node="remove" />
     </application>
 

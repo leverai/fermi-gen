@@ -24,7 +24,7 @@ if (flutterVersionName == null) {
 }
 
     android {
-    namespace = "com.guesstimate.guesstimate"
+    namespace = "tech.leverai.numberroyale"
     compileSdk = 35
     ndkVersion = "27.0.12077973"
 
@@ -42,7 +42,7 @@ if (flutterVersionName == null) {
     }
 
     defaultConfig {
-        applicationId = "com.guesstimate.guesstimate"
+        applicationId = "tech.leverai.numberroyale"
         minSdk = 23
         targetSdk = 35
         versionCode = flutterVersionCode.toInteger()
