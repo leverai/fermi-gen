@@ -125,11 +125,13 @@ apps/fermi-frontend/
     │   └── layout_constants.dart    # Sizing/spacing constants
     └── widgets/
         ├── answer_widget.dart          # Unified answer input (digits + OM + unit)
-        ├── answer_mirror_text.dart     # Human-readable answer display
+        ├── answer_accuracy_scale.dart  # Logarithmic scale for answer display and reveal
+        ├── percentile_widget.dart      # Compact "Top X%" display with animations
         ├── digit_wheels.dart           # Three-digit scrollable wheels with numpad
         ├── om_label.dart               # Order of magnitude selector
         ├── unit_tape.dart              # Unit selector with locale toggle
         ├── styled_dialog.dart          # Reusable dialog with gradient borders
+        ├── settings_menu.dart          # Settings menu (sign out, delete account)
         ├── animated_like_dislike.dart  # Question voting with animations
         ├── circular_determinate_spinner.dart # Progress indicators
         ├── player_widget.dart          # Avatar, status, score display
@@ -210,6 +212,66 @@ This ensures the pane always displays the currently active question's revealed a
 ### Demo Adapter
 
 `lib/services/demo/demo_game_realtime.dart` provides a deterministic demo adapter for local development that simulates game events without requiring backend connectivity.
+
+---
+
+
+## Widget Documentation
+
+### Core Answer Display Widgets
+
+#### AnswerAccuracyScale
+
+**Purpose**: Displays answers on a logarithmic scale with animated reveal functionality.
+
+**Features**:
+- **Logarithmic scale**: Range 0-18 (representing 1 to 1 Quintillion)
+- **Tick marks**: Shows ticks for each order of magnitude with labels (K, M, B, T, Qa)
+- **Dual indicators**: User answer (static) and correct answer (animated)
+- **Text boxes**: Displays formatted values above/below the scale
+- **Scientific notation**: Automatically uses scientific notation for out-of-bounds values
+- **Animated reveal**: Correct answer indicator spawns from user answer and animates to correct position
+
+**Usage**: Replaces the legacy `AnswerMirrorText` widget in `GameCard`. Used in Question Screen V2 for displaying and revealing answers.
+
+**Props**:
+- `currentAnswer`: Current user input (AnswerValue)
+- `submittedAnswer`: Submitted answer after lock (AnswerValue?)
+- `revealedAnswer`: Correct answer at reveal time (AnswerValue?)
+- `revealedColor`: Color for reveal animation (Color?)
+- `editable`: Whether the question is still editable (bool)
+
+#### PercentileWidget
+
+**Purpose**: Compact "Top X%" display with animated digit transitions.
+
+**Features**:
+- **Inverted percentile**: Displays `100 - percentile` as "Top X%"
+- **Animated digits**: Smooth transitions when percentile changes
+- **Color mapping**: Inverted color scale (1% = success/best, 99% = danger/worst)
+- **Compact layout**: 24px height, borderless, transparent background
+- **Typography**: "Top" (12px, weight 400) + digits (16px, weight 600) + "%"
+
+**Usage**: Main screen percentile panel and question screen player percentile display.
+
+**Props**:
+- `percentile`: Percentile value 0-100 (int?)
+- `visible`: Visibility control without layout shifts (bool)
+- `animate`: Enable/disable digit animations (bool)
+
+### UI Components
+
+#### SettingsMenu
+
+**Purpose**: Settings menu overlay with user account actions.
+
+**Features**:
+- **Sign out**: Signs out current user and returns to auth screen
+- **Delete account**: Deletes user account with confirmation dialog
+- **Styled dialog**: Uses `StyledDialog` for confirmation prompts
+- **Error handling**: Shows SnackBar for errors
+
+**Usage**: Accessible from main screen via settings FAB button.
 
 ---
 
