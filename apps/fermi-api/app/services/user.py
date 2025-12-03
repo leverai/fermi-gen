@@ -44,7 +44,7 @@ class UserService:
         # (if Firebase Admin is configured to use the emulator)
         try:
             # Use thread pool for blocking I/O call
-            auth.delete_user(firebase_uid)
+            await run_in_threadpool(auth.delete_user, firebase_uid)
         except Exception:
             # Log error but continue with database deletion
             # Firebase deletion failure shouldn't block database cleanup
