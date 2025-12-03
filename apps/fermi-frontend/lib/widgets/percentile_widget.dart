@@ -97,12 +97,12 @@ class _PercentileWidgetState extends State<PercentileWidget>
           children: [
             // "Top" text
             Text(
-              'Top ',
+              'top ',
               style: AppFont.primaryTextStyle(
                 context,
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: color,
+                color: appTheme.borderMuted,
               ),
             ),
             // Animated digits

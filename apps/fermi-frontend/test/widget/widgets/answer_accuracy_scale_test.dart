@@ -28,7 +28,7 @@ void main() {
               of: find.byType(AnswerAccuracyScale),
               matching: find.byType(CustomPaint)),
           findsOneWidget);
-      expect(find.text('1 K m'), findsOneWidget); // User answer text box
+      expect(find.text('1 K'), findsOneWidget); // User answer text box
     });
 
     testWidgets('should show submitted answer when revealed',
