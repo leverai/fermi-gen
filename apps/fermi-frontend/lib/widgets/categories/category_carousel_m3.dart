@@ -42,12 +42,23 @@ class _CategoryCarouselM3State extends State<CategoryCarouselM3> {
   static const double _cardHeight = 24.0 * 6; // 144px
   static const double _spacing = 24.0; // 24px spacing between cards
 
+  final CarouselController _controller = CarouselController();
+
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex != null && widget.categories.isNotEmpty
         ? widget.initialIndex!.clamp(0, widget.categories.length - 1)
         : null;
+
+    // Center the initial item if one is selected
+    if (_selectedIndex != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _scrollToIndex(_selectedIndex!, animate: false);
+        }
+      });
+    }
   }
 
   /// Compute the color for a category at the given index.
@@ -59,6 +70,41 @@ class _CategoryCarouselM3State extends State<CategoryCarouselM3> {
       widget.startColor.saturation,
       widget.startColor.lightness,
     ).toColor();
+  }
+
+  void _scrollToIndex(int index, {bool animate = true}) {
+    // We need the viewport width to center the item.
+    // Since we don't have direct access to the viewport width here without LayoutBuilder,
+    // we'll rely on the LayoutBuilder in the build method to store it or pass it.
+    // For now, let's just scroll to the item's start position which brings it into view.
+    // To center, we need: offset = (index * itemExtent) - (viewportWidth / 2) + (itemExtent / 2)
+
+    // However, without viewport width, we can't center perfectly.
+    // Let's use a simplified approach: scroll to the item.
+    // But wait, we can get context.size?.width?
+
+    final double itemExtent = _cardWidth + _spacing;
+    final double viewportWidth = context.size?.width ?? 0;
+
+    if (viewportWidth == 0) return;
+
+    final double targetOffset =
+        (index * itemExtent) - (viewportWidth / 2) + (itemExtent / 2);
+    // Clamp is handled by the scrollable usually, but good to be safe?
+    // We don't know the max scroll extent easily.
+
+    // Actually, CarouselView might not support offset scrolling if it's not a ScrollView.
+    // But assuming it is:
+
+    if (animate) {
+      _controller.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      _controller.jumpTo(targetOffset);
+    }
   }
 
   void _onCardTap(int index) {
@@ -73,6 +119,9 @@ class _CategoryCarouselM3State extends State<CategoryCarouselM3> {
 
     widget.onCategorySelected?.call(_selectedIndex);
     widget.onCenteredIndexChanged?.call(_selectedIndex);
+
+    // Center the tapped item
+    _scrollToIndex(index);
   }
 
   @override
@@ -83,44 +132,47 @@ class _CategoryCarouselM3State extends State<CategoryCarouselM3> {
 
     return SizedBox(
       height: _cardHeight + (2 * glowPadding),
-      child: CarouselView(
-        itemExtent: _cardWidth + _spacing,
-        shrinkExtent: _cardWidth + _spacing, // Prevent cards from shrinking
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        shape: const HorizontalInsetShape(
-          horizontalInset: 12.0,
-          baseShape: RoundedRectangleBorder(),
-        ),
-        padding: const EdgeInsets.only(
-          top: glowPadding,
-          bottom: glowPadding,
-          // No horizontal padding - spacing is handled by child Padding widgets
-        ),
-        onTap: (index) => _onCardTap(index),
-        children: List.generate(
-          widget.categories.length,
-          (index) {
-            final category = widget.categories[index];
-            final categoryColor = _getCategoryColor(index);
-            final isSelected = index == _selectedIndex;
+      child: LayoutBuilder(builder: (context, constraints) {
+        return CarouselView(
+          controller: _controller,
+          itemExtent: _cardWidth + _spacing,
+          shrinkExtent: _cardWidth + _spacing, // Prevent cards from shrinking
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          shape: const HorizontalInsetShape(
+            horizontalInset: 12.0,
+            baseShape: RoundedRectangleBorder(),
+          ),
+          padding: const EdgeInsets.only(
+            top: glowPadding,
+            bottom: glowPadding,
+            // No horizontal padding - spacing is handled by child Padding widgets
+          ),
+          onTap: (index) => _onCardTap(index),
+          children: List.generate(
+            widget.categories.length,
+            (index) {
+              final category = widget.categories[index];
+              final categoryColor = _getCategoryColor(index);
+              final isSelected = index == _selectedIndex;
 
-            return Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: _spacing /
-                      2), // 12px on each side = 24px total between cards
-              child: CategoryCardM3(
-                title: category.title,
-                svgPath: category.svgPath,
-                categoryColor: categoryColor,
-                isSelected: isSelected,
-                width: _cardWidth,
-                height: _cardHeight,
-              ),
-            );
-          },
-        ),
-      ),
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: _spacing /
+                        2), // 12px on each side = 24px total between cards
+                child: CategoryCardM3(
+                  title: category.title,
+                  svgPath: category.svgPath,
+                  categoryColor: categoryColor,
+                  isSelected: isSelected,
+                  width: _cardWidth,
+                  height: _cardHeight,
+                ),
+              );
+            },
+          ),
+        );
+      }),
     );
   }
 }
