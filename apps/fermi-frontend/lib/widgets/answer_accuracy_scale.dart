@@ -90,8 +90,8 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
         return raw.toStringAsExponential(2);
       }
     }
-    // Fallback to decomposed format
-    return '${value.number} ${value.orderOfMagnitude} ${value.unit}'.trim();
+    // Fallback to decomposed format (without unit since both answers have the same unit)
+    return '${value.number} ${value.orderOfMagnitude}'.trim();
   }
 
   @override
@@ -152,7 +152,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                   // User Answer Text Box
                   Positioned(
                     left: padding + (userLogValue / 18.0) * drawWidth,
-                    top: -12, // Position above the scale
+                    top: -14, // Position above the scale
                     child: FractionalTranslation(
                       translation: const Offset(-0.5, 0),
                       child: Container(
@@ -173,7 +173,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                         child: Text(
                           _formatAnswerText(userAnswer),
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: appTheme.text,
                           ),
@@ -185,7 +185,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                   if (currentCorrectX != null && widget.revealedAnswer != null)
                     Positioned(
                       left: currentCorrectX,
-                      bottom: -12, // Position above the scale
+                      bottom: -14, // Position above the scale
                       child: FractionalTranslation(
                         translation: const Offset(-0.5, 0),
                         child: Opacity(
@@ -196,16 +196,14 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                                 horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: appTheme.primary,
-                              border: Border.all(
-                                  color:
-                                      appTheme.border,
-                                  width: 1),
+                              border:
+                                  Border.all(color: appTheme.border, width: 1),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               _formatAnswerText(widget.revealedAnswer!),
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: appTheme.text,
                               ),
@@ -293,6 +291,54 @@ class _ScalePainter extends CustomPainter {
         Offset(x, cy + currentTickHeight / 2),
         tickPaint..color = isMajor ? appTheme.border : appTheme.borderMuted,
       );
+
+      // Draw Labels
+      // Requirement: "The first and last ticks have no label" -> skip 0 and 18
+      // Requirement: "Use abbreviation (K, M, B, etc.)" -> implies only major ticks
+      if (isMajor && i > 0 && i < 18) {
+        String? label;
+        switch (i) {
+          case 3:
+            label = 'K';
+            break;
+          case 6:
+            label = 'M';
+            break;
+          case 9:
+            label = 'B';
+            break;
+          case 12:
+            label = 'T';
+            break;
+          case 15:
+            label = 'Qa';
+            break;
+        }
+
+        if (label != null) {
+          final textSpan = TextSpan(
+            text: label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              color: appTheme.borderMuted,
+            ),
+          );
+          final textPainter = TextPainter(
+            text: textSpan,
+            textDirection: TextDirection.ltr,
+          );
+          textPainter.layout();
+
+          // Position: "Ticks labels should be directly below the ticks"
+          // Center the text horizontally on x
+          // Place it below the tick. Tick ends at cy + currentTickHeight / 2
+          final textX = x - (textPainter.width / 2);
+          final textY = cy + (currentTickHeight / 2) + 2; // +2 padding
+
+          textPainter.paint(canvas, Offset(textX, textY));
+        }
+      }
     }
 
     // Draw User Indicator

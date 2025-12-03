@@ -431,8 +431,8 @@ class GameCard extends StatelessWidget {
         // Percentile widget overlay (top-right corner of card)
         if (percentile != null)
           Positioned(
-            top: 12,
-            right: 12,
+            top: 8,
+            right: 14,
             child: PercentileWidget(
               percentile: percentile,
               visible: showPercentile,
