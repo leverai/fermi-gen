@@ -145,7 +145,7 @@ class _CenterCallout extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isPrivate) {
       // Use provided share handler; future improvement could wire joinUrl into it
-      return ShareButton(onPressed: onShare ?? () {});
+      return Center(child: ShareButton(onPressed: onShare ?? () {}));
     }
     if (isWaiting) {
       return LoadingAnimationWidget.fourRotatingDots(
