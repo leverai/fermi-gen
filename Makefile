@@ -163,3 +163,11 @@ build-frontend-android-release:
 	  --dart-define=API_BASE_URL=https://fermi-api-bwuxx6eogq-uc.a.run.app/api/v1 \
 	  --dart-define=USE_EMULATORS=false \
 	  --dart-define=SUPPRESS_TEST_LOGS=true
+
+.PHONY: update-icons
+update-icons:
+	@echo "Regenerating app icons from assets/icons/..." && \
+	cd apps/fermi-frontend && \
+	fvm flutter pub get && \
+	fvm flutter pub run flutter_launcher_icons && \
+	echo "✓ Icons successfully updated for Android and iOS"
