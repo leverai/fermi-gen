@@ -70,6 +70,7 @@ dev_dependencies:
   firebase_auth_mocks: ^0.14.1
   fake_cloud_firestore: ^3.1.0
   golden_toolkit: ^0.15.0
+  flutter_launcher_icons: ^0.14.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -113,3 +114,14 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Flutter Launcher Icons configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/icon.png"
+  # Adaptive icons for Android (using background and foreground)
+  adaptive_icon_background: "assets/icons/icon-bg.png"
+  adaptive_icon_foreground: "assets/icons/icon-fg.png"
+  # Remove old icons before generating new ones
+  remove_alpha_ios: true

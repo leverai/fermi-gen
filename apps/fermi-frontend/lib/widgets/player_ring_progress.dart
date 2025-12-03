@@ -89,7 +89,7 @@ class PlayerRingProgress extends StatelessWidget {
     switch (ringState) {
       case RingState.countdown:
         // Ring color: self uses info, others use border
-        return isSelf ? appTheme.primary : appTheme.border;
+        return isSelf ? appTheme.primary : appTheme.borderMuted;
 
       case RingState.completed:
         // Completed: self uses info, others use success (green)
@@ -97,7 +97,7 @@ class PlayerRingProgress extends StatelessWidget {
 
       case RingState.review:
         // Ring color: self uses info, others use border
-        return isSelf ? appTheme.primary : appTheme.border;
+        return isSelf ? appTheme.primary : appTheme.borderMuted;
     }
   }
 }
