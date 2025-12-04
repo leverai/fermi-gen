@@ -320,10 +320,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  /// Exits the onboarding screen and navigates to the main screen.
+  /// Exits the onboarding screen and navigates to the sign-in screen.
   ///
   /// Called when the user completes answering the question (via QuestionScreenV2's
-  /// onFinish callback). Marks onboarding as seen and navigates away.
+  /// onFinish callback). Marks onboarding as seen and navigates to sign-in.
   void _exitOnboarding() async {
     // Mark onboarding as seen (unless in test mode)
     if (!widget.testMode) {
@@ -332,7 +332,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
 
     if (!mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+    Navigator.pushNamedAndRemoveUntil(context, '/sign-in', (route) => false);
   }
 
   @override
