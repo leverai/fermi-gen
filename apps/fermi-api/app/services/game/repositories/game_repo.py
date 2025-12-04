@@ -6,6 +6,7 @@ accept an optional ``tx`` parameter to support transactional reads.
 
 import asyncio
 from collections.abc import Iterable
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from google.cloud import firestore
@@ -172,14 +173,25 @@ class GameRepository:
                 filter=FieldFilter('difficulty', '==', value=round_settings.difficulty),
             )
 
-        query = query.order_by(
-            field_path='created_at',
-            direction=firestore.Query.DESCENDING,
-        ).limit(
-            1,
+        query = (
+            query.where(
+                filter=FieldFilter(
+                    'created_at',
+                    '>=',
+                    value=datetime.now(tz=UTC) - timedelta(minutes=3),
+                ),
+            )
+            .order_by(
+                field_path='created_at',
+                direction=firestore.Query.DESCENDING,
+            )
+            .limit(
+                1,
+            )
         )
 
         games = await query.get(transaction=tx)
         if not games:
             return None
+
         return games.pop()
