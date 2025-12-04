@@ -165,9 +165,27 @@ apps/fermi-frontend/
 
 ### Authentication Flow
 
-1. User signs in via `firebase_ui_auth` screens.
+The app supports two authentication modes: **anonymous** (default) and **permanent accounts** (email/Google).
+
+#### Anonymous Authentication (Default)
+
+1. **Automatic Sign-In**: On first launch (after onboarding), if no user exists, the app automatically signs in anonymously via `AuthService.signInAnonymously()`.
+2. **Seamless Experience**: Anonymous users can immediately play games without creating an account.
+3. **Account Upgrade**: Anonymous users can upgrade to a permanent account via the settings menu:
+   - Settings menu shows "Create Account" button for anonymous users
+   - Navigates to `UpgradeAccountScreen` which uses `SignInScreen` from `firebase_ui_auth`
+   - Firebase automatically links the anonymous account with the new credential (email/password or Google)
+   - Firebase UID remains the same, preserving all game data and progress
+4. **Token Exchange**: Anonymous users exchange Firebase ID tokens for backend access tokens just like regular users.
+
+#### Permanent Account Authentication
+
+1. User signs in via `firebase_ui_auth` screens (email/password or Google).
 2. `AuthService.exchangeToken()` exchanges the Firebase ID token for a backend access token (JWT) via `POST /auth/token`.
 3. `ApiService` includes the access token in all subsequent requests as `Authorization: Bearer <ACCESS_TOKEN>`.
+
+#### Common Flow (Both Anonymous and Permanent)
+
 4. Game endpoints used by `MainScreenController`:
    - `GET /game/config` → font; categories with theme and pictures; difficulties
    - `POST /game/get_player_stats` → percentile stats (used to compute a 0..100 percentile int)
@@ -176,6 +194,14 @@ apps/fermi-frontend/
 5. Question vote endpoints (IdModel body + response):
    - `POST /question/upvote`, `/question/de_upvote`, `/question/downvote`, `/question/de_downvote`.
    - Units: questions expose `units` as `UnitInfo` per region (US/EU). UI displays `abbreviation` in the unit tape and full names in the selector popup; submissions send the unit `id` (or `null` when unitless). The locale toggle (integrated into the unit selector popup) lets users switch US/EU, which persists via `POST /user/set_locale` and triggers a backend fetch for updated unit options.
+
+#### Account Linking
+
+When an anonymous user signs in with email/Google from the upgrade screen:
+- Firebase UI Auth automatically handles credential linking via `CredentialLinked` action
+- The anonymous account is upgraded to a permanent account
+- All game data associated with the Firebase UID is preserved
+- `AuthService.linkWithCredential()` can also be used programmatically for custom linking flows
 
 ### API Service
 
@@ -1179,6 +1205,13 @@ The reserved feedback area animates between feedback (post-reveal) and locale to
 - **Better UX**: Local countdown provides immediate feedback
 - **Server validates but doesn't enforce**: Trade-off: trust client to submit on time
 - **Graceful degradation**: Backend has short grace period for late submissions
+
+### Why Anonymous Authentication?
+
+- **Reduced barrier to entry**: Users can start playing immediately without account creation
+- **Seamless upgrade path**: Anonymous accounts can be upgraded to permanent accounts without data loss
+- **Preserved user experience**: All game data is preserved when upgrading (Firebase UID remains constant)
+- **Flexible user journey**: Users can try the app before committing to account creation
 
 ### Why Dual Storage (PostgreSQL + Firestore)?
 

@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fermi_frontend/screens/question_v2/question_screen_v2.dart';
 import 'package:fermi_frontend/services/demo/onboarding_realtime.dart';
+import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/styled_dialog.dart';
@@ -15,10 +16,17 @@ import 'package:fermi_frontend/widgets/styled_dialog.dart';
 /// Users can progress through the tutorial or skip to end the tutorial sequence
 /// and interact with the widgets directly.
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key, this.testMode = false});
+  const OnboardingScreen({
+    super.key,
+    this.testMode = false,
+    this.preloadService,
+  });
 
   /// If true, don't persist the onboarding_seen flag (for testing)
   final bool testMode;
+
+  /// Optional preload service to ensure data is being fetched in background
+  final PreloadService? preloadService;
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -48,6 +56,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void initState() {
     super.initState();
     _realtime = OnboardingRealtime(initialLocale: 'US');
+
+    // Ensure preloading is happening in the background
+    widget.preloadService?.preload();
 
     // Start tutorial after first frame + small delay for layout to settle
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -320,10 +331,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  /// Exits the onboarding screen and navigates to the sign-in screen.
+  /// Exits the onboarding screen and navigates to the main screen.
   ///
   /// Called when the user completes answering the question (via QuestionScreenV2's
-  /// onFinish callback). Marks onboarding as seen and navigates to sign-in.
+  /// onFinish callback). Marks onboarding as seen and navigates to main screen.
+  /// User is already authenticated anonymously, so we can go directly to main.
   void _exitOnboarding() async {
     // Mark onboarding as seen (unless in test mode)
     if (!widget.testMode) {
@@ -332,7 +344,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
 
     if (!mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, '/sign-in', (route) => false);
+    // Navigate to main screen (user is already authenticated anonymously)
+    Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
   }
 
   @override

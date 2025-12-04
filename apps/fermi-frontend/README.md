@@ -26,9 +26,11 @@ Flutter frontend for The Fermi Game — a real-time, multiplayer trivia experien
 ## What is this?
 
 Fermi Frontend is a Flutter app for playing The Fermi Game — a real-time, multiplayer trivia experience built around estimation questions. It integrates with:
-- Firebase Auth (for sign-in)
+- Firebase Auth (for sign-in, including anonymous authentication)
 - FastAPI backend (token exchange + game endpoints)
 - Firestore (real-time game state via a `GameRealtime` adapter)
+
+**Anonymous Authentication**: Users can play immediately without creating an account. The app automatically signs in users anonymously on first launch. Anonymous users can upgrade to permanent accounts (email/Google) at any time through the settings menu, preserving all their game data and progress.
 
 ---
 

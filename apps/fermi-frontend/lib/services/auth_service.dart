@@ -25,12 +25,62 @@ class AuthService {
   })  : _auth = auth ?? FirebaseAuth.instance,
         _httpClient = httpClient ?? http.Client();
 
+  /// Returns true if the current user is signed in anonymously.
+  bool get isAnonymous {
+    return _auth.currentUser?.isAnonymous ?? false;
+  }
+
+  /// Signs in the user anonymously.
+  ///
+  /// Creates a temporary anonymous account that can later be upgraded
+  /// to a permanent account by linking credentials.
+  Future<bool> signInAnonymously() async {
+    try {
+      final userCredential = await _auth.signInAnonymously();
+      if (userCredential.user != null) {
+        // Exchange token after anonymous sign-in
+        return await exchangeToken();
+      }
+      return false;
+    } catch (e) {
+      debugPrint("Anonymous sign-in error: $e");
+      return false;
+    }
+  }
+
+  /// Links the current anonymous account with a credential (email/password or OAuth).
+  ///
+  /// This upgrades the anonymous account to a permanent account while preserving
+  /// the Firebase UID and all associated data.
+  Future<bool> linkWithCredential(AuthCredential credential) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null || !user.isAnonymous) {
+        debugPrint("Cannot link: user is not anonymous");
+        return false;
+      }
+
+      final userCredential = await user.linkWithCredential(credential);
+      if (userCredential.user != null) {
+        // Re-exchange token after linking to get updated user info
+        return await exchangeToken();
+      }
+      return false;
+    } on FirebaseAuthException catch (e) {
+      debugPrint("Account linking error: ${e.code} - ${e.message}");
+      rethrow;
+    } catch (e) {
+      debugPrint("Account linking error: $e");
+      rethrow;
+    }
+  }
+
   Future<bool> exchangeToken() async {
     try {
       final user = _auth.currentUser;
 
       if (user != null) {
-        // 1. Get Firebase ID token
+        // 1. Get Firebase ID token (works for both anonymous and regular users)
         final idToken = await user.getIdToken();
 
         // 2. Exchange for backend access token
@@ -126,8 +176,8 @@ class AuthService {
 
   Future<void> signOut() async {
     try {
-      // 1. Call backend sign-out
-      if (accessToken != null) {
+      // 1. Call backend sign-out (skip for anonymous users as they may not have backend accounts)
+      if (accessToken != null && !isAnonymous) {
         await _httpClient.post(
           Uri.parse("$_apiBaseUrl/auth/sign-out"),
           headers: {
@@ -143,12 +193,18 @@ class AuthService {
       accessToken = null;
       currentUser = null;
       firebaseUid = null;
-      // 3. Sign out from Firebase
+      // 3. Sign out from Firebase (works for both anonymous and regular users)
       await _auth.signOut();
     }
   }
 
   Future<void> deleteAccount() async {
+    // Anonymous users cannot delete accounts (they don't have permanent accounts)
+    if (isAnonymous) {
+      throw Exception(
+          'Anonymous users cannot delete accounts. Please create a permanent account first.');
+    }
+
     try {
       if (accessToken != null) {
         final response = await _httpClient.post(

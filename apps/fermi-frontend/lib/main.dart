@@ -12,10 +12,12 @@ import 'package:fermi_frontend/firebase_options.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/deep_link_service.dart';
+import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/screens/main/main_screen.dart';
 import 'package:fermi_frontend/screens/lobby/lobby_screen_controller.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/screens/onboarding_screen.dart';
+import 'package:fermi_frontend/screens/upgrade_account_screen.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/state/theme_config_service.dart';
@@ -125,6 +127,7 @@ class _MyAppState extends State<MyApp> {
   late final DeepLinkService _deepLinkService;
   final AuthService _authService = AuthService();
   late final ApiService _apiService;
+  late final PreloadService _preloadService;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
@@ -133,8 +136,37 @@ class _MyAppState extends State<MyApp> {
     _themeConfigService = ThemeConfigService();
     _themeConfigService.addListener(_onThemeChanged);
     _apiService = ApiService(authService: _authService);
+    _preloadService = PreloadService(api: _apiService, auth: _authService);
     _deepLinkService = DeepLinkService();
     _deepLinkService.init(onJoinGame: _handleJoinGame);
+
+    // Sign in anonymously early if no user exists
+    _ensureAuthenticated();
+  }
+
+  /// Ensures user is authenticated (anonymous or regular).
+  /// Starts preloading data once authentication is ready.
+  Future<void> _ensureAuthenticated() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      // Sign in anonymously as early as possible
+      final success = await _authService.signInAnonymously();
+      if (success) {
+        // signInAnonymously already calls exchangeToken internally,
+        // so accessToken should be available now
+        // Start preloading data in the background
+        _preloadService.preload();
+      } else {
+        debugPrint('Failed to sign in anonymously during app initialization');
+      }
+    } else {
+      // User already exists, ensure we have a token
+      if (_authService.accessToken == null) {
+        await _authService.exchangeToken();
+      }
+      // Start preloading immediately
+      _preloadService.preload();
+    }
   }
 
   @override
@@ -222,6 +254,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   /// Determines the initial route based on onboarding status and auth state.
+  /// Note: Anonymous authentication happens in initState, so user should exist by now.
   Future<String> _getInitialRoute() async {
     final prefs = await SharedPreferences.getInstance();
     final seen = prefs.getBool('onboarding_seen') ?? false;
@@ -231,8 +264,16 @@ class _MyAppState extends State<MyApp> {
       return '/onboarding';
     }
 
-    // Otherwise, check auth state
-    return FirebaseAuth.instance.currentUser == null ? '/sign-in' : '/main';
+    // Check if user exists (anonymous or regular)
+    // If not, fall back to sign-in screen (shouldn't happen if _ensureAuthenticated worked)
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      return '/main';
+    }
+
+    // Fallback: if anonymous sign-in failed in initState, show sign-in screen
+    debugPrint('No user found, showing sign-in screen');
+    return '/sign-in';
   }
 
   @override
@@ -290,6 +331,8 @@ class _MyAppState extends State<MyApp> {
                       }
                     }),
                     AuthStateChangeAction<SignedIn>((context, state) async {
+                      // Check if user was anonymous and is now signing in with a provider
+                      // Firebase UI Auth should handle linking automatically
                       final ok = await _authService.exchangeToken();
                       if (!context.mounted) return;
                       if (ok) {
@@ -305,20 +348,49 @@ class _MyAppState extends State<MyApp> {
                         );
                       }
                     }),
+                    // Handle credential linking when anonymous user signs in from sign-in screen
+                    AuthStateChangeAction<CredentialLinked>(
+                      (context, state) async {
+                        final ok = await _authService.exchangeToken();
+                        if (!context.mounted) return;
+                        if (ok) {
+                          _appScaffoldMessengerKey.currentState?.showSnackBar(
+                            const SnackBar(
+                              content: Text('Account created successfully!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          Navigator.pushReplacementNamed(context, '/main');
+                          _checkPendingJoin();
+                        } else {
+                          _appScaffoldMessengerKey.currentState?.showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Account linking succeeded but token exchange failed.'),
+                            ),
+                          );
+                        }
+                      },
+                    ),
                     AuthStateChangeAction<AuthFailed>((context, state) {
                       debugPrint('Auth error: ${state.exception}');
                     }),
                   ],
                 );
               },
-              '/onboarding': (context) => const OnboardingScreen(),
+              '/onboarding': (context) => OnboardingScreen(
+                    preloadService: _preloadService,
+                  ),
               '/onboarding-test': (context) {
                 // Quick and dirty bypass for testing - clears the flag on entry
                 // and uses testMode to prevent setting it on exit
                 SharedPreferences.getInstance().then((prefs) {
                   prefs.setBool('onboarding_seen', false);
                 });
-                return const OnboardingScreen(testMode: true);
+                return OnboardingScreen(
+                  testMode: true,
+                  preloadService: _preloadService,
+                );
               },
               '/profile': (context) {
                 return ProfileScreen(
@@ -329,6 +401,9 @@ class _MyAppState extends State<MyApp> {
                     }),
                   ],
                 );
+              },
+              '/upgrade-account': (context) {
+                return UpgradeAccountScreen(authService: _authService);
               },
               '/main': (context) {
                 return FutureBuilder<bool>(
@@ -343,7 +418,10 @@ class _MyAppState extends State<MyApp> {
                     }
                     if (snapshot.data == true) {
                       return MainScreen(
-                          apiService: _apiService, authService: _authService);
+                        apiService: _apiService,
+                        authService: _authService,
+                        preloadService: _preloadService,
+                      );
                     }
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       _appScaffoldMessengerKey.currentState?.showSnackBar(

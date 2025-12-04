@@ -6,12 +6,16 @@ class SettingsMenu extends StatefulWidget {
   final VoidCallback onSignOut;
   final VoidCallback onDeleteAccount;
   final VoidCallback onClose;
+  final bool isAnonymous;
+  final VoidCallback? onCreateAccount;
 
   const SettingsMenu({
     super.key,
     required this.onSignOut,
     required this.onDeleteAccount,
     required this.onClose,
+    required this.isAnonymous,
+    this.onCreateAccount,
   });
 
   @override
@@ -102,25 +106,47 @@ class _SettingsMenuState extends State<SettingsMenu>
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildSectionHeader(context, "Account"),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.logout,
-                      label: "Sign out",
-                      onTap: widget.onSignOut,
-                      appTheme: appTheme,
-                    ),
-                    Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: appTheme.border.withOpacity(0.3)),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.delete_forever,
-                      label: "Delete account",
-                      onTap: widget.onDeleteAccount,
-                      appTheme: appTheme,
-                      isDestructive: true,
-                    ),
+                    if (widget.isAnonymous)
+                      // For anonymous users: show "Create Account" button
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.person_add,
+                        label: "Create Account",
+                        onTap: () {
+                          _close();
+                          widget.onCreateAccount?.call();
+                        },
+                        appTheme: appTheme,
+                      )
+                    else
+                      // For regular users: show "Sign out" and "Delete account"
+                      ...[
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.logout,
+                        label: "Sign out",
+                        onTap: () {
+                          _close();
+                          widget.onSignOut();
+                        },
+                        appTheme: appTheme,
+                      ),
+                      Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: appTheme.border.withOpacity(0.3)),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.delete_forever,
+                        label: "Delete account",
+                        onTap: () {
+                          _close();
+                          widget.onDeleteAccount();
+                        },
+                        appTheme: appTheme,
+                        isDestructive: true,
+                      ),
+                    ],
                   ],
                 ),
               ),

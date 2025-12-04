@@ -6,6 +6,7 @@ import 'package:fermi_frontend/screens/lobby/lobby_screen_controller.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
+import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/screens/main/widgets/top_bar_lock_avatar.dart';
 import 'package:fermi_frontend/screens/main/widgets/primary_cta.dart';
 import 'package:fermi_frontend/config/app_config.dart';
@@ -22,10 +23,12 @@ class MainScreen extends StatefulWidget {
     super.key,
     required this.apiService,
     required this.authService,
+    this.preloadService,
   });
 
   final ApiService apiService;
   final AuthService authService;
+  final PreloadService? preloadService;
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -44,8 +47,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       api: widget.apiService,
       auth: widget.authService,
     );
-    // Fire and forget; UI reacts via ChangeNotifier
-    _controller.initialize();
+    // Initialize with preloaded data if available
+    _controller.initialize(
+      preloadedConfig: widget.preloadService?.cachedConfig,
+      preloadedStats: widget.preloadService?.cachedStats,
+    );
   }
 
   @override
@@ -192,10 +198,21 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     _toggleSettings();
     await widget.authService.signOut();
     if (!mounted) return;
+    // After sign out, app will automatically sign in anonymously on next launch
     Navigator.of(context).pushReplacementNamed('/sign-in');
   }
 
+  void _handleCreateAccount() {
+    _toggleSettings();
+    Navigator.of(context).pushNamed('/upgrade-account');
+  }
+
   Future<void> _handleDeleteAccount() async {
+    // Anonymous users cannot delete accounts (handled by service, but check here too)
+    if (widget.authService.isAnonymous) {
+      return;
+    }
+
     _toggleSettings();
     final AppTheme appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
@@ -490,6 +507,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                         onSignOut: _handleSignOut,
                         onDeleteAccount: _handleDeleteAccount,
                         onClose: _toggleSettings,
+                        isAnonymous: widget.authService.isAnonymous,
+                        onCreateAccount: _handleCreateAccount,
                       ),
                     ),
                 ],
