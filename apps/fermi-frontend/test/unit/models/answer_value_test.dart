@@ -83,7 +83,7 @@ void main() {
         unit: 'm',
         rawValue: null,
       );
-      final value2 = AnswerValue(
+      const value2 = AnswerValue(
         number: 42,
         orderOfMagnitude: 'K',
         unit: 'm',
@@ -97,13 +97,13 @@ void main() {
 
     test('should be equal when rawValue matches', () {
       // ARRANGE
-      final value1 = AnswerValue(
+      const value1 = AnswerValue(
         number: 42,
         orderOfMagnitude: 'K',
         unit: 'm',
         rawValue: 42000.0,
       );
-      final value2 = AnswerValue(
+      const value2 = AnswerValue(
         number: 42,
         orderOfMagnitude: 'K',
         unit: 'm',
@@ -189,9 +189,12 @@ void main() {
       final string3 = value3.toString();
 
       // ASSERT
-      expect(string1, equals('AnswerValue(number: 42, om: K, unit: m, rawValue: null)'));
-      expect(string2, equals('AnswerValue(number: 100, om: , unit: kg, rawValue: null)'));
-      expect(string3, equals('AnswerValue(number: 5, om: M, unit: , rawValue: null)'));
+      expect(string1,
+          equals('AnswerValue(number: 42, om: K, unit: m, rawValue: null)'));
+      expect(string2,
+          equals('AnswerValue(number: 100, om: , unit: kg, rawValue: null)'));
+      expect(string3,
+          equals('AnswerValue(number: 5, om: M, unit: , rawValue: null)'));
     });
   });
 }

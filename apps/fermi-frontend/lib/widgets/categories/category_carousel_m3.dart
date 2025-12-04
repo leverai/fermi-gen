@@ -83,7 +83,7 @@ class _CategoryCarouselM3State extends State<CategoryCarouselM3> {
     // Let's use a simplified approach: scroll to the item.
     // But wait, we can get context.size?.width?
 
-    final double itemExtent = _cardWidth + _spacing;
+    const double itemExtent = _cardWidth + _spacing;
     final double viewportWidth = context.size?.width ?? 0;
 
     if (viewportWidth == 0) return;

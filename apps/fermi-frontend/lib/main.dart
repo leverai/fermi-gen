@@ -221,6 +221,20 @@ class _MyAppState extends State<MyApp> {
     setState(() {});
   }
 
+  /// Determines the initial route based on onboarding status and auth state.
+  Future<String> _getInitialRoute() async {
+    final prefs = await SharedPreferences.getInstance();
+    final seen = prefs.getBool('onboarding_seen') ?? false;
+
+    // If onboarding hasn't been seen, show onboarding first
+    if (!seen) {
+      return '/onboarding';
+    }
+
+    // Otherwise, check auth state
+    return FirebaseAuth.instance.currentUser == null ? '/sign-in' : '/main';
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<AuthProvider> providers = [
@@ -231,115 +245,122 @@ class _MyAppState extends State<MyApp> {
 
     return ThemeConfigProvider(
       service: _themeConfigService,
-      child: MaterialApp(
-        navigatorKey: _navigatorKey,
-        scaffoldMessengerKey: _appScaffoldMessengerKey,
-        theme: ThemeData(
-          extensions: <ThemeExtension<dynamic>>[
-            appTheme,
-            const AppFont(),
-          ],
-        ),
-        initialRoute:
-            FirebaseAuth.instance.currentUser == null ? '/sign-in' : '/main',
-        routes: {
-          '/sign-in': (context) {
-            return SignInScreen(
-              providers: providers,
-              actions: [
-                AuthStateChangeAction<UserCreated>((context, state) async {
-                  final ok = await _authService.exchangeToken();
-                  if (!context.mounted) return;
-                  if (ok) {
-                    // Check if user has seen onboarding
-                    final prefs = await SharedPreferences.getInstance();
-                    final seen = prefs.getBool('onboarding_seen') ?? false;
-                    if (!context.mounted) return;
-                    if (!seen) {
-                      Navigator.pushReplacementNamed(context, '/onboarding');
-                    } else {
-                      Navigator.pushReplacementNamed(context, '/main');
-                      // Check for pending deep link join
-                      _checkPendingJoin();
-                    }
-                  } else {
-                    _appScaffoldMessengerKey.currentState?.showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                            'Sign-in succeeded but token exchange failed.'),
-                      ),
-                    );
-                  }
-                }),
-                AuthStateChangeAction<SignedIn>((context, state) async {
-                  final ok = await _authService.exchangeToken();
-                  if (!context.mounted) return;
-                  if (ok) {
-                    Navigator.pushReplacementNamed(context, '/main');
-                    // Check for pending deep link join
-                    _checkPendingJoin();
-                  } else {
-                    _appScaffoldMessengerKey.currentState?.showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                            'Sign-in succeeded but token exchange failed.'),
-                      ),
-                    );
-                  }
-                }),
-                AuthStateChangeAction<AuthFailed>((context, state) {
-                  debugPrint('Auth error: ${state.exception}');
-                }),
-              ],
-            );
-          },
-          '/onboarding': (context) => const OnboardingScreen(),
-          '/onboarding-test': (context) {
-            // Quick and dirty bypass for testing - clears the flag on entry
-            // and uses testMode to prevent setting it on exit
-            SharedPreferences.getInstance().then((prefs) {
-              prefs.setBool('onboarding_seen', false);
-            });
-            return const OnboardingScreen(testMode: true);
-          },
-          '/profile': (context) {
-            return ProfileScreen(
-              providers: providers,
-              actions: [
-                SignedOutAction((context) {
-                  Navigator.pushReplacementNamed(context, '/sign-in');
-                }),
-              ],
-            );
-          },
-          '/main': (context) {
-            return FutureBuilder<bool>(
-              future: _authService.accessToken != null
-                  ? Future<bool>.value(true)
-                  : _authService.exchangeToken(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                if (snapshot.data == true) {
-                  return MainScreen(
-                      apiService: _apiService, authService: _authService);
-                }
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _appScaffoldMessengerKey.currentState?.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                          'Authentication required. Please sign in again.'),
-                    ),
-                  );
-                  Navigator.pushReplacementNamed(context, '/sign-in');
-                });
-                return const SizedBox.shrink();
-              },
+      child: FutureBuilder<String>(
+        future: _getInitialRoute(),
+        builder: (context, snapshot) {
+          // Show loading while determining initial route
+          if (!snapshot.hasData) {
+            return const MaterialApp(
+              home: Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              ),
             );
           }
+
+          final app = MaterialApp(
+            navigatorKey: _navigatorKey,
+            scaffoldMessengerKey: _appScaffoldMessengerKey,
+            theme: ThemeData(
+              extensions: <ThemeExtension<dynamic>>[
+                appTheme,
+                const AppFont(),
+              ],
+            ),
+            initialRoute: snapshot.data!,
+            routes: {
+              '/sign-in': (context) {
+                return SignInScreen(
+                  providers: providers,
+                  actions: [
+                    AuthStateChangeAction<UserCreated>((context, state) async {
+                      final ok = await _authService.exchangeToken();
+                      if (!context.mounted) return;
+                      if (ok) {
+                        // Onboarding is shown before auth, so user has already seen it
+                        Navigator.pushReplacementNamed(context, '/main');
+                        // Check for pending deep link join
+                        _checkPendingJoin();
+                      } else {
+                        _appScaffoldMessengerKey.currentState?.showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Sign-in succeeded but token exchange failed.'),
+                          ),
+                        );
+                      }
+                    }),
+                    AuthStateChangeAction<SignedIn>((context, state) async {
+                      final ok = await _authService.exchangeToken();
+                      if (!context.mounted) return;
+                      if (ok) {
+                        Navigator.pushReplacementNamed(context, '/main');
+                        // Check for pending deep link join
+                        _checkPendingJoin();
+                      } else {
+                        _appScaffoldMessengerKey.currentState?.showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Sign-in succeeded but token exchange failed.'),
+                          ),
+                        );
+                      }
+                    }),
+                    AuthStateChangeAction<AuthFailed>((context, state) {
+                      debugPrint('Auth error: ${state.exception}');
+                    }),
+                  ],
+                );
+              },
+              '/onboarding': (context) => const OnboardingScreen(),
+              '/onboarding-test': (context) {
+                // Quick and dirty bypass for testing - clears the flag on entry
+                // and uses testMode to prevent setting it on exit
+                SharedPreferences.getInstance().then((prefs) {
+                  prefs.setBool('onboarding_seen', false);
+                });
+                return const OnboardingScreen(testMode: true);
+              },
+              '/profile': (context) {
+                return ProfileScreen(
+                  providers: providers,
+                  actions: [
+                    SignedOutAction((context) {
+                      Navigator.pushReplacementNamed(context, '/sign-in');
+                    }),
+                  ],
+                );
+              },
+              '/main': (context) {
+                return FutureBuilder<bool>(
+                  future: _authService.accessToken != null
+                      ? Future<bool>.value(true)
+                      : _authService.exchangeToken(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Scaffold(
+                        body: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    if (snapshot.data == true) {
+                      return MainScreen(
+                          apiService: _apiService, authService: _authService);
+                    }
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _appScaffoldMessengerKey.currentState?.showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Authentication required. Please sign in again.'),
+                        ),
+                      );
+                      Navigator.pushReplacementNamed(context, '/sign-in');
+                    });
+                    return const SizedBox.shrink();
+                  },
+                );
+              },
+            },
+          );
+          return app;
         },
       ),
     );
