@@ -102,7 +102,37 @@ class MainScreenController extends ChangeNotifier {
   }
 
   // Lifecycle
-  Future<void> initialize() async {
+  Future<void> initialize({
+    GameConfig? preloadedConfig,
+    PlayerStatsResponse? preloadedStats,
+  }) async {
+    // If we have preloaded data, use it immediately
+    if (preloadedConfig != null) {
+      _configDto = preloadedConfig;
+      _playerStatsDto = preloadedStats;
+      isLoading = false;
+      errorMessage = null;
+
+      // Restore last round settings if available
+      final LastRoundSettings? lrs = auth.lastRoundSettings;
+      if (lrs != null) {
+        isLocked = lrs.isPrivate;
+        selectedDifficulty = lrs.difficulty;
+        final categories = _configDto?.categories ?? const <CategoryInfo>[];
+        final int idx = categories.indexWhere((c) => c.name == lrs.category);
+        if (idx >= 0) {
+          selectedCategoryIndex = idx;
+        }
+      }
+
+      notifyListeners();
+
+      // Fetch fresh data in background to ensure we have the latest
+      refreshInBackground();
+      return;
+    }
+
+    // Otherwise, fetch as usual (existing code)
     isLoading = true;
     errorMessage = null;
     notifyListeners();
