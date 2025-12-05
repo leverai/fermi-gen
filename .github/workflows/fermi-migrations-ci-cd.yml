@@ -117,6 +117,7 @@ jobs:
       - name: Run Database Migrations
         run: |
           gcloud run jobs execute ${{ vars.MIGRATIONS_JOB }} \
+            --project ${{ vars.GCP_PROJECT_ID }} \
             --region ${{ vars.GCP_REGION }} \
             --wait
     
