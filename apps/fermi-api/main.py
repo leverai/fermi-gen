@@ -13,31 +13,29 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.api import api_router
 from app.core.config import settings
-from app.core.database import create_db_and_tables
 from app.version import __version__
 
 logger = logging.getLogger(__name__)
 
 
-# @contextlib.asynccontextmanager
-# async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-#     """App lifespan: startup DB init, shutdown engine dispose.
+@contextlib.asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """App lifespan: startup DB init, shutdown engine dispose.
 
-#     Ensures async SQLAlchemy engine and pool are disposed cleanly to avoid
-#     lingering pooled connections triggering GC warnings or teardown hangs.
-#     """
-#     await create_db_and_tables()
-#     try:
-#         yield
-#     finally:
-#         # Dispose engine to return pooled connections deterministically
-#         try:
-#             from fermi_db.session import async_engine  # local import to avoid cycles
+    Ensures async SQLAlchemy engine and pool are disposed cleanly to avoid
+    lingering pooled connections triggering GC warnings or teardown hangs.
+    """
+    try:
+        yield
+    finally:
+        # Dispose engine to return pooled connections deterministically
+        try:
+            from fermi_db.session import async_engine  # local import to avoid cycles
 
-#             await async_engine.dispose()
-#         except Exception:  # best-effort cleanup
-#             logger.exception('Error disposing engine')
-#             pass
+            await async_engine.dispose()
+        except Exception:  # best-effort cleanup
+            logger.exception('Error disposing engine')
+            pass
 
 
 def create_app() -> FastAPI:
@@ -46,7 +44,7 @@ def create_app() -> FastAPI:
         title=settings.project_name,
         version=__version__,
         openapi_url=f'{settings.api_v1_str}/openapi.json',
-        # lifespan=lifespan,
+        lifespan=lifespan,
     )
 
     app.include_router(api_router, prefix=settings.api_v1_str)
