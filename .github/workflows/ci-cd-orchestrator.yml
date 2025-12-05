@@ -1,0 +1,103 @@
+name: CI/CD Orchestrator
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
+
+jobs:
+  detect-changes:
+    name: Detect Changed Paths
+    runs-on: ubuntu-latest
+    outputs:
+      migrations: ${{ steps.filter.outputs.migrations }}
+      api: ${{ steps.filter.outputs.api }}
+      etl: ${{ steps.filter.outputs.etl }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Check for path changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            migrations:
+              - 'packages/fermi-db/**'
+              - 'alembic.ini'
+              - 'apps/fermi-migrations/**'
+              - '.github/workflows/fermi-migrations-ci-cd.yml'
+            api:
+              - 'apps/fermi-api/**'
+              - 'packages/fermi-core/**'
+              - 'packages/fermi-db/**'
+              - 'uv.lock'
+              - '.github/workflows/fermi-api-ci-cd.yml'
+              - 'Makefile'
+              - '!**/docs/**'
+              - '!**/*.md'
+            etl:
+              - 'apps/fermi-etl/**'
+              - 'packages/fermi-core/**'
+              - 'packages/fermi-db/**'
+              - 'uv.lock'
+              - '.github/workflows/fermi-etl-ci-cd.yml'
+              - 'Makefile'
+              - '!**/docs/**'
+              - '!**/*.md'
+            frontend:
+              - 'apps/fermi-frontend/**'
+              - 'packages/fermi-core/**'
+              - 'packages/fermi-db/**'
+              - 'uv.lock'
+              - '.github/workflows/fermi-frontend-ci-cd.yml'
+              - 'Makefile'
+              - '!**/docs/**'
+              - '!**/*.md'
+
+  migrations:
+    name: Migrations Workflow
+    needs: detect-changes
+    if: ${{ github.event_name == 'push' && needs.detect-changes.outputs.migrations == 'true' }}
+    uses: ./.github/workflows/fermi-migrations-ci-cd.yml
+    with:
+      environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+      should_deploy: ${{ github.event_name == 'push' && 'true' || 'false' }}
+    secrets: inherit
+
+  api:
+    name: API Workflow
+    needs: [detect-changes, migrations]
+    if: ${{ always() && needs.detect-changes.outputs.api == 'true' && (needs.migrations.result == 'success' || needs.migrations.result == 'skipped') }}
+    uses: ./.github/workflows/fermi-api-ci-cd.yml
+    with:
+      environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+      should_deploy: ${{ github.event_name == 'push' && 'true' || 'false' }}
+    secrets: inherit
+
+  etl:
+    name: ETL Workflow
+    needs: [detect-changes, migrations]
+    if: ${{ always() && needs.detect-changes.outputs.etl == 'true' && (needs.migrations.result == 'success' || needs.migrations.result == 'skipped') }}
+    uses: ./.github/workflows/fermi-etl-ci-cd.yml
+    with:
+      environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+      should_deploy: ${{ github.event_name == 'push' && 'true' || 'false' }}
+    secrets: inherit
+
+  frontend:
+    name: Frontend Workflow
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/fermi-frontend-ci-cd.yml
+    with:
+      environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+      should_publish: ${{ github.event_name == 'push' && 'true' || 'false' }}
+      publish_track: ${{ github.ref_name == 'main' && 'production' || 'internal' }}
+    secrets: inherit
