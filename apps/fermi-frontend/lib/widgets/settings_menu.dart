@@ -82,7 +82,7 @@ class _SettingsMenuState extends State<SettingsMenu>
           // Menu Content
           Positioned(
             bottom:
-                168, // Positioned to align with the settings FAB (lifted by 48px)
+                156, // Positioned to align with the settings FAB (lifted by 48px)
             right: 24,
             child: ScaleTransition(
               scale: _scaleAnimation,

@@ -42,8 +42,8 @@ class DeepLinkService {
   void _handleLink(Uri uri, Function(String gameId) onJoinGame) {
     debugPrint('DeepLinkService: Received link: $uri');
 
-    // Expected format: guesstimate://invite/<game_id>
-    if (uri.scheme == 'guesstimate' && uri.host == 'invite') {
+    // Expected format: numberroyale://invite/<game_id>
+    if (uri.scheme == 'numberroyale' && uri.host == 'invite') {
       final pathSegments = uri.pathSegments;
       if (pathSegments.isNotEmpty) {
         final gameId = pathSegments.first;

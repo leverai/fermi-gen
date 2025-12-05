@@ -309,7 +309,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   SafeArea(
                     child: Padding(
                       padding: const EdgeInsets.only(
-                          left: 12, right: 12, top: 0, bottom: 48 + 36),
+                          left: 12, right: 12, top: 0, bottom: 72),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -481,7 +481,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   // Settings FAB
                   Positioned(
                     bottom:
-                        96, // Centered vertically in the bottom padding area (48px padding bottom)
+                        84, // Centered vertically in the bottom padding area (48px padding bottom)
                     right: 24,
                     child: FloatingActionButton(
                       onPressed: _toggleSettings,
