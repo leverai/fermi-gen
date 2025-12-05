@@ -1,32 +1,20 @@
 name: Fermi Frontend CI/CD
 
 on:
-  pull_request:
-    branches:
-      - develop
-      - main
-    paths:
-      - 'apps/fermi-frontend/**'
-      - 'packages/fermi-core/**'
-      - 'packages/fermi-db/**'
-      - 'uv.lock'
-      - '.github/workflows/fermi-frontend-ci-cd.yml'
-      - 'Makefile'
-      - '!**/docs/**'
-      - '!**/*.md'
-  push:
-    branches:
-      - develop
-      - main
-    paths:
-      - 'apps/fermi-frontend/**'
-      - 'packages/fermi-core/**'
-      - 'packages/fermi-db/**'
-      - 'uv.lock'
-      - '.github/workflows/fermi-frontend-ci-cd.yml'
-      - 'Makefile'
-      - '!**/docs/**'
-      - '!**/*.md'
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Target environment (dev or prod)'
+        required: true
+        type: string
+      should_publish:
+        description: 'Whether to publish (false for PRs, true for pushes)'
+        default: 'false'
+        type: string
+      publish_track:
+        description: 'Publish track (internal or production)'
+        default: 'internal'
+        type: string
 
 jobs:
   analyze:
@@ -96,13 +84,12 @@ jobs:
     name: Build Android
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.event_name == 'push' && (github.ref_name == 'main' && 'prod' || 'dev') || '' }}
+      name: ${{ inputs.environment }}
     permissions:
       contents: read
       id-token: write
     env:
-      BUILD_TYPE: ${{ github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main') && 'release' || 'debug' }}
-      PUBLISH_TRACK: ${{ github.ref_name == 'develop' && 'internal' || 'production' }}
+      BUILD_TYPE: ${{ inputs.should_publish == 'true' && 'release' || 'debug' }}
 
     steps:
       - uses: actions/checkout@v5
@@ -166,15 +153,15 @@ jobs:
     name: Publish Android to Google Play
     runs-on: ubuntu-latest
     needs: build-android
-    if: github.event_name == 'push' && (github.ref_name == 'develop' || github.ref_name == 'main')
+    if: ${{ inputs.should_publish == 'true' }}
     environment:
-      name: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+      name: ${{ inputs.environment }}
     permissions:
       contents: read
       id-token: write
     env:
       BUILD_TYPE: release
-      PUBLISH_TRACK: ${{ github.ref_name == 'main' && 'production' || 'internal' }}
+      PUBLISH_TRACK: ${{ inputs.publish_track }}
 
     steps:
       - name: Authenticate to Google Cloud
