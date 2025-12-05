@@ -165,4 +165,3 @@ class UpgradeAccountScreen extends StatelessWidget {
     );
   }
 }
-
