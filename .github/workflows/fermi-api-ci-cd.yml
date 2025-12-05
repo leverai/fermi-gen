@@ -195,9 +195,9 @@ jobs:
         run: |
           if [ "${{ github.ref_name }}" == "develop" ]; then
             echo "min_instances=0" >> $GITHUB_OUTPUT
-            echo "max_instances=3" >> $GITHUB_OUTPUT
+            echo "max_instances=10" >> $GITHUB_OUTPUT
           else
-            echo "min_instances=1" >> $GITHUB_OUTPUT
+            echo "min_instances=0" >> $GITHUB_OUTPUT
             echo "max_instances=10" >> $GITHUB_OUTPUT
           fi
 
@@ -210,7 +210,7 @@ jobs:
           region: ${{ vars.GCP_REGION }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
           secrets: |
-            DATABASE_URL=database-url:latest
+            DATABASE_URL=${{ vars.DATABASE_URL_SECRET }}:latest
             JWT_SECRET_KEY=fermi-api-jwt:latest
           env_vars: |
             USE_EMULATORS=false

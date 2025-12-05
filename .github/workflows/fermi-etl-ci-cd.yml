@@ -147,7 +147,7 @@ jobs:
         id: set-image
         run: |
           echo "image=${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-etl:${{ github.sha }}" >> $GITHUB_OUTPUT
-
+          
   deploy:
     name: Deploy to ${{ github.ref_name == 'main' && 'Production' || 'Development' }}
     runs-on: ubuntu-latest
@@ -171,9 +171,9 @@ jobs:
         run: |
           if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
             echo "min_instances=0" >> $GITHUB_OUTPUT
-            echo "max_instances=3" >> $GITHUB_OUTPUT
+            echo "max_instances=10" >> $GITHUB_OUTPUT
           else
-            echo "min_instances=1" >> $GITHUB_OUTPUT
+            echo "min_instances=0" >> $GITHUB_OUTPUT
             echo "max_instances=10" >> $GITHUB_OUTPUT
           fi
 
@@ -186,7 +186,7 @@ jobs:
           region: ${{ vars.GCP_REGION }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
           secrets: |
-            DATABASE_URL=database-url:latest
+            DATABASE_URL=${{ vars.DATABASE_URL_SECRET }}:latest
             OPENAI_API_KEY=openai-api-key:latest
             SERP_API_KEY=serp-api-key:latest
           env_vars: |
@@ -208,4 +208,3 @@ jobs:
             --cpu=1
             --timeout=300s
             --concurrency=80
-            --allow-unauthenticated

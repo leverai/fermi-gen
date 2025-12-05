@@ -144,6 +144,8 @@ async def insert_llm_questions(
             num_questions=questions_per_seed,
             model=config.question_generation_model,
             model_provider=config.question_generation_model_provider,
+            temperature=0.9,
+            service_tier='flex',
         )
 
         # Step 4: Process all responses and create raw questions
