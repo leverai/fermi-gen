@@ -100,16 +100,16 @@ jobs:
       contents: read
     secrets: inherit
 
-  frontend:
-    name: Frontend Workflow
-    needs: detect-changes
-    if: needs.detect-changes.outputs.frontend == 'true'
-    uses: ./.github/workflows/fermi-frontend-ci-cd.yml
-    with:
-      environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
-      should_publish: ${{ github.event_name == 'push' && 'true' || 'false' }}
-      publish_track: ${{ github.ref_name == 'main' && 'production' || 'internal' }}
-    permissions:
-      id-token: write
-      contents: read
-    secrets: inherit
+#   frontend:
+#     name: Frontend Workflow
+#     needs: detect-changes
+#     if: needs.detect-changes.outputs.frontend == 'true'
+#     uses: ./.github/workflows/fermi-frontend-ci-cd.yml
+#     with:
+#       environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+#       should_publish: ${{ github.event_name == 'push' && 'true' || 'false' }}
+#       publish_track: ${{ github.ref_name == 'main' && 'production' || 'internal' }}
+#     permissions:
+#       id-token: write
+#       contents: read
+#     secrets: inherit
