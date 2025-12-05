@@ -17,7 +17,7 @@ import 'package:fermi_frontend/screens/main/main_screen.dart';
 import 'package:fermi_frontend/screens/lobby/lobby_screen_controller.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/screens/onboarding_screen.dart';
-import 'package:fermi_frontend/screens/upgrade_account_screen.dart';
+import 'package:fermi_frontend/screens/auth_screen.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/state/theme_config_service.dart';
@@ -72,6 +72,7 @@ Future<void> main() async {
 
     // Show error UI instead of blank screen
     runApp(MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: Scaffold(
         backgroundColor: Colors.red.shade900,
         body: SafeArea(
@@ -292,6 +293,7 @@ class _MyAppState extends State<MyApp> {
           // Show loading while determining initial route
           if (!snapshot.hasData) {
             return const MaterialApp(
+              debugShowCheckedModeBanner: false,
               home: Scaffold(
                 body: Center(child: CircularProgressIndicator()),
               ),
@@ -299,6 +301,7 @@ class _MyAppState extends State<MyApp> {
           }
 
           final app = MaterialApp(
+            debugShowCheckedModeBanner: false,
             navigatorKey: _navigatorKey,
             scaffoldMessengerKey: _appScaffoldMessengerKey,
             theme: ThemeData(
@@ -310,7 +313,7 @@ class _MyAppState extends State<MyApp> {
             initialRoute: snapshot.data!,
             routes: {
               '/sign-in': (context) {
-                return SignInScreen(
+                return AuthScreen(
                   providers: providers,
                   actions: [
                     AuthStateChangeAction<UserCreated>((context, state) async {
@@ -403,7 +406,96 @@ class _MyAppState extends State<MyApp> {
                 );
               },
               '/upgrade-account': (context) {
-                return UpgradeAccountScreen(authService: _authService);
+                return AuthScreen(
+                  providers: providers,
+                  actions: [
+                    // Handle credential linking when anonymous user signs in
+                    AuthStateChangeAction<CredentialLinked>(
+                      (context, state) async {
+                        // Credential has been linked, exchange token to get updated user info
+                        final ok = await _authService.exchangeToken();
+                        if (!context.mounted) return;
+                        if (ok) {
+                          // Show success message
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Account created successfully!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          // Navigate back to main screen
+                          Navigator.of(context).pop();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Account linking succeeded but token exchange failed.'),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    // Also handle regular sign-in (in case user already has account)
+                    AuthStateChangeAction<SignedIn>(
+                      (context, state) async {
+                        // If user signs in with existing account, try to link
+                        // This handles the case where anonymous user signs in with email/Google
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user != null && user.isAnonymous) {
+                          // This shouldn't happen if linking worked, but handle gracefully
+                          debugPrint('User is still anonymous after sign-in');
+                        } else {
+                          // User signed in successfully, exchange token
+                          final ok = await _authService.exchangeToken();
+                          if (!context.mounted) return;
+                          if (ok) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Account created successfully!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                            Navigator.of(context).pop();
+                          }
+                        }
+                      },
+                    ),
+                    AuthStateChangeAction<AuthFailed>(
+                      (context, state) {
+                        final exception = state.exception;
+                        String errorMessage = 'Failed to create account.';
+
+                        if (exception is FirebaseAuthException) {
+                          switch (exception.code) {
+                            case 'email-already-in-use':
+                              errorMessage =
+                                  'This email is already associated with another account.';
+                              break;
+                            case 'account-exists-with-different-credential':
+                              errorMessage =
+                                  'An account already exists with this email but different sign-in method.';
+                              break;
+                            case 'invalid-credential':
+                              errorMessage =
+                                  'Invalid credentials. Please try again.';
+                              break;
+                            default:
+                              errorMessage =
+                                  'Error: ${exception.message ?? exception.code}';
+                          }
+                        }
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(errorMessage),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                  onLeave: () => Navigator.of(context).pop(),
+                );
               },
               '/main': (context) {
                 return FutureBuilder<bool>(
