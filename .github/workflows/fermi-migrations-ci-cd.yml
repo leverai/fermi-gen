@@ -88,7 +88,7 @@ jobs:
             DATABASE_URL=${{ vars.DATABAE_URL_SECRET }}:latest
           flags: |
             --service-account=fermi-migrations-runner@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
-            --add-cloudsql-instances=${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:${{ vars.CLOUD_SQL_INSTANCE }}
+            --set-cloudsql-instances=${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:${{ vars.CLOUD_SQL_INSTANCE }}
             --max-retries=3
             --task-timeout=600s
             --memory=512Mi
