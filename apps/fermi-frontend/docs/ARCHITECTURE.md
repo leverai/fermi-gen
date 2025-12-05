@@ -173,7 +173,7 @@ The app supports two authentication modes: **anonymous** (default) and **permane
 2. **Seamless Experience**: Anonymous users can immediately play games without creating an account.
 3. **Account Upgrade**: Anonymous users can upgrade to a permanent account via the settings menu:
    - Settings menu shows "Create Account" button for anonymous users
-   - Navigates to `UpgradeAccountScreen` which uses `SignInScreen` from `firebase_ui_auth`
+   - Navigates to `AuthScreen` which uses `SignInScreen` from `firebase_ui_auth`
    - Firebase automatically links the anonymous account with the new credential (email/password or Google)
    - Firebase UID remains the same, preserving all game data and progress
 4. **Token Exchange**: Anonymous users exchange Firebase ID tokens for backend access tokens just like regular users.
