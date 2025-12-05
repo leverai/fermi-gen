@@ -69,6 +69,9 @@ jobs:
     with:
       environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
       should_deploy: ${{ github.event_name == 'push' && 'true' || 'false' }}
+    permissions:
+      id-token: write
+      contents: read
     secrets: inherit
 
   api:
@@ -79,6 +82,9 @@ jobs:
     with:
       environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
       should_deploy: ${{ github.event_name == 'push' && 'true' || 'false' }}
+    permissions:
+      id-token: write
+      contents: read
     secrets: inherit
 
   etl:
@@ -89,6 +95,9 @@ jobs:
     with:
       environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
       should_deploy: ${{ github.event_name == 'push' && 'true' || 'false' }}
+    permissions:
+      id-token: write
+      contents: read
     secrets: inherit
 
   frontend:
@@ -100,4 +109,7 @@ jobs:
       environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
       should_publish: ${{ github.event_name == 'push' && 'true' || 'false' }}
       publish_track: ${{ github.ref_name == 'main' && 'production' || 'internal' }}
+    permissions:
+      id-token: write
+      contents: read
     secrets: inherit
