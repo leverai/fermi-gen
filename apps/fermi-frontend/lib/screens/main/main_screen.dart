@@ -309,7 +309,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   SafeArea(
                     child: Padding(
                       padding: const EdgeInsets.only(
-                          left: 12, right: 12, top: 0, bottom: 48),
+                          left: 12, right: 12, top: 0, bottom: 48 + 36),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -481,7 +481,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   // Settings FAB
                   Positioned(
                     bottom:
-                        24, // Centered vertically in the bottom padding area (48px padding bottom)
+                        96, // Centered vertically in the bottom padding area (48px padding bottom)
                     right: 24,
                     child: FloatingActionButton(
                       onPressed: _toggleSettings,
@@ -495,8 +495,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                         'assets/icons/gear.svg',
                         colorFilter:
                             ColorFilter.mode(appTheme.border, BlendMode.srcIn),
-                        width: 48,
-                        height: 48,
+                        width: 72,
+                        height: 72,
                       ),
                     ),
                   ),
