@@ -17,7 +17,7 @@ A Fermi Question is an estimation puzzle that rewards logical thinking over memo
 - **Mindset:** They want to feel smart without feeling stressed. Fun > Facts.
 - **Success Metric:** Questions that make users think "That's such a cool question!" and keep playing
 
-## **The 7 Golden Rules**
+## **The 8 Golden Rules**
 
 ### **Rule 1: MUST Be Estimable (Not Just Trivia)**
 
@@ -105,6 +105,11 @@ Questions should engage 80%+ of your audience, not just niche enthusiasts.
 - The correct answer must be between **1 and 999 quadrillion**
 - If your question's answer falls outside this range, reframe the question
 
+### **Rule 8: MUST Be Compact & Well-Phrased**
+
+- Avoid questions that are too long or complex
+- Avoid unnecessary context or fluff
+- Aim for simple, compact, and well-phrased questions.
 
 ## **Question Diversity & Creativity**
 
@@ -162,6 +167,17 @@ Each batch should include variety across multiple dimensions, inspired by the pr
 
 5. **"How many stars could fit inside the Great Pyramid of Giza?"**
    - ✗ Trick question (answer is 0)
+
+6. **"On a busy summer Saturday in the United States, how much time do riders spend experiencing 3 g or more on roller coasters?"**
+   -  The question is too weird - not a natural thing someone could wonder about.
+
+7. **"If every text message sent in the United States in a single day flashed on a Times Square billboard for one second each, how long would the screen have to stay on?"**
+   -  "Times Square" has nothing to do with the question - it adds confusion to the user and make the question unnecessarily long.
+   -  Question is too long.
+
+8. **"If every adult in the United States grew their fingernails for a full year and you lined up just that year's new growth from all ten fingers end-to-end, how far would it reach?"**
+   -  The question is good but poorly phrased. It can be made more clear and compact.
+
 
 ### ⚠️ **Fixable Questions (Before & After)**
 
