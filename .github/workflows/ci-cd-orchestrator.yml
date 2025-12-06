@@ -87,18 +87,18 @@ jobs:
       contents: read
     secrets: inherit
 
-#   etl:
-#     name: ETL Workflow
-#     needs: [detect-changes, migrations]
-#     if: ${{ always() && needs.detect-changes.outputs.etl == 'true' && (needs.migrations.result == 'success' || needs.migrations.result == 'skipped') }}
-#     uses: ./.github/workflows/fermi-etl-ci-cd.yml
-#     with:
-#       environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
-#       should_deploy: ${{ github.event_name == 'push' && 'true' || 'false' }}
-#     permissions:
-#       id-token: write
-#       contents: read
-#     secrets: inherit
+  etl:
+    name: ETL Workflow
+    needs: [detect-changes, migrations]
+    if: ${{ always() && needs.detect-changes.outputs.etl == 'true' && (needs.migrations.result == 'success' || needs.migrations.result == 'skipped') }}
+    uses: ./.github/workflows/fermi-etl-ci-cd.yml
+    with:
+      environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+      should_deploy: ${{ github.event_name == 'push' && 'true' || 'false' }}
+    permissions:
+      id-token: write
+      contents: read
+    secrets: inherit
 
 #   frontend:
 #     name: Frontend Workflow
