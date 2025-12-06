@@ -20,4 +20,4 @@ ENV PATH="/home/app/.venv/bin:$PATH"
 USER app
 # Run migrations
 
-CMD ["alembic", "-c", "alembic.ini", "upgrade", "head"]
+CMD ["python", "-m", "alembic", "-c", "alembic.ini", "upgrade", "head"]
