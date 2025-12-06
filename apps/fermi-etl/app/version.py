@@ -1,3 +1,3 @@
 """Version information for Fermi ETL Pipeline."""
 
-__version__ = '0.1.7'
+__version__ = '0.1.8'

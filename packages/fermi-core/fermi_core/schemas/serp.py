@@ -3,7 +3,7 @@
 from typing import Any, Literal
 
 from pint import UnitRegistry
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, field_validator
 
 ureg = UnitRegistry()
 
