@@ -112,7 +112,7 @@ def test_submit_answer_happy_path_updates_results_and_progress(
     correct_doc = cast(Any, {'number': 1000.0, 'unit': None, 'quantiles': {}})
     answer = cast(Any, {'number': 1000.0, 'unit': None})
 
-    all_answered, score = gw.submit_answer(
+    all_answered, score, player_result = gw.submit_answer(
         cast(Any, fake_game_ref),
         cast(Any, recorder_writer),
         player_id='u1',
@@ -134,6 +134,7 @@ def test_submit_answer_happy_path_updates_results_and_progress(
     }
     assert all_answered is True
     assert score == 42.0
+    assert player_result is not None
 
 
 def test_submit_answer_not_tracked_raises(
@@ -188,15 +189,51 @@ def test_reveal_players_results_sets_flag(
 ) -> None:
     gw = GamePlayersAnswersWriter()
 
+    # Create a minimal players_results_doc with one player already submitted
+    # (the current player's result will be passed separately)
+    players_results_doc = cast(
+        Any,
+        {
+            'question_uid': 'q1',
+            'players_results': {
+                'player1': {
+                    'answer': {'number': 100.0, 'unit': None},
+                    'correct_answer': {'number': 150.0, 'unit': None},
+                    'score': {'number': 85.0, 'quantile': 0.75},
+                    'converted_answers': {},
+                },
+            },
+            'revealed': False,
+        },
+    )
+
+    # Current player (player2) result is passed separately to simulate
+    # Firestore transaction read-before-write semantics
+    current_player_result = cast(
+        Any,
+        {
+            'answer': {'number': 200.0, 'unit': None},
+            'correct_answer': {'number': 150.0, 'unit': None},
+            'score': {'number': 75.0, 'quantile': 0.65},
+            'converted_answers': {},
+        },
+    )
+
     gw.reveal_players_results(
         cast(Any, fake_game_ref),
         cast(Any, recorder_writer),
         question_uid='q1',
+        players_results_doc=players_results_doc,
+        current_player_id='player2',
+        current_player_result=current_player_result,
     )
 
     assert len(recorder_writer.updates) == 1
     _, data = recorder_writer.updates[0]
-    assert data == {'revealed': True}
+    assert data['revealed'] is True
+    # Verify converted_answers are populated for both players
+    assert 'players_results.player1.converted_answers' in data
+    assert 'players_results.player2.converted_answers' in data
 
 
 def test_remove_player_pending_recomputes_all_answered(

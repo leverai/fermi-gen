@@ -227,6 +227,7 @@ The structure of a game document is defined by the `GameDoc` schema (`apps/fermi
       - `answer` (`AnswerBare`): The player's submitted answer (unit id or `null`).
       - `correct_answer` (`AnswerBare`): The correct answer (unit id or `null`).
       - `score` (`Score`): The score the player received for their answer.
+      - `converted_answers` (map): A map where keys are other players' `firebase_uid`s and values are their answers converted to this player's unit. This allows each player to compare all answers in their preferred unit system. Always populated, even for dimensionless questions.
   - `revealed` (boolean): Whether the results are visible to players.
 
 ### Game States
