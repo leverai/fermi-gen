@@ -309,7 +309,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   SafeArea(
                     child: Padding(
                       padding: const EdgeInsets.only(
-                          left: 12, right: 12, top: 0, bottom: 72),
+                          left: 12, right: 12, top: 0, bottom: 12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -455,7 +455,30 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                               ),
                             ],
                           ),
-                          const Spacer(),
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 12.0),
+                                child: FloatingActionButton(
+                                  onPressed: _toggleSettings,
+                                  backgroundColor: Colors.transparent,
+                                  elevation: 0,
+                                  hoverElevation: 0,
+                                  focusElevation: 0,
+                                  highlightElevation: 0,
+                                  shape: const CircleBorder(),
+                                  child: SvgPicture.asset(
+                                    'assets/icons/gear.svg',
+                                    colorFilter: ColorFilter.mode(
+                                        appTheme.border, BlendMode.srcIn),
+                                    width: 72,
+                                    height: 72,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -475,28 +498,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                             Navigator.of(context).pushNamed('/onboarding');
                           },
                         ),
-                      ),
-                    ),
-                  ),
-                  // Settings FAB
-                  Positioned(
-                    bottom:
-                        84, // Centered vertically in the bottom padding area (48px padding bottom)
-                    right: 24,
-                    child: FloatingActionButton(
-                      onPressed: _toggleSettings,
-                      backgroundColor: Colors.transparent,
-                      elevation: 0,
-                      hoverElevation: 0,
-                      focusElevation: 0,
-                      highlightElevation: 0,
-                      shape: const CircleBorder(),
-                      child: SvgPicture.asset(
-                        'assets/icons/gear.svg',
-                        colorFilter:
-                            ColorFilter.mode(appTheme.border, BlendMode.srcIn),
-                        width: 72,
-                        height: 72,
                       ),
                     ),
                   ),
