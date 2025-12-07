@@ -96,7 +96,7 @@ class SubmitAnswerUseCase:
 
             # Now perform writes
             try:
-                result = self._players_answers.submit_answer(
+                submit_result = self._players_answers.submit_answer(
                     game_ref=game_ref,
                     writer=tx,
                     player_id=player_id,
@@ -105,7 +105,9 @@ class SubmitAnswerUseCase:
                     correct_answer_doc=correct_answer_doc,
                     progress=cast(AnswersProgress, data['progress']),
                 )
-                all_answered, current_player_score = result
+                all_answered, current_player_score, current_player_result = (
+                    submit_result
+                )
             except NotFoundError as err:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -122,8 +124,8 @@ class SubmitAnswerUseCase:
             if all_answered:
                 # Combine previously submitted scores with current player's score
                 question_scores: dict[str, float] = {
-                    pid: result['score']['number']
-                    for pid, result in players_results_doc['players_results'].items()
+                    pid: pr['score']['number']
+                    for pid, pr in players_results_doc['players_results'].items()
                 }
                 question_scores[player_id] = current_player_score
 
@@ -152,6 +154,9 @@ class SubmitAnswerUseCase:
                         game_ref=game_ref,
                         writer=tx,
                         question_uid=question_uid,
+                        players_results_doc=players_results_doc,
+                        current_player_id=player_id,
+                        current_player_result=current_player_result,
                     )
                 except NotFoundError as err:
                     raise HTTPException(

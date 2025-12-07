@@ -69,6 +69,7 @@ class RemovePlayerUseCase:
         game_ref = self._client.collection('games').document(game_id)
 
         async def _tx(tx: 'AsyncTransaction') -> RemovePlayerResult:
+            # Read all data BEFORE any writes (Firestore transaction requirement)
             data = await self._repo.get_game_fields(
                 game_ref,
                 fields=['state', 'players', 'progress', 'host', 'question_uid'],
@@ -80,6 +81,17 @@ class RemovePlayerUseCase:
                     detail='Game not found',
                 )
 
+            state = GameState(int(data['state']))
+
+            # Pre-read players_results if we're in a question state and might need it
+            players_results_doc = None
+            if state in (GameState.QUESTION_N, GameState.QUESTION_LAST):
+                players_results_doc = await self._repo.get_players_results_doc(
+                    game_ref=game_ref,
+                    question_uid=data['question_uid'],
+                    tx=tx,
+                )
+
             # Only host may remove other players; anyone may remove themselves
             is_host = actor_user.firebase_uid == data['host']
             if not is_host and actor_user.firebase_uid != remove_player_id:
@@ -89,7 +101,6 @@ class RemovePlayerUseCase:
                 )
 
             players = cast(dict[str, GamePlayer], data['players'])
-            state = GameState(int(data['state']))
 
             # Remove from players (and possibly update host/full)
             try:
@@ -142,11 +153,15 @@ class RemovePlayerUseCase:
                             detail=str(err),
                         ) from err
                     # No other domain errors expected from lifecycle.finish_question
-                    self._players_answers.reveal_players_results(
-                        game_ref=game_ref,
-                        writer=tx,
-                        question_uid=cast(str, data['question_uid']),
-                    )
+
+                    # Use the pre-read players_results_doc for conversion
+                    if players_results_doc:
+                        self._players_answers.reveal_players_results(
+                            game_ref=game_ref,
+                            writer=tx,
+                            question_uid=cast(str, data['question_uid']),
+                            players_results_doc=players_results_doc,
+                        )
 
             return RemovePlayerResult(
                 game_id=game_id,
