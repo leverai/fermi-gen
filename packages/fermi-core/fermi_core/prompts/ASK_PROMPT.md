@@ -75,7 +75,9 @@ Ambiguity kills engagement. Every question should have ONE reasonable interpreta
 **No Trick Questions:**
 - ❌ **BAD:** "How many stars could fit inside the Great Pyramid of Giza?" (Answer: 0, it's a gotcha)
 
-### **Rule 5: MUST Be Accessible & Relatable**
+### **Rule 5: MUST Be Compact & Well-Phrased**
+
+### **Rule 6: MUST Be Accessible & Relatable**
 
 Questions should engage 80%+ of your audience, not just niche enthusiasts.
 
@@ -95,17 +97,15 @@ Questions should engage 80%+ of your audience, not just niche enthusiasts.
   - ❌ **BAD:** "How many people live within 100 kilometers of the Himalayas?" (Many US users don't think in km)
   - ✅ **GOOD:** "How many people live within 60 miles of the Himalayas?" OR avoid distance entirely
 
-### **Rule 6: MUST Be Safe & Appropriate**
+### **Rule 7: MUST Be Safe & Appropriate**
 
 - No profanity, sexual content, violence, racism, or sensitive political topics
 - Aim for content that would comfortably appear in a mainstream newspaper or family-friendly podcast
 
-### **Rule 7: MUST Fit the Answer Range**
+### **Rule 8: MUST Fit the Answer Range**
 
 - The correct answer must be between **1 and 999 quadrillion**
 - If your question's answer falls outside this range, reframe the question
-
-### **Rule 8: MUST Be Compact & Well-Phrased**
 
 - Avoid questions that are too long or complex
 - Avoid unnecessary context or fluff
@@ -147,7 +147,7 @@ Each batch should include variety across multiple dimensions, inspired by the pr
    - ✓ Surprising, culturally interesting
    - ✓ Makes you wonder
 
-5. **"How many atoms of carbon are in a human body?"**
+5. **"How many raindrops falls "**
    - ✓ Mind-blowing scale
    - ✓ Educational and fun
 
