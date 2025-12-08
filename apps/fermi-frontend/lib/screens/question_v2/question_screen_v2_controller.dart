@@ -521,6 +521,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
         scores: snapshot.scores,
         cumulativeScores: cumulativeScores,
         percentiles: snapshot.percentiles,
+        convertedAnswers: snapshot.convertedAnswers,
         isRevealed: shouldBeRevealed,
         correctAnswer: correctAnswer ??
             currentState.correctAnswer, // Preserve existing if not in snapshot

@@ -372,6 +372,14 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
     final autoNextProgress =
         isCurrentQuestion ? _controller.autoNextProgress : 0.0;
 
+    // Get converted answers for the current player (if revealed)
+    final Map<String, AnswerValue>? otherPlayersAnswers;
+    if (showFeedback && state.convertedAnswers.isNotEmpty) {
+      otherPlayersAnswers = state.convertedAnswers[myId];
+    } else {
+      otherPlayersAnswers = null;
+    }
+
     return GameCard(
       questionText: state.questionText,
       tags: state.tags,
@@ -429,6 +437,8 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
       // Percentile props
       percentile: percentileValue ?? 0,
       showPercentile: showPercentile,
+      // Other players' converted answers
+      otherPlayersAnswers: otherPlayersAnswers,
     );
   }
 
