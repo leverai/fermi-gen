@@ -17,6 +17,7 @@ class AnswerAccuracyScale extends StatefulWidget {
     this.revealedAnswer,
     this.revealedColor,
     this.editable = true,
+    this.otherPlayersAnswers,
   });
 
   final AnswerValue currentAnswer;
@@ -24,6 +25,7 @@ class AnswerAccuracyScale extends StatefulWidget {
   final AnswerValue? revealedAnswer;
   final Color? revealedColor;
   final bool editable;
+  final Map<String, AnswerValue>? otherPlayersAnswers;
 
   @override
   State<AnswerAccuracyScale> createState() => _AnswerAccuracyScaleState();
@@ -33,6 +35,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+  final Set<String> _visibleTextBoxes = <String>{}; // Track visible text boxes
 
   @override
   void initState() {
@@ -66,6 +69,16 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  void _toggleTextBox(String playerId) {
+    setState(() {
+      if (_visibleTextBoxes.contains(playerId)) {
+        _visibleTextBoxes.remove(playerId);
+      } else {
+        _visibleTextBoxes.add(playerId);
+      }
+    });
   }
 
   double _getLogValue(AnswerValue value) {
@@ -147,8 +160,85 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                       revealProgress: _animation.value,
                       appTheme: appTheme,
                       revealedColor: widget.revealedColor,
+                      otherPlayersLogValues: widget.otherPlayersAnswers?.map(
+                              (id, ans) => MapEntry(id, _getLogValue(ans))) ??
+                          {},
                     ),
                   ),
+                  // Other Players' Circles (with tap handlers)
+                  if (widget.otherPlayersAnswers != null)
+                    ...widget.otherPlayersAnswers!.entries.map((entry) {
+                      final playerId = entry.key;
+                      final answer = entry.value;
+                      final logValue = _getLogValue(answer);
+                      final clampedLogValue = logValue.clamp(0.0, 18.0);
+                      final x = padding + (clampedLogValue / 18.0) * drawWidth;
+
+                      return Positioned(
+                        left: x,
+                        top: 24 -
+                            8, // Center vertically (24 is half height, 8 is half indicator size)
+                        child: GestureDetector(
+                          onTap: () => _toggleTextBox(playerId),
+                          child: Container(
+                            width: 16,
+                            height: 16,
+                            color: Colors.transparent,
+                          ),
+                        ),
+                      );
+                    }),
+                  // Other Players' Text Boxes
+                  if (widget.otherPlayersAnswers != null)
+                    ...widget.otherPlayersAnswers!.entries.map((entry) {
+                      final playerId = entry.key;
+                      final answer = entry.value;
+                      final logValue = _getLogValue(answer);
+                      final clampedLogValue = logValue.clamp(0.0, 18.0);
+                      final x = padding + (clampedLogValue / 18.0) * drawWidth;
+                      final isVisible = _visibleTextBoxes.contains(playerId);
+
+                      return Positioned(
+                        left: x,
+                        top:
+                            -14, // Position above the scale (same as user answer)
+                        child: FractionalTranslation(
+                          translation: const Offset(-0.5, 0),
+                          child: Opacity(
+                            opacity: isVisible ? 1.0 : 0.0,
+                            child: IgnorePointer(
+                              ignoring: !isVisible,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: appTheme.bgLight.withOpacity(0.9),
+                                  border: Border.all(
+                                      color: appTheme.border, width: 1),
+                                  borderRadius: BorderRadius.circular(4),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          appTheme.shadowColor.withOpacity(0.1),
+                                      blurRadius: 2,
+                                      offset: const Offset(0, 1),
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  _formatAnswerText(answer),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: appTheme.text,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
                   // User Answer Text Box
                   Positioned(
                     left: padding + (userLogValue / 18.0) * drawWidth,
@@ -229,6 +319,7 @@ class _ScalePainter extends CustomPainter {
     required this.revealProgress,
     required this.appTheme,
     required this.revealedColor,
+    this.otherPlayersLogValues = const <String, double>{},
   });
 
   final double userLogValue;
@@ -236,6 +327,7 @@ class _ScalePainter extends CustomPainter {
   final double revealProgress;
   final AppTheme appTheme;
   final Color? revealedColor;
+  final Map<String, double> otherPlayersLogValues;
 
   // Constants
 
@@ -341,6 +433,19 @@ class _ScalePainter extends CustomPainter {
       }
     }
 
+    // Draw Other Players' Indicators (with 0.5 opacity)
+    otherPlayersLogValues.forEach((playerId, logValue) {
+      final clampedLogValue = logValue.clamp(0.0, maxLog);
+      final x = padding + (clampedLogValue / maxLog) * drawWidth;
+      _drawIndicator(
+        canvas,
+        Offset(x, cy),
+        appTheme.border,
+        appTheme.bgLight,
+        opacity: 0.5,
+      );
+    });
+
     // Draw User Indicator
     final userX = padding + (userLogValue / maxLog) * drawWidth;
     _drawIndicator(
@@ -384,13 +489,13 @@ class _ScalePainter extends CustomPainter {
 
   void _drawIndicator(
       Canvas canvas, Offset center, Color borderColor, Color fillColor,
-      {double scale = 1.0}) {
+      {double scale = 1.0, double opacity = 1.0}) {
     final paint = Paint()
-      ..color = fillColor
+      ..color = fillColor.withOpacity(opacity)
       ..style = PaintingStyle.fill;
 
     final borderPaint = Paint()
-      ..color = borderColor
+      ..color = borderColor.withOpacity(opacity)
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
 
@@ -408,6 +513,7 @@ class _ScalePainter extends CustomPainter {
         oldDelegate.correctLogValue != correctLogValue ||
         oldDelegate.revealProgress != revealProgress ||
         oldDelegate.appTheme != appTheme ||
-        oldDelegate.revealedColor != revealedColor;
+        oldDelegate.revealedColor != revealedColor ||
+        oldDelegate.otherPlayersLogValues != otherPlayersLogValues;
   }
 }

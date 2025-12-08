@@ -21,6 +21,8 @@ class QuestionState {
   final Map<String, int>
       cumulativeScores; // playerId -> cumulative score up to this question
   final Map<String, double> percentiles; // playerId -> percentile (0.0-1.0)
+  final Map<String, Map<String, AnswerValue>>
+      convertedAnswers; // playerId -> (otherPlayerId -> converted answer)
   final List<PlayerState> players; // Sorted by rank
   final bool isRevealed;
   final Duration? duration;
@@ -42,6 +44,7 @@ class QuestionState {
     this.scores = const {},
     this.cumulativeScores = const {},
     this.percentiles = const {},
+    this.convertedAnswers = const {},
     this.players = const [],
     this.isRevealed = false,
     this.duration,
@@ -64,6 +67,7 @@ class QuestionState {
     Map<String, double>? scores,
     Map<String, int>? cumulativeScores,
     Map<String, double>? percentiles,
+    Map<String, Map<String, AnswerValue>>? convertedAnswers,
     List<PlayerState>? players,
     bool? isRevealed,
     Duration? duration,
@@ -85,6 +89,7 @@ class QuestionState {
       scores: scores ?? this.scores,
       cumulativeScores: cumulativeScores ?? this.cumulativeScores,
       percentiles: percentiles ?? this.percentiles,
+      convertedAnswers: convertedAnswers ?? this.convertedAnswers,
       players: players ?? this.players,
       isRevealed: isRevealed ?? this.isRevealed,
       duration: duration ?? this.duration,

@@ -401,6 +401,8 @@ class FirestoreGameRealtime implements GameRealtime {
     final Map<String, double> scores = <String, double>{};
     final Map<String, AnswerValue> correct = <String, AnswerValue>{};
     final Map<String, double> percentiles = <String, double>{};
+    final Map<String, Map<String, AnswerValue>> convertedAnswers =
+        <String, Map<String, AnswerValue>>{};
 
     playersResults.forEach((String playerId, dynamic v) {
       final Map<String, dynamic> entry =
@@ -437,6 +439,26 @@ class FirestoreGameRealtime implements GameRealtime {
           percentiles[playerId] = quantile.toDouble();
         }
       }
+
+      // Parse converted_answers for this player
+      final Map<String, dynamic>? convertedRaw =
+          entry['converted_answers'] as Map<String, dynamic>?;
+      if (convertedRaw != null) {
+        final Map<String, AnswerValue> playerConverted =
+            <String, AnswerValue>{};
+        convertedRaw.forEach((String otherPlayerId, dynamic otherAns) {
+          if (otherAns is Map<String, dynamic>) {
+            final double rawNumber =
+                (otherAns['number'] as num?)?.toDouble() ?? 0;
+            final AnswerValue parsedAnswer = _parseBackendAnswer(
+              rawNumber,
+              (otherAns['unit'] as String?) ?? '',
+            );
+            playerConverted[otherPlayerId] = parsedAnswer;
+          }
+        });
+        convertedAnswers[playerId] = playerConverted;
+      }
     });
 
     final bool allAnswered = (data['revealed'] as bool?) ?? false;
@@ -446,6 +468,7 @@ class FirestoreGameRealtime implements GameRealtime {
       allAnswered: allAnswered,
       correct: correct,
       percentiles: percentiles,
+      convertedAnswers: convertedAnswers,
     );
   }
 

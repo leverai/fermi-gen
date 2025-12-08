@@ -136,6 +136,8 @@ class PlayersAnswersSnapshot {
   final bool allAnswered;
   final Map<String, AnswerValue> correct; // playerId -> correct answer
   final Map<String, double> percentiles; // playerId -> percentile (0.0-1.0)
+  final Map<String, Map<String, AnswerValue>>
+      convertedAnswers; // playerId -> (otherPlayerId -> converted answer)
 
   const PlayersAnswersSnapshot({
     required this.submitted,
@@ -143,6 +145,7 @@ class PlayersAnswersSnapshot {
     required this.allAnswered,
     this.correct = const <String, AnswerValue>{},
     this.percentiles = const <String, double>{},
+    this.convertedAnswers = const <String, Map<String, AnswerValue>>{},
   });
 }
 
