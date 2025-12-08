@@ -18,6 +18,7 @@ import 'package:fermi_frontend/screens/lobby/lobby_screen_controller.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/screens/onboarding_screen.dart';
 import 'package:fermi_frontend/screens/auth_screen.dart';
+import 'package:fermi_frontend/screens/startup_auth_screen.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/state/theme_config_service.dart';
@@ -321,8 +322,11 @@ class _MyAppState extends State<MyApp> {
                       if (!context.mounted) return;
                       if (ok) {
                         // Onboarding is shown before auth, so user has already seen it
+                        // Ensure we mark it as seen now that they have signed in
+                        SharedPreferences.getInstance().then(
+                            (prefs) => prefs.setBool('onboarding_seen', true));
                         Navigator.pushReplacementNamed(context, '/main');
-                        // Check for pending deep link join
+                        // Check for deep link join
                         _checkPendingJoin();
                       } else {
                         _appScaffoldMessengerKey.currentState?.showSnackBar(
@@ -339,6 +343,8 @@ class _MyAppState extends State<MyApp> {
                       final ok = await _authService.exchangeToken();
                       if (!context.mounted) return;
                       if (ok) {
+                        SharedPreferences.getInstance().then(
+                            (prefs) => prefs.setBool('onboarding_seen', true));
                         Navigator.pushReplacementNamed(context, '/main');
                         // Check for pending deep link join
                         _checkPendingJoin();
@@ -363,6 +369,9 @@ class _MyAppState extends State<MyApp> {
                               backgroundColor: Colors.green,
                             ),
                           );
+
+                          SharedPreferences.getInstance().then((prefs) =>
+                              prefs.setBool('onboarding_seen', true));
                           Navigator.pushReplacementNamed(context, '/main');
                           _checkPendingJoin();
                         } else {
@@ -381,6 +390,7 @@ class _MyAppState extends State<MyApp> {
                   ],
                 );
               },
+              '/startup-auth': (context) => const StartupAuthScreen(),
               '/onboarding': (context) => OnboardingScreen(
                     preloadService: _preloadService,
                   ),
