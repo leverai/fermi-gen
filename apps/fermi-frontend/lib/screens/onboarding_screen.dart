@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fermi_frontend/screens/question_v2/question_screen_v2.dart';
 import 'package:fermi_frontend/services/demo/onboarding_realtime.dart';
@@ -337,15 +336,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   /// onFinish callback). Marks onboarding as seen and navigates to main screen.
   /// User is already authenticated anonymously, so we can go directly to main.
   void _exitOnboarding() async {
-    // Mark onboarding as seen (unless in test mode)
-    if (!widget.testMode) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('onboarding_seen', true);
-    }
-
-    if (!mounted) return;
-    // Navigate to main screen (user is already authenticated anonymously)
-    Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+    // Navigate to startup auth screen choice
+    // User is already authenticated anonymously, so we just move to the choice screen
+    Navigator.pushReplacementNamed(context, '/startup-auth');
   }
 
   @override
