@@ -187,6 +187,15 @@ class _AnswerWidgetState extends State<AnswerWidget> {
   // Track if widget has been revealed - once revealed, preserve state unless explicitly cleared
   bool _hasBeenRevealed = false;
 
+  // Track if we're emitting a change from our own controllers
+  // This prevents syncing back to controllers when the change originated from them
+  // (e.g., user scrolling digit wheels or OM label)
+  bool _isEmittingChange = false;
+
+  // Track if we're currently syncing controllers to value
+  // This suppresses onChanged callbacks during sync to prevent setState during build
+  bool _isSyncing = false;
+
   @override
   void initState() {
     super.initState();
@@ -262,6 +271,7 @@ class _AnswerWidgetState extends State<AnswerWidget> {
         } else {
           // Not revealed - reset visual state
           _resetVisualState();
+          // Sync immediately - _isSyncing flag prevents onChanged cascade
           _syncControllersToValue();
         }
       }
@@ -279,6 +289,7 @@ class _AnswerWidgetState extends State<AnswerWidget> {
       if (controllerBound) {
         // Controller was just bound - sync to value prop if not revealed
         if (!_hasBeenRevealed) {
+          // Sync immediately - _isSyncing flag prevents onChanged cascade
           _syncControllersToValue();
         }
         return;
@@ -334,27 +345,38 @@ class _AnswerWidgetState extends State<AnswerWidget> {
     if (hadRevealedProps && !hasRevealedProps && !_hasBeenRevealed) {
       // Only reset if we weren't already revealed (preserve state across rebuilds)
       _resetVisualState();
+      // Sync immediately - _isSyncing flag prevents onChanged cascade
       _syncControllersToValue();
       return;
     }
 
-    // Priority 3: Controller manages state when bound (but don't override revealed state)
+    // Priority 3: Sync to value prop changes (even with controller bound)
+    // This ensures slider and other external updates sync to internal controllers
+    // Skip sync if the change originated from our own controllers (prevents interrupting scrolling)
+    if (!_hasBeenRevealed &&
+        !_isRevealing &&
+        !_isControllerAnimating &&
+        !_isControllerAnimationPending &&
+        !_isEmittingChange &&
+        oldWidget.value != widget.value) {
+      // Sync immediately - _isSyncing flag prevents onChanged cascade
+      _syncControllersToValue();
+      return;
+    }
+
+    // Clear the emitting flag after processing the prop update
+    if (_isEmittingChange) {
+      _isEmittingChange = false;
+    }
+
+    // Priority 4: Controller manages animations (for reveal, etc.)
     if (widget.controller != null) {
       // If widget has been revealed, don't let controller reset it
       if (_hasBeenRevealed) {
         return;
       }
-      // Controller handles updates for non-revealed state
+      // Controller bound but no prop changes - nothing to do
       return;
-    }
-
-    // Priority 4: Sync to value prop (prop-controlled mode, non-revealed)
-    if (!_hasBeenRevealed &&
-        !_isRevealing &&
-        !_isControllerAnimating &&
-        !_isControllerAnimationPending &&
-        oldWidget.value != widget.value) {
-      _syncControllersToValue();
     }
   }
 
@@ -364,22 +386,27 @@ class _AnswerWidgetState extends State<AnswerWidget> {
     if (_hasBeenRevealed) {
       // When revealed, ensure controllers match stored revealed value
       if (_revealedValue != null) {
+        _isSyncing = true;
         _digitsController
             .jumpTo(_revealedValue!.number.clamp(1, _numbersPerOm));
         _omController.jumpTo(_revealedValue!.orderOfMagnitude);
         if (_revealedValue!.unit.isNotEmpty) {
           _unitController.jumpTo(_revealedValue!.unit);
         }
+        _isSyncing = false;
       }
       return;
     }
 
     // For non-revealed state, sync from widget.value
+    // Set flag to suppress onChanged callbacks during sync
+    _isSyncing = true;
     _digitsController.jumpTo(_currentNumber);
     _omController.jumpTo(_currentOm);
     if (_currentUnit.isNotEmpty) {
       _unitController.jumpTo(_currentUnit);
     }
+    _isSyncing = false;
   }
 
   /// Jump directly to revealed state without animation (for initial state setup)
@@ -498,6 +525,7 @@ class _AnswerWidgetState extends State<AnswerWidget> {
       _isControllerAnimating = false;
       _isControllerAnimationPending = false; // Clear pending flag
       _hasBeenRevealed = false; // Clear revealed flag
+      _isEmittingChange = false; // Clear emitting flag
       _digitsController.setRevealEnabled(false);
       _omController.setRevealed(false);
       _unitController.setRevealed(false);
@@ -510,7 +538,10 @@ class _AnswerWidgetState extends State<AnswerWidget> {
   }
 
   void _onDigitsChanged(int number) {
-    if (_isRevealing) return;
+    if (_isRevealing || _isSyncing) return;
+    // Mark that we're emitting a change from our own controller
+    // This prevents syncing back to controllers when the prop updates
+    _isEmittingChange = true;
     // Notify parent of change - parent will update value prop
     widget.onChanged(AnswerValue(
       number: number,
@@ -520,7 +551,9 @@ class _AnswerWidgetState extends State<AnswerWidget> {
   }
 
   void _onOmChanged(String om) {
-    if (_isRevealing) return;
+    if (_isRevealing || _isSyncing) return;
+    // Mark that we're emitting a change from our own controller
+    _isEmittingChange = true;
     // Notify parent of change - parent will update value prop
     widget.onChanged(AnswerValue(
       number: _currentNumber,
@@ -530,7 +563,9 @@ class _AnswerWidgetState extends State<AnswerWidget> {
   }
 
   void _onUnitChanged(String unit) {
-    if (_isRevealing) return;
+    if (_isRevealing || _isSyncing) return;
+    // Mark that we're emitting a change from our own controller
+    _isEmittingChange = true;
     // Notify parent of change - parent will update value prop
     widget.onChanged(AnswerValue(
       number: _currentNumber,

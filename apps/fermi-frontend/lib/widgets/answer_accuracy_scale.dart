@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/utils/om_constants.dart';
+import 'package:fermi_frontend/widgets/answer_accuracy_scale_painter.dart';
 
 /// A widget that displays the answer on a logarithmic scale.
 ///
 /// Range: 0 (1) to 18 (1 Quintillion).
 /// Shows ticks for each order of magnitude.
 /// During reveal, animates a second indicator from the user's answer to the correct answer.
+/// Supports interactive input via tap/drag gestures when editable and onAnswerChanged is provided.
 class AnswerAccuracyScale extends StatefulWidget {
   const AnswerAccuracyScale({
     super.key,
@@ -18,6 +20,7 @@ class AnswerAccuracyScale extends StatefulWidget {
     this.revealedColor,
     this.editable = true,
     this.otherPlayersAnswers,
+    this.onAnswerChanged,
   });
 
   final AnswerValue currentAnswer;
@@ -26,6 +29,7 @@ class AnswerAccuracyScale extends StatefulWidget {
   final Color? revealedColor;
   final bool editable;
   final Map<String, AnswerValue>? otherPlayersAnswers;
+  final ValueChanged<AnswerValue>? onAnswerChanged;
 
   @override
   State<AnswerAccuracyScale> createState() => _AnswerAccuracyScaleState();
@@ -36,6 +40,9 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
   late AnimationController _controller;
   late Animation<double> _animation;
   final Set<String> _visibleTextBoxes = <String>{}; // Track visible text boxes
+  bool _isDragging = false; // Track active drag to prevent recursion
+  AnswerValue?
+      _lastEmittedValue; // Track last emitted value to prevent duplicates
 
   @override
   void initState() {
@@ -57,11 +64,21 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
   @override
   void didUpdateWidget(AnswerAccuracyScale oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Skip external updates during active drag to prevent recursion
+    if (_isDragging) {
+      return;
+    }
+
     if (widget.revealedAnswer != null && oldWidget.revealedAnswer == null) {
       _controller.forward(from: 0.0);
     } else if (widget.revealedAnswer == null &&
         oldWidget.revealedAnswer != null) {
       _controller.reset();
+    }
+
+    // Reset last emitted value if answer changed externally
+    if (oldWidget.currentAnswer != widget.currentAnswer) {
+      _lastEmittedValue = null;
     }
   }
 
@@ -107,6 +124,91 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
     return '${value.number} ${value.orderOfMagnitude}'.trim();
   }
 
+  /// Convert x-position to log value (0-18 scale)
+  double _positionToLogValue(double x, double width) {
+    const padding = 12.0;
+    final drawWidth = width - (padding * 2);
+    final normalizedX = (x - padding).clamp(0.0, drawWidth);
+    return (normalizedX / drawWidth) * 18.0;
+  }
+
+  /// Convert continuous log value to AnswerValue
+  /// Allows any integer from 1-999 within each order of magnitude.
+  /// logValue 0-3: number 1-999, om ''
+  /// logValue 3-6: number 1-999, om 'K'
+  /// logValue 6-9: number 1-999, om 'M'
+  /// etc.
+  AnswerValue _logToAnswerValue(double logValue, String unit) {
+    // Clamp log value to valid range
+    final clampedLog = logValue.clamp(0.0, 18.0);
+
+    // Determine which OM bucket (every 3 log units = one OM level)
+    final omIndex =
+        (clampedLog / 3.0).floor().clamp(0, orderOfMagnitudeSymbols.length - 1);
+    final om = orderOfMagnitudeSymbols[omIndex];
+
+    // Calculate the number within this OM range
+    // logValue within OM: 0-3 for '', 3-6 for 'K', etc.
+    final logWithinOM = clampedLog - (omIndex * 3.0);
+
+    // Convert log within OM to number: 10^logWithinOM
+    // logWithinOM = 0 → number = 1
+    // logWithinOM = 1 → number = 10
+    // logWithinOM = 2 → number = 100
+    // logWithinOM = 2.5 → number = 316
+    final rawNumber = math.pow(10, logWithinOM);
+
+    // Round to nearest integer and clamp to 1-999
+    int number = rawNumber.round().clamp(1, 999);
+
+    // Edge case: if we're at or very close to the next OM boundary,
+    // the number might compute to 1000. Clamp it back.
+    if (number >= 1000) {
+      number = 999;
+    }
+
+    // Edge case: ensure minimum value is 1
+    if (clampedLog == 0 && number < 1) {
+      number = 1;
+    }
+
+    return AnswerValue(number: number, orderOfMagnitude: om, unit: unit);
+  }
+
+  /// Convert AnswerValue back to log value (for positioning)
+  double _answerValueToLogValue(AnswerValue value) {
+    final exponent = orderOfMagnitudePowers[value.orderOfMagnitude] ?? 0;
+    // log10(number). number is 1..999.
+    final logNum = value.number > 0 ? math.log(value.number) / math.ln10 : 0.0;
+    return exponent + logNum;
+  }
+
+  /// Handle tap/drag gesture to update answer
+  void _handlePositionUpdate(double x, double width) {
+    // Only allow interaction when editable and callback is provided
+    if (!widget.editable || widget.onAnswerChanged == null) {
+      return;
+    }
+
+    // Don't allow interaction during reveal animation
+    if (widget.revealedAnswer != null) {
+      return;
+    }
+
+    // Convert position to answer value (continuous, no snapping)
+    final logValue = _positionToLogValue(x, width);
+    final currentUnit = widget.currentAnswer.unit;
+    final newAnswer = _logToAnswerValue(logValue, currentUnit);
+
+    // Prevent duplicate callbacks
+    if (_lastEmittedValue == newAnswer) {
+      return;
+    }
+
+    _lastEmittedValue = newAnswer;
+    widget.onAnswerChanged!(newAnswer);
+  }
+
   @override
   Widget build(BuildContext context) {
     final appTheme =
@@ -149,12 +251,13 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                 currentCorrectX = userX + (correctX - userX) * _animation.value;
               }
 
-              return Stack(
+              // Wrap with GestureDetector for interactive input
+              final interactiveWidget = Stack(
                 clipBehavior: Clip.none,
                 children: [
                   CustomPaint(
                     size: Size(w, 48),
-                    painter: _ScalePainter(
+                    painter: ScalePainter(
                       userLogValue: userLogValue,
                       correctLogValue: correctLogValue,
                       revealProgress: _animation.value,
@@ -304,216 +407,42 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                     ),
                 ],
               );
+
+              // Add gesture detection if editable and callback provided
+              if (widget.editable &&
+                  widget.onAnswerChanged != null &&
+                  widget.revealedAnswer == null) {
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapDown: (details) {
+                    final localX = details.localPosition.dx;
+                    _handlePositionUpdate(localX, w);
+                  },
+                  onHorizontalDragStart: (details) {
+                    setState(() {
+                      _isDragging = true;
+                    });
+                    final localX = details.localPosition.dx;
+                    _handlePositionUpdate(localX, w);
+                  },
+                  onHorizontalDragUpdate: (details) {
+                    final localX = details.localPosition.dx;
+                    _handlePositionUpdate(localX, w);
+                  },
+                  onHorizontalDragEnd: (details) {
+                    setState(() {
+                      _isDragging = false;
+                    });
+                  },
+                  child: interactiveWidget,
+                );
+              }
+
+              return interactiveWidget;
             },
           );
         },
       ),
     );
-  }
-}
-
-class _ScalePainter extends CustomPainter {
-  _ScalePainter({
-    required this.userLogValue,
-    required this.correctLogValue,
-    required this.revealProgress,
-    required this.appTheme,
-    required this.revealedColor,
-    this.otherPlayersLogValues = const <String, double>{},
-  });
-
-  final double userLogValue;
-  final double? correctLogValue;
-  final double revealProgress;
-  final AppTheme appTheme;
-  final Color? revealedColor;
-  final Map<String, double> otherPlayersLogValues;
-
-  // Constants
-
-  static const double maxLog = 18.0; // 10^18 = 1 Quintillion
-  static const double tickHeight = 8.0;
-  static const double rulerHeight = 4.0;
-  static const double indicatorSize = 16.0;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    final cy = h / 2;
-
-    // Paint for the ruler line
-    final rulerPaint = Paint()
-      ..color = appTheme.borderMuted
-      ..strokeWidth = rulerHeight
-      ..strokeCap = StrokeCap.round;
-
-    // Paint for ticks
-    final tickPaint = Paint()
-      ..color = appTheme.borderMuted
-      ..strokeWidth = 2.0
-      ..strokeCap = StrokeCap.round;
-
-    // Draw Ruler
-    // We add some padding horizontally for the indicators
-    const padding = 12.0;
-    final drawWidth = w - (padding * 2);
-
-    canvas.drawLine(
-      Offset(padding, cy),
-      Offset(w - padding, cy),
-      rulerPaint,
-    );
-
-    // Draw Ticks
-    // Ticks at 0, 1, 2, ... 18
-    for (int i = 0; i <= 18; i++) {
-      final x = padding + (i / maxLog) * drawWidth;
-      // Make major ticks (0, 3, 6, 9, 12, 15, 18) slightly larger/darker?
-      // Requirement: "tick for each order of magnitude starting from zero"
-      // 0, 10, 100... means every integer power of 10.
-      // So every integer on the log scale.
-
-      // Let's make the OM ticks (0, 3, 6...) more prominent
-      final isMajor = i % 3 == 0;
-      final currentTickHeight = isMajor ? tickHeight * 1.5 : tickHeight;
-
-      canvas.drawLine(
-        Offset(x, cy - currentTickHeight / 2),
-        Offset(x, cy + currentTickHeight / 2),
-        tickPaint..color = isMajor ? appTheme.border : appTheme.borderMuted,
-      );
-
-      // Draw Labels
-      // Requirement: "The first and last ticks have no label" -> skip 0 and 18
-      // Requirement: "Use abbreviation (K, M, B, etc.)" -> implies only major ticks
-      if (isMajor && i > 0 && i < 18) {
-        String? label;
-        switch (i) {
-          case 3:
-            label = 'K';
-            break;
-          case 6:
-            label = 'M';
-            break;
-          case 9:
-            label = 'B';
-            break;
-          case 12:
-            label = 'T';
-            break;
-          case 15:
-            label = 'Qa';
-            break;
-        }
-
-        if (label != null) {
-          final textSpan = TextSpan(
-            text: label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-              color: appTheme.borderMuted,
-            ),
-          );
-          final textPainter = TextPainter(
-            text: textSpan,
-            textDirection: TextDirection.ltr,
-          );
-          textPainter.layout();
-
-          // Position: "Ticks labels should be directly below the ticks"
-          // Center the text horizontally on x
-          // Place it below the tick. Tick ends at cy + currentTickHeight / 2
-          final textX = x - (textPainter.width / 2);
-          final textY = cy + (currentTickHeight / 2) + 2; // +2 padding
-
-          textPainter.paint(canvas, Offset(textX, textY));
-        }
-      }
-    }
-
-    // Draw Other Players' Indicators (with 0.5 opacity)
-    otherPlayersLogValues.forEach((playerId, logValue) {
-      final clampedLogValue = logValue.clamp(0.0, maxLog);
-      final x = padding + (clampedLogValue / maxLog) * drawWidth;
-      _drawIndicator(
-        canvas,
-        Offset(x, cy),
-        appTheme.border,
-        appTheme.bgLight,
-        opacity: 0.5,
-      );
-    });
-
-    // Draw User Indicator
-    final userX = padding + (userLogValue / maxLog) * drawWidth;
-    _drawIndicator(
-      canvas,
-      Offset(userX, cy),
-      appTheme.border,
-      appTheme.bgLight,
-    );
-
-    // Draw Correct Indicator (if revealed)
-    if (correctLogValue != null) {
-      final correctX = padding + (correctLogValue! / maxLog) * drawWidth;
-
-      // Lerp position
-      final currentX = userX + (correctX - userX) * revealProgress;
-
-      // Only draw if progress > 0 to avoid z-fighting at start if we want
-      // But since it spawns from user, drawing on top is fine.
-
-      // Color: revealedColor (usually green/red scale) or primary
-      // Requirement 5: "The correct answer indicator must appear in primary at reveal time."
-      // Wait, "appear in primary". But Requirement 0 says "Animates to score-scale (danger to success)".
-      // Ah, the *card background* animates to score-scale.
-      // The *indicator*? "The correct answer indicator must appear in primary at reveal time."
-      // Okay, I'll use primary.
-
-      final indicatorColor = appTheme.primary;
-
-      // We can also fade it in or scale it up
-      // But "spawns out of" implies movement.
-
-      _drawIndicator(
-        canvas,
-        Offset(currentX, cy),
-        appTheme.border, // Border color
-        indicatorColor, // Fill color
-        scale: 1.0, // Could animate scale if desired
-      );
-    }
-  }
-
-  void _drawIndicator(
-      Canvas canvas, Offset center, Color borderColor, Color fillColor,
-      {double scale = 1.0, double opacity = 1.0}) {
-    final paint = Paint()
-      ..color = fillColor.withOpacity(opacity)
-      ..style = PaintingStyle.fill;
-
-    final borderPaint = Paint()
-      ..color = borderColor.withOpacity(opacity)
-      ..strokeWidth = 2.0
-      ..style = PaintingStyle.stroke;
-
-    // Shape: Circle or Rounded Rect?
-    // Neubrutalism often uses simple geometric shapes.
-    // Let's use a Circle.
-
-    canvas.drawCircle(center, (indicatorSize / 2) * scale, paint);
-    canvas.drawCircle(center, (indicatorSize / 2) * scale, borderPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ScalePainter oldDelegate) {
-    return oldDelegate.userLogValue != userLogValue ||
-        oldDelegate.correctLogValue != correctLogValue ||
-        oldDelegate.revealProgress != revealProgress ||
-        oldDelegate.appTheme != appTheme ||
-        oldDelegate.revealedColor != revealedColor ||
-        oldDelegate.otherPlayersLogValues != otherPlayersLogValues;
   }
 }

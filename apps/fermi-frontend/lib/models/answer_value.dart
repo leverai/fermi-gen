@@ -17,6 +17,21 @@ class AnswerValue {
   String toString() =>
       'AnswerValue(number: $number, om: $orderOfMagnitude, unit: $unit, rawValue: $rawValue)';
 
+  /// Creates a copy of this AnswerValue with the given fields replaced.
+  AnswerValue copyWith({
+    int? number,
+    String? orderOfMagnitude,
+    String? unit,
+    double? rawValue,
+  }) {
+    return AnswerValue(
+      number: number ?? this.number,
+      orderOfMagnitude: orderOfMagnitude ?? this.orderOfMagnitude,
+      unit: unit ?? this.unit,
+      rawValue: rawValue ?? this.rawValue,
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

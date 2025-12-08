@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/widgets/answer_widget.dart';
+import 'package:fermi_frontend/widgets/unit_tape.dart';
 import 'package:fermi_frontend/theme/colormap.dart';
 import 'package:fermi_frontend/utils/logger.dart';
 import 'package:fermi_frontend/screens/question_v2/controllers/question_state_manager.dart';
@@ -23,16 +24,16 @@ class AnimationStateManager {
     required QuestionStateManager stateManager,
     required PlayerStateManager playerStateManager,
     required AnswerController answerController,
+    required UnitTapeController unitTapeController,
     required int currentIndex,
     required int questionCount,
     required bool isReviewMode,
-    required bool reviewModePending,
     required AnswerValue? localSubmittedAnswer,
     required String myPlayerId,
     required VoidCallback onAnimationComplete,
   }) {
     AppLogger.debug(
-        '_triggerRevealAnimation START: index=$index, currentIndex=$currentIndex, isReviewMode=$isReviewMode, reviewModePending=$reviewModePending');
+        '_triggerRevealAnimation START: index=$index, currentIndex=$currentIndex, isReviewMode=$isReviewMode');
 
     if (index != currentIndex) {
       AppLogger.debug(
@@ -47,12 +48,11 @@ class AnimationStateManager {
       return;
     }
 
-    // For last question, allow animation even in review mode or when review mode is pending
-    final bool shouldAnimate =
-        !isReviewMode || index == questionCount - 1 || reviewModePending;
+    // For last question, allow animation even in review mode
+    final bool shouldAnimate = !isReviewMode || index == questionCount - 1;
     if (!shouldAnimate) {
       AppLogger.debug(
-          '_triggerRevealAnimation ABORT: shouldAnimate=false (isReviewMode=$isReviewMode, index=$index, questionCount=$questionCount, reviewModePending=$reviewModePending)');
+          '_triggerRevealAnimation ABORT: shouldAnimate=false (isReviewMode=$isReviewMode, index=$index, questionCount=$questionCount)');
       return;
     }
 
@@ -82,13 +82,11 @@ class AnimationStateManager {
       AppLogger.debug(
           '_triggerRevealAnimation POST-FRAME: indexAtStart=$indexAtStart, currentIndex=$currentIndex, animatingQuestionIndex=${stateManager.animatingQuestionIndex}');
       AppLogger.debug(
-          '_triggerRevealAnimation POST-FRAME: isReviewMode=$isReviewMode, reviewModePending=$reviewModePending');
+          '_triggerRevealAnimation POST-FRAME: isReviewMode=$isReviewMode');
 
       if (currentIndex == indexAtStart &&
           stateManager.animatingQuestionIndex == indexAtStart &&
-          (!isReviewMode ||
-              indexAtStart == questionCount - 1 ||
-              reviewModePending)) {
+          (!isReviewMode || indexAtStart == questionCount - 1)) {
         final myScore = playerStateManager.getMyScoreForQuestion(
                 indexAtStart, myPlayerId, stateManager) ??
             0;
@@ -98,6 +96,9 @@ class AnimationStateManager {
             '_triggerRevealAnimation POST-FRAME: Calling answerController.reveal()');
         AppLogger.debug(
             '_triggerRevealAnimation POST-FRAME: startValue=$startValue, displayAnswer=$displayAnswer, duration=600ms, color=$revealColor');
+
+        // Fade out tap and scroll indicators on unit tape
+        unitTapeController.setRevealed(true, const Duration(milliseconds: 600));
 
         // Pass explicit start and end values
         answerController.reveal(

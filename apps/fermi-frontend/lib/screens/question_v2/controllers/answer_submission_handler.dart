@@ -44,9 +44,20 @@ class AnswerSubmissionHandler {
       return;
     }
 
-    // Get user answer from state
-    final AnswerValue currentAnswer = state.userAnswer ??
+    // Get user answer from state, with proper fallback
+    // If userAnswer is null or has empty unit but units are available, use first unit
+    AnswerValue currentAnswer = state.userAnswer ??
         const AnswerValue(number: 1, orderOfMagnitude: '', unit: '');
+
+    // Ensure answer has a valid unit if units are available
+    // This handles the case where user submits without interacting with the scale widget
+    if (currentAnswer.unit.isEmpty && state.units.isNotEmpty) {
+      currentAnswer = AnswerValue(
+        number: currentAnswer.number,
+        orderOfMagnitude: currentAnswer.orderOfMagnitude,
+        unit: state.units.first,
+      );
+    }
 
     // Store UI answer (with abbreviation) for display purposes
     _localSubmittedAnswer = currentAnswer;

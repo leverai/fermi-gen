@@ -124,11 +124,9 @@ apps/fermi-frontend/
     │   ├── colormap.dart            # Score/percentile to color lerp (danger→success)
     │   └── layout_constants.dart    # Sizing/spacing constants
     └── widgets/
-        ├── answer_widget.dart          # Unified answer input (digits + OM + unit)
-        ├── answer_accuracy_scale.dart  # Logarithmic scale for answer display and reveal
+        ├── answer_accuracy_scale.dart  # Continuous logarithmic slider (1 to 999 Qa)
+        ├── slider_text_mirror.dart     # Real-time value display (e.g., "124 Million")
         ├── percentile_widget.dart      # Compact "Top X%" display with animations
-        ├── digit_wheels.dart           # Three-digit scrollable wheels with numpad
-        ├── om_label.dart               # Order of magnitude selector
         ├── unit_tape.dart              # Unit selector with locale toggle
         ├── styled_dialog.dart          # Reusable dialog with gradient borders
         ├── settings_menu.dart          # Settings menu (sign out, delete account)
@@ -900,68 +898,67 @@ WatchGame updates never overwrite an already revealed answer state (prevents fli
 
 ## Answer Input System
 
-The unified `AnswerWidget` combines digit wheels, order of magnitude (OM), and unit selection into a single cohesive component with a modern styled appearance.
+The answer input system has been simplified to use a continuous logarithmic slider as the primary input method, complemented by a unit selector for dimensional questions.
 
 ### Structure
 
-- Layout: `[digit][digit][digit][OM][unit]` - all elements in one horizontal row
-- Responsive width: Elements stretch to fill parent width with flex ratio 7:2:2 (digits:OM:unit)
-  - Flex 7 for DigitWheels accounts for 3 equal digits + 24px internal spacing
-  - Flex 2 each for OM and unit ensures all 5 elements appear equal width
-  - 12px spacing preserved between all sections
-  - Unit area always rendered (empty placeholder when no units) to prevent layout shifts
-- Positioning: Located in lower portion of screen for thumb accessibility (with 100px top spacer)
-- Styling: Transparent background, rounded corners (12px)
-- Padding: 12px horizontal, 12px vertical inside the border
-- Controller: `AnswerController` provides unified API (`currentValue`, `jumpTo()`, `animateTo()`, `reveal()`)
-- Model: `AnswerValue` (from `models/answer_value.dart`) represents complete answer state
-- Mirror text: Human-readable display above widget (e.g., "123 million meters") with smooth animated width transitions
+- **Primary Input**: `AnswerAccuracyScale` - A continuous logarithmic slider spanning 1 to 999 Qa (Quadrillion)
+- **Unit Selection**: `UnitTape` - Displays current unit and opens bottom sheet selector when tapped
+- **Value Display**: `SliderTextMirror` - Real-time text display of slider value (e.g., "124 Million")
+- **Layout**: Horizontal row with `SliderTextMirror` (left) and `UnitTape` (right), positioned below the slider
+- **Model**: `AnswerValue` (from `models/answer_value.dart`) represents complete answer state
 
-### Drag-to-Open-Numpad Feature
+### Continuous Logarithmic Slider
 
-- Draggable quick-access bar positioned between the game carousel and submit button
-- Fills available vertical space to provide a large, accessible drag target
-- Visual feedback: Circular progress indicator + "Show numpad" text + up arrow
-- Threshold: 80px drag distance triggers keyboard on first digit
-- Instagram-style pull-to-refresh UX pattern
-- When dragged down, closes any open bottom sheets (OM or unit selectors)
-- Implemented as a separate `QuickAccessBar` widget for better separation of concerns
+The `AnswerAccuracyScale` widget provides a continuous logarithmic scale for answer input:
+
+- **Range**: 1 to 999 Qa (10^0 to 10^18)
+- **Precision**: Any integer value from 1-999 within each order of magnitude
+- **Examples**: 1, 42, 157, 999, 1K, 42K, 157K, 999K, 1M, etc.
+- **Interaction**: Tap or drag to select value
+- **Visual Feedback**: Real-time position indicator and value display
+- **Scale Labels**: K, M, B, T, Qa markers at major tick positions
+
+### Value Display (SliderTextMirror)
+
+The `SliderTextMirror` widget displays the current slider value in human-readable format:
+
+- **Format**: Number + order of magnitude word (e.g., "42 Thousand", "157 Million")
+- **Special Cases**: Values 1-999 display as just the number (e.g., "42", "157")
+- **Styling**: Uses `AppFont` for consistent typography
+- **Updates**: Real-time synchronization with slider position
+- **Location**: Left side of answer row, below the slider
+
+### Unit Selection (UnitTape)
+
+The `UnitTape` widget handles unit display and selection:
+
+- **Display**: Shows current unit abbreviation (e.g., "km", "mi")
+- **Interaction**: Tap to open bottom sheet selector
+- **Selector**: Full unit names with locale toggle (US/EU)
+- **Locale Toggle**: Integrated "U.S. Units" checkbox in selector
+- **Backend Sync**: Switching locale fetches new unit options via API
+- **Unitless Questions**: Hidden automatically when no units available
+- **Location**: Right side of answer row, below the slider
 
 ### Pre-Reveal Theming (AppTheme-Based)
 
-- Widget background: Transparent
-- Digit text: `textMuted`
-- Digit borders: Transparent (visible only when focused/dragging)
-- Digit backgrounds: Transparent
-- Scrolling/auto-scroll borders: `info` (blue accent, consistent across all components)
-- Focused text: `info`
-- OM label text: `textMuted`
-- OM label background: Transparent
-- OM label borders: Transparent (visible only when focused)
+- Slider track: `border` color
+- Slider thumb: `info` color (blue accent)
+- Slider labels: `textMuted`
+- Mirror text: `text` color
 - Unit tape text: `textMuted`
 - Unit tape background: Transparent
-- Unit tape borders: Transparent (visible only when focused)
 - Tap indicators: `border` color (fade out on reveal)
-
-### Interactive Flow
-
-- User drags up from quick-access bar (between carousel and submit button) → Numpad appears (quick access)
-- User taps digit → Numpad appears → Enter 3 digits → OM selector slides up from bottom
-- User selects OM → Unit selector slides up from bottom (includes locale toggle)
-- User can also tap OM or unit directly to open their respective selectors
-- User drags down on quick-access bar → Closes any open bottom sheets
-- Screen content slides up when selectors appear (like keyboard behavior)
-- Selectors auto-close on selection, deadline, or outside tap
-- Unit selector highlights the currently selected unit (synchronized with unit tape display)
 
 ### Reveal Behavior
 
-- Digits animate to correct number; text color changes to score-based color
-- OM animates to correct value; text color changes to score-based color
-- Unit animates to correct abbreviation; text color changes to score-based color
-- Tap indicators fade out (only visual change during reveal)
+- Slider animates to correct answer position
+- Revealed answer indicator appears with score-based color
+- Submitted answer indicator shows player's answer
+- Mirror text freezes to show submitted value (for comparison)
 - All text colors change to score-interpolated color (danger→success gradient)
-- Digit borders fade out completely
+- Tap indicators fade out
 - The displayed correct value is taken from `players_results.{player_id}.correct_answer` (already in the user's locale/unit)
 
 ### Unit & Locale Handling
@@ -972,45 +969,18 @@ The unified `AnswerWidget` combines digit wheels, order of magnitude (OM), and u
 - Switching locale fetches new unit options from backend; selector updates reactively
 - When unitless questions, unit tape is hidden automatically
 
-### Interactive Input System
+### Screen Adaptation
 
-**Digit input (numpad)**:
-- Tap any digit wheel → OS-native keyboard/numpad appears
-- Sequential input: Enter digits 0-9, automatically advances to next digit
-- Visual feedback: Focused digits show `secondary` color for text and borders
-- Auto-chain: After entering the last digit → OM selector automatically opens
-
-**OM selector (bottom sheet)**:
-- Slides up from bottom like a keyboard
-- Options: "None", "Thousand", "Million", "Billion", "Trillion", "Quadrillion"
-- Center-aligned chips for thumb accessibility
-- Auto-chain: After selecting OM → Unit selector automatically opens (if units available)
-- Visual feedback: OM label shows `secondary` color when selector is active
-
-**Unit selector (bottom sheet)**:
-- Slides up from bottom with integrated locale toggle
-- Locale toggle: Single "U.S. Units" checkbox (checked = US, unchecked = EU)
-- Unit options: Shows full names from `unitOptions` map
-- Unit tape: Displays abbreviations (e.g., "mi", "km")
-- Switching locale triggers backend fetch; options update reactively via `ValueNotifier`
-- Visual feedback: Unit tape shows `secondary` color when selector is active
-
-**Screen adaptation**:
-- Keyboard and selectors slide screen content upward via `Matrix4.translationValues`
+- Bottom sheet selectors slide screen content upward via `Matrix4.translationValues`
 - Combined offset: `keyboardHeight + bottomSheetHeight`
 - Submit button and progress indicators remain visible
 - Smooth animations synchronized with keyboard timing (100ms linear)
 - `BottomSheetHeightProvider` tracks custom bottom sheet heights
 
-**Interaction modes**:
-- Scrolling: All wheels (digits, OM, unit) support direct scroll input
-- Tap-to-select: Open selector popups for quick selection
-- Auto-chain: Smooth flow from digits → OM → unit
-- Selectors auto-close: On selection, deadline, or outside tap/swipe
+### Answer Mirror Text Behavior
 
-### Answer Mirror Text
+During reveal, the mirror text freezes to show the player's submitted answer (making it easy to compare against the animated correct answer on the slider). Resumes live mirroring on the next question.
 
-During reveal, the mirror text freezes to show the player's submitted answer (making it easy to compare against the animated correct answer in the answer widget). Resumes live mirroring on the next question.
 
 ---
 
