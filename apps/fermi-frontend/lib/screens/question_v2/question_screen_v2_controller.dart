@@ -11,6 +11,7 @@ import 'package:fermi_frontend/screens/question_v2/widgets/pane_bindings.dart';
 import 'package:fermi_frontend/theme/colormap.dart';
 import 'package:fermi_frontend/widgets/question_deadline_progress_tracker.dart';
 import 'package:fermi_frontend/widgets/rank_widget.dart';
+import 'package:fermi_frontend/widgets/unit_tape.dart';
 import 'package:fermi_frontend/utils/logger.dart';
 import 'package:fermi_frontend/screens/question_v2/controllers/game_timer_manager.dart';
 import 'package:fermi_frontend/screens/question_v2/controllers/question_state_manager.dart';
@@ -61,13 +62,15 @@ class QuestionScreenV2Controller extends ChangeNotifier {
   bool _isHost = false;
   bool _isPrivate = false;
   bool _isReviewMode = false;
-  bool _reviewModePending = false;
   Duration _perQuestionDuration = const Duration(seconds: 15);
   String? _errorMessage;
   String _currentLocale = 'US';
 
   // Answer controller (shared across questions)
   late AnswerController _answerController;
+
+  // Unit tape controller (shared across questions)
+  late UnitTapeController _unitTapeController;
 
   // Unit options notifier for locale changes
   final ValueNotifier<Map<String, String>> _unitOptionsNotifier =
@@ -85,6 +88,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
   Duration get perQuestionDuration => _perQuestionDuration;
   String? get errorMessage => _errorMessage;
   AnswerController get answerController => _answerController;
+  UnitTapeController get unitTapeController => _unitTapeController;
 
   /// Get the answer controller for the current question
   AnswerController? get currentAnswerController {
@@ -126,6 +130,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       index,
       localSubmittedAnswer: _submissionHandler.localSubmittedAnswer,
       isReviewMode: _isReviewMode,
+      myPlayerId: realtime.currentPlayerId,
     );
   }
 
@@ -142,6 +147,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
 
   void attach() {
     _answerController = AnswerController();
+    _unitTapeController = UnitTapeController();
     _currentLocale = realtime.currentLocale?.toUpperCase() ?? 'US';
     _timerManager.init();
     _confettiManager.reset();
@@ -184,31 +190,13 @@ class QuestionScreenV2Controller extends ChangeNotifier {
                 snapshot.state == GameState.gameFinished;
         final bool wasReviewMode = _isReviewMode;
 
-        // If review mode should activate but final question is animating, delay activation
+        // Activate review mode immediately when game ends
+        // The animation guards already allow final question to animate even in review mode
         if (shouldBeReviewMode && !wasReviewMode) {
-          final bool isFinalQuestionAnimating =
-              _stateManager.animatingQuestionIndex == questionCount - 1;
-
-          if (isFinalQuestionAnimating) {
-            // Delay review mode activation until final animation completes
-            _reviewModePending = true;
-            // Don't set _isReviewMode yet - wait for animation to complete
-          } else {
-            // No animation in progress, activate review mode immediately
-            _isReviewMode = true;
-            _reviewModePending = false;
-            // Clear animation state when entering review mode
-            _stateManager.clearAllAnimationState();
-          }
-        } else if (shouldBeReviewMode) {
-          // Already in review mode or pending, ensure it's set
-          if (!_isReviewMode && !_reviewModePending) {
-            _isReviewMode = true;
-          }
-        } else {
-          // Not in review mode
+          _isReviewMode = true;
+          _stateManager.clearAllAnimationState();
+        } else if (!shouldBeReviewMode) {
           _isReviewMode = false;
-          _reviewModePending = false;
         }
 
         // Update current index from backend (only in live mode)
@@ -233,24 +221,19 @@ class QuestionScreenV2Controller extends ChangeNotifier {
         );
         _bindQuestionStreams(snapshot);
 
-        // Trigger confetti for top 3 players when game ends (same time as badges)
+        // Trigger confetti for top 3 players when game ends
         // Check immediately and also defer to handle race conditions with PlayersAnswersSnapshot
-        // Also check when review mode is pending (final question animating)
-        if ((_isReviewMode || _reviewModePending)) {
+        if (_isReviewMode) {
           _confettiManager.checkAndSetConfetti(
             questionCount: questionCount,
             stateManager: _stateManager,
             myPlayerId: realtime.currentPlayerId,
-            isReviewMode: _isReviewMode,
-            reviewModePending: _reviewModePending,
             onUpdate: _safeNotifyListeners,
           );
           _confettiManager.scheduleConfettiCheck(
             questionCount: questionCount,
             stateManager: _stateManager,
             myPlayerId: realtime.currentPlayerId,
-            isReviewMode: _isReviewMode,
-            reviewModePending: _reviewModePending,
             onUpdate: _safeNotifyListeners,
           );
         }
@@ -413,42 +396,13 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       stateManager: _stateManager,
       playerStateManager: _playerManager,
       answerController: _answerController,
+      unitTapeController: _unitTapeController,
       currentIndex: currentIndex,
       questionCount: questionCount,
       isReviewMode: _isReviewMode,
-      reviewModePending: _reviewModePending,
       localSubmittedAnswer: _submissionHandler.localSubmittedAnswer,
       myPlayerId: realtime.currentPlayerId,
       onAnimationComplete: () {
-        // Check if final question animation just completed and review mode is pending
-        if (index == questionCount - 1 && _reviewModePending) {
-          AppLogger.debug(
-              '_triggerRevealAnimation: Scheduling review mode activation (final question)');
-          _timerManager.scheduleReviewModeActivation(() {
-            if (_reviewModePending) {
-              _isReviewMode = true;
-              _reviewModePending = false;
-              // Trigger confetti check when review mode activates after animation
-              _confettiManager.checkAndSetConfetti(
-                questionCount: questionCount,
-                stateManager: _stateManager,
-                myPlayerId: realtime.currentPlayerId,
-                isReviewMode: _isReviewMode,
-                reviewModePending: _reviewModePending,
-                onUpdate: _safeNotifyListeners,
-              );
-              _confettiManager.scheduleConfettiCheck(
-                questionCount: questionCount,
-                stateManager: _stateManager,
-                myPlayerId: realtime.currentPlayerId,
-                isReviewMode: _isReviewMode,
-                reviewModePending: _reviewModePending,
-                onUpdate: _safeNotifyListeners,
-              );
-              _safeNotifyListeners();
-            }
-          });
-        }
         _safeNotifyListeners();
       },
     );
@@ -593,24 +547,19 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       _startAutoNextTimer();
     }
 
-    // Check confetti if this is the last question and we're in review mode or pending
+    // Check confetti if this is the last question and we're in review mode
     // This handles the case where PlayersAnswersSnapshot arrives after GameSnapshot
-    // Also handles the case where review mode is pending (final animation in progress)
-    if (index == questionCount - 1 && (_isReviewMode || _reviewModePending)) {
+    if (index == questionCount - 1 && _isReviewMode) {
       _confettiManager.checkAndSetConfetti(
         questionCount: questionCount,
         stateManager: _stateManager,
         myPlayerId: realtime.currentPlayerId,
-        isReviewMode: _isReviewMode,
-        reviewModePending: _reviewModePending,
         onUpdate: _safeNotifyListeners,
       );
       _confettiManager.scheduleConfettiCheck(
         questionCount: questionCount,
         stateManager: _stateManager,
         myPlayerId: realtime.currentPlayerId,
-        isReviewMode: _isReviewMode,
-        reviewModePending: _reviewModePending,
         onUpdate: _safeNotifyListeners,
       );
 

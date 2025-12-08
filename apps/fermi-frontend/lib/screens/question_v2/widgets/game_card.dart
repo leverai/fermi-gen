@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fermi_frontend/widgets/question_widget.dart';
 import 'package:fermi_frontend/widgets/answer_accuracy_scale.dart';
-import 'package:fermi_frontend/widgets/answer_widget.dart';
+import 'package:fermi_frontend/widgets/slider_text_mirror.dart';
+import 'package:fermi_frontend/widgets/unit_tape.dart';
 import 'package:fermi_frontend/widgets/animated_like_dislike.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -14,7 +15,8 @@ import 'package:fermi_frontend/widgets/circular_determinate_spinner.dart';
 
 const double kGameCardQuestionHeight = 24.0 *
     5; // Height for three-line questions with 28px font: text (118px) + spacing (12px) + tags (21px) + bottom spacing (24px) + padding (16px)
-const double kGameCardAnswerHeight = 59.0;
+const double kGameCardAnswerRowHeight =
+    60.0; // Height for SliderTextMirror + UnitTape row
 const double kGameCardSpacing = 24.0;
 const double kGameCardQuestionToDividerSpacing =
     0.0; // No spacing - question widget touches divider
@@ -53,7 +55,7 @@ const double kGameCardButtonSpacing = 24.0; // Spacing between answer and button
 //
 // The total height is the sum of all visible components stacked vertically.
 const double kGameCardTotalHeight = kGameCardQuestionHeight +
-    kGameCardAnswerHeight +
+    kGameCardAnswerRowHeight +
     kGameCardAccuracyScaleHeight +
     kGameCardQuestionToDividerSpacing + // Spacing between question and divider
     (kGameCardSpacing *
@@ -79,7 +81,6 @@ class GameCard extends StatelessWidget {
     required this.currentLocale,
     required this.onAnswerChanged,
     required this.onLocaleChanged,
-    required this.answerController,
     required this.revealedAnswer,
     required this.revealedColor,
     required this.editable,
@@ -90,15 +91,12 @@ class GameCard extends StatelessWidget {
     required this.onDeUpvote,
     required this.onDownvote,
     required this.onDeDownvote,
-    required this.unitOptionsNotifier,
+    this.unitOptionsNotifier,
+    this.unitTapeController,
     this.reviewMode = false,
     this.questionWidgetKey,
     this.likeWidgetKey,
-    this.digitsKey,
-    this.omKey,
-    this.allDigitsKey,
     this.unitKey,
-    this.answerWidgetKey,
     // Button-related props
     this.paneState,
     this.isLast = false,
@@ -126,7 +124,6 @@ class GameCard extends StatelessWidget {
   final String currentLocale;
   final ValueChanged<AnswerValue> onAnswerChanged;
   final ValueChanged<String> onLocaleChanged;
-  final AnswerController? answerController;
   final AnswerValue? revealedAnswer;
   final Color? revealedColor;
   final bool editable;
@@ -138,14 +135,11 @@ class GameCard extends StatelessWidget {
   final Future<void> Function()? onDownvote;
   final Future<void> Function()? onDeDownvote;
   final ValueNotifier<Map<String, String>>? unitOptionsNotifier;
+  final UnitTapeController? unitTapeController;
   final bool reviewMode;
   final Key? questionWidgetKey;
   final Key? likeWidgetKey;
-  final Key? digitsKey;
-  final Key? omKey;
-  final Key? allDigitsKey;
   final Key? unitKey;
-  final Key? answerWidgetKey;
   // Button-related props
   final QuestionPaneState? paneState;
   final bool isLast;
@@ -361,6 +355,37 @@ class GameCard extends StatelessWidget {
                               appTheme.border.withOpacity(0.3),
                         ),
                         const SizedBox(height: 20),
+                        // Answer display row: SliderTextMirror (left) + UnitTape (right)
+                        SizedBox(
+                          height: kGameCardAnswerRowHeight,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // SliderTextMirror on the left
+                              SliderTextMirror(
+                                value: currentAnswer,
+                              ),
+                              // UnitTape on the right (if units available)
+                              if (units.isNotEmpty)
+                                UnitTape(
+                                  key: unitKey,
+                                  units: units,
+                                  unitOptions: unitOptions,
+                                  initialValue: currentAnswer.unit,
+                                  currentLocale: currentLocale,
+                                  onUnitChanged: (unit) => onAnswerChanged(
+                                    currentAnswer.copyWith(unit: unit),
+                                  ),
+                                  onLocaleChanged: onLocaleChanged,
+                                  editable: editable,
+                                  unitOptionsNotifier: unitOptionsNotifier,
+                                  controller: unitTapeController,
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
                         // Answer Accuracy Scale
                         AnswerAccuracyScale(
                           currentAnswer: currentAnswer,
@@ -369,27 +394,7 @@ class GameCard extends StatelessWidget {
                           revealedColor: revealedColor,
                           editable: editable,
                           otherPlayersAnswers: otherPlayersAnswers,
-                        ),
-                        const SizedBox(height: 20),
-                        // Answer widget
-                        AnswerWidget(
-                          key: answerWidgetKey,
-                          value: currentAnswer,
-                          units: units,
-                          unitOptions: unitOptions,
-                          currentLocale: currentLocale,
-                          onChanged: onAnswerChanged,
-                          onLocaleChanged: onLocaleChanged,
-                          editable: editable,
-                          controller: answerController,
-                          revealedAnswer: revealedAnswer,
-                          revealedColor: revealedColor,
-                          height: kGameCardAnswerHeight,
-                          unitOptionsNotifier: unitOptionsNotifier,
-                          digitsKey: digitsKey,
-                          omKey: omKey,
-                          allDigitsKey: allDigitsKey,
-                          unitKey: unitKey,
+                          onAnswerChanged: editable ? onAnswerChanged : null,
                         ),
                         const SizedBox(height: kGameCardButtonSpacing),
                         // Main button

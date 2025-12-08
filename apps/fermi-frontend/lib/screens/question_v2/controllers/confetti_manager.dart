@@ -19,23 +19,19 @@ class ConfettiManager {
   Map<String, Rank>? get finalRanks => _finalRanks;
 
   /// Check if confetti should be shown for the current player
-  /// Works in both review mode and pending review mode (when final animation is in progress)
   void checkAndSetConfetti({
     required int questionCount,
     required QuestionStateManager stateManager,
     required String myPlayerId,
-    required bool isReviewMode,
-    required bool reviewModePending,
     required VoidCallback onUpdate,
   }) {
     if (_confettiShown) return;
-    // Allow check when review mode is active OR when review mode is pending (final question animating)
-    if (!isReviewMode && !reviewModePending) return;
 
     if (myPlayerId.isEmpty) return;
 
     // Get cumulative scores from the last question's state
     final lastQuestionState = stateManager.getQuestionState(questionCount - 1);
+
     if (lastQuestionState == null ||
         lastQuestionState.cumulativeScores.isEmpty) {
       return; // Not ready yet, will try again later
@@ -55,6 +51,7 @@ class ConfettiManager {
     // Find current player's rank (0-based index in sorted list)
     final int myIndex =
         sortedScores.indexWhere((entry) => entry.key == myPlayerId);
+
     if (myIndex >= 0 && myIndex < 3) {
       final int myRank = myIndex + 1; // Convert 0-based index to 1-based rank
       _confettiRank = myRank;
@@ -68,8 +65,6 @@ class ConfettiManager {
     required int questionCount,
     required QuestionStateManager stateManager,
     required String myPlayerId,
-    required bool isReviewMode,
-    required bool reviewModePending,
     required VoidCallback onUpdate,
   }) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -77,8 +72,6 @@ class ConfettiManager {
         questionCount: questionCount,
         stateManager: stateManager,
         myPlayerId: myPlayerId,
-        isReviewMode: isReviewMode,
-        reviewModePending: reviewModePending,
         onUpdate: onUpdate,
       );
     });

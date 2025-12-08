@@ -36,9 +36,11 @@ class QuestionStateManager {
 
   /// Get the display answer for a question index
   /// This is a pure function that computes the display value from state
-  /// Priority: animation progress > revealed answer > user answer > default
+  /// Priority: animation progress > user answer > default
   AnswerValue getDisplayAnswer(int index,
-      {AnswerValue? localSubmittedAnswer, required bool isReviewMode}) {
+      {AnswerValue? localSubmittedAnswer,
+      required bool isReviewMode,
+      required String myPlayerId}) {
     final state = _questionStates[index];
     final bool isCurrentQuestion = index == _currentIndex;
     final bool showFeedback = state?.isRevealed ?? false;
@@ -71,13 +73,14 @@ class QuestionStateManager {
       }
     }
 
-    // Priority 2: Revealed answer (for revealed questions, ONLY if not animating)
-    if (showFeedback && state != null && _animatingQuestionIndex != index) {
-      final revealed = getRevealedAnswer(index);
-      if (revealed != null) {
+    // Priority 2: User's submitted answer (for revealed questions in live or review mode)
+    // This ensures the slider text mirror shows the player's answer, not the correct answer
+    if (showFeedback && state != null) {
+      final submittedAnswer = state.submittedAnswers[myPlayerId];
+      if (submittedAnswer != null) {
         AppLogger.debug(
-            'getDisplayAnswer[$index]: Priority 2 (revealed) -> $revealed');
-        return revealed;
+            'getDisplayAnswer[$index]: Priority 2 (submitted answer) -> $submittedAnswer');
+        return submittedAnswer;
       }
     }
 

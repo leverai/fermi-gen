@@ -217,21 +217,23 @@ void main() {
       );
 
       // 3. Answer widget values (3 digits, om, unit)
+      // After the fix, getDisplayAnswer should return the player's submitted answer,
+      // not the correct answer
       final lcDisplayAnswer = testController!.getDisplayAnswer(0);
       expect(
         lcDisplayAnswer.number,
-        lcCorrectAnswer.number,
-        reason: 'LC answer widget digit value should be preserved',
+        lcSubmittedAnswer.number,
+        reason: 'LC answer widget digit value should show player\'s answer',
       );
       expect(
         lcDisplayAnswer.orderOfMagnitude,
-        lcCorrectAnswer.orderOfMagnitude,
-        reason: 'LC answer widget OM value should be preserved',
+        lcSubmittedAnswer.orderOfMagnitude,
+        reason: 'LC answer widget OM value should show player\'s answer',
       );
       expect(
         lcDisplayAnswer.unit,
-        lcCorrectAnswer.unit,
-        reason: 'LC answer widget unit value should be preserved',
+        lcSubmittedAnswer.unit,
+        reason: 'LC answer widget unit value should show player\'s answer',
       );
 
       // 4. Answer widget text colors (score scale) - same as question widget
