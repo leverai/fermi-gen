@@ -19,4 +19,4 @@ Analyze the given Fermi question and assign it to exactly ONE of the following c
 ## Guidelines
 
 - Choose the MOST APPROPRIATE category based on the primary focus of the question. Favor **SHOWER_THOUGHTS** when applicable unless the question clearly belongs to another category.
-- Default to **OTHER** only if the question truly doesn't fit elsewhere
+- Default to **OTHER** only if the question truly doesn't fit elsewhere.
