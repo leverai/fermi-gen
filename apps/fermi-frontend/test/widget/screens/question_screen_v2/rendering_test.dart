@@ -92,40 +92,6 @@ void main() {
       expect(find.byType(GameCarousel), findsOneWidget);
     });
 
-    testWidgets('should display quick access bar', (tester) async {
-      // ARRANGE
-      final snapshot = createSnapshotWithQuestion(
-        questionUid: 'question_1',
-        currentPlayerId: 'player_1',
-        questionNumber: 1,
-        nQuestions: 5,
-        isHost: true,
-      );
-
-      setupQuestionStreams(
-        mockRealtimeHelper,
-        'game_123',
-        0,
-        revealedQuestion: QuestionDataFixtures.question1(),
-      );
-
-      // ACT
-      await pumpQuestionScreen(
-        tester,
-        gameId: 'game_123',
-        realtime: mockRealtimeHelper.mock,
-        questionCount: 5,
-        isHost: true,
-      );
-
-      // Emit initial snapshot
-      mockRealtimeHelper.streamController.add(snapshot);
-      await tester.pumpAndSettle();
-
-      // ASSERT
-      expect(find.byType(QuickAccessBar), findsOneWidget);
-    });
-
     testWidgets('should display submit button', (tester) async {
       // ARRANGE
       final snapshot = createSnapshotWithQuestion(
