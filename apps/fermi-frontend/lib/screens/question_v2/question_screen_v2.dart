@@ -33,6 +33,7 @@ class QuestionScreenV2 extends StatefulWidget {
     this.questionWidgetKey,
     this.likeWidgetKey,
     this.unitKey,
+    this.answerScaleKey,
     this.onControllerCreated,
     this.onFinish,
     this.onBeforeShowDialog,
@@ -49,6 +50,7 @@ class QuestionScreenV2 extends StatefulWidget {
   final Key? questionWidgetKey;
   final Key? likeWidgetKey;
   final Key? unitKey;
+  final Key? answerScaleKey;
   // Callback to expose controller (for onboarding)
   final ValueChanged<QuestionScreenV2Controller>? onControllerCreated;
   // Optional callback for finish button (for onboarding)
@@ -388,6 +390,7 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
       questionWidgetKey: isCurrentQuestion ? widget.questionWidgetKey : null,
       likeWidgetKey: isCurrentQuestion ? widget.likeWidgetKey : null,
       unitKey: isCurrentQuestion ? widget.unitKey : null,
+      answerScaleKey: isCurrentQuestion ? widget.answerScaleKey : null,
       // Button-related props
       paneState: paneState,
       isLast: isLast,
