@@ -41,19 +41,19 @@ void main() {
       );
     });
 
-    test('caps values above 999Qa to 999Qa', () {
-      // 1e18 -> 999Qa (capped)
+    test('caps values above 999T to 999T', () {
+      // 1e18 -> 999T (capped)
       expect(
         decomposeNumber(1e18, 'km'),
         const AnswerValue(
-            number: 999, orderOfMagnitude: 'Qa', unit: 'km', rawValue: 1e18),
+            number: 999, orderOfMagnitude: 'T', unit: 'km', rawValue: 1e18),
       );
 
-      // 999e15 -> 999Qa (at limit)
+      // 999e12 -> 999T (at limit)
       expect(
-        decomposeNumber(999e15, 'm'),
+        decomposeNumber(999e12, 'm'),
         const AnswerValue(
-            number: 999, orderOfMagnitude: 'Qa', unit: 'm', rawValue: 999e15),
+            number: 999, orderOfMagnitude: 'T', unit: 'm', rawValue: 999e12),
       );
     });
 
@@ -130,16 +130,6 @@ void main() {
             orderOfMagnitude: 'T',
             unit: 'km',
             rawValue: 100000000000000.0),
-      );
-
-      // Qa range
-      expect(
-        decomposeNumber(500000000000000000, 'm'),
-        const AnswerValue(
-            number: 500,
-            orderOfMagnitude: 'Qa',
-            unit: 'm',
-            rawValue: 500000000000000000.0),
       );
     });
   });

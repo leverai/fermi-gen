@@ -2,8 +2,8 @@
 /// This provides a single source of truth for OM values and their multipliers.
 ///
 /// Order of magnitude symbols in ascending order:
-/// '', K (thousand), M (million), B (billion), T (trillion), Qa (quadrillion)
-const List<String> orderOfMagnitudeSymbols = ['', 'K', 'M', 'B', 'T', 'Qa'];
+/// '', K (thousand), M (million), B (billion), T (trillion)
+const List<String> orderOfMagnitudeSymbols = ['', 'K', 'M', 'B', 'T'];
 
 /// Human-readable words for each order of magnitude (ascending).
 const List<String> orderOfMagnitudeWords = [
@@ -12,7 +12,6 @@ const List<String> orderOfMagnitudeWords = [
   'million',
   'billion',
   'trillion',
-  'quadrillion',
 ];
 
 /// Multipliers for each order of magnitude symbol.
@@ -23,7 +22,6 @@ const Map<String, int> orderOfMagnitudeMultipliers = {
   'M': 1000000,
   'B': 1000000000,
   'T': 1000000000000,
-  'Qa': 1000000000000000,
 };
 
 /// Power of 10 for each order of magnitude symbol.
@@ -34,5 +32,4 @@ const Map<String, int> orderOfMagnitudePowers = {
   'M': 6,
   'B': 9,
   'T': 12,
-  'Qa': 15,
 };

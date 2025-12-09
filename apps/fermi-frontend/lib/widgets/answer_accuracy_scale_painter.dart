@@ -25,7 +25,7 @@ class ScalePainter extends CustomPainter {
 
   // Constants
 
-  static const double maxLog = 18.0; // 10^18 = 1 Quintillion
+  static const double maxLog = 15.0; // 10^15 = 1 Trillion
   static const double tickHeight = 8.0;
   static const double rulerHeight = 4.0;
   static const double indicatorSize = 16.0;
@@ -60,8 +60,8 @@ class ScalePainter extends CustomPainter {
     );
 
     // Draw Ticks
-    // Ticks at 0, 1, 2, ... 18
-    for (int i = 0; i <= 18; i++) {
+    // Ticks at 0, 1, 2, ... 15
+    for (int i = 0; i <= 15; i++) {
       final x = padding + (i / maxLog) * drawWidth;
       // Make major ticks (0, 3, 6, 9, 12, 15, 18) slightly larger/darker?
       // Requirement: "tick for each order of magnitude starting from zero"
@@ -79,9 +79,9 @@ class ScalePainter extends CustomPainter {
       );
 
       // Draw Labels
-      // Requirement: "The first and last ticks have no label" -> skip 0 and 18
+      // Requirement: "The first and last ticks have no label" -> skip 0 and 15
       // Requirement: "Use abbreviation (K, M, B, etc.)" -> implies only major ticks
-      if (isMajor && i > 0 && i < 18) {
+      if (isMajor && i > 0 && i < 15) {
         String? label;
         switch (i) {
           case 3:
@@ -95,9 +95,6 @@ class ScalePainter extends CustomPainter {
             break;
           case 12:
             label = 'T';
-            break;
-          case 15:
-            label = 'Qa';
             break;
         }
 

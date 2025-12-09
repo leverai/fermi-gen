@@ -4,15 +4,15 @@ import 'package:fermi_frontend/utils/om_constants.dart';
 /// Decomposes an absolute number into (number, orderOfMagnitude) format.
 ///
 /// The number component will be in the range [1, 999] and the order of magnitude
-/// will be one of: '', 'K', 'M', 'B', 'T', 'Qa'.
+/// will be one of: '', 'K', 'M', 'B', 'T'.
 ///
-/// If the value is too large (>999Qa), it caps at 999Qa.
+/// If the value is too large (>999T), it caps at 999T.
 /// If the value is too small (<1), it caps at 1 with empty OM.
 ///
 /// Examples:
 /// - 1234 -> (number: 1, om: 'K')
 /// - 0.5 -> (number: 1, om: '') [capped]
-/// - 1e18 -> (number: 999, om: 'Qa') [capped]
+/// - 1e18 -> (number: 999, om: 'T') [capped]
 AnswerValue decomposeNumber(double absoluteValue, String unit) {
   // Handle edge cases
   if (absoluteValue <= 0 || absoluteValue.isNaN || absoluteValue.isInfinite) {
@@ -26,12 +26,12 @@ AnswerValue decomposeNumber(double absoluteValue, String unit) {
         number: 1, orderOfMagnitude: '', unit: unit, rawValue: absoluteValue);
   }
 
-  // Cap at maximum displayable value (999Qa = 999e15)
-  const double maxDisplayable = 999e15;
+  // Cap at maximum displayable value (999T = 999e12)
+  const double maxDisplayable = 999e12;
   if (absoluteValue > maxDisplayable) {
     return AnswerValue(
         number: 999,
-        orderOfMagnitude: 'Qa',
+        orderOfMagnitude: 'T',
         unit: unit,
         rawValue: absoluteValue);
   }
