@@ -242,10 +242,7 @@ class _PlayerScoreState extends State<PlayerScore> {
       decoration: BoxDecoration(
         color: widget.backgroundColor ?? appTheme.bgLight,
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(
-          color: appTheme.border,
-          width: 2,
-        ),
+        border: Border.all(color: appTheme.border, width: 2),
         boxShadow: [
           BoxShadow(
             color: appTheme.shadowColor,
@@ -259,10 +256,7 @@ class _PlayerScoreState extends State<PlayerScore> {
         child: AnimatedSize(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: digitWidgets,
-          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: digitWidgets),
         ),
       ),
     );
@@ -296,7 +290,9 @@ class _AnimatedDigit extends StatefulWidget {
 
 class _AnimatedDigitState extends State<_AnimatedDigit> {
   late FixedExtentScrollController _scrollController;
-  static const double _itemHeight = 18.0; // Corresponds to fontSize
+  // Increased from 18.0 to 20.0 to accommodate text rendering variations
+  // across different devices and prevent bottom clipping
+  static const double _itemHeight = 20.0;
   static const int _middleIndex = 1000;
 
   @override
@@ -359,12 +355,9 @@ class _AnimatedDigitState extends State<_AnimatedDigit> {
         childDelegate: ListWheelChildBuilderDelegate(
           builder: (context, index) {
             return Center(
-              child: Transform.translate(
-                offset: const Offset(0, -2),
-                child: Text(
-                  (index % 10).toString(),
-                  style: textStyle,
-                ),
+              child: Text(
+                (index % 10).toString(),
+                style: textStyle,
               ),
             );
           },
