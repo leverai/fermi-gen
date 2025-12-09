@@ -85,7 +85,8 @@ class AnimationStateManager {
           '_triggerRevealAnimation POST-FRAME: isReviewMode=$isReviewMode');
 
       if (currentIndex == indexAtStart &&
-          stateManager.animatingQuestionIndex == indexAtStart &&
+          (stateManager.animatingQuestionIndex == indexAtStart ||
+              (isReviewMode && indexAtStart == questionCount - 1)) &&
           (!isReviewMode || indexAtStart == questionCount - 1)) {
         final myScore = playerStateManager.getMyScoreForQuestion(
                 indexAtStart, myPlayerId, stateManager) ??

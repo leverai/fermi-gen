@@ -92,9 +92,9 @@ void main() {
 
       // Assert - should have captured at least one value
       expect(capturedAnswers.length, greaterThan(0));
-      // Last value should be near the end (log 18 = 999 Qa)
+      // Last value should be near the end (log 18 = 999 T)
       final lastAnswer = capturedAnswers.last;
-      expect(lastAnswer.orderOfMagnitude, 'Qa');
+      expect(lastAnswer.orderOfMagnitude, 'T');
     });
 
     testWidgets('should preserve unit when changing answer',
@@ -478,7 +478,8 @@ void main() {
       // Tap at position that should give 10K (log 4)
       const padding = 12.0;
       final drawWidth = width - (padding * 2);
-      final targetX = padding + (4 / 18.0) * drawWidth;
+      // Updated denominator to match new scale range (0-15)
+      final targetX = padding + (4 / 15.0) * drawWidth;
 
       await tester.tapAt(Offset(targetX, size.height / 2));
       await tester.pump();
