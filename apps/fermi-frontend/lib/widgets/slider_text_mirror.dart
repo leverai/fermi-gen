@@ -48,13 +48,20 @@ class SliderTextMirror extends StatelessWidget {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    return Text(
-      _formatValue(value),
-      style: AppFont.primaryTextStyle(
-        context,
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        color: appTheme.textMuted,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+      decoration: BoxDecoration(
+        color: appTheme.borderMuted.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(60),
+      ),
+      child: Text(
+        _formatValue(value),
+        style: AppFont.primaryTextStyle(
+          context,
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          color: appTheme.bg,
+        ),
       ),
     );
   }
