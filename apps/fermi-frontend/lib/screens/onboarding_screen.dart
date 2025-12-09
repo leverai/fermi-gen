@@ -42,6 +42,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   // GlobalKeys for tutorial targets (passed through to child widgets)
   final GlobalKey _questionWidgetKey = GlobalKey();
   final GlobalKey _unitLabelKey = GlobalKey();
+  final GlobalKey _answerScaleKey = GlobalKey();
 
   // Key to access the QuestionScreenV2 wrapper
   final GlobalKey<_QuestionScreenWrapperState> _questionScreenKey = GlobalKey();
@@ -137,7 +138,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 secondaryMessage: null,
                 foregroundColor: appTheme.primary,
                 stepIndex: 1,
-                totalSteps: 2,
+                totalSteps: 3,
+                onNext: () => controller.next(),
+                onSkip: _handleSkip,
+              );
+            },
+          ),
+        ],
+      ),
+      // Step 3: Answer accuracy scale
+      TargetFocus(
+        identify: 'answer-scale',
+        keyTarget: _answerScaleKey,
+        alignSkip: Alignment.topRight,
+        shape: ShapeLightFocus.RRect,
+        radius: 12,
+        paddingFocus: 30,
+        contents: [
+          TargetContent(
+            align: ContentAlign.top,
+            builder: (context, controller) {
+              return _TutorialDialog(
+                key: const ValueKey('answer-scale-card'),
+                message: 'Answer',
+                secondaryMessage: 'Slide to answer',
+                foregroundColor: appTheme.primary,
+                stepIndex: 2,
+                totalSteps: 3,
                 onNext: () => controller.next(),
                 onSkip: _handleSkip,
               );
@@ -162,15 +189,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 message: 'Unit',
                 secondaryMessage: 'Imperial and Metric units',
                 foregroundColor: appTheme.primary,
-                stepIndex: 2,
-                totalSteps: 2,
+                stepIndex: 3,
+                totalSteps: 3,
                 onNext: () => controller.next(),
                 onSkip: _handleSkip,
               );
             },
           ),
         ],
-      ),
+      )
     ];
 
     _tutorialCoachMark = TutorialCoachMark(
@@ -255,6 +282,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             realtime: _realtime,
             questionWidgetKey: _questionWidgetKey,
             unitLabelKey: _unitLabelKey,
+            answerScaleKey: _answerScaleKey,
             onExit: _exitOnboarding,
             onDismissTutorial: _dismissTutorialForDialog,
           ),
@@ -271,6 +299,7 @@ class _QuestionScreenWrapper extends StatefulWidget {
     required this.realtime,
     required this.questionWidgetKey,
     required this.unitLabelKey,
+    required this.answerScaleKey,
     required this.onExit,
     required this.onDismissTutorial,
   });
@@ -278,6 +307,7 @@ class _QuestionScreenWrapper extends StatefulWidget {
   final OnboardingRealtime realtime;
   final GlobalKey questionWidgetKey;
   final GlobalKey unitLabelKey;
+  final GlobalKey answerScaleKey;
   final VoidCallback onExit;
   final VoidCallback onDismissTutorial;
 
@@ -296,6 +326,7 @@ class _QuestionScreenWrapperState extends State<_QuestionScreenWrapper> {
       showLeaveButton: false, // Hide leave button in onboarding
       questionWidgetKey: widget.questionWidgetKey,
       unitKey: widget.unitLabelKey, // Map unitLabelKey to unitKey
+      answerScaleKey: widget.answerScaleKey,
       onFinish: widget.onExit, // Handle Finish button click
       onBeforeShowDialog:
           widget.onDismissTutorial, // Dismiss tutorial before showing dialogs

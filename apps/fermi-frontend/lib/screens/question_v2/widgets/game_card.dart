@@ -97,6 +97,7 @@ class GameCard extends StatelessWidget {
     this.questionWidgetKey,
     this.likeWidgetKey,
     this.unitKey,
+    this.answerScaleKey,
     // Button-related props
     this.paneState,
     this.isLast = false,
@@ -142,6 +143,7 @@ class GameCard extends StatelessWidget {
   final Key? questionWidgetKey;
   final Key? likeWidgetKey;
   final Key? unitKey;
+  final Key? answerScaleKey;
   // Button-related props
   final QuestionPaneState? paneState;
   final bool isLast;
@@ -392,6 +394,7 @@ class GameCard extends StatelessWidget {
                         const SizedBox(height: 20),
                         // Answer Accuracy Scale
                         AnswerAccuracyScale(
+                          key: answerScaleKey,
                           currentAnswer: currentAnswer,
                           submittedAnswer: submittedAnswer,
                           revealedAnswer: revealedAnswer,
