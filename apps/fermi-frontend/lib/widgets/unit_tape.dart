@@ -468,10 +468,10 @@ class _UnitTapeState extends State<UnitTape>
                       borderColor: borderColor,
                       draggingBorderColor: appTheme.secondary,
                       borderWidth: 1.5,
-                      textStyle: AppFont.secondaryTextStyle(
+                      textStyle: AppFont.primaryTextStyle(
                         context,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
                         color: textColor,
                         decoration: TextDecoration.none,
                       ),
