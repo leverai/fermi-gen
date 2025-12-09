@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/utils/om_constants.dart';
@@ -20,6 +21,8 @@ class AnswerAccuracyScale extends StatefulWidget {
     this.revealedColor,
     this.editable = true,
     this.otherPlayersAnswers,
+    this.otherPlayersAvatars,
+    this.currentPlayerAvatarUrl,
     this.onAnswerChanged,
   });
 
@@ -29,6 +32,8 @@ class AnswerAccuracyScale extends StatefulWidget {
   final Color? revealedColor;
   final bool editable;
   final Map<String, AnswerValue>? otherPlayersAnswers;
+  final Map<String, String?>? otherPlayersAvatars;
+  final String? currentPlayerAvatarUrl;
   final ValueChanged<AnswerValue>? onAnswerChanged;
 
   @override
@@ -266,8 +271,88 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                       otherPlayersLogValues: widget.otherPlayersAnswers?.map(
                               (id, ans) => MapEntry(id, _getLogValue(ans))) ??
                           {},
+                      otherPlayersAvatars: widget.otherPlayersAvatars ?? {},
                     ),
                   ),
+                  // Current Player's Avatar Overlay (full opacity)
+                  if (widget.currentPlayerAvatarUrl != null &&
+                      widget.currentPlayerAvatarUrl!.isNotEmpty)
+                    Positioned(
+                      left: padding + (userLogValue / 18.0) * drawWidth - 8,
+                      top: 24 - 8,
+                      child: ClipOval(
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          color: appTheme.bgLight,
+                          child: widget.currentPlayerAvatarUrl!
+                                  .toLowerCase()
+                                  .endsWith('.svg')
+                              ? Padding(
+                                  padding: const EdgeInsets.all(2.0),
+                                  child: SvgPicture.network(
+                                    widget.currentPlayerAvatarUrl!,
+                                    fit: BoxFit.contain,
+                                    placeholderBuilder: (context) =>
+                                        Container(color: appTheme.bgLight),
+                                  ),
+                                )
+                              : Image.network(
+                                  widget.currentPlayerAvatarUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(color: appTheme.bgLight);
+                                  },
+                                ),
+                        ),
+                      ),
+                    ),
+                  // Other Players' Avatar Overlays (0.5 opacity)
+                  if (widget.otherPlayersAnswers != null &&
+                      widget.otherPlayersAvatars != null)
+                    ...widget.otherPlayersAnswers!.entries.map((entry) {
+                      final playerId = entry.key;
+                      final answer = entry.value;
+                      final avatarUrl = widget.otherPlayersAvatars![playerId];
+
+                      // Skip if no avatar URL
+                      if (avatarUrl == null || avatarUrl.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+
+                      final logValue = _getLogValue(answer);
+                      final clampedLogValue = logValue.clamp(0.0, 18.0);
+                      final x = padding + (clampedLogValue / 18.0) * drawWidth;
+
+                      return Positioned(
+                        left: x - 8,
+                        top: 24 - 8,
+                        child: ClipOval(
+                          child: Container(
+                            width: 16,
+                            height: 16,
+                            color: appTheme.bgLight,
+                            child: avatarUrl.toLowerCase().endsWith('.svg')
+                                ? Padding(
+                                    padding: const EdgeInsets.all(2.0),
+                                    child: SvgPicture.network(
+                                      avatarUrl,
+                                      fit: BoxFit.contain,
+                                      placeholderBuilder: (context) =>
+                                          Container(color: appTheme.bgLight),
+                                    ),
+                                  )
+                                : Image.network(
+                                    avatarUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(color: appTheme.bgLight);
+                                    },
+                                  ),
+                          ),
+                        ),
+                      );
+                    }),
                   // Other Players' Circles (with tap handlers)
                   if (widget.otherPlayersAnswers != null)
                     ...widget.otherPlayersAnswers!.entries.map((entry) {

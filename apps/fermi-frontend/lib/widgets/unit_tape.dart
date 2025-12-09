@@ -470,7 +470,7 @@ class _UnitTapeState extends State<UnitTape>
                       borderWidth: 1.5,
                       textStyle: AppFont.primaryTextStyle(
                         context,
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.w400,
                         color: textColor,
                         decoration: TextDecoration.none,
