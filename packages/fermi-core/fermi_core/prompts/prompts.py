@@ -7,10 +7,7 @@ ASK_PROMPT = ChatPromptTemplate.from_messages(
         ('system', (Path(__file__).parent / 'ASK_PROMPT.md').read_text()),
         (
             'human',
-            (
-                'Generate a batch of {num_questions} Fermi questions.'
-                'Your seed: **{seed}**'
-            ),
+            ('Generate a batch of {num_questions} questions. Your seed: **{seed}**'),
         ),
     ],
 )
@@ -24,7 +21,7 @@ EXTRACT_INFO_PROMPT = ChatPromptTemplate.from_messages(
         ),
         (
             'human',
-            'Analyze the following paragraph and extract the required information.\n'
+            'Analyze the following Question and Answer Paragraph, and extract the required information.\n'
             'Question: **{question}**\n'
             'Answer Paragraph: **{paragraph}**\n',
         ),
