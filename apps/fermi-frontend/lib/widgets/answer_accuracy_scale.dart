@@ -8,7 +8,7 @@ import 'package:fermi_frontend/widgets/answer_accuracy_scale_painter.dart';
 
 /// A widget that displays the answer on a logarithmic scale.
 ///
-/// Range: 0 (1) to 18 (1 Quintillion).
+/// Range: 0 (1) to 15 (1 Trillion).
 /// Shows ticks for each order of magnitude.
 /// During reveal, animates a second indicator from the user's answer to the correct answer.
 /// Supports interactive input via tap/drag gestures when editable and onAnswerChanged is provided.
@@ -118,7 +118,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
     if (value.rawValue != null) {
       final double raw = value.rawValue!;
       // Check if out of bounds (same logic as decomposeNumber)
-      const double maxDisplayable = 999e15;
+      const double maxDisplayable = 999e12;
       if (raw < 1 || raw > maxDisplayable) {
         // Use scientific notation
         // Remove trailing zeros and + sign if preferred, but standard is fine
@@ -134,7 +134,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
     const padding = 12.0;
     final drawWidth = width - (padding * 2);
     final normalizedX = (x - padding).clamp(0.0, drawWidth);
-    return (normalizedX / drawWidth) * 18.0;
+    return (normalizedX / drawWidth) * 15.0;
   }
 
   /// Convert continuous log value to AnswerValue
@@ -145,7 +145,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
   /// etc.
   AnswerValue _logToAnswerValue(double logValue, String unit) {
     // Clamp log value to valid range
-    final clampedLog = logValue.clamp(0.0, 18.0);
+    final clampedLog = logValue.clamp(0.0, 15.0);
 
     // Determine which OM bucket (every 3 log units = one OM level)
     final omIndex =
@@ -233,7 +233,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
     double? correctLogValue;
     if (widget.revealedAnswer != null) {
       final rawLog = _getLogValue(widget.revealedAnswer!);
-      correctLogValue = rawLog.clamp(0.0, 18.0);
+      correctLogValue = rawLog.clamp(0.0, 15.0);
     }
 
     return SizedBox(
@@ -251,8 +251,8 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
               // Calculate correct indicator position
               double? currentCorrectX;
               if (correctLogValue != null) {
-                final userX = padding + (userLogValue / 18.0) * drawWidth;
-                final correctX = padding + (correctLogValue / 18.0) * drawWidth;
+                final userX = padding + (userLogValue / 15.0) * drawWidth;
+                final correctX = padding + (correctLogValue / 15.0) * drawWidth;
                 currentCorrectX = userX + (correctX - userX) * _animation.value;
               }
 
@@ -278,7 +278,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                   if (widget.currentPlayerAvatarUrl != null &&
                       widget.currentPlayerAvatarUrl!.isNotEmpty)
                     Positioned(
-                      left: padding + (userLogValue / 18.0) * drawWidth - 8,
+                      left: padding + (userLogValue / 15.0) * drawWidth - 8,
                       top: 24 - 8,
                       child: ClipOval(
                         child: Container(
@@ -321,8 +321,8 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                       }
 
                       final logValue = _getLogValue(answer);
-                      final clampedLogValue = logValue.clamp(0.0, 18.0);
-                      final x = padding + (clampedLogValue / 18.0) * drawWidth;
+                      final clampedLogValue = logValue.clamp(0.0, 15.0);
+                      final x = padding + (clampedLogValue / 15.0) * drawWidth;
 
                       return Positioned(
                         left: x - 8,
@@ -359,8 +359,8 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                       final playerId = entry.key;
                       final answer = entry.value;
                       final logValue = _getLogValue(answer);
-                      final clampedLogValue = logValue.clamp(0.0, 18.0);
-                      final x = padding + (clampedLogValue / 18.0) * drawWidth;
+                      final clampedLogValue = logValue.clamp(0.0, 15.0);
+                      final x = padding + (clampedLogValue / 15.0) * drawWidth;
 
                       return Positioned(
                         left: x,
@@ -382,8 +382,8 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                       final playerId = entry.key;
                       final answer = entry.value;
                       final logValue = _getLogValue(answer);
-                      final clampedLogValue = logValue.clamp(0.0, 18.0);
-                      final x = padding + (clampedLogValue / 18.0) * drawWidth;
+                      final clampedLogValue = logValue.clamp(0.0, 15.0);
+                      final x = padding + (clampedLogValue / 15.0) * drawWidth;
                       final isVisible = _visibleTextBoxes.contains(playerId);
 
                       return Positioned(
@@ -429,7 +429,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                     }),
                   // User Answer Text Box
                   Positioned(
-                    left: padding + (userLogValue / 18.0) * drawWidth,
+                    left: padding + (userLogValue / 15.0) * drawWidth,
                     top: -14, // Position above the scale
                     child: FractionalTranslation(
                       translation: const Offset(-0.5, 0),

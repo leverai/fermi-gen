@@ -389,7 +389,7 @@ class FirestoreGameRealtime implements GameRealtime {
 
   /// Converts a backend answer (single number) to UI format (number + OM).
   /// Backend stores 1000 as {number: 1000}, UI needs {number: 1, om: 'K'}.
-  /// Applies capping for values outside displayable range (>999Qa or <1).
+  /// Applies capping for values outside displayable range (>999T or <1).
   AnswerValue _parseBackendAnswer(double rawNumber, String unit) {
     return decomposeNumber(rawNumber, unit);
   }

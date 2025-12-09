@@ -124,7 +124,7 @@ apps/fermi-frontend/
     │   ├── colormap.dart            # Score/percentile to color lerp (danger→success)
     │   └── layout_constants.dart    # Sizing/spacing constants
     └── widgets/
-        ├── answer_accuracy_scale.dart  # Continuous logarithmic slider (1 to 999 Qa)
+        ├── answer_accuracy_scale.dart  # Continuous logarithmic slider (1 to 999T)
         ├── slider_text_mirror.dart     # Real-time value display (e.g., "124 Million")
         ├── percentile_widget.dart      # Compact "Top X%" display with animations
         ├── unit_tape.dart              # Unit selector with locale toggle
@@ -249,8 +249,8 @@ This ensures the pane always displays the currently active question's revealed a
 **Purpose**: Displays answers on a logarithmic scale with animated reveal functionality.
 
 **Features**:
-- **Logarithmic scale**: Range 0-18 (representing 1 to 1 Quintillion)
-- **Tick marks**: Shows ticks for each order of magnitude with labels (K, M, B, T, Qa)
+- **Logarithmic scale**: Range 0-15 (representing 1 to 1 Trillion)
+- **Tick marks**: Shows ticks for each order of magnitude with labels (K, M, B, T)
 - **Dual indicators**: User answer (static) and correct answer (animated)
 - **Text boxes**: Displays formatted values above/below the scale
 - **Scientific notation**: Automatically uses scientific notation for out-of-bounds values
@@ -902,7 +902,7 @@ The answer input system has been simplified to use a continuous logarithmic slid
 
 ### Structure
 
-- **Primary Input**: `AnswerAccuracyScale` - A continuous logarithmic slider spanning 1 to 999 Qa (Quadrillion)
+- **Primary Input**: `AnswerAccuracyScale` - A continuous logarithmic slider spanning 1 to 999T (Trillion)
 - **Unit Selection**: `UnitTape` - Displays current unit and opens bottom sheet selector when tapped
 - **Value Display**: `SliderTextMirror` - Real-time text display of slider value (e.g., "124 Million")
 - **Layout**: Horizontal row with `SliderTextMirror` (left) and `UnitTape` (right), positioned below the slider
@@ -912,12 +912,12 @@ The answer input system has been simplified to use a continuous logarithmic slid
 
 The `AnswerAccuracyScale` widget provides a continuous logarithmic scale for answer input:
 
-- **Range**: 1 to 999 Qa (10^0 to 10^18)
+- **Range**: 1 to 999T (10^0 to 10^15)
 - **Precision**: Any integer value from 1-999 within each order of magnitude
 - **Examples**: 1, 42, 157, 999, 1K, 42K, 157K, 999K, 1M, etc.
 - **Interaction**: Tap or drag to select value
 - **Visual Feedback**: Real-time position indicator and value display
-- **Scale Labels**: K, M, B, T, Qa markers at major tick positions
+- **Scale Labels**: K, M, B, T markers at major tick positions
 
 ### Value Display (SliderTextMirror)
 

@@ -9,7 +9,7 @@ import 'package:fermi_frontend/utils/om_constants.dart';
 /// Displays the current answer value in a human-readable format:
 /// - "124 Million" for 124M
 /// - "1" for 1 (no OM)
-/// - "999 Quadrillion" for 999Qa
+/// - "999 Trillion" for 999T
 class SliderTextMirror extends StatelessWidget {
   const SliderTextMirror({
     super.key,
