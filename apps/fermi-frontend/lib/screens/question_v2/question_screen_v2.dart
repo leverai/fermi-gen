@@ -334,10 +334,29 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
 
     // Get converted answers for the current player (if revealed)
     final Map<String, AnswerValue>? otherPlayersAnswers;
+    final Map<String, String?>? otherPlayersAvatars;
+    String? currentPlayerAvatarUrl;
+
     if (showFeedback && state.convertedAnswers.isNotEmpty) {
       otherPlayersAnswers = state.convertedAnswers[myId];
+
+      // Extract avatar URLs for other players (excluding current player)
+      otherPlayersAvatars = {};
+      for (final player in state.players) {
+        if (player.playerId != null) {
+          if (player.playerId == myId) {
+            // Store current player's avatar
+            currentPlayerAvatarUrl = player.avatarUrl;
+          } else {
+            // Store other players' avatars
+            otherPlayersAvatars[player.playerId!] = player.avatarUrl;
+          }
+        }
+      }
     } else {
       otherPlayersAnswers = null;
+      otherPlayersAvatars = null;
+      currentPlayerAvatarUrl = null;
     }
 
     return GameCard(
@@ -385,6 +404,8 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
       showPercentile: showPercentile,
       // Other players' converted answers
       otherPlayersAnswers: otherPlayersAnswers,
+      otherPlayersAvatars: otherPlayersAvatars,
+      currentPlayerAvatarUrl: currentPlayerAvatarUrl,
     );
   }
 

@@ -12,6 +12,7 @@ class ScalePainter extends CustomPainter {
     required this.appTheme,
     required this.revealedColor,
     this.otherPlayersLogValues = const <String, double>{},
+    this.otherPlayersAvatars = const <String, String?>{},
   });
 
   final double userLogValue;
@@ -20,6 +21,7 @@ class ScalePainter extends CustomPainter {
   final AppTheme appTheme;
   final Color? revealedColor;
   final Map<String, double> otherPlayersLogValues;
+  final Map<String, String?> otherPlayersAvatars;
 
   // Constants
 
@@ -129,12 +131,14 @@ class ScalePainter extends CustomPainter {
     otherPlayersLogValues.forEach((playerId, logValue) {
       final clampedLogValue = logValue.clamp(0.0, maxLog);
       final x = padding + (clampedLogValue / maxLog) * drawWidth;
+      final avatarUrl = otherPlayersAvatars[playerId];
       _drawIndicator(
         canvas,
         Offset(x, cy),
         appTheme.border,
         appTheme.bgLight,
         opacity: 0.5,
+        avatarUrl: avatarUrl,
       );
     });
 
@@ -181,7 +185,7 @@ class ScalePainter extends CustomPainter {
 
   void _drawIndicator(
       Canvas canvas, Offset center, Color borderColor, Color fillColor,
-      {double scale = 1.0, double opacity = 1.0}) {
+      {double scale = 1.0, double opacity = 1.0, String? avatarUrl}) {
     final paint = Paint()
       ..color = fillColor.withOpacity(opacity)
       ..style = PaintingStyle.fill;
@@ -195,6 +199,14 @@ class ScalePainter extends CustomPainter {
     // Neubrutalism often uses simple geometric shapes.
     // Let's use a Circle.
 
+    // Note: Drawing avatars in CustomPainter requires pre-loaded ui.Image objects.
+    // Since CustomPainter.paint() is synchronous and cannot load images,
+    // we'll need to handle avatar rendering differently - either by:
+    // 1. Pre-loading images in the widget state and passing ui.Image objects
+    // 2. Using a Widget overlay approach instead of painting
+    // For now, we'll draw the background circle and border as before.
+    // Avatar rendering will be handled via Widget overlays in the parent widget.
+
     canvas.drawCircle(center, (indicatorSize / 2) * scale, paint);
     canvas.drawCircle(center, (indicatorSize / 2) * scale, borderPaint);
   }
@@ -206,6 +218,7 @@ class ScalePainter extends CustomPainter {
         oldDelegate.revealProgress != revealProgress ||
         oldDelegate.appTheme != appTheme ||
         oldDelegate.revealedColor != revealedColor ||
-        oldDelegate.otherPlayersLogValues != otherPlayersLogValues;
+        oldDelegate.otherPlayersLogValues != otherPlayersLogValues ||
+        oldDelegate.otherPlayersAvatars != otherPlayersAvatars;
   }
 }

@@ -113,6 +113,8 @@ class GameCard extends StatelessWidget {
     this.showPercentile = false,
     // Other players' converted answers
     this.otherPlayersAnswers,
+    this.otherPlayersAvatars,
+    this.currentPlayerAvatarUrl,
   });
 
   final String questionText;
@@ -156,6 +158,8 @@ class GameCard extends StatelessWidget {
   final bool showPercentile;
   // Other players' converted answers
   final Map<String, AnswerValue>? otherPlayersAnswers;
+  final Map<String, String?>? otherPlayersAvatars;
+  final String? currentPlayerAvatarUrl;
 
   void _copyToClipboard(BuildContext context) {
     Clipboard.setData(ClipboardData(text: questionText));
@@ -394,6 +398,8 @@ class GameCard extends StatelessWidget {
                           revealedColor: revealedColor,
                           editable: editable,
                           otherPlayersAnswers: otherPlayersAnswers,
+                          otherPlayersAvatars: otherPlayersAvatars,
+                          currentPlayerAvatarUrl: currentPlayerAvatarUrl,
                           onAnswerChanged: editable ? onAnswerChanged : null,
                         ),
                         const SizedBox(height: kGameCardButtonSpacing),
