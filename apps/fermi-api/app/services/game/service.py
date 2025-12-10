@@ -237,10 +237,18 @@ class GameService:
     async def start_game(
         self,
         payload: IdModel,
+        background_tasks: BackgroundTasks,
         current_user: 'User',
         firestore_client: 'AsyncClient',
     ) -> IdModel:
-        """Start a game via the use case orchestration."""
+        """Start a game via the use case orchestration.
+
+        If bots are present, schedules background task to submit their answers
+        for the first question.
+        """
+        from app.services.game.bots import is_bot
+        from app.services.game.tasks.submit_bot_answers import submit_bot_answers
+
         use_case = StartGameUseCase(
             firestore_client=firestore_client,
             repo=GameRepository(firestore_client),
@@ -248,10 +256,59 @@ class GameService:
             questions=self._questions_writer,
             players_answers=self._players_results_writer,
         )
-        return await use_case.execute(
+        result = await use_case.execute(
             game_id=payload.resource_id,
             current_user=current_user,
         )
+
+        # Check for bots and schedule their answer submission
+        game_ref = firestore_client.collection('games').document(
+            payload.resource_id,
+        )
+        repo = GameRepository(firestore_client)
+        game_data = await repo.get_game_fields(
+            game_ref,
+            fields=['players', 'question_uid'],
+        )
+        if game_data:
+            players = game_data.get('players', {})
+            bot_ids = [pid for pid in players if is_bot(pid)]
+            question_uid = game_data.get('question_uid')
+            if bot_ids and question_uid:
+                background_tasks.add_task(
+                    submit_bot_answers,
+                    firestore_client=firestore_client,
+                    game_id=payload.resource_id,
+                    question_uid=question_uid,
+                    bot_ids=bot_ids,
+                )
+
+        return result
+
+    async def add_bots(
+        self,
+        game_id: str,
+        bot_count: int,
+        current_user: 'User',
+        firestore_client: 'AsyncClient',
+    ) -> IdModel:
+        """Add bots to a game in lobby state.
+
+        Only the host can add bots. Bots answer automatically when questions
+        are revealed.
+        """
+        from app.services.game.use_cases.add_bots import AddBotsUseCase
+
+        use_case = AddBotsUseCase(
+            firestore_client=firestore_client,
+            repo=GameRepository(firestore_client),
+        )
+        await use_case.execute(
+            game_id=game_id,
+            current_user=current_user,
+            bot_count=bot_count,
+        )
+        return IdModel(resource_id=game_id)
 
     async def submit_answer(
         self,
@@ -294,10 +351,17 @@ class GameService:
     async def next_question(
         self,
         payload: IdModel,
+        background_tasks: BackgroundTasks,
         current_user: 'User',
         firestore_client: 'AsyncClient',
     ) -> IdModel:
-        """Reveal the next question via the use case orchestration."""
+        """Reveal the next question via the use case orchestration.
+
+        If bots are present, schedules background task to submit their answers.
+        """
+        from app.services.game.bots import is_bot
+        from app.services.game.tasks.submit_bot_answers import submit_bot_answers
+
         use_case = NextQuestionUseCase(
             firestore_client=firestore_client,
             repo=GameRepository(firestore_client),
@@ -305,10 +369,34 @@ class GameService:
             questions=self._questions_writer,
             players_answers=self._players_results_writer,
         )
-        return await use_case.execute(
+        result = await use_case.execute(
             game_id=payload.resource_id,
             current_user=current_user,
         )
+
+        # Check for bots and schedule their answer submission
+        game_ref = firestore_client.collection('games').document(
+            payload.resource_id,
+        )
+        repo = GameRepository(firestore_client)
+        game_data = await repo.get_game_fields(
+            game_ref,
+            fields=['players', 'question_uid'],
+        )
+        if game_data:
+            players = game_data.get('players', {})
+            bot_ids = [pid for pid in players if is_bot(pid)]
+            question_uid = game_data.get('question_uid')
+            if bot_ids and question_uid:
+                background_tasks.add_task(
+                    submit_bot_answers,
+                    firestore_client=firestore_client,
+                    game_id=payload.resource_id,
+                    question_uid=question_uid,
+                    bot_ids=bot_ids,
+                )
+
+        return result
 
     async def remove_player(
         self,

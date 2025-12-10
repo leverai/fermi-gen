@@ -170,3 +170,18 @@ class AnswerRepository(BaseRepository):
         # Extract IDs from Row objects (result.all() returns Rows, not raw integers)
         rows = result.all()
         return [row[0] for row in rows if row[0] is not None]
+
+    async def get_user_answer_events(
+        self,
+        user_id: str,
+        limit: int,
+    ) -> list[AnswerEvent]:
+        """Get the latest N answer events for a user."""
+        statement = (
+            select(AnswerEvent)
+            .where(AnswerEvent.user_firebase_id == user_id)  # pyright: ignore[reportArgumentType]
+            .order_by(AnswerEvent.created_at.desc())
+            .limit(limit)
+        )
+        result = await self.session.exec(statement)
+        return result.all()

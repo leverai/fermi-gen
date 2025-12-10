@@ -10,6 +10,7 @@ from google.cloud.firestore_v1.async_client import AsyncClient
 from app.api.v1.auth_deps import get_current_user
 from app.api.v1.dependencies import get_firestore_client, get_game_service
 from app.schemas.endpoints import (
+    AddBotsRequest,
     GameAnswerRequest,
     GameConfigResponse,
     GameCreateRequest,
@@ -46,6 +47,7 @@ async def create_game(
 @router.post('/start', response_model=IdModel)
 async def start_game(
     payload: IdModel,
+    background_tasks: BackgroundTasks,
     current_user: Annotated[User, Depends(get_current_user)],
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     game_service: Annotated[GameService, Depends(get_game_service)],
@@ -53,6 +55,7 @@ async def start_game(
     """Start a game. Only the host can start the game."""
     return await game_service.start_game(
         payload=payload,
+        background_tasks=background_tasks,
         current_user=current_user,
         firestore_client=firestore_client,
     )
@@ -61,6 +64,7 @@ async def start_game(
 @router.post('/next_question', response_model=IdModel)
 async def next_question(
     payload: IdModel,
+    background_tasks: BackgroundTasks,
     current_user: Annotated[User, Depends(get_current_user)],
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     game_service: Annotated[GameService, Depends(get_game_service)],
@@ -68,6 +72,7 @@ async def next_question(
     """Move to the next question. Only the host can trigger this."""
     return await game_service.next_question(
         payload=payload,
+        background_tasks=background_tasks,
         current_user=current_user,
         firestore_client=firestore_client,
     )
@@ -121,6 +126,22 @@ async def join_game(
     return await game_service.join_game(
         payload=payload,
         background_tasks=background_tasks,
+        current_user=current_user,
+        firestore_client=firestore_client,
+    )
+
+
+@router.post('/add_bots', response_model=IdModel)
+async def add_bots(
+    payload: AddBotsRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
+    game_service: Annotated[GameService, Depends(get_game_service)],
+) -> IdModel:
+    """Add bots to a game. Only the host can add bots."""
+    return await game_service.add_bots(
+        game_id=payload.resource_id,
+        bot_count=payload.bot_count,
         current_user=current_user,
         firestore_client=firestore_client,
     )

@@ -51,6 +51,13 @@ class Fermi(SQLModel, table=True):
     updated_at: datetime.datetime = Field(
         sa_column=sa.Column(sa.TIMESTAMP(timezone=False)),
     )
+    # LLM answers for bot players
+    gpt_5_1_number: float
+    gpt_5_1_unit: str | None
+    gpt_5_mini_number: float
+    gpt_5_mini_unit: str | None
+    gpt_5_nano_number: float
+    gpt_5_nano_unit: str | None
 
 
 class UserQuestionHistory(SQLModel, table=True):

@@ -54,6 +54,16 @@ class IdModel(BaseModel):
     resource_id: str
 
 
+class AddBotsRequest(IdModel):
+    """Request model for adding bots to a game.
+
+    The host can add 1-3 bots to any game in lobby state.
+    Bots are added in capability order: gpt-5.1, gpt-5-mini, gpt-5-nano.
+    """
+
+    bot_count: int = 1  # Validated to be 1, 2, or 3 in use case
+
+
 class VoteVerdictResponse(BaseModel):
     """Response with resulting vote verdict value for a question/user."""
 
