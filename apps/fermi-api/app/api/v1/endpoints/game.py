@@ -133,6 +133,7 @@ async def join_game(
 
 @router.post('/add_bots', response_model=IdModel)
 async def add_bots(
+    request: Request,
     payload: AddBotsRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
@@ -140,6 +141,7 @@ async def add_bots(
 ) -> IdModel:
     """Add bots to a game. Only the host can add bots."""
     return await game_service.add_bots(
+        request=request,
         game_id=payload.resource_id,
         bot_count=payload.bot_count,
         current_user=current_user,

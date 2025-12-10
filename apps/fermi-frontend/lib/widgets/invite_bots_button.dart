@@ -2,15 +2,23 @@ import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 
-class ShareButton extends StatefulWidget {
+class InviteBotsButton extends StatefulWidget {
   final VoidCallback onPressed;
-  const ShareButton({super.key, required this.onPressed});
+  final int botCount;
+  final bool enabled;
+
+  const InviteBotsButton({
+    super.key,
+    required this.onPressed,
+    required this.botCount,
+    this.enabled = true,
+  });
 
   @override
-  State<ShareButton> createState() => _ShareButtonState();
+  State<InviteBotsButton> createState() => _InviteBotsButtonState();
 }
 
-class _ShareButtonState extends State<ShareButton> {
+class _InviteBotsButtonState extends State<InviteBotsButton> {
   bool _isPressed = false;
 
   @override
@@ -19,15 +27,24 @@ class _ShareButtonState extends State<ShareButton> {
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
     // Use secondary color as requested
-    final backgroundColor = appTheme.secondary;
+    final backgroundColor =
+        widget.enabled ? appTheme.secondary : appTheme.bgDark;
     // Use a contrasting text color. Since secondary is vibrant/dark, white or bgLight usually works well.
-    final foregroundColor = appTheme.bgLight;
+    final foregroundColor =
+        widget.enabled ? appTheme.bgLight : appTheme.borderMuted;
+
+    final buttonLabel = widget.botCount == 1
+        ? 'Invite 1 bot'
+        : 'Invite ${widget.botCount} bots';
 
     return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) => setState(() => _isPressed = false),
-      onTapCancel: () => setState(() => _isPressed = false),
-      onTap: widget.onPressed,
+      onTapDown:
+          widget.enabled ? (_) => setState(() => _isPressed = true) : null,
+      onTapUp:
+          widget.enabled ? (_) => setState(() => _isPressed = false) : null,
+      onTapCancel:
+          widget.enabled ? () => setState(() => _isPressed = false) : null,
+      onTap: widget.enabled ? widget.onPressed : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 100),
         transform: Matrix4.translationValues(
@@ -43,7 +60,7 @@ class _ShareButtonState extends State<ShareButton> {
             width: appTheme.borderWidth,
           ),
           boxShadow: [
-            if (!_isPressed)
+            if (!_isPressed && widget.enabled)
               BoxShadow(
                 color: appTheme.shadowColor,
                 offset: appTheme.shadowOffset,
@@ -55,13 +72,13 @@ class _ShareButtonState extends State<ShareButton> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.person_add_alt_1_rounded, // Use a "Invite" style icon
+              Icons.smart_toy, // Robot icon for bots
               color: foregroundColor,
               size: 24,
             ),
             const SizedBox(width: 8),
             Text(
-              'Invite friends',
+              buttonLabel,
               style: TextStyle(
                 color: foregroundColor,
                 fontFamily: AppFont.primaryOf(context),

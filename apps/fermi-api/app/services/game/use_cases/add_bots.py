@@ -14,6 +14,7 @@ from app.services.game.bots import BOT_ORDER, BOTS
 from app.services.game.writers.players_writer import MAX_PLAYERS
 
 if TYPE_CHECKING:
+    from fastapi import Request
     from fermi_db.models.user import User
     from google.cloud.firestore_v1 import AsyncClient
 
@@ -36,6 +37,7 @@ class AddBotsUseCase:
     async def execute(
         self,
         *,
+        request: 'Request',
         game_id: str,
         current_user: 'User',
         bot_count: int,
@@ -43,6 +45,7 @@ class AddBotsUseCase:
         """Add bots to the game and return list of added bot IDs.
 
         Args:
+            request: FastAPI request object for constructing absolute URLs.
             game_id: The game to add bots to.
             current_user: The user making the request (must be host).
             bot_count: Number of bots to add (1-3).
@@ -109,14 +112,19 @@ class AddBotsUseCase:
                 detail='Adding bots would exceed max player limit',
             )
 
+        # Construct base URL for absolute avatar URLs
+        base_url = str(request.base_url).rstrip('/')
+
         # Add bots to players map
         batch = self._client.batch()
         for bot_id in bots_to_add:
             bot = BOTS[bot_id]
+            # Convert relative picture URL to absolute URL
+            picture_url = f'{base_url}{bot["picture"]}'
             bot_player = GamePlayer(
                 player_id=bot_id,
                 name=bot['name'],
-                picture=bot['picture'],
+                picture=picture_url,
                 score=0,
                 rank=0,
                 is_host=False,

@@ -1,6 +1,7 @@
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
 import 'package:fermi_frontend/widgets/share_button.dart';
+import 'package:fermi_frontend/widgets/invite_bots_button.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
 import 'package:fermi_frontend/widgets/players_row.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,9 @@ class LobbyScreen extends StatelessWidget {
     this.joinUrl,
     this.onLeave,
     this.currentPlayerId,
+    this.isHost = false,
+    this.onInviteBots,
+    this.botsToInvite = 0,
   });
 
   final List<PlayerState> players;
@@ -30,6 +34,9 @@ class LobbyScreen extends StatelessWidget {
   final String? joinUrl;
   final VoidCallback? onLeave;
   final String? currentPlayerId;
+  final bool isHost;
+  final VoidCallback? onInviteBots;
+  final int botsToInvite;
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +105,9 @@ class LobbyScreen extends StatelessWidget {
                               onShare: onShare,
                               color: appTheme.info,
                               joinUrl: joinUrl,
+                              isHost: isHost,
+                              onInviteBots: onInviteBots,
+                              botsToInvite: botsToInvite,
                             ),
                           );
                         }),
@@ -133,6 +143,9 @@ class _CenterCallout extends StatelessWidget {
     required this.color,
     this.onShare,
     this.joinUrl,
+    this.isHost = false,
+    this.onInviteBots,
+    this.botsToInvite = 0,
   });
 
   final bool isPrivate;
@@ -140,17 +153,52 @@ class _CenterCallout extends StatelessWidget {
   final Color color;
   final VoidCallback? onShare;
   final String? joinUrl;
+  final bool isHost;
+  final VoidCallback? onInviteBots;
+  final int botsToInvite;
 
   @override
   Widget build(BuildContext context) {
+    // Show bot invitation button if host and bots can be invited
+    final showBotButton = isHost && botsToInvite > 0 && onInviteBots != null;
+
     if (isPrivate) {
-      // Use provided share handler; future improvement could wire joinUrl into it
-      return Center(child: ShareButton(onPressed: onShare ?? () {}));
+      // Private lobby: show share button and optionally bot button for host
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showBotButton) ...[
+              InviteBotsButton(
+                onPressed: onInviteBots!,
+                botCount: botsToInvite,
+              ),
+              const SizedBox(height: 12),
+            ],
+            ShareButton(onPressed: onShare ?? () {}),
+          ],
+        ),
+      );
     }
     if (isWaiting) {
-      return LoadingAnimationWidget.fourRotatingDots(
-        color: color,
-        size: 44,
+      // Public lobby waiting: show loading spinner and optionally bot button for host
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showBotButton) ...[
+              InviteBotsButton(
+                onPressed: onInviteBots!,
+                botCount: botsToInvite,
+              ),
+              const SizedBox(height: 12),
+            ],
+            LoadingAnimationWidget.fourRotatingDots(
+              color: color,
+              size: 44,
+            ),
+          ],
+        ),
       );
     }
     return const SizedBox(height: 36);

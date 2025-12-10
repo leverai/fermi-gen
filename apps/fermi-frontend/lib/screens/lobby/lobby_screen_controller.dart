@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:fermi_frontend/screens/lobby/lobby_screen.dart';
 import 'package:fermi_frontend/services/api_service.dart';
@@ -31,6 +32,9 @@ class LobbyScreenController extends StatefulWidget {
 }
 
 class _LobbyScreenControllerState extends State<LobbyScreenController> {
+  // Backend enforces max 8 players per game
+  static const int _maxPlayers = 8;
+
   StreamSubscription<GameSnapshot>? _sub;
   List<PlayerState> _players = const <PlayerState>[];
   bool _isHost = false;
@@ -40,6 +44,7 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
   bool _isLobby = true;
   bool _navigatedToQuestions = false;
   GameSessionController? _session;
+  int _botsToInvite = 0;
   // kept for potential future use to delay UI swaps until first realtime
   // snapshot; currently unused but harmless
 
@@ -63,6 +68,10 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
             snapshot.state == GameState.lobbyReady;
         _isPrivate = snapshot.isPrivate;
         _joinUrl = snapshot.joinUrl;
+        // Calculate how many bots can be invited
+        final int currentPlayerCount = snapshot.players.length;
+        final int remainingSpots = _maxPlayers - currentPlayerCount;
+        _botsToInvite = min(3, max(0, remainingSpots));
         // Lobby: preserve natural order as provided by the snapshot
         _players = snapshot.players.values
             .map((p) => PlayerState(
@@ -177,6 +186,34 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
     }
   }
 
+  Future<void> _inviteBots() async {
+    if (_botsToInvite <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No bot slots available')),
+      );
+      return;
+    }
+    try {
+      await widget.api.addBots(
+        gameId: widget.gameId,
+        botCount: _botsToInvite,
+      );
+      if (!mounted) return;
+      final String message = _botsToInvite == 1
+          ? 'Invited 1 bot to the game'
+          : 'Invited $_botsToInvite bots to the game';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to invite bots: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ThemeData base = Theme.of(context);
@@ -201,6 +238,9 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
         joinUrl: _joinUrl,
         onShare: _isPrivate ? _shareInvite : null,
         currentPlayerId: widget.realtime.currentPlayerId,
+        isHost: _isHost,
+        onInviteBots: _isHost ? _inviteBots : null,
+        botsToInvite: _botsToInvite,
         onLeave: () async {
           final appTheme = Theme.of(context).extension<AppTheme>() ??
               AppTheme.defaultTheme();
