@@ -68,6 +68,7 @@ async def llm_answer_questions(
         llm_inputs: list[LLMAnswerInput] = []
         question_ids: list[int] = []
 
+        units_sets: list[list[str] | None] = []
         for question_id, question_text, answer_unit in questions_data:
             # Get units ladder for dimensional questions
             units_set: list[str] | None = None
@@ -84,6 +85,7 @@ async def llm_answer_questions(
                 LLMAnswerInput(question=question_text, units_set=units_set),
             )
             question_ids.append(question_id)
+            units_sets.append(units_set)
 
         # Batch LLM answering
         results = await allm_answer_batch(
@@ -98,9 +100,23 @@ async def llm_answer_questions(
         llm_answers: list[LLMAnswer] = []
         skipped = 0
 
-        for question_id, result in zip(question_ids, results, strict=True):
+        for question_id, result, units_set in zip(
+            question_ids,
+            results,
+            units_sets,
+            strict=True,
+        ):
             if isinstance(result, BaseException):
                 logger.error(f'Failed to LLM answer question {question_id}: {result}')
+                skipped += 1
+                continue
+
+            # Validate the the agent did choose a valid unit from the set.
+            if units_set and result.unit not in units_set:
+                logger.error(
+                    f'LLM answer unit {result.unit} does not match expected units '
+                    f'{units_set} for question {question_id}',
+                )
                 skipped += 1
                 continue
 
