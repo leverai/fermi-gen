@@ -321,7 +321,6 @@ def _seed_questions_once() -> None:
             'run',
             '--package',
             'fermi-db',
-            'python',
             'scripts/seed_test_questions.py',
             '--file',
             str(test_data_path),

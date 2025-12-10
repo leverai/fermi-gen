@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 import sqlalchemy as sa
-from fermi_db.models import FermiAnswer, FermiQuestion, Seed
+from fermi_db.models import FermiAnswer, FermiQuestion, LLMAnswer, Seed
 from fermi_db.session import get_session
 
 
@@ -86,7 +86,25 @@ async def seed_test_data(test_data_path: Path) -> None:
             session.add(answer)
         await session.commit()
 
-        # 4. Refresh the materialized view
+        # 4. Insert LLM answers
+        if 'llm_answers' in test_data:
+            print('🤖 Inserting LLM answers...')
+            llm_answers = [
+                LLMAnswer(
+                    question_id=la['question_id'],
+                    model=la['model'],
+                    number=la['number'],
+                    unit=la['unit'],
+                )
+                for la in test_data['llm_answers']
+            ]
+            for llm_answer in llm_answers:
+                session.add(llm_answer)
+            await session.commit()
+        else:
+            print('⚠️  No llm_answers in test data, skipping...')
+
+        # 5. Refresh the materialized view
         print('🔄 Refreshing fermi materialized view...')
         await session.execute(sa.text('REFRESH MATERIALIZED VIEW fermi'))
         await session.commit()

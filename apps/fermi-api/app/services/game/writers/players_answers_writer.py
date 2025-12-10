@@ -8,6 +8,9 @@ of HTTP-aware ones.
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, cast
 
+from fermi_core.units import (
+    convert_answer_to_user_unit,
+)
 from fermi_db.schemas import AnswerBare
 from google.cloud import firestore
 
@@ -21,9 +24,6 @@ from app.schemas.game import (
 )
 from app.services.game.errors import NotFoundError, StateConflictError
 from app.services.scoring import ScoringService
-from app.services.units import (
-    convert_answer_to_user_unit,
-)
 
 if TYPE_CHECKING:
     from google.cloud.firestore_v1 import (

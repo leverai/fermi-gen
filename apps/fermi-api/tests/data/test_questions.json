@@ -31094,9 +31094,9 @@
         },
         {
             "question_id": 14,
-            "number": 4.011e16,
+            "number": 4.011e+16,
             "unit": "meter",
-            "snippet": "Proxima Centauri, the nearest star to Earth (excluding the Sun), is 4.24 light-years away (approximately 4.01 × 10^16 meters).",
+            "snippet": "Proxima Centauri, the nearest star to Earth (excluding the Sun), is 4.24 light-years away (approximately 4.01 \u00d7 10^16 meters).",
             "used_ai_overview": true,
             "success": true,
             "serp_metadata": {
@@ -31113,6 +31113,278 @@
             "serp_metadata": {
                 "source": "test"
             }
+        }
+    ],
+    "llm_answers": [
+        {
+            "question_id": 1,
+            "model": "gpt-5.1",
+            "number": 27750000.0,
+            "unit": null
+        },
+        {
+            "question_id": 1,
+            "model": "gpt-5-mini",
+            "number": 18500000.0,
+            "unit": null
+        },
+        {
+            "question_id": 1,
+            "model": "gpt-5-nano",
+            "number": 9250000.0,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gpt-5.1",
+            "number": 87750000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gpt-5-mini",
+            "number": 58500000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gpt-5-nano",
+            "number": 29250000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gpt-5.1",
+            "number": 210000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gpt-5-mini",
+            "number": 140000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gpt-5-nano",
+            "number": 70000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 4,
+            "model": "gpt-5.1",
+            "number": 30750000.0,
+            "unit": "kilometer"
+        },
+        {
+            "question_id": 4,
+            "model": "gpt-5-mini",
+            "number": 20500000.0,
+            "unit": "kilometer"
+        },
+        {
+            "question_id": 4,
+            "model": "gpt-5-nano",
+            "number": 10250000.0,
+            "unit": "kilometer"
+        },
+        {
+            "question_id": 5,
+            "model": "gpt-5.1",
+            "number": 75.0,
+            "unit": "acre"
+        },
+        {
+            "question_id": 5,
+            "model": "gpt-5-mini",
+            "number": 50.0,
+            "unit": "acre"
+        },
+        {
+            "question_id": 5,
+            "model": "gpt-5-nano",
+            "number": 25.0,
+            "unit": "acre"
+        },
+        {
+            "question_id": 6,
+            "model": "gpt-5.1",
+            "number": 7500000.0,
+            "unit": "ton"
+        },
+        {
+            "question_id": 6,
+            "model": "gpt-5-mini",
+            "number": 5000000.0,
+            "unit": "ton"
+        },
+        {
+            "question_id": 6,
+            "model": "gpt-5-nano",
+            "number": 2500000.0,
+            "unit": "ton"
+        },
+        {
+            "question_id": 7,
+            "model": "gpt-5.1",
+            "number": 75000000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 7,
+            "model": "gpt-5-mini",
+            "number": 50000000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 7,
+            "model": "gpt-5-nano",
+            "number": 25000000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gpt-5.1",
+            "number": 450.0,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gpt-5-mini",
+            "number": 300.0,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gpt-5-nano",
+            "number": 150.0,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gpt-5.1",
+            "number": 2250000000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gpt-5-mini",
+            "number": 1500000000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gpt-5-nano",
+            "number": 750000000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 10,
+            "model": "gpt-5.1",
+            "number": 112500000.0,
+            "unit": "ton"
+        },
+        {
+            "question_id": 10,
+            "model": "gpt-5-mini",
+            "number": 75000000.0,
+            "unit": "ton"
+        },
+        {
+            "question_id": 10,
+            "model": "gpt-5-nano",
+            "number": 37500000.0,
+            "unit": "ton"
+        },
+        {
+            "question_id": 11,
+            "model": "gpt-5.1",
+            "number": 288750.0,
+            "unit": null
+        },
+        {
+            "question_id": 11,
+            "model": "gpt-5-mini",
+            "number": 192500.0,
+            "unit": null
+        },
+        {
+            "question_id": 11,
+            "model": "gpt-5-nano",
+            "number": 96250.0,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gpt-5.1",
+            "number": 75000.0,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gpt-5-mini",
+            "number": 50000.0,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gpt-5-nano",
+            "number": 25000.0,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gpt-5.1",
+            "number": 48750000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gpt-5-mini",
+            "number": 32500000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gpt-5-nano",
+            "number": 16250000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 14,
+            "model": "gpt-5.1",
+            "number": 3.00825e+16,
+            "unit": "meter"
+        },
+        {
+            "question_id": 14,
+            "model": "gpt-5-mini",
+            "number": 2.0055e+16,
+            "unit": "meter"
+        },
+        {
+            "question_id": 14,
+            "model": "gpt-5-nano",
+            "number": 1.00275e+16,
+            "unit": "meter"
+        },
+        {
+            "question_id": 15,
+            "model": "gpt-5.1",
+            "number": 1.00125e+18,
+            "unit": "meter ** 3"
+        },
+        {
+            "question_id": 15,
+            "model": "gpt-5-mini",
+            "number": 6.675e+17,
+            "unit": "meter ** 3"
+        },
+        {
+            "question_id": 15,
+            "model": "gpt-5-nano",
+            "number": 3.3375e+17,
+            "unit": "meter ** 3"
         }
     ]
 }

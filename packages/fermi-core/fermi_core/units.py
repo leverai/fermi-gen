@@ -3,19 +3,34 @@
 MONEY and COUNT are treated as unitless. DATA_SIZE uses the same units across
 regions. Do not persist these units in the database; include them inline in API
 responses as needed.
+
+This module is the canonical source for unit definitions, shared between
+fermi-api and fermi-etl applications.
 """
 
 import logging
 from collections.abc import Generator
+from enum import StrEnum
+from typing import TYPE_CHECKING, cast
 
 import pint
-from fermi_db.schemas import AnswerBare, Locale
 
-from app.schemas.game import UnitInfo
+from fermi_core.schemas.units import UnitInfo
+
+if TYPE_CHECKING:
+    from fermi_core.schemas.answers import AnswerBare
 
 logger = logging.getLogger(__name__)
 
 ureg = pint.UnitRegistry()
+
+
+class Locale(StrEnum):
+    """Locale of a user."""
+
+    US = 'US'
+    EU = 'EU'
+
 
 # --- Mass ---
 OUNCE = UnitInfo(id='ounce', abbreviation='oz', name='Ounce')
@@ -164,28 +179,29 @@ def step_down_units_ladder(unit_id: str) -> Generator[str, None, None]:
     yield from units_ids_ladder[unit_idx::-1]
 
 
-def convert_answer_to_user_unit(
-    player_unit_id: str,
-    correct_answer: AnswerBare,
-) -> AnswerBare:
-    """Convert an answer to the user's unit.
-    
-    Returns the correct answer converted to the same unit as the player's answer.
-    The frontend is responsible for handling display constraints (e.g., capping values).
-    """
-    correct_quantity = ureg.Quantity(correct_answer['number'], correct_answer['unit'])
-    converted_quantity = correct_quantity.to(player_unit_id)
-    return AnswerBare(
-        number=converted_quantity.magnitude,
-        unit=None
-        if converted_quantity.dimensionless
-        else player_unit_id,
-    )
-
-
 def get_unit_locale(unit_id: str) -> Locale:
     """Get the locale of a unit."""
     locale = _UNIT_LOCALE_MAP.get(unit_id)
     if locale is None:
         raise ValueError(f'Unit {unit_id} not found')
     return locale
+
+
+def convert_answer_to_user_unit(
+    player_unit_id: str,
+    correct_answer: 'AnswerBare',
+) -> 'AnswerBare':
+    """Convert an answer to the user's unit.
+
+    Returns the correct answer converted to the same unit as the player's answer.
+    The frontend is responsible for handling display constraints (e.g., capping values).
+    """
+    correct_quantity = ureg.Quantity(correct_answer['number'], correct_answer['unit'])
+    converted_quantity = correct_quantity.to(player_unit_id)
+    return cast(
+        'AnswerBare',
+        {
+            'number': converted_quantity.magnitude,
+            'unit': None if converted_quantity.dimensionless else player_unit_id,
+        },
+    )

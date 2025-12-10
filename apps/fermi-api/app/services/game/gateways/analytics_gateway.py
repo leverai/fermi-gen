@@ -10,6 +10,7 @@ import asyncio
 import uuid
 from typing import TYPE_CHECKING, cast
 
+from fermi_core.units import get_unit_family
 from fermi_db.models import AnswerEvent
 from fermi_db.models.game import VoteVerdict
 from fermi_db.schemas import QuestionCategory
@@ -21,7 +22,6 @@ from app.schemas.game import (
     QuestionDoc,
     ScoreQuantiles,
 )
-from app.services.units import get_unit_family
 
 if TYPE_CHECKING:
     from fermi_db import DatabaseClient
