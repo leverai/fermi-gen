@@ -13,18 +13,18 @@ Given a Fermi estimation question, provide your best estimate for the answer. A 
 
 ## Output Format
 
-- `number`: Your numeric estimate (can be a decimal or integer)
+- `number`: Your numeric estimate, provided **in Scientific Notation**.
 - `unit`: The unit for your answer. Use `null` for dimensionless questions (counts, ratios, percentages). For dimensional questions, select from the provided unit set.
 
 ## Examples
 
 **Question:** "How many piano tuners are there in Chicago?"
-**Answer:** number=200, unit=null
+**Answer:** number="2.0e2", unit=null
 
 **Question:** "What is the mass of the Eiffel Tower?"
 **Unit Set:** ["gram", "kilogram", "metric_ton"]
-**Answer:** number=10100, unit="metric_ton"
+**Answer:** number="1.0e6", unit="metric_ton"
 
 **Question:** "How tall is the Empire State Building?"
 **Unit Set:** ["centimeter", "meter", "kilometer"]
-**Answer:** number=443, unit="meter"
+**Answer:** number="4.43e2", unit="meter"
