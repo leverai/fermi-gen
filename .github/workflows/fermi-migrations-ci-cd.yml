@@ -85,7 +85,7 @@ jobs:
           region: ${{ vars.GCP_REGION }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
           secrets: |
-            DATABASE_URL=${{ vars.DATABAE_URL_SECRET }}:latest
+            DATABASE_URL=${{ vars.DATABASE_URL_SECRET }}:latest
           flags: |
             --service-account=fermi-migrations-runner@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
             --set-cloudsql-instances=${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:${{ vars.CLOUD_SQL_INSTANCE }}
