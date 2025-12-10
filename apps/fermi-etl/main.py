@@ -5,7 +5,7 @@ import logging
 from fastapi import FastAPI
 from fermi_core.logging_utils import setup_logging
 
-from app.api import answers, composite, enrichment, questions, seeds
+from app.api import answers, composite, enrichment, llm_answers, questions, seeds
 from app.version import __version__
 
 # Setup logging
@@ -24,6 +24,7 @@ app.include_router(seeds.router, prefix='/seeds', tags=['Seeds'])
 app.include_router(questions.router, prefix='/questions', tags=['Questions'])
 app.include_router(answers.router, prefix='/answers', tags=['Answers'])
 app.include_router(enrichment.router, prefix='/enrich', tags=['Enrichment'])
+app.include_router(llm_answers.router, prefix='/llm_answers', tags=['LLM Answers'])
 app.include_router(composite.router, tags=['Composite Workflows'])
 
 

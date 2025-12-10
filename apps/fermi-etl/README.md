@@ -155,6 +155,38 @@ Refresh the `fermi` materialized view to reflect latest data.
 
 **Request:** Empty body
 
+### LLM Answers (`/llm_answers`)
+
+#### `POST /gpt-5.1`
+Generate LLM answers for unanswered questions using gpt-5.1 model.
+
+```json
+{"num_questions": 50}
+```
+
+#### `POST /gpt-5-mini`
+Generate LLM answers using gpt-5-mini model.
+
+```json
+{"num_questions": 50}
+```
+
+#### `POST /gpt-5-nano`
+Generate LLM answers using gpt-5-nano model.
+
+```json
+{"num_questions": 50}
+```
+
+#### `POST /all`
+Generate LLM answers using all three models (gpt-5.1, gpt-5-mini, gpt-5-nano).
+
+```json
+{"num_questions": 50}
+```
+
+**Note:** LLM answering requires questions to have successful SerpAPI answers first. For dimensional questions (with units), the LLM is provided with the appropriate unit set to choose from.
+
 ### Composite Workflows
 
 #### `POST /insert_llm`

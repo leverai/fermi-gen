@@ -8,7 +8,14 @@ from .game import (
     UserQuestionHistory,
     VoteVerdict,
 )
-from .pipeline import FermiAnswer, FermiQuestion, RawQuestion, Seed, SeedsUsage
+from .pipeline import (
+    FermiAnswer,
+    FermiQuestion,
+    LLMAnswer,
+    RawQuestion,
+    Seed,
+    SeedsUsage,
+)
 from .user import User
 
 __all__ = [
@@ -17,6 +24,7 @@ __all__ = [
     'Fermi',
     'FermiAnswer',
     'FermiQuestion',
+    'LLMAnswer',
     'QuestionVote',
     'RawQuestion',
     'Seed',

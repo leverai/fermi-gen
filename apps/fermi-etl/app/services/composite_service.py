@@ -13,6 +13,7 @@ from app.services.enrichment_service import (
     enrich_difficulties,
     refresh_materialized_view,
 )
+from app.services.llm_answer_service import LLMAnswerResult, llm_answer_questions
 from app.services.question_service import (
     QuestionBatchResult,
     insert_literal_questions,
@@ -30,6 +31,7 @@ class CompositeResult:
     question_result: QuestionBatchResult | None = None
     answer_result: AnswerResult | None = None
     enrichment_result: EnrichmentResult | None = None
+    llm_answer_results: list[LLMAnswerResult] | None = None
     error: str | None = None
 
 
@@ -37,7 +39,7 @@ async def _run_answer_workflow(
     question_result: QuestionBatchResult,
     config: ETLConfig,
 ) -> CompositeResult:
-    # Step 1: Answer questions
+    # Step 2: Answer questions
     logger.info(
         f'Step 2: Answering {len(question_result.new_question_ids)} questions...',
     )
@@ -55,8 +57,9 @@ async def _run_answer_workflow(
             error='Answer generation failed',
         )
 
-    # Step 2: Enrich questions
-    logger.info('Step 3: Enriching newly answered questions...')
+    # Step 3: Enrich questions
+    # Step 3.1: Enrich categories
+    logger.info('Step 3.1: Enriching categories of newly answered questions...')
     try:
         category_result = await enrich_categories(
             limit=answer_result.questions_answered,
@@ -70,6 +73,8 @@ async def _run_answer_workflow(
             answer_result=answer_result,
             error=traceback.format_exc(),
         )
+    # Step 3.2: Enrich difficulties
+    logger.info('Step 3.2: Enriching difficulties of newly answered questions...')
     try:
         difficulty_result = await enrich_difficulties(
             limit=answer_result.questions_answered,
@@ -84,7 +89,22 @@ async def _run_answer_workflow(
             error=traceback.format_exc(),
         )
 
-    # Step 4: Refresh materialized view
+    # Step 4: LLM answer questions with all configured models
+    logger.info('Step 4: LLM answering newly enriched questions...')
+    llm_answer_results: list[LLMAnswerResult] = []
+    for model in config.llm_answer_models:
+        try:
+            llm_result = await llm_answer_questions(
+                model=model,
+                limit=answer_result.questions_answered,
+                config=config,
+            )
+            llm_answer_results.append(llm_result)
+        except Exception:
+            logger.exception(f'LLM answering failed for model {model}')
+            # Continue with other models even if one fails
+
+    # Step 5: Refresh materialized view
     await refresh_materialized_view()
 
     # Combine enrichment results
@@ -98,12 +118,13 @@ async def _run_answer_workflow(
             'difficulty': difficulty_result.details,
         },
     )
-    logger.info('Enrichment completed')
+    logger.info('Composite workflow completed')
     return CompositeResult(
         success=True,
         question_result=question_result,
         answer_result=answer_result,
         enrichment_result=combined_enrichment,
+        llm_answer_results=llm_answer_results if llm_answer_results else None,
     )
 
 

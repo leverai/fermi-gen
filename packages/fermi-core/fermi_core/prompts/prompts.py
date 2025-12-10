@@ -69,3 +69,17 @@ DIFFICULTY_PROMPT = ChatPromptTemplate.from_messages(
         ),
     ],
 )
+
+
+LLM_ANSWER_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            'system',
+            (Path(__file__).parent / 'LLM_ANSWER_PROMPT.md').read_text(),
+        ),
+        (
+            'human',
+            'Answer the following Fermi question: **{question}**\n{units_info}',
+        ),
+    ],
+)
