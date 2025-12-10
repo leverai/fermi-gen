@@ -287,6 +287,7 @@ class GameService:
 
     async def add_bots(
         self,
+        request: 'Request',
         game_id: str,
         bot_count: int,
         current_user: 'User',
@@ -304,6 +305,7 @@ class GameService:
             repo=GameRepository(firestore_client),
         )
         await use_case.execute(
+            request=request,
             game_id=game_id,
             current_user=current_user,
             bot_count=bot_count,

@@ -307,6 +307,27 @@ class ApiService {
     }
   }
 
+  Future<void> addBots({
+    required String gameId,
+    required int botCount,
+  }) async {
+    try {
+      final response = await _authPost('/game/add_bots', {
+        'resource_id': gameId,
+        'bot_count': botCount,
+      });
+
+      if (response.statusCode != 200) {
+        final error = _extractErrorMessage(response);
+        throw Exception('Failed to add bots: $error');
+      }
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   // --- Question votes ---
   Future<void> upvoteQuestion({required String questionUid}) async {
     await _postIdModel(path: '/question/upvote', resourceId: questionUid);
