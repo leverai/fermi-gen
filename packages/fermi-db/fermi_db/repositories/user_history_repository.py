@@ -97,6 +97,20 @@ class UserHistoryRepository(BaseRepository):
         results = await self.session.exec(statement)
         return list(results.all())
 
+    async def get_question_by_uid(self, question_uid: UUID) -> Fermi | None:
+        """Fetch a single question from the fermi MV by its UID.
+
+        Args:
+            question_uid: The question's unique identifier.
+
+        Returns:
+            The Fermi row if found, None otherwise.
+
+        """
+        statement = select(Fermi).where(Fermi.uid == question_uid)
+        result = await self.session.exec(statement)
+        return result.one_or_none()
+
     async def add_questions_to_users_history(
         self,
         user_ids: Iterable[str],
@@ -120,3 +134,12 @@ class UserHistoryRepository(BaseRepository):
 
         await self.session.execute(insert_stmt)  # type: ignore
         await self.session.commit()
+
+    async def has_user_seen_question(self, user_id: str, question_uid: UUID) -> bool:
+        """Check if a user has seen a question."""
+        statement = select(UserQuestionHistory).where(
+            UserQuestionHistory.user_id == user_id,
+            UserQuestionHistory.question_uid == question_uid,
+        )
+        result = await self.session.exec(statement)
+        return result.one_or_none() is not None

@@ -361,6 +361,51 @@ State becomes `QUESTION_LAST_FINISHED` and the game is considered over.
 
 ---
 
+## Bot Players
+
+The backend supports up to 3 bot players per game. Bots are powered by LLM-generated answers stored in the `fermi` materialized view.
+
+### Bot Identifiers
+
+| Bot ID | Name | Model |
+|--------|------|-------|
+| `bot-gpt51` | GPT 5.1 | Most capable |
+| `bot-gpt5mini` | GPT 5 Mini | Mid-tier |
+| `bot-gpt5nano` | GPT 5 Nano | Smallest |
+
+### How Bots Work
+
+1. **Adding Bots**: Host calls `POST /game/add_bots` with `bot_count` (1-3) in lobby state
+2. **Auto-Submit**: When `start_game` or `next_question` is called, bot answers are automatically submitted via background task
+3. **Answer Source**: Bot answers come from `fermi.gpt_5_1_number`, `fermi.gpt_5_mini_number`, `fermi.gpt_5_nano_number` columns
+4. **Display**: Bots appear in `players` and `players_results` like regular players
+
+### Statistics Integrity
+
+Bot answers are **excluded** from:
+- `answer_events` table (preserves quantile statistics)
+- `user_question_history` table (no history for bots)
+
+This is handled in `GameAnalyticsGateway.archive_game_results()`.
+
+### Frontend Integration
+
+```typescript
+// Add 2 bots to a game
+POST /v1/game/add_bots
+{
+  "resource_id": "game123",
+  "bot_count": 2
+}
+```
+
+Bots are identified by `player_id` starting with `bot-`. The frontend should:
+- Display bot avatars from `picture` URL
+- Show bot names (e.g., "GPT 5.1")
+- Treat bot answers like any other player's answers in the reveal UI
+
+---
+
 ## Related Documentation
 
 - [Fermi API README](../README.md): Quick start and API reference

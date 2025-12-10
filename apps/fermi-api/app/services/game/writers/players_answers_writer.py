@@ -160,9 +160,12 @@ class GamePlayersAnswersWriter:
             },
         )
 
-        all_answered = all(
-            val for pid, val in progress['answered'].items() if pid != player_id
-        )
+        # Calculate all_answered by simulating the post-update state
+        # This ensures we correctly determine if all players will have answered
+        # after marking the current player as answered
+        updated_answered = progress['answered'].copy()
+        updated_answered[player_id] = True
+        all_answered = all(updated_answered.values())
 
         writer.update(
             game_ref,

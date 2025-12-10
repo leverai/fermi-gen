@@ -119,13 +119,21 @@ class GameAnalyticsGateway:
         players_results_docs: list[PlayersResultsDoc],
         questions_settings: dict[str, 'QuestionSettings'],
     ) -> list[AnswerEvent]:
-        """Create answer events from players answers docs and questions settings."""
+        """Create answer events from players answers docs and questions settings.
+
+        Note: Bot answers are skipped to preserve quantile statistics integrity.
+        """
+        from app.services.game.bots import is_bot
+
         answer_events = []
         for players_results_doc in players_results_docs:
             question_uid = players_results_doc['question_uid']
             for player_id, player_result in players_results_doc[
                 'players_results'
             ].items():
+                # Skip bot answers to preserve quantile statistics
+                if is_bot(player_id):
+                    continue
                 answer_events.append(
                     AnswerEvent(
                         question_uid=uuid.UUID(question_uid),
@@ -151,8 +159,12 @@ class GameAnalyticsGateway:
 
         Done sequentially to avoid AsyncSession concurrency hazards and to
         guarantee history writes happen after answer events are stored.
+
+        Note: Bot answers are skipped from both answer_events and user history.
         """
-        # 1) Add users' answer events
+        from app.services.game.bots import is_bot
+
+        # 1) Add users' answer events (bots filtered out in _create_answer_events)
         answer_events = self._create_answer_events(
             game_id=game_id,
             players_results_docs=players_results_docs,
@@ -160,13 +172,18 @@ class GameAnalyticsGateway:
         )
         await self._db_client.answers.add_answers(answer_events)
 
-        # 2) Add questions to users' histories
+        # 2) Add questions to users' histories (skip bots)
         for players_results_doc in players_results_docs:
-            user_ids = list(players_results_doc['players_results'].keys())
-            await self._db_client.users_history.add_questions_to_users_history(
-                user_ids=user_ids,
-                question_uids=(uuid.UUID(players_results_doc['question_uid']),),
-            )
+            user_ids = [
+                pid
+                for pid in players_results_doc['players_results'].keys()
+                if not is_bot(pid)
+            ]
+            if user_ids:
+                await self._db_client.users_history.add_questions_to_users_history(
+                    user_ids=user_ids,
+                    question_uids=(uuid.UUID(players_results_doc['question_uid']),),
+                )
 
     async def get_player_stats(self, player_id: str) -> PlayerStats:
         """Get a player's stats."""
