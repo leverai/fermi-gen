@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, cast
 from google.cloud import firestore
 
 from app.schemas.game import GameDocPlayers, GamePlayer, GameState
+from app.services.game.bots import is_bot
 from app.services.game.errors import (
     NotFoundError,
     StateConflictError,
@@ -108,9 +109,21 @@ class GamePlayersWriter:
 
         return [*list(players), user.firebase_uid]
 
-    def get_active_player_ids(self, players: dict[str, GamePlayer]) -> list[str]:
+    def get_active_player_ids(
+        self,
+        players: dict[str, GamePlayer],
+        *,
+        include_bots: bool = False,
+    ) -> list[str]:
         """Get active player IDs."""
-        return [pid for pid, pinfo in players.items() if pinfo['is_active']]
+        active_players: list[str] = []
+        for pid, pinfo in players.items():
+            if not pinfo['is_active']:
+                continue
+            if is_bot(pid) and not include_bots:
+                continue
+            active_players.append(pid)
+        return active_players
 
     def remove_player(
         self,
@@ -120,6 +133,7 @@ class GamePlayersWriter:
         remove_id: str,
         state: GameState,
         *,
+        include_bots: bool = False,
         is_host: bool,
     ) -> list[str]:
         """Remove a player from the game and return active player IDs.
@@ -128,7 +142,9 @@ class GamePlayersWriter:
             NotFoundError: If the player is not found among active players.
 
         """
-        active_player_ids = self.get_active_player_ids(players)
+        active_player_ids = self.get_active_player_ids(
+            players, include_bots=include_bots
+        )
         if remove_id not in active_player_ids:
             raise NotFoundError('Player not found')
 
