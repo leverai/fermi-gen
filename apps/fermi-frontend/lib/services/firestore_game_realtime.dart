@@ -96,6 +96,11 @@ class FirestoreGameRealtime implements GameRealtime {
         );
       });
 
+      debugPrint('[TSF DEBUG] watchGame: Found ${players.length} players');
+      debugPrint('[TSF DEBUG] Player IDs: ${players.keys.toList()}');
+      debugPrint(
+          '[TSF DEBUG] Active players: ${players.entries.where((e) => e.value.isActive).map((e) => e.key).toList()}');
+
       final String hostId = (data['host'] as String?) ?? '';
       final bool isHost =
           currentPlayerId.isNotEmpty && hostId == currentPlayerId;
@@ -397,6 +402,12 @@ class FirestoreGameRealtime implements GameRealtime {
   PlayersAnswersSnapshot _mapPlayersAnswersDoc(Map<String, dynamic> data) {
     final Map<String, dynamic> playersResults =
         data['players_results'] as Map<String, dynamic>? ?? {};
+
+    debugPrint(
+        '[TSF DEBUG] _mapPlayersAnswersDoc: players_results has ${playersResults.length} players');
+    debugPrint(
+        '[TSF DEBUG] Player IDs in players_results: ${playersResults.keys.toList()}');
+
     final Map<String, AnswerValue> submitted = <String, AnswerValue>{};
     final Map<String, double> scores = <String, double>{};
     final Map<String, AnswerValue> correct = <String, AnswerValue>{};
@@ -430,14 +441,23 @@ class FirestoreGameRealtime implements GameRealtime {
       final dynamic scoreRaw = entry['score'];
       if (scoreRaw is num) {
         scores[playerId] = scoreRaw.toDouble();
+        debugPrint(
+            '[TSF DEBUG] Player $playerId: score=${scoreRaw.toDouble()} (direct num)');
       } else if (scoreRaw is Map<String, dynamic>) {
         // Expect backend to provide {number: <float>, quantile: <float>}
         final num? number = scoreRaw['number'] as num?;
-        if (number != null) scores[playerId] = number.toDouble();
+        if (number != null) {
+          scores[playerId] = number.toDouble();
+          debugPrint(
+              '[TSF DEBUG] Player $playerId: score=${number.toDouble()} (from map)');
+        }
         final num? quantile = scoreRaw['quantile'] as num?;
         if (quantile != null) {
           percentiles[playerId] = quantile.toDouble();
         }
+      } else {
+        debugPrint(
+            '[TSF DEBUG] ⚠️ Player $playerId: scoreRaw is neither num nor map! Type: ${scoreRaw.runtimeType}');
       }
 
       // Parse converted_answers for this player

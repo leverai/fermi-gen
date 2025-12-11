@@ -47,7 +47,15 @@ class QuestionPaneBindings {
         realtime.playersAnswersForQuestion(gameId, index).listen((snapshot) {
       qlog(
           '[bindings] players_results onData index=$index submitted=${snapshot.submitted.length}');
-      onPlayersAnswers(snapshot);
+      qlog('[bindings] About to call onPlayersAnswers callback');
+      try {
+        onPlayersAnswers(snapshot);
+        qlog('[bindings] onPlayersAnswers callback completed successfully');
+      } catch (e, st) {
+        qlog('[bindings] ⚠️ EXCEPTION in onPlayersAnswers callback: $e');
+        qlog('[bindings] Stack trace: $st');
+        rethrow;
+      }
     }, onError: (Object e, StackTrace st) {
       qlog('[bindings] players_results onError index=$index e=$e');
       if (onError != null) onError(e, st);
