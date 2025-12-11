@@ -287,7 +287,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
               const double avatarSize = 70.0;
               // Overflow distance for name chip (top) and transient score chip (bottom)
               // These elements overflow the widget bounds to avoid reserving space
-              const double overflowDistance = 24;
+              const double overflowDistance = 20;
               final double totalH = constraints.maxHeight;
               final double avatarTop = (totalH - avatarSize) / 2;
               return Stack(
@@ -336,7 +336,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                         if (widget.showScoreOverlay &&
                             widget.playerState.score != null)
                           Positioned(
-                            top: avatarTop + avatarSize - 10.0,
+                            top: avatarTop + avatarSize - 8.0,
                             left: 0,
                             right: 0,
                             child: Row(
@@ -388,8 +388,8 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                                         text,
                                         style: AppFont.secondaryTextStyle(
                                           context,
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 14.0,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 12.0,
                                           color: fg,
                                         ),
                                       );
@@ -436,7 +436,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                                       mode: TextScrollMode.bouncing,
                                       style: AppFont.primaryTextStyle(
                                         context,
-                                        fontWeight: FontWeight.w300,
+                                        fontWeight: FontWeight.w500,
                                         fontSize: 14.0,
                                         color: nameColor,
                                       ),
@@ -559,7 +559,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
               fit: BoxFit.contain,
               colorFilter: ColorFilter.mode(
                 // ignore: deprecated_member_use
-                Colors.white.withOpacity(0.7),
+                appTheme.bgLight,
                 BlendMode.srcIn,
               ),
             ),
