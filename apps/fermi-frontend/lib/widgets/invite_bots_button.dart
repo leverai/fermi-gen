@@ -28,10 +28,9 @@ class _InviteBotsButtonState extends State<InviteBotsButton> {
 
     // Use secondary color as requested
     final backgroundColor =
-        widget.enabled ? appTheme.secondary : appTheme.bgDark;
+        widget.enabled ? appTheme.bgLight : appTheme.secondary;
     // Use a contrasting text color. Since secondary is vibrant/dark, white or bgLight usually works well.
-    final foregroundColor =
-        widget.enabled ? appTheme.bgLight : appTheme.borderMuted;
+    final foregroundColor = widget.enabled ? appTheme.text : appTheme.bgLight;
 
     final buttonLabel = widget.botCount == 1
         ? 'Invite 1 bot'
