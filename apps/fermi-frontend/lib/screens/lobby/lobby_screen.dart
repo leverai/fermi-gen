@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
 import 'package:fermi_frontend/widgets/share_button.dart';
@@ -5,7 +7,6 @@ import 'package:fermi_frontend/widgets/invite_bots_button.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
 import 'package:fermi_frontend/widgets/players_row.dart';
 import 'package:flutter/material.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:fermi_frontend/widgets/leave_button.dart';
 
 class LobbyScreen extends StatelessWidget {
@@ -108,6 +109,8 @@ class LobbyScreen extends StatelessWidget {
                               isHost: isHost,
                               onInviteBots: onInviteBots,
                               botsToInvite: botsToInvite,
+                              onStart: onStart,
+                              startEnabled: startEnabled,
                             ),
                           );
                         }),
@@ -136,7 +139,7 @@ class LobbyScreen extends StatelessWidget {
   }
 }
 
-class _CenterCallout extends StatelessWidget {
+class _CenterCallout extends StatefulWidget {
   const _CenterCallout({
     required this.isPrivate,
     required this.isWaiting,
@@ -146,6 +149,8 @@ class _CenterCallout extends StatelessWidget {
     this.isHost = false,
     this.onInviteBots,
     this.botsToInvite = 0,
+    required this.onStart,
+    required this.startEnabled,
   });
 
   final bool isPrivate;
@@ -156,13 +161,109 @@ class _CenterCallout extends StatelessWidget {
   final bool isHost;
   final VoidCallback? onInviteBots;
   final int botsToInvite;
+  final VoidCallback onStart;
+  final bool startEnabled;
+
+  @override
+  State<_CenterCallout> createState() => _CenterCalloutState();
+}
+
+class _CenterCalloutState extends State<_CenterCallout>
+    with SingleTickerProviderStateMixin {
+  late Timer _timer;
+  late int _timeLeft;
+  late AnimationController _dotsController;
+  int _dotCount = 0;
+
+  // 20s for public, 60s for private (allow friends to join)
+  static const int _publicDuration = 20;
+  static const int _privateDuration = 60;
+
+  @override
+  void initState() {
+    super.initState();
+    _timeLeft = widget.isPrivate ? _privateDuration : _publicDuration;
+    _startTimer();
+
+    // Animation for "..."
+    _dotsController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+
+    _dotsController.addListener(() {
+      final newCount = (_dotsController.value * 4).floor(); // 0, 1, 2, 3
+      if (newCount != _dotCount) {
+        setState(() {
+          _dotCount = newCount;
+        });
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(_CenterCallout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reset timer if privacy setting changes (e.g. from initial load)
+    if (widget.isPrivate != oldWidget.isPrivate) {
+      setState(() {
+        _timeLeft = widget.isPrivate ? _privateDuration : _publicDuration;
+      });
+    }
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_timeLeft > 0) {
+        setState(() {
+          _timeLeft--;
+        });
+      } else {
+        _timer.cancel();
+        // Only host triggers the auto-start
+        if (widget.isHost && widget.startEnabled) {
+          widget.onStart();
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _dotsController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Show bot invitation button if host and bots can be invited
-    final showBotButton = isHost && botsToInvite > 0 && onInviteBots != null;
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    if (isPrivate) {
+    // Show bot invitation button if host and bots can be invited
+    final showBotButton =
+        widget.isHost && widget.botsToInvite > 0 && widget.onInviteBots != null;
+
+    final timerText = Text(
+      '$_timeLeft',
+      style: TextStyle(
+        fontFamily: 'Jura',
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+        color: appTheme.text,
+      ),
+    );
+
+    final autoStartLabel = Text(
+      'Auto start in',
+      style: TextStyle(
+        fontFamily: 'Barlow',
+        fontSize: 16,
+        color: appTheme.textMuted,
+      ),
+    );
+
+    if (widget.isPrivate) {
       // Private lobby: show share button and optionally bot button for host
       return Center(
         child: Column(
@@ -170,32 +271,74 @@ class _CenterCallout extends StatelessWidget {
           children: [
             if (showBotButton) ...[
               InviteBotsButton(
-                onPressed: onInviteBots!,
-                botCount: botsToInvite,
+                onPressed: widget.onInviteBots!,
+                botCount: widget.botsToInvite,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
             ],
-            ShareButton(onPressed: onShare ?? () {}),
+            ShareButton(onPressed: widget.onShare ?? () {}),
+            const SizedBox(height: 24),
+            autoStartLabel,
+            const SizedBox(height: 4),
+            timerText,
           ],
         ),
       );
     }
-    if (isWaiting) {
-      // Public lobby waiting: show loading spinner and optionally bot button for host
+
+    if (widget.isWaiting) {
+      // Public lobby waiting
+      String dots = '';
+      if (_dotCount == 1) dots = '.';
+      if (_dotCount == 2) dots = '..';
+      if (_dotCount >= 3) dots = '...';
+
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (showBotButton) ...[
               InviteBotsButton(
-                onPressed: onInviteBots!,
-                botCount: botsToInvite,
+                onPressed: widget.onInviteBots!,
+                botCount: widget.botsToInvite,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
             ],
-            LoadingAnimationWidget.fourRotatingDots(
-              color: color,
-              size: 44,
+            // Removed spinner, added text column
+            Column(
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Players can join',
+                      style: TextStyle(
+                        fontFamily: 'Barlow',
+                        fontSize: 18,
+                        color: appTheme.info,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 24,
+                      child: Text(
+                        dots,
+                        style: TextStyle(
+                          fontFamily: 'Barlow',
+                          fontSize: 18,
+                          color: appTheme.info,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                autoStartLabel,
+                const SizedBox(height: 4),
+                timerText,
+              ],
             ),
           ],
         ),
