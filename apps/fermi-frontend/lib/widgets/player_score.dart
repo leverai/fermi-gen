@@ -268,7 +268,7 @@ class _PlayerScoreState extends State<PlayerScore> {
       style: AppFont.secondaryTextStyle(
         context,
         fontWeight: FontWeight.w400,
-        fontSize: 16.0,
+        fontSize: 14.0,
         color: textColor,
       ),
     );
@@ -339,14 +339,14 @@ class _AnimatedDigitState extends State<_AnimatedDigit> {
   Widget build(BuildContext context) {
     final textStyle = AppFont.secondaryTextStyle(
       context,
-      fontWeight: FontWeight.w400,
-      fontSize: 16.0,
+      fontWeight: FontWeight.w600,
+      fontSize: 12.0,
       color: widget.textColor,
     );
 
     return SizedBox(
       height: _itemHeight,
-      width: 10,
+      width: 8,
       child: ListWheelScrollView.useDelegate(
         controller: _scrollController,
         itemExtent: _itemHeight,
