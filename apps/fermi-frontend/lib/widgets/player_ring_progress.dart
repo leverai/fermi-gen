@@ -93,7 +93,7 @@ class PlayerRingProgress extends StatelessWidget {
 
       case RingState.completed:
         // Completed: self uses info, others use success (green)
-        return isSelf ? appTheme.primary : appTheme.success;
+        return isSelf ? appTheme.primary : appTheme.primaryMuted;
 
       case RingState.review:
         // Ring color: self uses info, others use border
