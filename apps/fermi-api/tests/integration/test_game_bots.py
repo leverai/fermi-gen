@@ -477,7 +477,7 @@ def test_e2e_game_with_bots_completes_successfully(
         'password123',
         'BotE2E',
     )
-    game_id = create_private_game(host_headers, n_questions=2)
+    game_id = create_private_game(host_headers, n_questions=2)  # type: ignore
     _wait_ready(get_firestore_doc, game_id)
 
     # Add 2 bots

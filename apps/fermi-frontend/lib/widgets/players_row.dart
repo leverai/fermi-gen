@@ -195,6 +195,8 @@ class _PlayersRowState extends State<PlayersRow> {
         builder: (context, constraints) {
           const double itemWidth = 120.0;
           const double itemHeight = 118.0;
+          // Extra height to accommodate transient score chip overflow (~32px below)
+          const double overflowMargin = 32.0;
           final int itemCount = sortedPlayers.length;
           final double totalWidth = itemCount * itemWidth;
           final double availableWidth =
@@ -255,8 +257,9 @@ class _PlayersRowState extends State<PlayersRow> {
           }
 
           return SizedBox(
-            height: itemHeight,
+            height: itemHeight + overflowMargin,
             child: Stack(
+              clipBehavior: Clip.none,
               children: positioned,
             ),
           );
@@ -268,7 +271,7 @@ class _PlayersRowState extends State<PlayersRow> {
     return LayoutBuilder(
       builder: (context, constraints) {
         const double itemWidth = 120.0;
-        const double itemHeight = 140.0;
+        const double itemHeight = 120.0;
         final int itemCount = sortedPlayers.length;
         final double contentWidth = itemCount * itemWidth;
 
@@ -324,18 +327,24 @@ class _PlayersRowState extends State<PlayersRow> {
           ));
         }
 
+        // Use extra height to accommodate transient score chip overflow (~32px below)
+        const double overflowMargin = 32.0;
         return SizedBox(
-          height: itemHeight,
+          height: itemHeight + overflowMargin,
           child: ScrollConfiguration(
             behavior: const ScrollBehavior().copyWith(overscroll: false),
             child: SingleChildScrollView(
               controller: _scrollController,
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
+              clipBehavior: Clip.none,
               child: SizedBox(
                 width: contentWidth,
-                height: itemHeight,
-                child: Stack(children: positioned),
+                height: itemHeight + overflowMargin,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: positioned,
+                ),
               ),
             ),
           ),

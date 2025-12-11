@@ -32,6 +32,8 @@ class QuestionScreenV2Controller extends ChangeNotifier {
     required this.questionCount,
     PageController? pageController,
   }) {
+    debugPrint(
+        '[TSF DEBUG] ===== QuestionScreenV2Controller CONSTRUCTOR called, gameId=$gameId =====');
     _navigationCoordinator =
         NavigationCoordinator(pageController: pageController);
     _stateManager = QuestionStateManager(currentIndex: 0);
@@ -43,6 +45,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       onDeadlineExpired: _handleDeadlineExpired,
       notifyListeners: notifyListeners,
     );
+    debugPrint('[TSF DEBUG] QuestionScreenV2Controller constructor completed');
   }
 
   final GameRealtime realtime;
@@ -146,12 +149,15 @@ class QuestionScreenV2Controller extends ChangeNotifier {
   }
 
   void attach() {
+    debugPrint('[TSF DEBUG] ===== Controller.attach() CALLED =====');
     _answerController = AnswerController();
     _unitTapeController = UnitTapeController();
     _currentLocale = realtime.currentLocale?.toUpperCase() ?? 'US';
     _timerManager.init();
     _confettiManager.reset();
+    debugPrint('[TSF DEBUG] About to call _startGameWatch()');
     _startGameWatch();
+    debugPrint('[TSF DEBUG] _startGameWatch() returned');
   }
 
   /// Handle deadline expiration - auto-submit current answer
@@ -174,9 +180,12 @@ class QuestionScreenV2Controller extends ChangeNotifier {
   }
 
   void _startGameWatch() {
+    debugPrint('[TSF DEBUG] _startGameWatch called, gameId=$gameId');
     _gameSub?.cancel();
     _gameSub = realtime.watchGame(gameId).listen(
       (snapshot) {
+        debugPrint(
+            '[TSF DEBUG] ===== Game snapshot callback INVOKED, state=${snapshot.state}, players=${snapshot.players.length} =====');
         _isHost = snapshot.isHost;
         _isPrivate = snapshot.isPrivate;
         _perQuestionDuration = _isPrivate
@@ -212,13 +221,21 @@ class QuestionScreenV2Controller extends ChangeNotifier {
         _stateManager.initializeQuestionStates(questionCount);
 
         // Update player summaries and bind question-specific streams
-        _playerManager.updatePlayers(
-          snapshot: snapshot,
-          stateManager: _stateManager,
-          isReviewMode: _isReviewMode,
-          currentIndex: currentIndex,
-          questionCount: questionCount,
-        );
+        debugPrint('[TSF DEBUG] About to call updatePlayers');
+        try {
+          _playerManager.updatePlayers(
+            snapshot: snapshot,
+            stateManager: _stateManager,
+            isReviewMode: _isReviewMode,
+            currentIndex: currentIndex,
+            questionCount: questionCount,
+          );
+          debugPrint('[TSF DEBUG] updatePlayers completed successfully');
+        } catch (e, st) {
+          debugPrint('[TSF DEBUG] ⚠️ EXCEPTION in updatePlayers: $e');
+          debugPrint('[TSF DEBUG] Stack trace: $st');
+          rethrow;
+        }
         _bindQuestionStreams(snapshot);
 
         // Trigger confetti for top 3 players when game ends
@@ -257,6 +274,8 @@ class QuestionScreenV2Controller extends ChangeNotifier {
   }
 
   void _bindQuestionStreams(GameSnapshot snapshot) {
+    debugPrint(
+        '[TSF DEBUG] _bindQuestionStreams called, questionCount=$questionCount, questionUids=${snapshot.questionUids.length}');
     // Bind streams for all questions that have been revealed
     for (int i = 0; i < questionCount; i++) {
       final questionUid =
@@ -264,6 +283,8 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       if (questionUid == null) continue;
 
       if (!_bindingsByIndex.containsKey(i)) {
+        debugPrint(
+            '[TSF DEBUG] Creating new bindings for index=$i, questionUid=$questionUid');
         final bindings = QuestionPaneBindings(
           realtime: realtime,
           gameId: gameId,
@@ -271,9 +292,19 @@ class QuestionScreenV2Controller extends ChangeNotifier {
         );
 
         bindings.listen(
-          onReveal: (correct) => _handleReveal(i, correct),
-          onPlayersAnswers: (answers) => _handlePlayersAnswers(i, answers),
-          onQuestion: (question) => _handleQuestion(i, question, questionUid),
+          onReveal: (correct) {
+            debugPrint('[TSF DEBUG] >>> onReveal lambda called for i=$i');
+            _handleReveal(i, correct);
+          },
+          onPlayersAnswers: (answers) {
+            debugPrint(
+                '[TSF DEBUG] >>> onPlayersAnswers lambda called for i=$i');
+            _handlePlayersAnswers(i, answers);
+          },
+          onQuestion: (question) {
+            debugPrint('[TSF DEBUG] >>> onQuestion lambda called for i=$i');
+            _handleQuestion(i, question, questionUid);
+          },
           onError: (err, st) {
             _errorMessage = 'Connection issue. Reconnecting…';
             notifyListeners();
@@ -431,6 +462,8 @@ class QuestionScreenV2Controller extends ChangeNotifier {
   }
 
   void _handlePlayersAnswers(int index, PlayersAnswersSnapshot snapshot) {
+    debugPrint(
+        '[TSF DEBUG] ===== _handlePlayersAnswers CALLED for index=$index =====');
     final currentState =
         _stateManager.getQuestionState(index) ?? QuestionState();
 
@@ -486,13 +519,28 @@ class QuestionScreenV2Controller extends ChangeNotifier {
     // We push both the per-question score (round) and the cumulative total so
     // that score widgets can animate immediately when the reveal snapshot arrives,
     // without waiting for the next game snapshot.
+    debugPrint(
+        '[TSF DEBUG] _handlePlayersAnswers: Updating controllers for ${snapshot.scores.length} players');
+    debugPrint(
+        '[TSF DEBUG] snapshot.scores keys: ${snapshot.scores.keys.toList()}');
+    debugPrint(
+        '[TSF DEBUG] Available controllers: ${_playerManager.playerControllers.keys.toList()}');
+
     for (final entry in snapshot.scores.entries) {
       final controller = _playerManager.playerControllers[entry.key];
+      final roundScore = roundScores[entry.key] ?? 0;
+      final cumulativeScore =
+          cumulativeScores[entry.key] ?? prevCumulative[entry.key] ?? 0;
+
+      debugPrint(
+          '[TSF DEBUG] Player ${entry.key}: controller=${controller != null}, roundScore=$roundScore, cumulative=$cumulativeScore');
+
       if (controller != null) {
-        controller.setRoundScore(roundScores[entry.key] ?? 0);
-        final int cumulativeScore =
-            cumulativeScores[entry.key] ?? prevCumulative[entry.key] ?? 0;
+        controller.setRoundScore(roundScore);
         controller.setScore(cumulativeScore);
+        debugPrint('[TSF DEBUG] ✅ Set scores for ${entry.key}');
+      } else {
+        debugPrint('[TSF DEBUG] ⚠️ No controller for ${entry.key}!');
       }
     }
 
