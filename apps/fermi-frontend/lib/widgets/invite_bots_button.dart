@@ -1,6 +1,7 @@
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class InviteBotsButton extends StatefulWidget {
   final VoidCallback onPressed;
@@ -20,30 +21,38 @@ class InviteBotsButton extends StatefulWidget {
 
 class _InviteBotsButtonState extends State<InviteBotsButton> {
   bool _isPressed = false;
+  bool _hasInvitedBots = false;
 
   @override
   Widget build(BuildContext context) {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
+    // Button is disabled if it was already used or if explicitly disabled
+    final isEnabled = widget.enabled && !_hasInvitedBots;
+
     // Use secondary color as requested
-    final backgroundColor =
-        widget.enabled ? appTheme.bgLight : appTheme.secondary;
+    final backgroundColor = isEnabled ? appTheme.bgLight : appTheme.secondary;
     // Use a contrasting text color. Since secondary is vibrant/dark, white or bgLight usually works well.
-    final foregroundColor = widget.enabled ? appTheme.text : appTheme.bgLight;
+    final foregroundColor = isEnabled ? appTheme.text : appTheme.bgLight;
 
     final buttonLabel = widget.botCount == 1
         ? 'Invite 1 bot'
         : 'Invite ${widget.botCount} bots';
 
     return GestureDetector(
-      onTapDown:
-          widget.enabled ? (_) => setState(() => _isPressed = true) : null,
-      onTapUp:
-          widget.enabled ? (_) => setState(() => _isPressed = false) : null,
-      onTapCancel:
-          widget.enabled ? () => setState(() => _isPressed = false) : null,
-      onTap: widget.enabled ? widget.onPressed : null,
+      onTapDown: isEnabled ? (_) => setState(() => _isPressed = true) : null,
+      onTapUp: isEnabled
+          ? (_) {
+              setState(() {
+                _isPressed = false;
+                _hasInvitedBots = true;
+              });
+              widget.onPressed();
+            }
+          : null,
+      onTapCancel: isEnabled ? () => setState(() => _isPressed = false) : null,
+      onTap: null, // Handled in onTapUp
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 100),
         transform: Matrix4.translationValues(
@@ -59,7 +68,7 @@ class _InviteBotsButtonState extends State<InviteBotsButton> {
             width: appTheme.borderWidth,
           ),
           boxShadow: [
-            if (!_isPressed && widget.enabled)
+            if (!_isPressed && isEnabled)
               BoxShadow(
                 color: appTheme.shadowColor,
                 offset: appTheme.shadowOffset,
@@ -68,12 +77,17 @@ class _InviteBotsButtonState extends State<InviteBotsButton> {
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.smart_toy, // Robot icon for bots
-              color: foregroundColor,
-              size: 24,
+            SvgPicture.asset(
+              'assets/icons/add_bot.svg',
+              width: 24,
+              height: 24,
+              colorFilter: ColorFilter.mode(
+                foregroundColor,
+                BlendMode.srcIn,
+              ),
             ),
             const SizedBox(width: 8),
             Text(
