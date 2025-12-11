@@ -176,8 +176,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     }
     if (newRoundScore != null) {
       if (newRoundScore != _currentRoundScore) {
-        debugPrint(
-            '[TSF FIX v2] didUpdateWidget: ${widget.playerState.playerId} newRoundScore=$newRoundScore, setting _lastIncrement');
         final roundDelta = newRoundScore - _currentRoundScore;
         if (roundDelta != 0) {
           _statusScoreController.increment?.call(roundDelta);
@@ -187,10 +185,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
           _lastIncrement = newRoundScore;
         });
       }
-    } else {
-      // Log but DO NOT CLEAR - this is the fix
-      debugPrint(
-          '[TSF FIX v2] didUpdateWidget: ${widget.playerState.playerId} newRoundScore=null, _lastIncrement=$_lastIncrement - NOT clearing (fix applied)');
     }
     // NOTE: We intentionally do NOT clear _lastIncrement when newRoundScore is null.
     // The controller's setRoundScore() is the authoritative source for transient score state.
@@ -263,8 +257,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   @override
   Widget build(BuildContext context) {
     final isIncrementVisible = _lastIncrement != null;
-    debugPrint(
-        '[TSF FIX v2] build: ${widget.playerState.playerId} _lastIncrement=$_lastIncrement isVisible=$isIncrementVisible');
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
@@ -392,8 +384,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                                           scoreToColor(visibleRound);
                                       final text =
                                           '+${_formatWithCommas(visibleRound)}';
-                                      debugPrint(
-                                          '[TSF FIX v2] CHIP RENDER: ${widget.playerState.playerId} visibleRound=$visibleRound text=$text _currentRoundScore=$_currentRoundScore');
                                       return Text(
                                         text,
                                         style: AppFont.secondaryTextStyle(
