@@ -152,7 +152,7 @@ class LocationSelection(BaseModel):
 class ExtractedInfo(BaseModel):
     """Information extracted from snippet - with validated unit."""
 
-    number: float = Field(description='Numeric answer in scientific notation')
+    number: float = Field(description='Numeric answer in scientific notation', gt=0)
     unit: VALID_UNITS = Field(description='Unit from predefined list.')
     confidence: float = Field(ge=0, le=1, description='Extraction confidence')
 
