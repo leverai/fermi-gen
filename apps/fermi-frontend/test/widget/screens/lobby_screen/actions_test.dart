@@ -33,10 +33,10 @@ void main() {
         },
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       await tester.tap(find.byType(MainButton));
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       expect(startCalled, isTrue);
@@ -66,10 +66,10 @@ void main() {
         },
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       await tester.tap(find.byType(ShareButton));
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       expect(shareCalled, isTrue);
@@ -97,7 +97,7 @@ void main() {
         onShare: null, // No share handler
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       // ShareButton should still be rendered but with a no-op callback
@@ -126,11 +126,11 @@ void main() {
         },
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // Find the leave button (it's an IconButton inside LeaveButtonOverlay)
       await tester.tap(find.byType(IconButton));
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       expect(leaveCalled, isTrue);
@@ -158,12 +158,12 @@ void main() {
         },
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // Simulate back button press
       final dynamic widgetsAppState = tester.state(find.byType(WidgetsApp));
       await widgetsAppState.didPopRoute();
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       // onLeave should be called via PopScope's onPopInvokedWithResult
@@ -189,7 +189,7 @@ void main() {
         onLeave: null, // No leave handler
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       // Should not crash, LeaveButtonOverlay should use Navigator.maybePop fallback
@@ -220,11 +220,11 @@ void main() {
         },
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // Try to tap the disabled button
       await tester.tap(find.byType(MainButton));
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       // onStart should not be called because button is disabled

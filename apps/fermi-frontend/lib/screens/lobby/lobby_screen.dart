@@ -24,6 +24,7 @@ class LobbyScreen extends StatelessWidget {
     this.isHost = false,
     this.onInviteBots,
     this.botsToInvite = 0,
+    this.createdAt,
   });
 
   final List<PlayerState> players;
@@ -38,6 +39,7 @@ class LobbyScreen extends StatelessWidget {
   final bool isHost;
   final VoidCallback? onInviteBots;
   final int botsToInvite;
+  final DateTime? createdAt;
 
   @override
   Widget build(BuildContext context) {
@@ -111,6 +113,7 @@ class LobbyScreen extends StatelessWidget {
                               botsToInvite: botsToInvite,
                               onStart: onStart,
                               startEnabled: startEnabled,
+                              createdAt: createdAt,
                             ),
                           );
                         }),
@@ -151,6 +154,7 @@ class _CenterCallout extends StatefulWidget {
     this.botsToInvite = 0,
     required this.onStart,
     required this.startEnabled,
+    this.createdAt,
   });
 
   final bool isPrivate;
@@ -163,6 +167,7 @@ class _CenterCallout extends StatefulWidget {
   final int botsToInvite;
   final VoidCallback onStart;
   final bool startEnabled;
+  final DateTime? createdAt;
 
   @override
   State<_CenterCallout> createState() => _CenterCalloutState();
@@ -182,7 +187,7 @@ class _CenterCalloutState extends State<_CenterCallout>
   @override
   void initState() {
     super.initState();
-    _timeLeft = widget.isPrivate ? _privateDuration : _publicDuration;
+    _timeLeft = _computeRemainingTime();
     _startTimer();
 
     // Animation for "..."
@@ -204,22 +209,41 @@ class _CenterCalloutState extends State<_CenterCallout>
   @override
   void didUpdateWidget(_CenterCallout oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Reset timer if privacy setting changes (e.g. from initial load)
-    if (widget.isPrivate != oldWidget.isPrivate) {
+    // Recalculate timer if privacy setting or createdAt changes
+    if (widget.isPrivate != oldWidget.isPrivate ||
+        widget.createdAt != oldWidget.createdAt) {
       setState(() {
-        _timeLeft = widget.isPrivate ? _privateDuration : _publicDuration;
+        _timeLeft = _computeRemainingTime();
       });
     }
   }
 
+  /// Compute remaining time from server timestamp to ensure all clients
+  /// see the same synchronized timer value.
+  int _computeRemainingTime() {
+    final int duration = widget.isPrivate ? _privateDuration : _publicDuration;
+    final DateTime? created = widget.createdAt;
+    if (created == null) {
+      // Fallback to full duration if timestamp not yet available
+      return duration;
+    }
+    final int elapsed = DateTime.now().difference(created).inSeconds;
+    return (duration - elapsed).clamp(0, duration);
+  }
+
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_timeLeft > 0) {
+      // Recalculate from server timestamp each tick to stay perfectly synced
+      final int remaining = _computeRemainingTime();
+      if (remaining > 0) {
         setState(() {
-          _timeLeft--;
+          _timeLeft = remaining;
         });
       } else {
         _timer.cancel();
+        setState(() {
+          _timeLeft = 0;
+        });
         // Only host triggers the auto-start
         if (widget.isHost && widget.startEnabled) {
           widget.onStart();
