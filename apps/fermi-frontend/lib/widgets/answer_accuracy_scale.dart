@@ -44,7 +44,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
-  final Set<String> _visibleTextBoxes = <String>{}; // Track visible text boxes
+
   bool _isDragging = false; // Track active drag to prevent recursion
   AnswerValue?
       _lastEmittedValue; // Track last emitted value to prevent duplicates
@@ -93,25 +93,39 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
     super.dispose();
   }
 
-  void _toggleTextBox(String playerId) {
-    setState(() {
-      if (_visibleTextBoxes.contains(playerId)) {
-        _visibleTextBoxes.remove(playerId);
-      } else {
-        _visibleTextBoxes.add(playerId);
-      }
-    });
-  }
+  double _getSliderValue(AnswerValue value) {
+    if (value.number <= 0) return 0.0;
 
-  double _getLogValue(AnswerValue value) {
-    final exponent = orderOfMagnitudePowers[value.orderOfMagnitude] ?? 0;
-    // log10(number). number is 1..999.
-    // log10(1) = 0
-    // log10(10) = 1
-    // log10(100) = 2
-    // log10(999) ~ 3
-    final logNum = math.log(value.number) / math.ln10;
-    return exponent + logNum;
+    final omPowers = {
+      '': 0,
+      'K': 3,
+      'M': 6,
+      'B': 9,
+      'T': 12,
+    };
+    final exponent = omPowers[value.orderOfMagnitude] ?? 0;
+
+    // Decompose number into local decade and fraction
+    // number is 1..999
+    // 1..10 -> local 0..1
+    // 10..100 -> local 1..2
+    // 100..1000 -> local 2..3
+
+    double localLog;
+    if (value.number < 10) {
+      // 1 maps to 0.0, 10 maps to 1.0
+      // v = 1 + 9 * fraction => fraction = (v - 1) / 9
+      localLog = (value.number - 1) / 9.0;
+    } else if (value.number < 100) {
+      // 10 maps to 1.0, 100 maps to 2.0
+      // v = 10 * (1 + 9 * fraction) => fraction = (v/10 - 1) / 9
+      localLog = 1.0 + (value.number / 10.0 - 1) / 9.0;
+    } else {
+      // 100 maps to 2.0, 1000 maps to 3.0
+      localLog = 2.0 + (value.number / 100.0 - 1) / 9.0;
+    }
+
+    return exponent + localLog;
   }
 
   String _formatAnswerText(AnswerValue value) {
@@ -129,63 +143,97 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
     return '${value.number} ${value.orderOfMagnitude}'.trim();
   }
 
-  /// Convert x-position to log value (0-18 scale)
-  double _positionToLogValue(double x, double width) {
+  /// Convert x-position to slider value (0-15 scale)
+  double _positionToSliderValue(double x, double width) {
     const padding = 12.0;
     final drawWidth = width - (padding * 2);
     final normalizedX = (x - padding).clamp(0.0, drawWidth);
     return (normalizedX / drawWidth) * 15.0;
   }
 
-  /// Convert continuous log value to AnswerValue
-  /// Allows any integer from 1-999 within each order of magnitude.
-  /// logValue 0-3: number 1-999, om ''
-  /// logValue 3-6: number 1-999, om 'K'
-  /// logValue 6-9: number 1-999, om 'M'
-  /// etc.
-  AnswerValue _logToAnswerValue(double logValue, String unit) {
-    // Clamp log value to valid range
-    final clampedLog = logValue.clamp(0.0, 15.0);
+  /// Convert continuous slider value to AnswerValue with snapping
+  /// Snaps to: 1, 2, ..., 9, 10, 20, ..., 90, 100, ...
+  AnswerValue _sliderToAnswerValue(double sliderValue, String unit) {
+    // Clamp to valid range
+    final clampedSlider = sliderValue.clamp(0.0, 15.0);
 
-    // Determine which OM bucket (every 3 log units = one OM level)
+    // Handle Max Value (15.0) explicitly to avoid wrap-around to 1T
+    // 15.0 represents 1000 T mathematically in this scale, so we clamp to 999 T
+    if (clampedSlider >= 15.0) {
+      return AnswerValue(number: 999, orderOfMagnitude: 'T', unit: unit);
+    }
+
+    // Snap to nearest 1/9th
+    // round(val * 9) / 9
+    final snappedSlider = (clampedSlider * 9.0).round() / 9.0;
+
+    // Handle 15.0 after snap as well
+    if (snappedSlider >= 15.0) {
+      return AnswerValue(number: 999, orderOfMagnitude: 'T', unit: unit);
+    }
+
+    // Determine global order of magnitude (0..15 range split into 3s)
+    // 0..1, 1..2, 2..3 -> OM 0 ('')
+    // 3..4, 4..5, 5..6 -> OM 1 ('K')
+    final globalExponent = snappedSlider.floor();
     final omIndex =
-        (clampedLog / 3.0).floor().clamp(0, orderOfMagnitudeSymbols.length - 1);
+        (globalExponent ~/ 3).clamp(0, orderOfMagnitudeSymbols.length - 1);
     final om = orderOfMagnitudeSymbols[omIndex];
 
-    // Calculate the number within this OM range
-    // logValue within OM: 0-3 for '', 3-6 for 'K', etc.
-    final logWithinOM = clampedLog - (omIndex * 3.0);
+    // Determine local power of 10 (0, 1, 2)
+    final localExponent = globalExponent % 3;
 
-    // Convert log within OM to number: 10^logWithinOM
-    // logWithinOM = 0 → number = 1
-    // logWithinOM = 1 → number = 10
-    // logWithinOM = 2 → number = 100
-    // logWithinOM = 2.5 → number = 316
-    final rawNumber = math.pow(10, logWithinOM);
+    // Determine digit (1..10)
+    // fraction = snapped - floor
+    // digit = 1 + 9 * fraction
+    final fraction = snappedSlider - globalExponent;
+    // Round to handle floating point imprecision
+    int digit = (1.0 + 9.0 * fraction).round();
 
-    // Round to nearest integer and clamp to 1-999
-    int number = rawNumber.round().clamp(1, 999);
+    // Calculate final number
+    int number = digit * math.pow(10, localExponent).toInt();
 
-    // Edge case: if we're at or very close to the next OM boundary,
-    // the number might compute to 1000. Clamp it back.
-    if (number >= 1000) {
-      number = 999;
-    }
+    // Handle wrap-around case where number becomes 1000 (next OM)
+    // In our slider logic, 1000 of OM[i] is effectively 1 of OM[i+1]
+    // The previous math handles this naturally if we strictly follow the slider:
+    // 2.99 -> exponent 2, fraction ~1, digit 10. number = 10 * 100 = 1000.
+    // 3.00 -> exponent 3, fraction 0, digit 1. number = 1 * 1 = 1. OM upgraded.
+    // Since 1000 = 1K, we prefer the canonical form 1K (which is 3.00).
+    // However, if we get 1000 here, we should probably clamp or normalize.
+    // Given the widget uses standard AnswerValue, 1000 is valid but usually displayed as 1K.
+    // Let's normalize 1000 to 1 of next OM if possible, or just clamp to 999
+    // if strictly enforcing 1-999 range.
+    // But the slider is continuous. 3.0 is 1K. 2.99... (1000) is 1K.
+    // If the snap hits exactly the boundary, it will be x.0 which gives digit 1, next OM.
+    // The only case giving 1000 is if we snap to the very top of a decade range
+    // but stay in the lower decade floor?
+    // No, if fraction is 1.0, it means we are at the next integer.
+    // floor(3.0) is 3, fraction 0.
+    // floor(2.999) is 2, fraction 0.999.
+    // If we snapped 2.99 to 3.0, floor is 3.
+    // So distinct cases.
+    // Check digit 10 case:
+    // If snappedSlider = 2.999 -> rounds to 3.0? No, 2.888.. (8/9) -> 9. 2 + 8/9.
+    // Digit = 1 + 8 = 9. Number = 900.
+    // The 10th step (9/9) is the start of the next integer interval.
+    // So strictly digit will be 1..9 ?
+    // range of k is 0..8?
+    // Slider N + k/9.
+    // If k=0 -> 1.
+    // If k=8 -> 1 + 8 = 9.
+    // What about 10?
+    // 10 is the start of the next segment.
+    // So 1, 2...9. Next is 10 (which is 1 of next decade).
+    // So digit should be 1..9.
 
-    // Edge case: ensure minimum value is 1
-    if (clampedLog == 0 && number < 1) {
-      number = 1;
-    }
+    // But wait, the user said "dots on 2,3,4,...,9,20,30,...,90".
+    // 10, 20... are the START of the intervals.
+    // range ]1, 2]...
+    // My math: Slider N maps to 1 * 10^N.
+    // Slider N + 1 maps to 10 * 10^N.
+    // Slider N + 1/9 maps to 2 * 10^N.
 
     return AnswerValue(number: number, orderOfMagnitude: om, unit: unit);
-  }
-
-  /// Convert AnswerValue back to log value (for positioning)
-  double _answerValueToLogValue(AnswerValue value) {
-    final exponent = orderOfMagnitudePowers[value.orderOfMagnitude] ?? 0;
-    // log10(number). number is 1..999.
-    final logNum = value.number > 0 ? math.log(value.number) / math.ln10 : 0.0;
-    return exponent + logNum;
   }
 
   /// Handle tap/drag gesture to update answer
@@ -200,10 +248,10 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
       return;
     }
 
-    // Convert position to answer value (continuous, no snapping)
-    final logValue = _positionToLogValue(x, width);
+    // Convert position to answer value (snapped)
+    final sliderValue = _positionToSliderValue(x, width);
     final currentUnit = widget.currentAnswer.unit;
-    final newAnswer = _logToAnswerValue(logValue, currentUnit);
+    final newAnswer = _sliderToAnswerValue(sliderValue, currentUnit);
 
     // Prevent duplicate callbacks
     if (_lastEmittedValue == newAnswer) {
@@ -212,6 +260,33 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
 
     _lastEmittedValue = newAnswer;
     widget.onAnswerChanged!(newAnswer);
+  }
+
+  Widget _buildAvatar(String url, AppTheme appTheme) {
+    return ClipOval(
+      child: Container(
+        width: 12, // Small size for text box
+        height: 12,
+        color: appTheme.bgLight,
+        child: url.toLowerCase().endsWith('.svg')
+            ? Padding(
+                padding: const EdgeInsets.all(1.0),
+                child: SvgPicture.network(
+                  url,
+                  fit: BoxFit.contain,
+                  placeholderBuilder: (context) =>
+                      Container(color: appTheme.bgLight),
+                ),
+              )
+            : Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(color: appTheme.bgLight);
+                },
+              ),
+      ),
+    );
   }
 
   @override
@@ -226,13 +301,13 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
         ? widget.submittedAnswer!
         : widget.currentAnswer;
 
-    final userLogValue = _getLogValue(userAnswer);
+    final userLogValue = _getSliderValue(userAnswer);
 
     // Clip correct log value to 0..18 range for the circle position
     // But we use the raw value for the text
     double? correctLogValue;
     if (widget.revealedAnswer != null) {
-      final rawLog = _getLogValue(widget.revealedAnswer!);
+      final rawLog = _getSliderValue(widget.revealedAnswer!);
       correctLogValue = rawLog.clamp(0.0, 15.0);
     }
 
@@ -269,151 +344,52 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                       appTheme: appTheme,
                       revealedColor: widget.revealedColor,
                       otherPlayersLogValues: widget.otherPlayersAnswers?.map(
-                              (id, ans) => MapEntry(id, _getLogValue(ans))) ??
+                              (id, ans) =>
+                                  MapEntry(id, _getSliderValue(ans))) ??
                           {},
-                      otherPlayersAvatars: widget.otherPlayersAvatars ?? {},
+                      // Removed otherPlayersAvatars from painter as it's no longer used there
                     ),
                   ),
-                  // Current Player's Avatar Overlay (full opacity)
-                  if (widget.currentPlayerAvatarUrl != null &&
-                      widget.currentPlayerAvatarUrl!.isNotEmpty)
-                    Positioned(
-                      left: padding + (userLogValue / 15.0) * drawWidth - 8,
-                      top: 24 - 8,
-                      child: ClipOval(
-                        child: Container(
-                          width: 16,
-                          height: 16,
-                          color: appTheme.bgLight,
-                          child: widget.currentPlayerAvatarUrl!
-                                  .toLowerCase()
-                                  .endsWith('.svg')
-                              ? Padding(
-                                  padding: const EdgeInsets.all(2.0),
-                                  child: SvgPicture.network(
-                                    widget.currentPlayerAvatarUrl!,
-                                    fit: BoxFit.contain,
-                                    placeholderBuilder: (context) =>
-                                        Container(color: appTheme.bgLight),
-                                  ),
-                                )
-                              : Image.network(
-                                  widget.currentPlayerAvatarUrl!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(color: appTheme.bgLight);
-                                  },
-                                ),
-                        ),
-                      ),
-                    ),
-                  // Other Players' Avatar Overlays (0.5 opacity)
-                  if (widget.otherPlayersAnswers != null &&
-                      widget.otherPlayersAvatars != null)
-                    ...widget.otherPlayersAnswers!.entries.map((entry) {
-                      final playerId = entry.key;
-                      final answer = entry.value;
-                      final avatarUrl = widget.otherPlayersAvatars![playerId];
-
-                      // Skip if no avatar URL
-                      if (avatarUrl == null || avatarUrl.isEmpty) {
-                        return const SizedBox.shrink();
-                      }
-
-                      final logValue = _getLogValue(answer);
-                      final clampedLogValue = logValue.clamp(0.0, 15.0);
-                      final x = padding + (clampedLogValue / 15.0) * drawWidth;
-
-                      return Positioned(
-                        left: x - 8,
-                        top: 24 - 8,
-                        child: ClipOval(
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            color: appTheme.bgLight,
-                            child: avatarUrl.toLowerCase().endsWith('.svg')
-                                ? Padding(
-                                    padding: const EdgeInsets.all(2.0),
-                                    child: SvgPicture.network(
-                                      avatarUrl,
-                                      fit: BoxFit.contain,
-                                      placeholderBuilder: (context) =>
-                                          Container(color: appTheme.bgLight),
-                                    ),
-                                  )
-                                : Image.network(
-                                    avatarUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(color: appTheme.bgLight);
-                                    },
-                                  ),
-                          ),
-                        ),
-                      );
-                    }),
-                  // Other Players' Circles (with tap handlers)
+                  // Other Players' Text Boxes (Non-interactive, Always Visible)
                   if (widget.otherPlayersAnswers != null)
                     ...widget.otherPlayersAnswers!.entries.map((entry) {
                       final playerId = entry.key;
                       final answer = entry.value;
-                      final logValue = _getLogValue(answer);
+                      final logValue = _getSliderValue(answer);
                       final clampedLogValue = logValue.clamp(0.0, 15.0);
                       final x = padding + (clampedLogValue / 15.0) * drawWidth;
+                      final avatarUrl = widget.otherPlayersAvatars?[playerId];
 
                       return Positioned(
                         left: x,
-                        top: 24 -
-                            8, // Center vertically (24 is half height, 8 is half indicator size)
-                        child: GestureDetector(
-                          onTap: () => _toggleTextBox(playerId),
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            color: Colors.transparent,
-                          ),
-                        ),
-                      );
-                    }),
-                  // Other Players' Text Boxes
-                  if (widget.otherPlayersAnswers != null)
-                    ...widget.otherPlayersAnswers!.entries.map((entry) {
-                      final playerId = entry.key;
-                      final answer = entry.value;
-                      final logValue = _getLogValue(answer);
-                      final clampedLogValue = logValue.clamp(0.0, 15.0);
-                      final x = padding + (clampedLogValue / 15.0) * drawWidth;
-                      final isVisible = _visibleTextBoxes.contains(playerId);
-
-                      return Positioned(
-                        left: x,
-                        top:
-                            -14, // Position above the scale (same as user answer)
+                        bottom: 60, // Position 12px above the scale (48 + 12)
                         child: FractionalTranslation(
                           translation: const Offset(-0.5, 0),
-                          child: Opacity(
-                            opacity: isVisible ? 1.0 : 0.0,
-                            child: IgnorePointer(
-                              ignoring: !isVisible,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: appTheme.bgLight.withOpacity(0.9),
-                                  border: Border.all(
-                                      color: appTheme.border, width: 1),
-                                  borderRadius: BorderRadius.circular(4),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color:
-                                          appTheme.shadowColor.withOpacity(0.1),
-                                      blurRadius: 2,
-                                      offset: const Offset(0, 1),
-                                    ),
-                                  ],
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: appTheme.bgLight,
+                              border:
+                                  Border.all(color: appTheme.bgLight, width: 1),
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: appTheme.shadowColor.withOpacity(0.1),
+                                  blurRadius: 2,
+                                  offset: const Offset(0, 2),
                                 ),
-                                child: Text(
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (avatarUrl != null &&
+                                    avatarUrl.isNotEmpty) ...[
+                                  _buildAvatar(avatarUrl, appTheme),
+                                  const SizedBox(width: 4),
+                                ],
+                                Text(
                                   _formatAnswerText(answer),
                                   style: TextStyle(
                                     fontSize: 12,
@@ -421,7 +397,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                                     color: appTheme.text,
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
                           ),
                         ),
@@ -430,7 +406,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                   // User Answer Text Box
                   Positioned(
                     left: padding + (userLogValue / 15.0) * drawWidth,
-                    top: -14, // Position above the scale
+                    bottom: 60, // Position 12px above the scale (48 + 12 = 60)
                     child: FractionalTranslation(
                       translation: const Offset(-0.5, 0),
                       child: Container(
@@ -438,23 +414,34 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                             horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: appTheme.bgLight,
-                          border: Border.all(color: appTheme.border, width: 1),
+                          border: Border.all(color: appTheme.bgLight, width: 1),
                           borderRadius: BorderRadius.circular(4),
                           boxShadow: [
                             BoxShadow(
                               color: appTheme.shadowColor.withOpacity(0.1),
                               blurRadius: 2,
-                              offset: const Offset(0, 1),
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
-                        child: Text(
-                          _formatAnswerText(userAnswer),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: appTheme.text,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (widget.currentPlayerAvatarUrl != null &&
+                                widget.currentPlayerAvatarUrl!.isNotEmpty) ...[
+                              _buildAvatar(
+                                  widget.currentPlayerAvatarUrl!, appTheme),
+                              const SizedBox(width: 4),
+                            ],
+                            Text(
+                              _formatAnswerText(userAnswer),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: appTheme.text,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -463,7 +450,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                   if (currentCorrectX != null && widget.revealedAnswer != null)
                     Positioned(
                       left: currentCorrectX,
-                      bottom: -14, // Position above the scale
+                      top: 60, // Position 12px below the scale (48 + 12 = 60)
                       child: FractionalTranslation(
                         translation: const Offset(-0.5, 0),
                         child: Opacity(
@@ -473,11 +460,16 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: appTheme.primary,
-                              border:
-                                  Border.all(color: appTheme.border, width: 1),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
+                                color: appTheme.primary,
+                                borderRadius: BorderRadius.circular(4),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color:
+                                        appTheme.shadowColor.withOpacity(0.1),
+                                    blurRadius: 2,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]),
                             child: Text(
                               _formatAnswerText(widget.revealedAnswer!),
                               style: TextStyle(

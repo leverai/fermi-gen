@@ -38,7 +38,7 @@ class ScalePainter extends CustomPainter {
 
     // Paint for the ruler line
     final rulerPaint = Paint()
-      ..color = appTheme.borderMuted
+      ..color = Colors.transparent
       ..strokeWidth = rulerHeight
       ..strokeCap = StrokeCap.round;
 
@@ -60,28 +60,39 @@ class ScalePainter extends CustomPainter {
     );
 
     // Draw Ticks
-    // Ticks at 0, 1, 2, ... 15
+    // Ticks at 0, 1, 2, ... 15 (Powers of 10)
     for (int i = 0; i <= 15; i++) {
-      final x = padding + (i / maxLog) * drawWidth;
-      // Make major ticks (0, 3, 6, 9, 12, 15, 18) slightly larger/darker?
-      // Requirement: "tick for each order of magnitude starting from zero"
-      // 0, 10, 100... means every integer power of 10.
-      // So every integer on the log scale.
+      // Draw Minor Ticks (Dots) for values 2..9 within this decade
+      // i is the start of decade. i+1 is end.
+      // We want dots at i + 1/9, i + 2/9 ... i + 8/9
+      if (i < 15) {
+        final dotPaint = Paint()
+          ..color = appTheme.bgDark
+          ..style = PaintingStyle.fill;
 
-      // Let's make the OM ticks (0, 3, 6...) more prominent
-      final isMajor = i % 3 == 0;
-      final currentTickHeight = isMajor ? tickHeight * 1.5 : tickHeight;
+        for (int j = 1; j <= 8; j++) {
+          final sliderVal = i + (j / 9.0);
+          final x = padding + (sliderVal / maxLog) * drawWidth;
+          canvas.drawCircle(Offset(x, cy), 1.0, dotPaint);
+        }
+      }
+
+      final x = padding + (i / maxLog) * drawWidth;
+
+      final isOmBoundary = i % 3 == 0;
+      final currentTickHeight = isOmBoundary ? tickHeight * 1.5 : tickHeight;
 
       canvas.drawLine(
         Offset(x, cy - currentTickHeight / 2),
         Offset(x, cy + currentTickHeight / 2),
-        tickPaint..color = isMajor ? appTheme.border : appTheme.borderMuted,
+        tickPaint
+          ..color = isOmBoundary ? appTheme.border : appTheme.borderMuted,
       );
 
       // Draw Labels
       // Requirement: "The first and last ticks have no label" -> skip 0 and 15
-      // Requirement: "Use abbreviation (K, M, B, etc.)" -> implies only major ticks
-      if (isMajor && i > 0 && i < 15) {
+      // Requirement: "Use abbreviation (K, M, B, etc.)" -> implies only OM ticks
+      if (isOmBoundary && i > 0 && i < 15) {
         String? label;
         switch (i) {
           case 3:
@@ -103,8 +114,8 @@ class ScalePainter extends CustomPainter {
             text: label,
             style: TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w400,
-              color: appTheme.borderMuted,
+              fontWeight: FontWeight.w500,
+              color: appTheme.border,
             ),
           );
           final textPainter = TextPainter(
@@ -117,35 +128,34 @@ class ScalePainter extends CustomPainter {
           // Center the text horizontally on x
           // Place it below the tick. Tick ends at cy + currentTickHeight / 2
           final textX = x - (textPainter.width / 2);
-          final textY = cy + (currentTickHeight / 2) + 2; // +2 padding
+          final textY = cy + (currentTickHeight / 2) + 4; // +4 padding
 
           textPainter.paint(canvas, Offset(textX, textY));
         }
       }
     }
 
-    // Draw Other Players' Indicators (with 0.5 opacity)
+    // Draw Other Players' Indicators (with full opacity as lines)
     otherPlayersLogValues.forEach((playerId, logValue) {
       final clampedLogValue = logValue.clamp(0.0, maxLog);
       final x = padding + (clampedLogValue / maxLog) * drawWidth;
-      final avatarUrl = otherPlayersAvatars[playerId];
+      // Requirement: "other-players' lines are borderMuted"
       _drawIndicator(
         canvas,
         Offset(x, cy),
-        appTheme.border,
-        appTheme.bgLight,
-        opacity: 0.5,
-        avatarUrl: avatarUrl,
+        appTheme.borderMuted.withOpacity(0.5),
+        h, // Height needed for line
       );
     });
 
     // Draw User Indicator
     final userX = padding + (userLogValue / maxLog) * drawWidth;
+    // Requirement: "My line should appear in secondary"
     _drawIndicator(
       canvas,
       Offset(userX, cy),
-      appTheme.border,
-      appTheme.bgLight,
+      appTheme.secondary,
+      h,
     );
 
     // Draw Correct Indicator (if revealed)
@@ -155,57 +165,32 @@ class ScalePainter extends CustomPainter {
       // Lerp position
       final currentX = userX + (correctX - userX) * revealProgress;
 
-      // Only draw if progress > 0 to avoid z-fighting at start if we want
-      // But since it spawns from user, drawing on top is fine.
-
-      // Color: revealedColor (usually green/red scale) or primary
-      // Requirement 5: "The correct answer indicator must appear in primary at reveal time."
-      // Wait, "appear in primary". But Requirement 0 says "Animates to score-scale (danger to success)".
-      // Ah, the *card background* animates to score-scale.
-      // The *indicator*? "The correct answer indicator must appear in primary at reveal time."
-      // Okay, I'll use primary.
-
-      final indicatorColor = appTheme.primary;
-
-      // We can also fade it in or scale it up
-      // But "spawns out of" implies movement.
-
+      // Requirement: "The correct answer appears as a line as well, primary colored."
       _drawIndicator(
         canvas,
         Offset(currentX, cy),
-        appTheme.border, // Border color
-        indicatorColor, // Fill color
-        scale: 1.0, // Could animate scale if desired
+        appTheme.primary,
+        h,
       );
     }
   }
 
   void _drawIndicator(
-      Canvas canvas, Offset center, Color borderColor, Color fillColor,
-      {double scale = 1.0, double opacity = 1.0, String? avatarUrl}) {
+      Canvas canvas, Offset center, Color color, double height) {
     final paint = Paint()
-      ..color = fillColor.withOpacity(opacity)
-      ..style = PaintingStyle.fill;
+      ..color = color
+      ..strokeWidth = 3.0 // Requirement: "Use a line" - assumed width
+      ..strokeCap = StrokeCap.round; // Rounded ends looks nicer
 
-    final borderPaint = Paint()
-      ..color = borderColor.withOpacity(opacity)
-      ..strokeWidth = 2.0
-      ..style = PaintingStyle.stroke;
-
-    // Shape: Circle or Rounded Rect?
-    // Neubrutalism often uses simple geometric shapes.
-    // Let's use a Circle.
-
-    // Note: Drawing avatars in CustomPainter requires pre-loaded ui.Image objects.
-    // Since CustomPainter.paint() is synchronous and cannot load images,
-    // we'll need to handle avatar rendering differently - either by:
-    // 1. Pre-loading images in the widget state and passing ui.Image objects
-    // 2. Using a Widget overlay approach instead of painting
-    // For now, we'll draw the background circle and border as before.
-    // Avatar rendering will be handled via Widget overlays in the parent widget.
-
-    canvas.drawCircle(center, (indicatorSize / 2) * scale, paint);
-    canvas.drawCircle(center, (indicatorSize / 2) * scale, borderPaint);
+    // Draw line spanning the entire height
+    // Center is at cy (middle).
+    // range is 0 to h.
+    // x is center.dx
+    canvas.drawLine(
+      Offset(center.dx, 0),
+      Offset(center.dx, height),
+      paint,
+    );
   }
 
   @override
@@ -215,7 +200,7 @@ class ScalePainter extends CustomPainter {
         oldDelegate.revealProgress != revealProgress ||
         oldDelegate.appTheme != appTheme ||
         oldDelegate.revealedColor != revealedColor ||
-        oldDelegate.otherPlayersLogValues != otherPlayersLogValues ||
-        oldDelegate.otherPlayersAvatars != otherPlayersAvatars;
+        oldDelegate.otherPlayersLogValues != otherPlayersLogValues;
+    // removed otherPlayersAvatars check
   }
 }
