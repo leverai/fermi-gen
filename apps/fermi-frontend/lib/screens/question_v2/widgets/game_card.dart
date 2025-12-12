@@ -27,7 +27,7 @@ const double kGameCardPadding = 48.0; // Padding top + bottom (24px * 2)
 const double kGameCardMargin = 2.0; // Margin top + bottom (1px * 2)
 
 const double kGameCardButtonHeight = 48.0;
-const double kGameCardButtonSpacing = 24.0; // Spacing between answer and button
+const double kGameCardButtonSpacing = 48.0; // Spacing between answer and button
 
 // Total height calculation:
 // This constant defines the fixed height of the GameCard to ensure consistent
