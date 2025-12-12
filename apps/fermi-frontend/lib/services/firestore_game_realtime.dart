@@ -44,6 +44,9 @@ class FirestoreGameRealtime implements GameRealtime {
   // Controllers to allow re-emitting on locale changes
   final Map<String, StreamController<RevealedQuestion>> _revealedControllers =
       <String, StreamController<RevealedQuestion>>{};
+  // Cache unit ID to abbreviation mapping per question for converting other players' answers
+  final Map<String, Map<String, String>> _unitIdToAbbreviationByQuestion =
+      <String, Map<String, String>>{};
 
   @override
   Stream<GameSnapshot> watchGame(String gameId) {
@@ -221,7 +224,7 @@ class FirestoreGameRealtime implements GameRealtime {
     baseStream.where((qs) => qs.docs.isNotEmpty).listen((qs) {
       final Map<String, dynamic> raw = qs.docs.first.data();
       _lastQuestionRawByKey[key] = raw;
-      controller.add(_mapQuestionDocToRevealed(raw));
+      controller.add(_mapQuestionDocToRevealed(raw, key));
     });
 
     return controller.stream;
@@ -248,7 +251,15 @@ class FirestoreGameRealtime implements GameRealtime {
           .where((qs) {
         final bool has = qs.docs.isNotEmpty;
         return has;
-      }).map((qs) => _mapPlayersAnswersDoc(qs.docs.first.data()));
+      }).map((qs) {
+        final String key = '$gameId:$questionIndex';
+        final Map<String, String>? unitMapping =
+            _unitIdToAbbreviationByQuestion[key];
+        return _mapPlayersAnswersDoc(
+          qs.docs.first.data(),
+          unitIdToAbbr: unitMapping,
+        );
+      });
     }
 
     return col
@@ -258,7 +269,15 @@ class FirestoreGameRealtime implements GameRealtime {
         .where((qs) {
       final bool has = qs.docs.isNotEmpty;
       return has;
-    }).map((qs) => _mapPlayersAnswersDoc(qs.docs.first.data()));
+    }).map((qs) {
+      final String key = '$gameId:$questionIndex';
+      final Map<String, String>? unitMapping =
+          _unitIdToAbbreviationByQuestion[key];
+      return _mapPlayersAnswersDoc(
+        qs.docs.first.data(),
+        unitIdToAbbr: unitMapping,
+      );
+    });
   }
 
   @override
@@ -300,7 +319,7 @@ class FirestoreGameRealtime implements GameRealtime {
     _lastQuestionRawByKey.forEach((String key, Map<String, dynamic> raw) {
       final StreamController<RevealedQuestion>? c = _revealedControllers[key];
       if (c != null && !c.isClosed) {
-        c.add(_mapQuestionDocToRevealed(raw));
+        c.add(_mapQuestionDocToRevealed(raw, key));
       }
     });
   }
@@ -391,7 +410,10 @@ class FirestoreGameRealtime implements GameRealtime {
     return decomposeNumber(rawNumber, unit);
   }
 
-  PlayersAnswersSnapshot _mapPlayersAnswersDoc(Map<String, dynamic> data) {
+  PlayersAnswersSnapshot _mapPlayersAnswersDoc(
+    Map<String, dynamic> data, {
+    Map<String, String>? unitIdToAbbr,
+  }) {
     final Map<String, dynamic> playersResults =
         data['players_results'] as Map<String, dynamic>? ?? {};
 
@@ -409,9 +431,13 @@ class FirestoreGameRealtime implements GameRealtime {
           entry['answer'] as Map<String, dynamic>?;
       if (ans != null) {
         final double rawNumber = (ans['number'] as num?)?.toDouble() ?? 0;
+        // The backend may return unit IDs in answer field
+        // Convert to abbreviations using the cached mapping
+        final String unitId = (ans['unit'] as String?) ?? '';
+        final String unit = unitIdToAbbr?[unitId] ?? unitId;
         final AnswerValue parsedAnswer = _parseBackendAnswer(
           rawNumber,
-          (ans['unit'] as String?) ?? '',
+          unit,
         );
         submitted[playerId] = parsedAnswer;
       }
@@ -419,9 +445,13 @@ class FirestoreGameRealtime implements GameRealtime {
           entry['correct_answer'] as Map<String, dynamic>?;
       if (corr != null) {
         final double rawNumber = (corr['number'] as num?)?.toDouble() ?? 0;
+        // The backend may return unit IDs in correct_answer field
+        // Convert to abbreviations using the cached mapping
+        final String unitId = (corr['unit'] as String?) ?? '';
+        final String unit = unitIdToAbbr?[unitId] ?? unitId;
         final AnswerValue parsedAnswer = _parseBackendAnswer(
           rawNumber,
-          (corr['unit'] as String?) ?? '',
+          unit,
         );
         correct[playerId] = parsedAnswer;
       }
@@ -450,9 +480,13 @@ class FirestoreGameRealtime implements GameRealtime {
           if (otherAns is Map<String, dynamic>) {
             final double rawNumber =
                 (otherAns['number'] as num?)?.toDouble() ?? 0;
+            // The backend returns unit IDs in converted_answers
+            // Convert to abbreviations using the cached mapping
+            final String unitId = (otherAns['unit'] as String?) ?? '';
+            final String unit = unitIdToAbbr?[unitId] ?? unitId;
             final AnswerValue parsedAnswer = _parseBackendAnswer(
               rawNumber,
-              (otherAns['unit'] as String?) ?? '',
+              unit,
             );
             playerConverted[otherPlayerId] = parsedAnswer;
           }
@@ -472,7 +506,10 @@ class FirestoreGameRealtime implements GameRealtime {
     );
   }
 
-  RevealedQuestion _mapQuestionDocToRevealed(Map<String, dynamic> data) {
+  RevealedQuestion _mapQuestionDocToRevealed(
+    Map<String, dynamic> data, [
+    String? cacheKey,
+  ]) {
     final String text = (data['text'] as String?) ?? '';
     List<String> tags = (data['tags'] as List<dynamic>? ?? const <dynamic>[])
         .whereType<String>()
@@ -510,6 +547,22 @@ class FirestoreGameRealtime implements GameRealtime {
     final Map<String, String> idToAbbr = <String, String>{};
     if (unitsRaw is Map<String, dynamic>) {
       final String locale = (resolveLocale?.call() ?? 'US').toUpperCase();
+
+      // Build idToAbbr for ALL locales (needed for converting other players' answers)
+      // This ensures we can display abbreviations for players using different unit systems
+      for (final localeEntry in unitsRaw.entries) {
+        final List<dynamic>? localeUnits = localeEntry.value as List<dynamic>?;
+        if (localeUnits == null) continue;
+        for (final e in localeUnits.whereType<Map<String, dynamic>>()) {
+          final String? id = e['id'] as String?;
+          final String? abbr = e['abbreviation'] as String?;
+          if (id != null && abbr != null) {
+            idToAbbr[id] = abbr;
+          }
+        }
+      }
+
+      // Process current locale for UI display (tape units, options, abbrToId)
       final List<dynamic>? region = unitsRaw[locale] as List<dynamic>? ??
           unitsRaw['US'] as List<dynamic>?;
       final Iterable<Map<String, dynamic>> entries =
@@ -527,7 +580,6 @@ class FirestoreGameRealtime implements GameRealtime {
             unitOptions[abbr] = abbr;
           }
           abbrToId[abbr] = id;
-          idToAbbr[id] = abbr;
         }
       }
       units = abbrs;
@@ -539,6 +591,11 @@ class FirestoreGameRealtime implements GameRealtime {
       for (final String ab in abbrs) {
         unitOptions[ab] = ab;
       }
+    }
+
+    // Cache the unit ID to abbreviation mapping for use when parsing player answers
+    if (cacheKey != null && idToAbbr.isNotEmpty) {
+      _unitIdToAbbreviationByQuestion[cacheKey] = idToAbbr;
     }
 
     // If no explicit tags array is provided, synthesize from category/difficulty/year

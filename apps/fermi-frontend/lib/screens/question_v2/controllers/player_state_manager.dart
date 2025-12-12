@@ -41,8 +41,6 @@ class PlayerStateManager {
     required int currentIndex,
     required int questionCount,
   }) {
-    debugPrint(
-        '[TSF DEBUG] ===== updatePlayers CALLED with ${snapshot.players.length} players =====');
     // Extract active players and sort by rank
     final List<MapEntry<String, PlayerSummary>> entries = snapshot
         .players.entries
@@ -62,14 +60,9 @@ class PlayerStateManager {
 
     // Update player controllers
     final Set<String> currentPlayerIds = entries.map((e) => e.key).toSet();
-    debugPrint('[TSF DEBUG] updatePlayers: currentPlayerIds=$currentPlayerIds');
-    debugPrint(
-        '[TSF DEBUG] updatePlayers: existing controllers=${_playerControllers.keys.toList()}');
-
     for (final pid in currentPlayerIds) {
       if (!_playerControllers.containsKey(pid)) {
         _playerControllers[pid] = PlayerWidgetController();
-        debugPrint('[TSF DEBUG] ✅ Created controller for player $pid');
       }
     }
     // Remove controllers for players that left
@@ -79,7 +72,6 @@ class PlayerStateManager {
     for (final pid in toRemove) {
       _playerControllers[pid]?.dispose();
       _playerControllers.remove(pid);
-      debugPrint('[TSF DEBUG] Removed controller for player $pid');
     }
 
     // Track which players have submitted answers

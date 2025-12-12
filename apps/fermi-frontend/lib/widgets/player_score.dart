@@ -268,7 +268,7 @@ class _PlayerScoreState extends State<PlayerScore> {
       style: AppFont.secondaryTextStyle(
         context,
         fontWeight: FontWeight.w400,
-        fontSize: 14.0,
+        fontSize: 12.0,
         color: textColor,
       ),
     );

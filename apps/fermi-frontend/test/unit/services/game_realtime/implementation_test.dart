@@ -349,5 +349,100 @@ void main() {
       expect(question.unitAbbreviationToId['mi'], 'unit1');
       expect(question.unitIdToAbbreviation['unit1'], 'mi');
     });
+
+    test('should convert unit IDs to abbreviations in converted answers',
+        () async {
+      // ARRANGE
+      final usRealtime = FirestoreGameRealtime(
+        currentPlayerId: currentPlayerId,
+        firestore: fakeFirestore,
+        resolveLocale: () => 'US',
+        gameConfig: const GameConfig(
+          categories: [],
+          difficulties: [],
+        ),
+      );
+
+      // Set up question with units (to populate the cache)
+      await fakeFirestore
+          .collection('games')
+          .doc(gameId)
+          .collection('questions')
+          .doc('q1')
+          .set({
+        'text': 'Test question',
+        'revealed': true,
+        'units': {
+          'US': [
+            {'id': 'foot', 'name': 'Foot', 'abbreviation': 'ft'},
+          ],
+          'EU': [
+            {'id': 'meter', 'name': 'Meter', 'abbreviation': 'm'},
+          ],
+        },
+      });
+
+      // Set up players_results with converted_answers containing unit IDs
+      await fakeFirestore
+          .collection('games')
+          .doc(gameId)
+          .collection('players_results')
+          .doc('q1')
+          .set({
+        'revealed': true,
+        'players_results': {
+          'player-1': {
+            'answer': {'number': 500, 'unit': 'foot'},
+            'score': 100,
+            'converted_answers': {
+              'player-2': {
+                'number': 152.4,
+                'unit': 'meter' // Backend returns unit ID, not abbreviation
+              },
+            },
+          },
+          'player-2': {
+            'answer': {'number': 150, 'unit': 'meter'},
+            'score': 95,
+            'converted_answers': {
+              'player-1': {
+                'number': 492.1,
+                'unit': 'foot' // Backend returns unit ID, not abbreviation
+              },
+            },
+          },
+        },
+      });
+
+      // ACT
+      // First, watch the question to populate the cache
+      final questionStream = usRealtime.revealedQuestion(gameId, 0);
+      await questionStream.first;
+
+      // Then, watch players answers
+      final answersStream = usRealtime.playersAnswersForQuestion(gameId, 0);
+      final snapshot = await answersStream.first;
+
+      // ASSERT
+      // Player 1's answer should use abbreviation
+      expect(snapshot.submitted['player-1']?.unit, 'ft');
+
+      // Player 1's view of Player 2's converted answer should use abbreviation
+      final player1ConvertedAnswers = snapshot.convertedAnswers['player-1'];
+      expect(player1ConvertedAnswers, isNotNull);
+      expect(player1ConvertedAnswers!['player-2']?.unit, 'm',
+          reason:
+              'Player 1 (US) should see Player 2\'s answer with abbreviation "m" not ID "meter"');
+
+      // Player 2's answer should use abbreviation
+      expect(snapshot.submitted['player-2']?.unit, 'm');
+
+      // Player 2's view of Player 1's converted answer should use abbreviation
+      final player2ConvertedAnswers = snapshot.convertedAnswers['player-2'];
+      expect(player2ConvertedAnswers, isNotNull);
+      expect(player2ConvertedAnswers!['player-1']?.unit, 'ft',
+          reason:
+              'Player 2 (EU) should see Player 1\'s answer with abbreviation "ft" not ID "foot"');
+    });
   });
 }
