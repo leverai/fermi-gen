@@ -51,7 +51,7 @@ class SubmittedAnswerChip extends StatelessWidget {
             text: numberPart + omPart,
             style: AppFont.secondaryTextStyle(
               context,
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.w600, // Heavier weight for number + OM
               color: textColor,
             ),

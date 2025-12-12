@@ -474,6 +474,18 @@ class QuestionScreenV2Controller extends ChangeNotifier {
           _animationManager.toDisplayAnswer(entry.value, currentState);
     }
 
+    // Convert converted answers to display format as well
+    // This ensures other players' answers with different unit systems show abbreviations
+    final Map<String, Map<String, AnswerValue>> displayConvertedAnswers = {};
+    for (final playerEntry in snapshot.convertedAnswers.entries) {
+      final Map<String, AnswerValue> playerConverted = {};
+      for (final answerEntry in playerEntry.value.entries) {
+        playerConverted[answerEntry.key] =
+            _animationManager.toDisplayAnswer(answerEntry.value, currentState);
+      }
+      displayConvertedAnswers[playerEntry.key] = playerConverted;
+    }
+
     // Extract correct answer from snapshot (same for all players, so take first one)
     AnswerValue? correctAnswer;
     if (snapshot.correct.isNotEmpty) {
@@ -492,7 +504,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
         scores: snapshot.scores,
         cumulativeScores: cumulativeScores,
         percentiles: snapshot.percentiles,
-        convertedAnswers: snapshot.convertedAnswers,
+        convertedAnswers: displayConvertedAnswers,
         isRevealed: shouldBeRevealed,
         correctAnswer: correctAnswer ??
             currentState.correctAnswer, // Preserve existing if not in snapshot
