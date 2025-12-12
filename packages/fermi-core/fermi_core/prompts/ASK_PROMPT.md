@@ -79,7 +79,7 @@ Ambiguity kills engagement. Every question should have ONE reasonable interpreta
 
 ### **Rule 5: MUST Be Compact & Well-Phrased**
 
-- Avoid questions that are too long or complex
+- Avoid questions that are too long or complex. Aim for no longer than 120 characters.
 - Avoid unnecessary context or fluff
 - Aim for simple, compact, and well-phrased questions.
 

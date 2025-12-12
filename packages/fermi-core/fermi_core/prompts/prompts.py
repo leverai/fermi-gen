@@ -7,7 +7,9 @@ ASK_PROMPT = ChatPromptTemplate.from_messages(
         ('system', (Path(__file__).parent / 'ASK_PROMPT.md').read_text()),
         (
             'human',
-            ('Generate a batch of {num_questions} questions. Your seed: **{seed}**'),
+            (
+                'Generate a batch of up to {num_questions} questions. Your seed: **{seed}**'
+            ),
         ),
     ],
 )
