@@ -72,7 +72,7 @@ async def answer_questions(
             model_provider=config.model_provider,
             confidence_threshold=config.confidence_threshold,
             temperature=0.0,
-            service_tier='flex',
+            # service_tier='flex',
         )
 
         # Step 3: Process all answers (successful and failed)

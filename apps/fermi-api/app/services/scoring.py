@@ -20,7 +20,8 @@ class ScoringService:
 
     def _compute_bare_score(self, player_value: float, truth_value: float) -> float:
         """Compute the bare score as absolute difference of magnitudes."""
-        ratio = max(player_value / truth_value, truth_value / player_value)
+        safe_player_val = player_value or 1e-6
+        ratio = max(player_value / truth_value, truth_value / safe_player_val)
         return SCORE_MAX / ratio**ALPHA
 
     def calculate_score(

@@ -33,7 +33,7 @@ class ETLConfig(BaseSettings):
 
     # Pipeline parameters
     question_generation_model: str = Field(
-        default='gpt-5-nano',
+        default='gpt-5-mini',
         description='LLM model for question generation',
     )
     question_generation_model_provider: str = Field(

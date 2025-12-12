@@ -8,7 +8,7 @@ ASK_PROMPT = ChatPromptTemplate.from_messages(
         (
             'human',
             (
-                'Generate a batch of up to {num_questions} questions. Your seed: **{seed}**'
+                'Generate a batch of no more than {num_questions} questions. Your seed: **{seed}**'
             ),
         ),
     ],
