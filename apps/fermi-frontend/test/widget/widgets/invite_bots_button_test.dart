@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fermi_frontend/widgets/invite_bots_button.dart';
 import '../../helpers/test_helpers.dart';
 
@@ -17,8 +18,8 @@ void main() {
       await pumpWithMaterialApp(tester, widget);
       await tester.pumpAndSettle();
 
-      // ASSERT
-      expect(find.byIcon(Icons.smart_toy), findsOneWidget);
+      // ASSERT - uses SVG icon asset instead of Material Icon
+      expect(find.byType(SvgPicture), findsOneWidget);
     });
 
     testWidgets('should display correct label for single bot',

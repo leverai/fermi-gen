@@ -151,6 +151,10 @@ class FirestoreGameRealtime implements GameRealtime {
         _currentUidByGame[gameId] = currentQuestionUid;
       }
 
+      // Parse created_at timestamp for lobby timer sync
+      final Timestamp? createdAtTs = data['created_at'] as Timestamp?;
+      final DateTime? createdAt = createdAtTs?.toDate();
+
       return GameSnapshot(
         state: state,
         isHost: isHost,
@@ -164,6 +168,7 @@ class FirestoreGameRealtime implements GameRealtime {
         allAnswered: allAnswered,
         currentQuestionUid: currentQuestionUid,
         questionUids: _questionUidsByGame[gameId] ?? const <String>[],
+        createdAt: createdAt,
       );
     });
   }

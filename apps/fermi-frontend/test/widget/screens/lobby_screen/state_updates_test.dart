@@ -25,7 +25,7 @@ void main() {
         players: initialPlayers,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT - Should have 1 player
       expect(find.byType(PlayerWidget), findsOneWidget);
@@ -53,7 +53,7 @@ void main() {
         players: updatedPlayers,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT - Should now have 2 players
       expect(find.byType(PlayerWidget), findsNWidgets(2));
@@ -90,7 +90,7 @@ void main() {
         players: initialPlayers,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT - Should have 3 players
       expect(find.byType(PlayerWidget), findsNWidgets(3));
@@ -118,7 +118,7 @@ void main() {
         players: updatedPlayers,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT - Should now have 2 players
       expect(find.byType(PlayerWidget), findsNWidgets(2));
@@ -142,7 +142,7 @@ void main() {
         startEnabled: false,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT - Button should be disabled
       final disabledButton = tester.widget<MainButton>(find.byType(MainButton));
@@ -155,7 +155,7 @@ void main() {
         startEnabled: true,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT - Button should now be enabled
       final enabledButton = tester.widget<MainButton>(find.byType(MainButton));
@@ -196,7 +196,7 @@ void main() {
         isPrivate: false,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT - Should show neither share button nor spinner
       expect(find.byType(ShareButton), findsNothing);
@@ -221,7 +221,7 @@ void main() {
         isPrivate: false,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT - Share button should not be present (public game)
       expect(find.byType(ShareButton), findsNothing);
@@ -235,7 +235,7 @@ void main() {
         onShare: () {},
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT - Share button should now be present
       expect(find.byType(ShareButton), findsOneWidget);
@@ -266,7 +266,7 @@ void main() {
         players: players,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ACT - Update with player_2 as current
       await pumpLobbyScreen(
@@ -274,7 +274,7 @@ void main() {
         players: players,
         currentPlayerId: 'player_2',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT - Ring assignments should update
       // (The actual color rendering is handled by PlayerRingProgress,

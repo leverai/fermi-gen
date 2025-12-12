@@ -45,8 +45,7 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
   bool _navigatedToQuestions = false;
   GameSessionController? _session;
   int _botsToInvite = 0;
-  // kept for potential future use to delay UI swaps until first realtime
-  // snapshot; currently unused but harmless
+  DateTime? _createdAt;
 
   @override
   void initState() {
@@ -68,6 +67,7 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
             snapshot.state == GameState.lobbyReady;
         _isPrivate = snapshot.isPrivate;
         _joinUrl = snapshot.joinUrl;
+        _createdAt = snapshot.createdAt;
         // Calculate how many bots can be invited
         final int currentPlayerCount = snapshot.players.length;
         final int remainingSpots = _maxPlayers - currentPlayerCount;
@@ -241,6 +241,7 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
         isHost: _isHost,
         onInviteBots: _isHost ? _inviteBots : null,
         botsToInvite: _botsToInvite,
+        createdAt: _createdAt,
         onLeave: () async {
           final appTheme = Theme.of(context).extension<AppTheme>() ??
               AppTheme.defaultTheme();

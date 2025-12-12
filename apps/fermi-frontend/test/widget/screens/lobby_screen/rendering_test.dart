@@ -34,7 +34,7 @@ void main() {
         players: players,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       // Verify PlayersRow is present (which contains PlayerWidgets)
@@ -92,7 +92,7 @@ void main() {
         startEnabled: true,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       expect(find.byType(MainButton), findsOneWidget);
@@ -119,7 +119,7 @@ void main() {
         startEnabled: false,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       expect(find.byType(MainButton), findsOneWidget);
@@ -149,7 +149,7 @@ void main() {
         onShare: () {},
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       expect(find.byType(ShareButton), findsOneWidget);
@@ -173,7 +173,7 @@ void main() {
         players: players,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       // LeaveButtonOverlay is present

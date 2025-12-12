@@ -78,6 +78,7 @@ class GameSnapshot {
   final bool allAnswered;
   final String? currentQuestionUid; // from game doc 'question_uid'
   final List<String> questionUids; // from game doc 'question_uids'
+  final DateTime? createdAt; // from game doc 'created_at' for timer sync
 
   const GameSnapshot({
     required this.state,
@@ -92,6 +93,7 @@ class GameSnapshot {
     this.allAnswered = false,
     this.currentQuestionUid,
     this.questionUids = const <String>[],
+    this.createdAt,
   });
 }
 
