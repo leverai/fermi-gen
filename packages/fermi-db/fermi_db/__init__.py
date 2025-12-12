@@ -10,4 +10,7 @@ from .repositories.seed_repository import SeedLight
 __all__ = [
     'DatabaseClient',
     'SeedLight',
+    '__version__',
 ]
+
+__version__ = '0.1.0'
