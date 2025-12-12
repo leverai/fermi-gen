@@ -486,10 +486,10 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       displayConvertedAnswers[playerEntry.key] = playerConverted;
     }
 
-    // Extract correct answer from snapshot (same for all players, so take first one)
+    // Extract correct answer from snapshot for the CURRENT player (in their unit system)
     AnswerValue? correctAnswer;
     if (snapshot.correct.isNotEmpty) {
-      correctAnswer = snapshot.correct.values.first;
+      correctAnswer = snapshot.correct[realtime.currentPlayerId];
     }
 
     // Store the snapshot for later use when we have player summaries
