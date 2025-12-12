@@ -93,7 +93,7 @@ async def llm_answer_questions(
             model=model,
             model_provider=config.llm_answer_model_provider,
             temperature=0.5,
-            service_tier='flex',
+            # service_tier='flex',
         )
 
         # Process results and prepare database entries

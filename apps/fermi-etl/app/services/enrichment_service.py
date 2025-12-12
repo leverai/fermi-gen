@@ -64,7 +64,7 @@ async def enrich_categories(
             model=config.category_model,
             model_provider=config.category_model_provider,
             temperature=0.5,
-            service_tier='flex',
+            # service_tier='flex',
         )
 
         # Process results and prepare updates
@@ -140,7 +140,7 @@ async def enrich_difficulties(
             model=config.difficulty_model,
             model_provider=config.difficulty_model_provider,
             temperature=0.5,
-            service_tier='flex',
+            # service_tier='flex',
         )
 
         # Process results and prepare updates
