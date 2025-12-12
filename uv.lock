@@ -408,7 +408,6 @@ wheels = [
 
 [[package]]
 name = "fermi-api"
-version = "0.1.1"
 source = { editable = "apps/fermi-api" }
 dependencies = [
     { name = "asyncpg", marker = "sys_platform == 'linux'" },
@@ -473,7 +472,6 @@ local = [{ name = "scour", specifier = ">=0.38.2" }]
 
 [[package]]
 name = "fermi-core"
-version = "0.1.0"
 source = { editable = "packages/fermi-core" }
 dependencies = [
     { name = "ftfy", marker = "sys_platform == 'linux'" },
@@ -508,7 +506,6 @@ local = [{ name = "langchain-ollama", specifier = ">=0.3.3" }]
 
 [[package]]
 name = "fermi-db"
-version = "0.1.0"
 source = { editable = "packages/fermi-db" }
 dependencies = [
     { name = "aiosqlite", marker = "sys_platform == 'linux'" },
@@ -541,7 +538,7 @@ requires-dist = [
 
 [[package]]
 name = "fermi-etl"
-source = { virtual = "apps/fermi-etl" }
+source = { editable = "apps/fermi-etl" }
 dependencies = [
     { name = "fastapi", marker = "sys_platform == 'linux'" },
     { name = "fermi-core", marker = "sys_platform == 'linux'" },
