@@ -1,6 +1,6 @@
 [project]
 name = "fermi-core"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Core utilities for the fermi-gen project."
 readme = "README.md"
 authors = [
