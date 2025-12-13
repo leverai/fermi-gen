@@ -42,7 +42,13 @@ def upgrade() -> None:
         sa.Column('used_ai_overview', sa.Boolean(), nullable=False),
         sa.Column(
             'difficulty',
-            sa.Enum('EASY', 'MEDIUM', 'HARD', name='questiondifficulty'),
+            sa.Enum(
+                'EASY',
+                'MEDIUM',
+                'HARD',
+                name='questiondifficulty',
+                create_type=False,
+            ),
             nullable=True,
         ),
         sa.Column(
@@ -55,6 +61,7 @@ def upgrade() -> None:
                 'COSMIC_PERSPECTIVE',
                 'OTHER',
                 name='questioncategory',
+                create_type=False,
             ),
             nullable=True,
         ),
