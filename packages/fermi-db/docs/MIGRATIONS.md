@@ -56,9 +56,8 @@ The `fermi-db` package owns the database schema and migrations. We use Alembic w
 
    This creates:
    - `pgvector` extension
-   - All tables
+   - All tables (including `fermi`)
    - Indexes and constraints
-   - Materialized views
 
 ---
 
@@ -396,16 +395,20 @@ rows = result.all()
 ids = [row[0] for row in rows if row[0] is not None]
 ```
 
-### Issue: Foreign Key Constraint to Materialized View
+### Issue: Foreign Key Constraints to `fermi` Table
 
-**Error:**
+**Note:** As of December 2025, `fermi` is now a regular table (not a materialized view), so foreign key constraints are fully supported.
+
+**Adding FK constraints:**
+
+```sql
+ALTER TABLE user_question_history ADD CONSTRAINT fk_user_history_fermi 
+  FOREIGN KEY (question_uid) REFERENCES fermi(uid);
+ALTER TABLE answer_events ADD CONSTRAINT fk_answer_events_fermi 
+  FOREIGN KEY (question_uid) REFERENCES fermi(uid);
+ALTER TABLE questions_votes ADD CONSTRAINT fk_questions_votes_fermi 
+  FOREIGN KEY (question_uid) REFERENCES fermi(uid);
 ```
-ERROR: there is no unique constraint matching given keys for referenced table "fermi"
-```
-
-**Cause:** PostgreSQL doesn't support foreign keys to materialized views.
-
-**Solution:** Remove foreign key constraints to `fermi.uid`. See [Recent Bug Fixes](#recent-bug-fixes) below.
 
 ### Issue: Migration Conflicts
 
@@ -466,37 +469,23 @@ return [row[0] for row in rows if row[0] is not None]
 
 **Impact:** Fixed integration tests and answer service functionality.
 
-### Fixed: Materialized View Foreign Keys (2025-11-04)
+### Updated: Converted `fermi` from Materialized View to Table (2025-12-13)
 
-**Issue:** Foreign key constraints to `fermi.uid` failed because PostgreSQL doesn't support FKs to materialized views.
+**Change:** The `fermi` materialized view was converted to a regular table to support proper foreign key constraints.
 
-**Fix:**
-- Removed FK constraints from `answer_events`, `questions_votes`, and `user_question_history`
-- Changed to deterministic UUID generation using `uuid_generate_v5()` for data stability
-- Updated `alembic/env.py` to exclude `fermi` table and its FK constraints from autogenerate
+**Migration Details:**
+- Dropped the materialized view `fermi`
+- Created a new `fermi` table with the same schema
+- Added foreign key constraint from `fermi.id` to `fermi_questions(id)`
+- Updated ETL pipeline to use `sync_fermi_table()` for inserting rows
+- Foreign key constraints from `user_question_history`, `answer_events`, and `questions_votes` can now be added
 
-**Configuration in `alembic/env.py`:**
+**Benefits:**
+- Proper referential integrity with FK constraints
+- No need for manual `REFRESH MATERIALIZED VIEW` commands
+- Simpler data management in ETL pipeline
 
-```python
-def include_object(object, name, type_, reflected, compare_to):
-    # Exclude fermi table (materialized view)
-    if type_ == "table" and name == "fermi":
-        return False
-
-    # Exclude foreign keys to fermi
-    if type_ == "foreign_key_constraint":
-        if object.referred_table.name == "fermi":
-            return False
-
-    return True
-
-context.configure(
-    # ...
-    include_object=include_object
-)
-```
-
-**Documentation:** See `docs/FERMI_MV_FK_FIX.md` for complete details on the fix and design decisions.
+**Impact:** The ETL service now calls `sync_fermi_table()` after enrichment to populate the `fermi` table with newly enriched questions.
 
 ---
 

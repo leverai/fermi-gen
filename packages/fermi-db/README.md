@@ -16,7 +16,7 @@ The `fermi-db` package serves as the dedicated Data Access Layer (DAL) for inter
 This package handles all database interactions for:
 - Questions, users, user history, answer analytics
 - Question generation pipeline (seeds, raw questions, usage tracking)
-- Materialized views for performance
+- Unified table for answered questions
 
 ## Design and Architecture
 
@@ -66,8 +66,8 @@ The design of this package is centered around the **Repository Pattern** to ensu
 - `fermi_answers` - Ground truth answers (UPSERT support)
 - `seeds_usage` - Thompson Sampling statistics
 
-**Materialized Views:**
-- `fermi` - Unified view of answered questions
+**Production Table:**
+- `fermi` - Unified table of answered questions
 
 For complete schema details, see **[Database Schema Documentation](docs/SCHEMA.md)**.
 
@@ -193,6 +193,18 @@ uv run --package fermi-db alembic -c alembic.ini upgrade head
 # Create new migration
 uv run --package fermi-db alembic -c alembic.ini revision --autogenerate -m "your change"
 ```
+
+## Foreign Key Constraints to `fermi` Table
+
+With `fermi` now a regular table, foreign key constraints can be defined normally. Existing tables such as `user_question_history`, `answer_events`, and `questions_votes` can reference `fermi.uid` with proper FK constraints.
+
+```sql
+ALTER TABLE user_question_history ADD CONSTRAINT fk_user_history_fermi FOREIGN KEY (question_uid) REFERENCES fermi(uid);
+ALTER TABLE answer_events ADD CONSTRAINT fk_answer_events_fermi FOREIGN KEY (question_uid) REFERENCES fermi(uid);
+ALTER TABLE questions_votes ADD CONSTRAINT fk_questions_votes_fermi FOREIGN KEY (question_uid) REFERENCES fermi(uid);
+```
+
+These constraints ensure referential integrity and can be added in a new migration.
 
 **Common Issues:**
 - pgvector extension not found
