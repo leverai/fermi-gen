@@ -90,27 +90,34 @@ async def enrich_difficulty(request: EnrichmentRequest) -> EnrichmentResponse:
 
 @router.post('/join_all', response_model=EnrichmentResponse)
 async def join_all() -> EnrichmentResponse:
-    """Refresh the materialized view (join pipeline tables).
+    """Sync the fermi table with new enriched questions.
+
+    Inserts questions that have:
+    - Successful answers
+    - All three LLM answers
+    - Are not yet in the fermi table
+
+    New questions are inserted with status = PENDING_REVIEW.
 
     Returns:
-        EnrichmentResponse with success status
+        EnrichmentResponse with count of new questions inserted
 
     """
-    logger.info('Received request to refresh materialized view')
+    logger.info('Received request to sync fermi table')
 
     try:
         async with session_context() as session:
             db_client = DatabaseClient(session)
-            await db_client.enrichment.refresh_materialized_view()
+            count = await db_client.enrichment.sync_fermi_table()
 
-        logger.info('Materialized view refresh successful')
+        logger.info(f'Fermi table sync successful: {count} questions added')
         return EnrichmentResponse(
             success=True,
-            result=None,
+            result={'questions_added': count},
         )
 
     except Exception as exc:
-        logger.error(f'Materialized view refresh failed: {exc}', exc_info=True)
+        logger.error(f'Fermi table sync failed: {exc}', exc_info=True)
         return EnrichmentResponse(
             success=False,
             error=str(exc),

@@ -11,7 +11,7 @@ from app.services.enrichment_service import (
     EnrichmentResult,
     enrich_categories,
     enrich_difficulties,
-    refresh_materialized_view,
+    sync_fermi_table,
 )
 from app.services.llm_answer_service import LLMAnswerResult, llm_answer_questions
 from app.services.question_service import (
@@ -104,8 +104,8 @@ async def _run_answer_workflow(
             logger.exception(f'LLM answering failed for model {model}')
             # Continue with other models even if one fails
 
-    # Step 5: Refresh materialized view
-    await refresh_materialized_view()
+    # Step 5: Sync fermi table with new questions
+    await sync_fermi_table()
 
     # Combine enrichment results
     # Note: WE assume that both category and difficulty enrich the same questions,
