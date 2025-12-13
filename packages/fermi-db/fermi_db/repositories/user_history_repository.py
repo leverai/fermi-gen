@@ -9,7 +9,7 @@ from sqlmodel import select
 
 from fermi_db.models import Fermi, UserQuestionHistory
 from fermi_db.repositories import BaseRepository
-from fermi_db.schemas import QuestionCategory, QuestionDifficulty
+from fermi_db.schemas import QuestionCategory, QuestionDifficulty, QuestionStatus
 
 
 class UserHistoryRepository(BaseRepository):
@@ -22,9 +22,11 @@ class UserHistoryRepository(BaseRepository):
         category: QuestionCategory | None = None,
         difficulty: QuestionDifficulty | None = None,
     ) -> list[Fermi]:
-        """Fetch up to N questions, prioritizing those seen by the fewest users,
-        then by the fewest total times among those users, with random ordering within
-        each group.
+        """Fetch up to N APPROVED questions, prioritizing less-seen ones.
+
+        Only returns questions with status = APPROVED (human-reviewed).
+        Questions are prioritized by those seen by the fewest users, then by
+        the fewest total times among those users.
 
         Equivalent SQL:
         SELECT fq.*
@@ -38,7 +40,7 @@ class UserHistoryRepository(BaseRepository):
             WHERE uqh.user_id IN (<user_ids>)
             GROUP BY uqh.question_uid
         ) AS seen_stats ON fq.uid = seen_stats.question_uid
-        -- Note: No status filter - materialized view has only answered questions
+        WHERE fq.status = 'APPROVED'
         -- AND fq.category = <category>
         -- AND fq.difficulty = <difficulty>
         ORDER BY
@@ -65,9 +67,8 @@ class UserHistoryRepository(BaseRepository):
             .subquery()
         )
 
-        # Main query
-        # Note: No status filter - materialized view has only answered questions
-        statement = select(Fermi)
+        # Main query - only return APPROVED questions (human-reviewed)
+        statement = select(Fermi).where(Fermi.status == QuestionStatus.APPROVED)
 
         if category is not None:
             statement = statement.where(Fermi.category == category)

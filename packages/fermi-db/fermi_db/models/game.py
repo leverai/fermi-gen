@@ -13,6 +13,7 @@ from fermi_db.schemas import (
     AnswerBare,
     QuestionCategory,
     QuestionDifficulty,
+    QuestionStatus,
 )
 
 # In PostgreSQL, a standard integer is 4 bytes, with a max value of 2,147,483,647
@@ -20,16 +21,15 @@ MAX_INT = 2_147_483_647
 
 
 class Fermi(SQLModel, table=True):
-    """Materialized view combining questions and answers for game selection.
+    """Table combining questions and answers for game selection.
 
-    Note: While this is a materialized view in the database, we use table=True
-    to ensure SQLAlchemy can properly select from it. The actual materialized
-    view is created via Alembic migrations.
+    This was converted from a materialized view to a normal table to support
+    human-in-the-loop question review via the status field.
 
     The uid is generated deterministically using uuid_generate_v5() based on
-    fermi_questions.id, ensuring it remains stable across materialized view
-    refreshes. This allows backend tables (answer_events, questions_votes,
-    user_question_history) to safely reference fermi.uid.
+    fermi_questions.id, ensuring it remains stable. This allows backend tables
+    (answer_events, questions_votes, user_question_history) to safely reference
+    fermi.uid.
     """
 
     __tablename__ = 'fermi'  # type: ignore
@@ -50,6 +50,11 @@ class Fermi(SQLModel, table=True):
     )
     updated_at: datetime.datetime = Field(
         sa_column=sa.Column(sa.TIMESTAMP(timezone=False)),
+    )
+    # Human review status - only APPROVED questions are served to players
+    status: QuestionStatus = Field(
+        default=QuestionStatus.PENDING_REVIEW,
+        index=True,
     )
     # LLM answers for bot players
     gpt_5_1_number: float

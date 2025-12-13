@@ -177,9 +177,13 @@ async def enrich_difficulties(
         )
 
 
-async def refresh_materialized_view() -> bool:
-    """Refresh the materialized view."""
+async def sync_fermi_table() -> int:
+    """Sync fermi table with newly enriched questions.
+
+    Returns:
+        Number of new questions inserted
+
+    """
     async with session_context() as session:
         db_client = DatabaseClient(session)
-        await db_client.enrichment.refresh_materialized_view()
-        return True
+        return await db_client.enrichment.sync_fermi_table()
