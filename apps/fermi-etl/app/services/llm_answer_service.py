@@ -113,7 +113,7 @@ async def llm_answer_questions(
             questions=llm_inputs,
             model=model,
             model_provider=config.llm_answer_model_provider,
-            temperature=0.5,
+            temperature=1,
             # service_tier='flex',
         )
 
