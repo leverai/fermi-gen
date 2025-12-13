@@ -1,6 +1,6 @@
 # Fermi Database Schema
 
-This document describes the complete database schema for the Fermi Game project, including legacy tables, pipeline tables, game tables, and materialized views.
+This document describes the complete database schema for the Fermi Game project, including legacy tables, pipeline tables, and production tables.
 
 ## Table of Contents
 
@@ -9,7 +9,7 @@ This document describes the complete database schema for the Fermi Game project,
   - [Legacy Tables](#legacy-tables)
   - [Pipeline Tables](#pipeline-tables)
   - [Game Tables](#game-tables)
-- [Materialized Views](#materialized-views)
+  - [Production Table (fermi)](#tables)
 - [Indexes and Constraints](#indexes-and-constraints)
 - [Relationships and Foreign Keys](#relationships-and-foreign-keys)
 - [Vector Embeddings (pgvector)](#vector-embeddings-pgvector)
@@ -287,29 +287,27 @@ See Legacy Tables section for `user_question_history`, `answer_events`, and `que
 
 ---
 
-## Materialized Views
+## Tables
 
 ### `fermi`
 
-Unified view joining successfully answered questions with their answers. This is the primary view used by the API for game question selection.
+Unified table joining successfully answered questions with their answers. This replaces the previous materialized view and is used directly by the API.
 
 ```sql
-CREATE MATERIALIZED VIEW fermi AS
-SELECT
-    gen_random_uuid() AS uid,  -- Generate deterministic UUID
-    q.id,
-    q.text,
-    q.category,
-    q.difficulty,
-    q.year,
-    a.number,
-    a.unit,
-    a.snippet,
-    a.paragraph,
-    a.references
-FROM fermi_questions q
-INNER JOIN fermi_answers a ON q.id = a.question_id
-WHERE a.success = TRUE;
+CREATE TABLE fermi (
+    uid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id INTEGER NOT NULL REFERENCES fermi_questions(id),
+    text TEXT NOT NULL,
+    category TEXT,
+    difficulty TEXT,
+    year INTEGER,
+    number FLOAT NOT NULL,
+    unit TEXT,
+    snippet TEXT,
+    paragraph TEXT,
+    references JSONB,
+    CONSTRAINT fermi_success_chk CHECK (TRUE) -- placeholder for success condition
+);
 
 CREATE UNIQUE INDEX idx_fermi_uid ON fermi (uid);
 CREATE INDEX idx_fermi_id ON fermi (id);
@@ -318,17 +316,17 @@ CREATE INDEX idx_fermi_difficulty ON fermi (difficulty);
 ```
 
 **Key Properties:**
-- Only includes questions with successful answers (`success=TRUE`)
-- Excludes failed answer attempts
-- Must be refreshed after enrichment: `REFRESH MATERIALIZED VIEW fermi;`
-- UUID generated deterministically using `gen_random_uuid()`
+- Regular table (no longer a materialized view)
+- Only includes questions with successful answers (inserted via ETL pipeline)
+- Populated by `sync_fermi_table()` after enrichment completes
+- UUID generated using `gen_random_uuid()` on insert
+- Supports foreign key constraints from other tables
 
-**Why not a regular view?**
-- Materialized for performance (no join overhead on each query)
-- Unique index on `uid` for foreign key references (not possible with regular views)
-- Manually refreshed after bulk operations
-
-**Important:** PostgreSQL doesn't support foreign keys TO materialized views. Tables like `user_question_history`, `answer_events`, and `questions_votes` reference `fermi.uid` but without FK constraints.
+**Why a table instead of materialized view?**
+- Allows proper foreign key constraints from `user_question_history`, `answer_events`, and `questions_votes`
+- Simpler data management - no need for `REFRESH MATERIALIZED VIEW`
+- Better referential integrity
+- Rows are inserted directly by the ETL pipeline after successful enrichment
 
 ---
 
@@ -385,12 +383,12 @@ fermi_questions (1) ─────< (N) raw_questions (canonical_question_id)
 ### Game Relationships
 
 ```
-fermi (materialized view) ─────< (N) user_question_history (no FK)
-fermi (materialized view) ─────< (N) answer_events (no FK)
-fermi (materialized view) ─────< (N) questions_votes (no FK)
+fermi (table) ─────< (N) user_question_history (FK: question_uid)
+fermi (table) ─────< (N) answer_events (FK: question_uid)
+fermi (table) ─────< (N) questions_votes (FK: question_uid)
 ```
 
-**Note:** Foreign keys to materialized views are not supported in PostgreSQL. References to `fermi.uid` are enforced at the application level.
+**Note:** With `fermi` now a regular table, foreign key constraints can be properly defined to ensure referential integrity.
 
 ---
 
@@ -453,30 +451,23 @@ WITH (m = 16, ef_construction = 64);
 **Rationale:**
 - Legacy preserved for backward compatibility
 - New schema optimized for pipeline performance
-- Materialized view bridges the gap
+- `fermi` table bridges the gap
 
-### Why Materialized View Instead of Regular View?
+### Why Table Instead of Materialized View?
 
 **Benefits:**
-- Performance: No join overhead on each query
-- Indexing: Unique index on `uid` for efficient lookups
-- Consistency: Snapshot of data at refresh time
+- Supports foreign key constraints for referential integrity
+- Simpler data management (no manual refresh needed)
+- Direct INSERT operations from ETL pipeline
+- Better integration with application logic
 
 **Trade-offs:**
-- Manual refresh required after changes
-- Storage overhead (data duplicated)
-- Not real-time (must refresh to see updates)
+- Requires explicit INSERT operations (handled by `sync_fermi_table()`)
+- Storage overhead (data duplicated from `fermi_questions` + `fermi_answers`)
+- Must manage data consistency at application level
 
-### Why No Foreign Keys to Materialized View?
-
-**Limitation:** PostgreSQL doesn't support foreign keys TO materialized views.
-
-**Workaround:**
-- Application-level enforcement
-- Deterministic UUID generation for consistency
-- Regular data validation
-
-**Alternative Considered:** Convert to regular table with triggers, but materialized view refresh is simpler and more explicit.
+**Migration from Materialized View:**
+The `fermi` table replaced the previous materialized view in December 2025. The ETL pipeline now uses `sync_fermi_table()` to insert rows after successful enrichment, eliminating the need for `REFRESH MATERIALIZED VIEW` commands.
 
 ### Why Record Failed Answer Attempts?
 
