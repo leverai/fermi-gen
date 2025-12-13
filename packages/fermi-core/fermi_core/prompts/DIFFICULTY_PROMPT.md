@@ -10,17 +10,17 @@ Analyze the given Fermi question and classify its difficulty level as one of: EA
 - Common, everyday topics that most people are familiar with
 - Requires basic general knowledge
 - Straightforward estimation with 2-3 simple steps
-- Examples: "How many pizza slices are eaten in your city per day?", "How many cars are parked at a mall?"
+- Examples: "How many pizza slices are eaten in your city per day?", "How long does an average person sleep per year?"
 
 ### MEDIUM
 - Topics that require some domain knowledge but are still accessible
-- Involves moderate complexity in reasoning (3-5 steps)
+- Involves moderate complexity in reasoning (4-5 steps)
 - May require knowledge of less common but learnable facts
 - Examples: "How many trees are in the Amazon rainforest?", "How much does the internet weigh?"
 
 ### HARD
 - Obscure topics or highly specialized knowledge required
-- Complex multi-step reasoning (5+ steps)
+- Complex multi-step reasoning (6+ steps)
 - Requires creative thinking about abstract or unfamiliar concepts
 - May involve scientific, technical, or historical knowledge
 - Examples: "How much gas does it take to travel to the moon?", "How many diapers are used in the US each year?"
