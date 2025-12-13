@@ -12,6 +12,7 @@ from fermi_db.session import session_context
 from pydantic import BaseModel
 
 from app.config import ETLConfig
+from app.log_context import Stage
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,10 @@ async def llm_answer_questions(
         )
 
         if not questions_data:
-            logger.info(f'No questions need {model} LLM answering')
+            logger.info(
+                f'No questions need {model} LLM answering',
+                extra={'json_fields': {'stage': Stage.LLM_ANSWER, 'model': model}},
+            )
             return LLMAnswerResult(
                 model=model,
                 questions_answered=0,
@@ -62,7 +66,16 @@ async def llm_answer_questions(
                 details={'message': f'No questions need {model} answering'},
             )
 
-        logger.info(f'LLM answering {len(questions_data)} questions with {model}')
+        logger.info(
+            f'LLM answering {len(questions_data)} questions with {model}',
+            extra={
+                'json_fields': {
+                    'stage': Stage.LLM_ANSWER,
+                    'model': model,
+                    'batch_size': len(questions_data),
+                },
+            },
+        )
 
         # Build LLM inputs with units_set for dimensional questions
         llm_inputs: list[LLMAnswerInput] = []
@@ -79,6 +92,14 @@ async def llm_answer_questions(
                 except ValueError:
                     logger.warning(
                         f'Unknown unit {answer_unit} for question {question_id}',
+                        extra={
+                            'json_fields': {
+                                'stage': Stage.LLM_ANSWER,
+                                'model': model,
+                                'question_id': question_id,
+                                'unit': answer_unit,
+                            },
+                        },
                     )
 
             llm_inputs.append(
@@ -107,7 +128,16 @@ async def llm_answer_questions(
             strict=True,
         ):
             if isinstance(result, BaseException):
-                logger.error(f'Failed to LLM answer question {question_id}: {result}')
+                logger.error(
+                    f'Failed to LLM answer question {question_id}: {result}',
+                    extra={
+                        'json_fields': {
+                            'stage': Stage.LLM_ANSWER,
+                            'model': model,
+                            'question_id': question_id,
+                        },
+                    },
+                )
                 skipped += 1
                 continue
 
@@ -116,6 +146,13 @@ async def llm_answer_questions(
                 logger.error(
                     f'LLM answer unit {result.unit} does not match expected units '
                     f'{units_set} for question {question_id}',
+                    extra={
+                        'json_fields': {
+                            'stage': Stage.LLM_ANSWER,
+                            'model': model,
+                            'question_id': question_id,
+                        },
+                    },
                 )
                 skipped += 1
                 continue
@@ -134,6 +171,14 @@ async def llm_answer_questions(
             await db_client.llm_answers.bulk_insert_llm_answers(llm_answers)
             logger.info(
                 f'Successfully stored {len(llm_answers)} {model} LLM answers',
+                extra={
+                    'json_fields': {
+                        'stage': Stage.LLM_ANSWER,
+                        'model': model,
+                        'stored': len(llm_answers),
+                        'skipped': skipped,
+                    },
+                },
             )
 
         return LLMAnswerResult(
