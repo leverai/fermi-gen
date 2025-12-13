@@ -15,6 +15,7 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = 'convert_fermi_to_table'
@@ -27,6 +28,11 @@ def upgrade() -> None:
     """Upgrade schema."""
     # Drop the materialized view
     op.execute('DROP MATERIALIZED VIEW IF EXISTS fermi CASCADE')
+
+    # Create the new questionstatus enum type
+    op.execute(
+        "CREATE TYPE questionstatus AS ENUM ('PENDING_REVIEW', 'APPROVED', 'REJECTED')"
+    )
 
     # Create the fermi table with status column
     op.create_table(
@@ -42,7 +48,7 @@ def upgrade() -> None:
         sa.Column('used_ai_overview', sa.Boolean(), nullable=False),
         sa.Column(
             'difficulty',
-            sa.Enum(
+            postgresql.ENUM(
                 'EASY',
                 'MEDIUM',
                 'HARD',
@@ -53,7 +59,7 @@ def upgrade() -> None:
         ),
         sa.Column(
             'category',
-            sa.Enum(
+            postgresql.ENUM(
                 'PLANET_EARTH',
                 'HUMANITY_BY_NUMBERS',
                 'POP_CULTURE',
@@ -78,11 +84,12 @@ def upgrade() -> None:
         # New status column for human review
         sa.Column(
             'status',
-            sa.Enum(
+            postgresql.ENUM(
                 'PENDING_REVIEW',
                 'APPROVED',
                 'REJECTED',
                 name='questionstatus',
+                create_type=False,
             ),
             nullable=False,
             server_default='PENDING_REVIEW',
