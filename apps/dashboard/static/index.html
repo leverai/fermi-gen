@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fermi Dashboard - Question Review</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧮 Fermi Dashboard</h1>
+            <p class="subtitle">Question Review & Audit Tool</p>
+        </header>
+
+        <div class="controls">
+            <div class="query-section">
+                <label for="limit">Questions to fetch:</label>
+                <input type="number" id="limit" value="50" min="1" max="500">
+                <button id="queryBtn" class="btn btn-primary">
+                    <span class="icon">🔍</span> Review Questions
+                </button>
+            </div>
+            <div class="action-section">
+                <span id="changeCount" class="change-count hidden">0 changes staged</span>
+                <button id="commitBtn" class="btn btn-success" disabled>
+                    <span class="icon">✓</span> Commit Changes
+                </button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <span>Loading questions...</span>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+
+        <div id="questionsContainer" class="questions-container"></div>
+
+        <!-- Diff Modal -->
+        <div id="diffModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Changes Preview</h2>
+                    <button class="modal-close" onclick="closeDiffModal()">×</button>
+                </div>
+                <div id="diffContent" class="diff-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

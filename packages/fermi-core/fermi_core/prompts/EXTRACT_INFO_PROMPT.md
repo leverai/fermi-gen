@@ -125,6 +125,14 @@ A valid answer paragraph is one which:
         -   `number`: 0
         -   `unit`: "dimensionless"
         -   `confidence`: 0
+-   Question: How many mountain peaks could fit into Earth's crust volume-wise?
+-   Answer Paragraph: It's impossible to calculate an exact number because mountains vary in size and shape, and the volume of Earth's crust is not a solid block. However, we can estimate that the total volume of the $7.581\times 10^{6}$. To determine how many mountains could fit, you would need to define what constitutes a "mountain" (e.g., its height and base area) and then estimate the volume of each mountain to divide it into the total crustal volume. Total Continental Crustal Volume: The total volume of continental crust is estimated to be about $7.581\times 10^{6}$ km ${}^{3}$.
+    -   Rationale: Although the paragraph provides a clear answer, the paragraph is not a direct answer to the question.
+    -   Info extracted:
+        -   `number`: 0
+        -   `unit`: "dimensionless"
+        -   `confidence`: 0
+
 
 ## **Your Task**
 
