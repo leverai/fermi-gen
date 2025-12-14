@@ -291,7 +291,7 @@ See Legacy Tables section for `user_question_history`, `answer_events`, and `que
 
 ### `fermi`
 
-Unified table joining successfully answered questions with their answers. This replaces the previous materialized view and is used directly by the API.
+Unified table joining successfully answered questions with their answers. This replaces the previous materialized view and is used directly by the API. Includes LLM answers for bot players.
 
 ```sql
 CREATE TABLE fermi (
@@ -306,6 +306,25 @@ CREATE TABLE fermi (
     snippet TEXT,
     paragraph TEXT,
     references JSONB,
+    -- GPT bot answers (smart, competitive)
+    gpt_5_1_number FLOAT NOT NULL,
+    gpt_5_1_unit TEXT,
+    gpt_5_mini_number FLOAT NOT NULL,
+    gpt_5_mini_unit TEXT,
+    gpt_5_nano_number FLOAT NOT NULL,
+    gpt_5_nano_unit TEXT,
+    -- Gemini Flash bot answers (casual, high temperature)
+    gemini_flash_1_number FLOAT,
+    gemini_flash_1_unit TEXT,
+    gemini_flash_2_number FLOAT,
+    gemini_flash_2_unit TEXT,
+    gemini_flash_3_number FLOAT,
+    gemini_flash_3_unit TEXT,
+    gemini_flash_4_number FLOAT,
+    gemini_flash_4_unit TEXT,
+    gemini_flash_5_number FLOAT,
+    gemini_flash_5_unit TEXT,
+    status questionstatus NOT NULL DEFAULT 'PENDING_REVIEW',
     CONSTRAINT fermi_success_chk CHECK (TRUE) -- placeholder for success condition
 );
 
@@ -313,14 +332,19 @@ CREATE UNIQUE INDEX idx_fermi_uid ON fermi (uid);
 CREATE INDEX idx_fermi_id ON fermi (id);
 CREATE INDEX idx_fermi_category ON fermi (category);
 CREATE INDEX idx_fermi_difficulty ON fermi (difficulty);
+CREATE INDEX idx_fermi_status ON fermi (status);
 ```
 
 **Key Properties:**
 - Regular table (no longer a materialized view)
-- Only includes questions with successful answers (inserted via ETL pipeline)
-- Populated by `sync_fermi_table()` after enrichment completes
-- UUID generated using `gen_random_uuid()` on insert
+- Only includes questions with successful answers AND all 8 LLM answers
+- Populated by `sync_fermi_table()` after enrichment and LLM answering complete
+- UUID generated using `uuid_generate_v5()` based on question ID for stability
 - Supports foreign key constraints from other tables
+
+**LLM Answer Columns:**
+- **GPT models** (`gpt_5_1_*`, `gpt_5_mini_*`, `gpt_5_nano_*`): Smart competitive bots
+- **Gemini Flash** (`gemini_flash_{1-5}_*`): Casual bots with high temperature (1.5) for varied/less accurate answers
 
 **Why a table instead of materialized view?**
 - Allows proper foreign key constraints from `user_question_history`, `answer_events`, and `questions_votes`

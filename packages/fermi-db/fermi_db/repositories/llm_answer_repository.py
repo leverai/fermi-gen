@@ -104,3 +104,43 @@ class LLMAnswerRepository(BaseRepository):
             ),
         )
         return [id for id in result.all() if id is not None]
+
+    async def get_questions_needing_all_gemini_answers(
+        self,
+        limit: int,
+    ) -> list[tuple[int, str, str | None]]:
+        """Get questions needing all 5 Gemini Flash answers.
+
+        Finds questions that:
+        - Have successful SerpAPI answers
+        - Have NO Gemini Flash answers yet (missing all 5)
+
+        This ensures atomic processing: questions are returned only when
+        ready for a full Gemini batch, avoiding partial answer sets.
+
+        Args:
+            limit: Maximum number of questions to return
+
+        Returns:
+            List of (question_id, question_text, answer_unit) tuples
+
+        """
+        # Subquery: questions with any gemini flash answer
+        has_gemini = (
+            select(LLMAnswer.question_id)
+            .where(LLMAnswer.model.like('gemini-flash-%'))  # type: ignore
+            .subquery()
+        )
+
+        # Main query: successful answers, no Gemini Flash answers yet
+        statement = (
+            select(FermiQuestion.id, FermiQuestion.text, FermiAnswer.unit)
+            .select_from(FermiQuestion)
+            .join(FermiAnswer, FermiQuestion.id == FermiAnswer.question_id)  # type: ignore
+            .where(FermiAnswer.success.is_(True))  # type: ignore
+            .where(FermiQuestion.id.notin_(select(has_gemini.c.question_id)))  # type: ignore
+            .order_by(FermiQuestion.created_at)  # type: ignore
+            .limit(limit)
+        )
+        result = await self.session.exec(statement)
+        return cast(list[tuple[int, str, str | None]], list(result.all()))

@@ -363,21 +363,26 @@ State becomes `QUESTION_LAST_FINISHED` and the game is considered over.
 
 ## Bot Players
 
-The backend supports up to 3 bot players per game. Bots are powered by LLM-generated answers stored in the `fermi` materialized view.
+The backend supports bot players per game. Bots are powered by LLM-generated answers stored in the `fermi` table.
 
 ### Bot Identifiers
 
 | Bot ID | Name | Model |
 |--------|------|-------|
-| `bot-gpt51` | GPT 5.1 | Most capable |
-| `bot-gpt5mini` | GPT 5 Mini | Mid-tier |
-| `bot-gpt5nano` | GPT 5 Nano | Smallest |
+| `bot-gpt51` | GPT 5.1 | Most capable GPT |
+| `bot-gpt5mini` | GPT 5 Mini | Mid-tier GPT |
+| `bot-gpt5nano` | GPT 5 Nano | Smallest GPT |
+| `bot-gemini1` | RoboMcBotface | Casual Gemini Flash |
+| `bot-gemini2` | Toast-R2 | Casual Gemini Flash |
+| `bot-gemini3` | Sir Beeps-a-Lot | Casual Gemini Flash |
+| `bot-gemini4` | GiggleByte | Casual Gemini Flash |
+| `bot-gemini5` | Wheely Big Cheese | Casual Gemini Flash |
 
 ### How Bots Work
 
-1. **Adding Bots**: Host calls `POST /game/add_bots` with `bot_count` (1-3) in lobby state
+1. **Adding Bots**: Host calls `POST /game/add_bots` with `bot_ids` (list of bot IDs) in lobby state
 2. **Auto-Submit**: When `start_game` or `next_question` is called, bot answers are automatically submitted via background task
-3. **Answer Source**: Bot answers come from `fermi.gpt_5_1_number`, `fermi.gpt_5_mini_number`, `fermi.gpt_5_nano_number` columns
+3. **Answer Source**: Bot answers come from `fermi.{model_key}_number` and `fermi.{model_key}_unit` columns
 4. **Display**: Bots appear in `players` and `players_results` like regular players
 
 ### Statistics Integrity
@@ -391,17 +396,17 @@ This is handled in `GameAnalyticsGateway.archive_game_results()`.
 ### Frontend Integration
 
 ```typescript
-// Add 2 bots to a game
+// Add specific bots to a game
 POST /v1/game/add_bots
 {
   "resource_id": "game123",
-  "bot_count": 2
+  "bot_ids": ["bot-gpt51", "bot-gemini2"]
 }
 ```
 
 Bots are identified by `player_id` starting with `bot-`. The frontend should:
 - Display bot avatars from `picture` URL
-- Show bot names (e.g., "GPT 5.1")
+- Show bot names (e.g., "GPT 5.1", "RoboMcBotface")
 - Treat bot answers like any other player's answers in the reveal UI
 
 ---

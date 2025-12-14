@@ -1,8 +1,8 @@
 """Use case for adding bots to a game.
 
-Allows the host to add up to 3 bots to a game in lobby state. Bots are
-virtual players that will have their answers auto-submitted when questions
-are revealed.
+Allows the host to add bots to a game in lobby state by specifying their IDs.
+Bots are virtual players that will have their answers auto-submitted when
+questions are revealed.
 """
 
 from typing import TYPE_CHECKING, cast
@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, cast
 from fastapi import HTTPException, status
 
 from app.schemas.game import GamePlayer, GameState
-from app.services.game.bots import BOT_ORDER, BOTS
+from app.services.game.bots import BOT_IDS, BOTS
 from app.services.game.writers.players_writer import MAX_PLAYERS
 
 if TYPE_CHECKING:
@@ -40,7 +40,7 @@ class AddBotsUseCase:
         request: 'Request',
         game_id: str,
         current_user: 'User',
-        bot_count: int,
+        bot_ids: list[str],
     ) -> list[str]:
         """Add bots to the game and return list of added bot IDs.
 
@@ -48,7 +48,7 @@ class AddBotsUseCase:
             request: FastAPI request object for constructing absolute URLs.
             game_id: The game to add bots to.
             current_user: The user making the request (must be host).
-            bot_count: Number of bots to add (1-3).
+            bot_ids: List of bot IDs to add (e.g., ['bot-gpt51', 'bot-gemini2']).
 
         Returns:
             List of bot IDs that were added.
@@ -57,10 +57,26 @@ class AddBotsUseCase:
             HTTPException: If validation fails or user is not host.
 
         """
-        if bot_count < 1 or bot_count > 3:
+        # Validate bot_ids is not empty
+        if not bot_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='bot_count must be 1, 2, or 3',
+                detail='bot_ids must not be empty',
+            )
+
+        # Validate no duplicates in requested bot_ids
+        if len(bot_ids) != len(set(bot_ids)):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='bot_ids must be unique (no duplicates)',
+            )
+
+        # Validate all bot_ids are valid
+        invalid_ids = [bid for bid in bot_ids if bid not in BOT_IDS]
+        if invalid_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f'Invalid bot IDs: {invalid_ids}. Valid IDs: {sorted(BOT_IDS)}',
             )
 
         game_ref = self._client.collection('games').document(game_id)
@@ -93,23 +109,25 @@ class AddBotsUseCase:
 
         # Validate player count
         players = cast(dict[str, GamePlayer], data['players'])
-        existing_bot_ids = [pid for pid in players if pid in BOTS]
+        existing_bot_ids = {pid for pid in players if pid in BOT_IDS}
         human_count = len(players) - len(existing_bot_ids)
 
-        # Remove existing bots from available pool
-        available_bots = [bid for bid in BOT_ORDER if bid not in existing_bot_ids]
-        bots_to_add = available_bots[:bot_count]
-
-        if len(bots_to_add) < bot_count:
+        # Check for bots already in game
+        already_in_game = [bid for bid in bot_ids if bid in existing_bot_ids]
+        if already_in_game:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f'Only {len(bots_to_add)} more bots can be added',
+                detail=f'Bots already in game: {already_in_game}',
             )
 
-        if human_count + len(existing_bot_ids) + len(bots_to_add) > MAX_PLAYERS:
+        # Check max players limit
+        total_after_add = human_count + len(existing_bot_ids) + len(bot_ids)
+        if total_after_add > MAX_PLAYERS:
+            available_slots = MAX_PLAYERS - human_count - len(existing_bot_ids)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Adding bots would exceed max player limit',
+                detail=f'Adding {len(bot_ids)} bots would exceed max players. '
+                f'Only {available_slots} slot(s) available.',
             )
 
         # Construct base URL for absolute avatar URLs
@@ -117,7 +135,7 @@ class AddBotsUseCase:
 
         # Add bots to players map
         batch = self._client.batch()
-        for bot_id in bots_to_add:
+        for bot_id in bot_ids:
             bot = BOTS[bot_id]
             # Convert relative picture URL to absolute URL
             picture_url = f'{base_url}{bot["picture"]}'
@@ -133,9 +151,8 @@ class AddBotsUseCase:
             batch.update(game_ref, {f'players.{bot_id}': bot_player})
 
         # Update full flag if needed
-        total_players = human_count + len(existing_bot_ids) + len(bots_to_add)
-        batch.update(game_ref, {'full': total_players >= MAX_PLAYERS})
+        batch.update(game_ref, {'full': total_after_add >= MAX_PLAYERS})
 
         await batch.commit()
 
-        return bots_to_add
+        return bot_ids

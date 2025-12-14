@@ -143,7 +143,7 @@ async def add_bots(
     return await game_service.add_bots(
         request=request,
         game_id=payload.resource_id,
-        bot_count=payload.bot_count,
+        bot_ids=payload.bot_ids,
         current_user=current_user,
         firestore_client=firestore_client,
     )

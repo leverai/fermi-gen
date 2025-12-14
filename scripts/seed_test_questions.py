@@ -130,6 +130,16 @@ async def seed_test_data(test_data_path: Path) -> None:
                 gpt_5_mini_unit,
                 gpt_5_nano_number,
                 gpt_5_nano_unit,
+                gemini_flash_1_number,
+                gemini_flash_1_unit,
+                gemini_flash_2_number,
+                gemini_flash_2_unit,
+                gemini_flash_3_number,
+                gemini_flash_3_unit,
+                gemini_flash_4_number,
+                gemini_flash_4_unit,
+                gemini_flash_5_number,
+                gemini_flash_5_unit,
                 status
             )
             SELECT
@@ -153,7 +163,12 @@ async def seed_test_data(test_data_path: Path) -> None:
                     fa.created_at,
                     la_51.created_at,
                     la_mini.created_at,
-                    la_nano.created_at
+                    la_nano.created_at,
+                    la_gemini1.created_at,
+                    la_gemini2.created_at,
+                    la_gemini3.created_at,
+                    la_gemini4.created_at,
+                    la_gemini5.created_at
                 ) AS updated_at,
                 la_51.number AS gpt_5_1_number,
                 la_51.unit AS gpt_5_1_unit,
@@ -161,6 +176,16 @@ async def seed_test_data(test_data_path: Path) -> None:
                 la_mini.unit AS gpt_5_mini_unit,
                 la_nano.number AS gpt_5_nano_number,
                 la_nano.unit AS gpt_5_nano_unit,
+                la_gemini1.number AS gemini_flash_1_number,
+                la_gemini1.unit AS gemini_flash_1_unit,
+                la_gemini2.number AS gemini_flash_2_number,
+                la_gemini2.unit AS gemini_flash_2_unit,
+                la_gemini3.number AS gemini_flash_3_number,
+                la_gemini3.unit AS gemini_flash_3_unit,
+                la_gemini4.number AS gemini_flash_4_number,
+                la_gemini4.unit AS gemini_flash_4_unit,
+                la_gemini5.number AS gemini_flash_5_number,
+                la_gemini5.unit AS gemini_flash_5_unit,
                 'APPROVED' AS status  -- Test data is pre-approved
             FROM fermi_answers fa
             INNER JOIN fermi_questions fq ON fa.question_id = fq.id
@@ -170,6 +195,16 @@ async def seed_test_data(test_data_path: Path) -> None:
                 AND la_mini.model = 'gpt-5-mini'
             INNER JOIN llm_answers la_nano ON fq.id = la_nano.question_id
                 AND la_nano.model = 'gpt-5-nano'
+            INNER JOIN llm_answers la_gemini1 ON fq.id = la_gemini1.question_id
+                AND la_gemini1.model = 'gemini-1.5-flash-001'
+            INNER JOIN llm_answers la_gemini2 ON fq.id = la_gemini2.question_id
+                AND la_gemini2.model = 'gemini-1.5-flash-002'
+            INNER JOIN llm_answers la_gemini3 ON fq.id = la_gemini3.question_id
+                AND la_gemini3.model = 'gemini-1.5-flash-003'
+            INNER JOIN llm_answers la_gemini4 ON fq.id = la_gemini4.question_id
+                AND la_gemini4.model = 'gemini-1.5-flash-004'
+            INNER JOIN llm_answers la_gemini5 ON fq.id = la_gemini5.question_id
+                AND la_gemini5.model = 'gemini-1.5-flash-005'
             WHERE fa.success = true
             ON CONFLICT (question_id) DO NOTHING
             """),

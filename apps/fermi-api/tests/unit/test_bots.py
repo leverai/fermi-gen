@@ -2,14 +2,21 @@
 
 from unittest.mock import Mock
 
-from app.services.game.bots import BOT_IDS, BOT_ORDER, BOTS, get_bot_answer, is_bot
+from app.services.game.bots import BOT_IDS, BOTS, get_bot_answer, is_bot
 
 
 def test_is_bot_returns_true_for_all_bot_ids() -> None:
     """All predefined bot IDs should be recognized as bots."""
+    # GPT bots
     assert is_bot('bot-gpt51')
     assert is_bot('bot-gpt5mini')
     assert is_bot('bot-gpt5nano')
+    # Gemini Flash bots
+    assert is_bot('bot-gemini1')
+    assert is_bot('bot-gemini2')
+    assert is_bot('bot-gemini3')
+    assert is_bot('bot-gemini4')
+    assert is_bot('bot-gemini5')
 
 
 def test_is_bot_returns_false_for_human_player_ids() -> None:
@@ -22,7 +29,7 @@ def test_is_bot_returns_false_for_human_player_ids() -> None:
 
 def test_bots_dictionary_structure() -> None:
     """BOTS dictionary should have correct structure with required fields."""
-    assert len(BOTS) == 3
+    assert len(BOTS) == 8  # 3 GPT + 5 Gemini Flash
 
     for bot_id, bot_info in BOTS.items():
         assert bot_id.startswith('bot-')
@@ -36,17 +43,22 @@ def test_bots_dictionary_structure() -> None:
         assert isinstance(bot_info['model_key'], str)
 
 
-def test_bot_order_matches_expected_ordering() -> None:
-    """BOT_ORDER should list bots in capability order (best to worst)."""
-    assert BOT_ORDER == ['bot-gpt51', 'bot-gpt5mini', 'bot-gpt5nano']
-    # Verify all BOT_ORDER entries are in BOTS
-    assert all(bot_id in BOTS for bot_id in BOT_ORDER)
-
-
 def test_bot_ids_frozenset_contains_all_bots() -> None:
     """BOT_IDS frozenset should contain all bot IDs from BOTS."""
-    assert BOT_IDS == frozenset(['bot-gpt51', 'bot-gpt5mini', 'bot-gpt5nano'])
-    assert len(BOT_IDS) == 3
+    expected_ids = frozenset(
+        [
+            'bot-gpt51',
+            'bot-gpt5mini',
+            'bot-gpt5nano',
+            'bot-gemini1',
+            'bot-gemini2',
+            'bot-gemini3',
+            'bot-gemini4',
+            'bot-gemini5',
+        ],
+    )
+    assert BOT_IDS == expected_ids
+    assert len(BOT_IDS) == 8
 
 
 def test_get_bot_answer_extracts_gpt_5_1_answer() -> None:

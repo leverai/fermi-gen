@@ -309,12 +309,12 @@ class ApiService {
 
   Future<void> addBots({
     required String gameId,
-    required int botCount,
+    required List<String> botIds,
   }) async {
     try {
       final response = await _authPost('/game/add_bots', {
         'resource_id': gameId,
-        'bot_count': botCount,
+        'bot_ids': botIds,
       });
 
       if (response.statusCode != 200) {

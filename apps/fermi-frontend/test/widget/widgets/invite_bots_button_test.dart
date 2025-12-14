@@ -22,8 +22,7 @@ void main() {
       expect(find.byType(SvgPicture), findsOneWidget);
     });
 
-    testWidgets('should display correct label for single bot',
-        (WidgetTester tester) async {
+    testWidgets('should display static label', (WidgetTester tester) async {
       // ARRANGE
       final widget = InviteBotsButton(
         onPressed: () {},
@@ -35,10 +34,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // ASSERT
-      expect(find.text('Invite 1 bot'), findsOneWidget);
+      expect(find.text('Invite bots'), findsOneWidget);
     });
 
-    testWidgets('should display correct label for multiple bots',
+    testWidgets('should display static label regardless of bot count',
         (WidgetTester tester) async {
       // ARRANGE
       final widget = InviteBotsButton(
@@ -51,7 +50,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // ASSERT
-      expect(find.text('Invite 3 bots'), findsOneWidget);
+      expect(find.text('Invite bots'), findsOneWidget);
     });
 
     testWidgets('should call onPressed when tapped',

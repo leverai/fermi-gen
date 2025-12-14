@@ -1,3 +1,13 @@
+[build-system]
+requires = ["hatchling", "poetry-core"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.hatch.version]
+path = "app/version.py"
+
 [project]
 name = "dashboard"
 dynamic = ["version"]
@@ -13,16 +23,6 @@ dependencies = [
     "fermi-core",
     "fermi-db",
 ]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["app"]
-
-[tool.hatch.version]
-path = "app/version.py"
 
 [tool.uv.sources]
 fermi-core = { workspace = true }

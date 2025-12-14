@@ -80,7 +80,7 @@ def test_host_can_add_one_bot_to_lobby(
     # Add 1 bot
     resp = api_client.post(
         '/api/v1/game/add_bots',
-        json={'resource_id': game_id, 'bot_count': 1},
+        json={'resource_id': game_id, 'bot_ids': ['bot-gpt51']},
         headers=host_headers,
     )
     assert resp.status_code == 200
@@ -112,7 +112,10 @@ def test_host_can_add_three_bots_to_lobby(
     # Add 3 bots
     resp = api_client.post(
         '/api/v1/game/add_bots',
-        json={'resource_id': game_id, 'bot_count': 3},
+        json={
+            'resource_id': game_id,
+            'bot_ids': ['bot-gpt51', 'bot-gpt5mini', 'bot-gpt5nano'],
+        },
         headers=host_headers,
     )
     assert resp.status_code == 200
@@ -157,7 +160,7 @@ def test_non_host_cannot_add_bots(
     # Joiner tries to add bots → 403
     resp = api_client.post(
         '/api/v1/game/add_bots',
-        json={'resource_id': game_id, 'bot_count': 1},
+        json={'resource_id': game_id, 'bot_ids': ['bot-gpt51']},
         headers=joiner_headers,
     )
     assert resp.status_code == 403
@@ -189,7 +192,7 @@ def test_cannot_add_bots_to_started_game(
     # Try to add bots after start → 409
     resp = api_client.post(
         '/api/v1/game/add_bots',
-        json={'resource_id': game_id, 'bot_count': 1},
+        json={'resource_id': game_id, 'bot_ids': ['bot-gpt51']},
         headers=host_headers,
     )
     assert resp.status_code == 409
@@ -231,7 +234,7 @@ def test_cannot_add_bots_exceeding_max_players(
     # Try to add 2 bots (would make 9 total, exceeding max of 8) → 400
     resp = api_client.post(
         '/api/v1/game/add_bots',
-        json={'resource_id': game_id, 'bot_count': 2},
+        json={'resource_id': game_id, 'bot_ids': ['bot-gpt51', 'bot-gpt5mini']},
         headers=host_headers,
     )
     assert resp.status_code == 400
@@ -256,7 +259,7 @@ def test_bot_answers_appear_in_players_results(
     # Add 2 bots
     api_client.post(
         '/api/v1/game/add_bots',
-        json={'resource_id': game_id, 'bot_count': 2},
+        json={'resource_id': game_id, 'bot_ids': ['bot-gpt51', 'bot-gemini1']},
         headers=host_headers,
     )
     time.sleep(0.5)
@@ -326,7 +329,7 @@ def test_bot_answers_not_archived_to_answer_events(
     # Add 2 bots
     api_client.post(
         '/api/v1/game/add_bots',
-        json={'resource_id': game_id, 'bot_count': 2},
+        json={'resource_id': game_id, 'bot_ids': ['bot-gpt51', 'bot-gemini1']},
         headers=host_headers,
     )
     time.sleep(0.5)
@@ -410,7 +413,7 @@ def test_bot_answers_not_added_to_user_history(
     # Add 1 bot
     api_client.post(
         '/api/v1/game/add_bots',
-        json={'resource_id': game_id, 'bot_count': 1},
+        json={'resource_id': game_id, 'bot_ids': ['bot-gpt51']},
         headers=host_headers,
     )
     time.sleep(0.5)
@@ -483,7 +486,7 @@ def test_e2e_game_with_bots_completes_successfully(
     # Add 2 bots
     resp = api_client.post(
         '/api/v1/game/add_bots',
-        json={'resource_id': game_id, 'bot_count': 2},
+        json={'resource_id': game_id, 'bot_ids': ['bot-gpt51', 'bot-gemini1']},
         headers=host_headers,
     )
     assert resp.status_code == 200

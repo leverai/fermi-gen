@@ -108,7 +108,8 @@ class EnrichmentRepository(BaseRepository):
 
         Finds questions that:
         - Have successful answers (fermi_answers.success = true)
-        - Have all three LLM answers (gpt-5.1, gpt-5-mini, gpt-5-nano)
+        - Have all three GPT LLM answers (gpt-5.1, gpt-5-mini, gpt-5-nano)
+        - Have all five Gemini Flash LLM answers (gemini-flash-1 through 5)
         - Are not yet in the fermi table
 
         Inserts them with status = PENDING_REVIEW.
@@ -142,6 +143,16 @@ class EnrichmentRepository(BaseRepository):
                 gpt_5_mini_unit,
                 gpt_5_nano_number,
                 gpt_5_nano_unit,
+                gemini_flash_1_number,
+                gemini_flash_1_unit,
+                gemini_flash_2_number,
+                gemini_flash_2_unit,
+                gemini_flash_3_number,
+                gemini_flash_3_unit,
+                gemini_flash_4_number,
+                gemini_flash_4_unit,
+                gemini_flash_5_number,
+                gemini_flash_5_unit,
                 status
             )
             SELECT
@@ -165,7 +176,12 @@ class EnrichmentRepository(BaseRepository):
                     fa.created_at,
                     la_51.created_at,
                     la_mini.created_at,
-                    la_nano.created_at
+                    la_nano.created_at,
+                    la_gf1.created_at,
+                    la_gf2.created_at,
+                    la_gf3.created_at,
+                    la_gf4.created_at,
+                    la_gf5.created_at
                 ) AS updated_at,
                 la_51.number AS gpt_5_1_number,
                 la_51.unit AS gpt_5_1_unit,
@@ -173,6 +189,16 @@ class EnrichmentRepository(BaseRepository):
                 la_mini.unit AS gpt_5_mini_unit,
                 la_nano.number AS gpt_5_nano_number,
                 la_nano.unit AS gpt_5_nano_unit,
+                la_gf1.number AS gemini_flash_1_number,
+                la_gf1.unit AS gemini_flash_1_unit,
+                la_gf2.number AS gemini_flash_2_number,
+                la_gf2.unit AS gemini_flash_2_unit,
+                la_gf3.number AS gemini_flash_3_number,
+                la_gf3.unit AS gemini_flash_3_unit,
+                la_gf4.number AS gemini_flash_4_number,
+                la_gf4.unit AS gemini_flash_4_unit,
+                la_gf5.number AS gemini_flash_5_number,
+                la_gf5.unit AS gemini_flash_5_unit,
                 'PENDING_REVIEW' AS status
             FROM fermi_answers fa
             INNER JOIN fermi_questions fq ON fa.question_id = fq.id
@@ -182,6 +208,16 @@ class EnrichmentRepository(BaseRepository):
                 AND la_mini.model = 'gpt-5-mini'
             INNER JOIN llm_answers la_nano ON fq.id = la_nano.question_id
                 AND la_nano.model = 'gpt-5-nano'
+            INNER JOIN llm_answers la_gf1 ON fq.id = la_gf1.question_id
+                AND la_gf1.model = 'gemini-flash-1'
+            INNER JOIN llm_answers la_gf2 ON fq.id = la_gf2.question_id
+                AND la_gf2.model = 'gemini-flash-2'
+            INNER JOIN llm_answers la_gf3 ON fq.id = la_gf3.question_id
+                AND la_gf3.model = 'gemini-flash-3'
+            INNER JOIN llm_answers la_gf4 ON fq.id = la_gf4.question_id
+                AND la_gf4.model = 'gemini-flash-4'
+            INNER JOIN llm_answers la_gf5 ON fq.id = la_gf5.question_id
+                AND la_gf5.model = 'gemini-flash-5'
             WHERE fa.success = true
             AND NOT EXISTS (
                 SELECT 1 FROM fermi f WHERE f.question_id = fq.id
