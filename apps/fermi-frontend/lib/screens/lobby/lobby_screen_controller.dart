@@ -195,16 +195,14 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
       return;
     }
     try {
+      // Request four Gemini bots (1 to 4)
       await widget.api.addBots(
         gameId: widget.gameId,
-        botCount: _botsToInvite,
+        botIds: ['bot-gemini1', 'bot-gemini2', 'bot-gemini3', 'bot-gemini4'],
       );
       if (!mounted) return;
-      final String message = _botsToInvite == 1
-          ? 'Invited 1 bot to the game'
-          : 'Invited $_botsToInvite bots to the game';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        const SnackBar(content: Text('Invited 4 bots to the game')),
       );
     } catch (e) {
       if (!mounted) return;

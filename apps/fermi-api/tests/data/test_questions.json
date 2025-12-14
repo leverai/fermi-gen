@@ -31385,6 +31385,456 @@
             "model": "gpt-5-nano",
             "number": 3.3375e+17,
             "unit": "meter ** 3"
+        },
+        {
+            "question_id": 1,
+            "model": "gemini-1.5-flash-001",
+            "number": 13285742.94139522,
+            "unit": null
+        },
+        {
+            "question_id": 1,
+            "model": "gemini-1.5-flash-002",
+            "number": 13916644.023896087,
+            "unit": null
+        },
+        {
+            "question_id": 1,
+            "model": "gemini-1.5-flash-003",
+            "number": 225458473.15244824,
+            "unit": null
+        },
+        {
+            "question_id": 1,
+            "model": "gemini-1.5-flash-004",
+            "number": 127720292.69907114,
+            "unit": null
+        },
+        {
+            "question_id": 1,
+            "model": "gemini-1.5-flash-005",
+            "number": 3218782.9494238403,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gemini-1.5-flash-001",
+            "number": 87435366626.9834,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gemini-1.5-flash-002",
+            "number": 436040038000.44794,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gemini-1.5-flash-003",
+            "number": 395558689858.4922,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gemini-1.5-flash-004",
+            "number": 214783707464.81677,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gemini-1.5-flash-005",
+            "number": 296126690050.4233,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gemini-1.5-flash-001",
+            "number": 276899748.263862,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gemini-1.5-flash-002",
+            "number": 2083504280.0698748,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gemini-1.5-flash-003",
+            "number": 24341056.45109602,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gemini-1.5-flash-004",
+            "number": 84095405.99530682,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gemini-1.5-flash-005",
+            "number": 188396795.08531794,
+            "unit": null
+        },
+        {
+            "question_id": 4,
+            "model": "gemini-1.5-flash-001",
+            "number": 168136026.96292743,
+            "unit": "kilometer"
+        },
+        {
+            "question_id": 4,
+            "model": "gemini-1.5-flash-002",
+            "number": 6311933.327321579,
+            "unit": "kilometer"
+        },
+        {
+            "question_id": 4,
+            "model": "gemini-1.5-flash-003",
+            "number": 24571971.623617005,
+            "unit": "kilometer"
+        },
+        {
+            "question_id": 4,
+            "model": "gemini-1.5-flash-004",
+            "number": 21228653.697834823,
+            "unit": "kilometer"
+        },
+        {
+            "question_id": 4,
+            "model": "gemini-1.5-flash-005",
+            "number": 213846505.61078072,
+            "unit": "kilometer"
+        },
+        {
+            "question_id": 5,
+            "model": "gemini-1.5-flash-001",
+            "number": 30.21234263091429,
+            "unit": "acre"
+        },
+        {
+            "question_id": 5,
+            "model": "gemini-1.5-flash-002",
+            "number": 25.751366359761306,
+            "unit": "acre"
+        },
+        {
+            "question_id": 5,
+            "model": "gemini-1.5-flash-003",
+            "number": 11.397951807115026,
+            "unit": "acre"
+        },
+        {
+            "question_id": 5,
+            "model": "gemini-1.5-flash-004",
+            "number": 130.51397088211996,
+            "unit": "acre"
+        },
+        {
+            "question_id": 5,
+            "model": "gemini-1.5-flash-005",
+            "number": 19.61469881915908,
+            "unit": "acre"
+        },
+        {
+            "question_id": 6,
+            "model": "gemini-1.5-flash-001",
+            "number": 19177527.526773363,
+            "unit": "ton"
+        },
+        {
+            "question_id": 6,
+            "model": "gemini-1.5-flash-002",
+            "number": 1087786.1168470706,
+            "unit": "ton"
+        },
+        {
+            "question_id": 6,
+            "model": "gemini-1.5-flash-003",
+            "number": 1968751.526578961,
+            "unit": "ton"
+        },
+        {
+            "question_id": 6,
+            "model": "gemini-1.5-flash-004",
+            "number": 12323353.046487652,
+            "unit": "ton"
+        },
+        {
+            "question_id": 6,
+            "model": "gemini-1.5-flash-005",
+            "number": 1783795.919293086,
+            "unit": "ton"
+        },
+        {
+            "question_id": 7,
+            "model": "gemini-1.5-flash-001",
+            "number": 255566766868.77643,
+            "unit": null
+        },
+        {
+            "question_id": 7,
+            "model": "gemini-1.5-flash-002",
+            "number": 128971773664.07379,
+            "unit": null
+        },
+        {
+            "question_id": 7,
+            "model": "gemini-1.5-flash-003",
+            "number": 212448361108.67776,
+            "unit": null
+        },
+        {
+            "question_id": 7,
+            "model": "gemini-1.5-flash-004",
+            "number": 11020241574.644485,
+            "unit": null
+        },
+        {
+            "question_id": 7,
+            "model": "gemini-1.5-flash-005",
+            "number": 32886505551.44629,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gemini-1.5-flash-001",
+            "number": 273.00404257126826,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gemini-1.5-flash-002",
+            "number": 81.45839673503205,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gemini-1.5-flash-003",
+            "number": 684.0822404813918,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gemini-1.5-flash-004",
+            "number": 2982.2617168908746,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gemini-1.5-flash-005",
+            "number": 145.61632548143817,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gemini-1.5-flash-001",
+            "number": 914670892530.2212,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gemini-1.5-flash-002",
+            "number": 487149409006.8253,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gemini-1.5-flash-003",
+            "number": 2601235013664.568,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gemini-1.5-flash-004",
+            "number": 7629648552897.448,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gemini-1.5-flash-005",
+            "number": 7197088231052.509,
+            "unit": null
+        },
+        {
+            "question_id": 10,
+            "model": "gemini-1.5-flash-001",
+            "number": 480544747.99840045,
+            "unit": "ton"
+        },
+        {
+            "question_id": 10,
+            "model": "gemini-1.5-flash-002",
+            "number": 14212421.499075832,
+            "unit": "ton"
+        },
+        {
+            "question_id": 10,
+            "model": "gemini-1.5-flash-003",
+            "number": 82735633.82651655,
+            "unit": "ton"
+        },
+        {
+            "question_id": 10,
+            "model": "gemini-1.5-flash-004",
+            "number": 27987093.529931318,
+            "unit": "ton"
+        },
+        {
+            "question_id": 10,
+            "model": "gemini-1.5-flash-005",
+            "number": 18474756.87576636,
+            "unit": "ton"
+        },
+        {
+            "question_id": 11,
+            "model": "gemini-1.5-flash-001",
+            "number": 80819.8187335223,
+            "unit": null
+        },
+        {
+            "question_id": 11,
+            "model": "gemini-1.5-flash-002",
+            "number": 1240417.4398316143,
+            "unit": null
+        },
+        {
+            "question_id": 11,
+            "model": "gemini-1.5-flash-003",
+            "number": 352832.65026810364,
+            "unit": null
+        },
+        {
+            "question_id": 11,
+            "model": "gemini-1.5-flash-004",
+            "number": 242196.4801009242,
+            "unit": null
+        },
+        {
+            "question_id": 11,
+            "model": "gemini-1.5-flash-005",
+            "number": 215217.03428397607,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gemini-1.5-flash-001",
+            "number": 24726.154775876188,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gemini-1.5-flash-002",
+            "number": 118836.2696367326,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gemini-1.5-flash-003",
+            "number": 333054.8819777896,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gemini-1.5-flash-004",
+            "number": 21202.756353511537,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gemini-1.5-flash-005",
+            "number": 8320.846431589362,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gemini-1.5-flash-001",
+            "number": 215825943551.19733,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gemini-1.5-flash-002",
+            "number": 59758471203.49345,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gemini-1.5-flash-003",
+            "number": 17533061073.417477,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gemini-1.5-flash-004",
+            "number": 18564014777.42593,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gemini-1.5-flash-005",
+            "number": 15077893649.351906,
+            "unit": null
+        },
+        {
+            "question_id": 14,
+            "model": "gemini-1.5-flash-001",
+            "number": 3544735002115228.5,
+            "unit": "meter"
+        },
+        {
+            "question_id": 14,
+            "model": "gemini-1.5-flash-002",
+            "number": 5058365770202088.0,
+            "unit": "meter"
+        },
+        {
+            "question_id": 14,
+            "model": "gemini-1.5-flash-003",
+            "number": 8.893072520702165e+16,
+            "unit": "meter"
+        },
+        {
+            "question_id": 14,
+            "model": "gemini-1.5-flash-004",
+            "number": 1.2576200683218646e+17,
+            "unit": "meter"
+        },
+        {
+            "question_id": 14,
+            "model": "gemini-1.5-flash-005",
+            "number": 1.1707066923236098e+17,
+            "unit": "meter"
+        },
+        {
+            "question_id": 15,
+            "model": "gemini-1.5-flash-001",
+            "number": 5.879879597473542e+18,
+            "unit": "meter ** 3"
+        },
+        {
+            "question_id": 15,
+            "model": "gemini-1.5-flash-002",
+            "number": 2.4931739945871843e+17,
+            "unit": "meter ** 3"
+        },
+        {
+            "question_id": 15,
+            "model": "gemini-1.5-flash-003",
+            "number": 6.950100529477296e+18,
+            "unit": "meter ** 3"
+        },
+        {
+            "question_id": 15,
+            "model": "gemini-1.5-flash-004",
+            "number": 7.723813495483201e+18,
+            "unit": "meter ** 3"
+        },
+        {
+            "question_id": 15,
+            "model": "gemini-1.5-flash-005",
+            "number": 2.7760139426346204e+18,
+            "unit": "meter ** 3"
         }
     ]
 }

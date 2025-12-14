@@ -289,7 +289,7 @@ class GameService:
         self,
         request: 'Request',
         game_id: str,
-        bot_count: int,
+        bot_ids: list[str],
         current_user: 'User',
         firestore_client: 'AsyncClient',
     ) -> IdModel:
@@ -308,7 +308,7 @@ class GameService:
             request=request,
             game_id=game_id,
             current_user=current_user,
-            bot_count=bot_count,
+            bot_ids=bot_ids,
         )
         return IdModel(resource_id=game_id)
 

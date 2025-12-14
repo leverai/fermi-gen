@@ -37,9 +37,7 @@ class _InviteBotsButtonState extends State<InviteBotsButton> {
     // Use a contrasting text color. Since secondary is vibrant/dark, white or bgLight usually works well.
     final foregroundColor = isEnabled ? appTheme.text : appTheme.bgLight;
 
-    final buttonLabel = widget.botCount == 1
-        ? 'Invite 1 bot'
-        : 'Invite ${widget.botCount} bots';
+    final buttonLabel = 'Invite bots';
 
     return GestureDetector(
       onTapDown: isEnabled ? (_) => setState(() => _isPressed = true) : null,

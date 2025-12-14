@@ -85,6 +85,22 @@ class ETLConfig(BaseSettings):
         description='Provider for LLM answer models',
     )
 
+    # Gemini Flash answering parameters (casual/dumb bots)
+    gemini_flash_models: list[str] = Field(
+        default=[
+            'gemini-flash-1',
+            'gemini-flash-2',
+            'gemini-flash-3',
+            'gemini-flash-4',
+            'gemini-flash-5',
+        ],
+        description='Gemini Flash model instances for casual bots',
+    )
+    gemini_flash_temperature: float = Field(
+        default=1.5,
+        description='High temperature for varied/casual answers',
+    )
+
     class Config:
         """Pydantic config.
 

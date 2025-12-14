@@ -104,8 +104,11 @@ class SeedsUsage(SQLModel, table=True):
 class LLMAnswer(SQLModel, table=True):
     """LLM-generated answers for Fermi questions.
 
-    Stores answers from different LLM models (gpt-5.1, gpt-5-mini, gpt-5-nano)
-    to allow users to compare their answers with LLMs of different sizes.
+    Stores answers from different LLM models:
+    - GPT models: gpt-5.1, gpt-5-mini, gpt-5-nano (smart, competitive bots)
+    - Gemini Flash: gemini-flash-1 through gemini-flash-5 (casual, high-temp bots)
+
+    This allows users to play against bots of varying skill levels.
     """
 
     __tablename__ = 'llm_answers'  # type: ignore

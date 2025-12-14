@@ -27,7 +27,7 @@ void main() {
   });
 
   group('addBots', () {
-    test('should send correct request with game ID and bot count', () async {
+    test('should send correct request with game ID and bot IDs', () async {
       // ARRANGE
       final mockClient = MockClient((request) async {
         expect(request.url.path, '/game/add_bots');
@@ -38,7 +38,7 @@ void main() {
 
         final body = jsonDecode(request.body);
         expect(body['resource_id'], 'game-123');
-        expect(body['bot_count'], 2);
+        expect(body['bot_ids'], ['bot-gemini1', 'bot-gemini2']);
 
         return http.Response('{"resource_id": "game-123"}', 200);
       });
@@ -50,7 +50,10 @@ void main() {
       );
 
       // ACT
-      await apiService.addBots(gameId: 'game-123', botCount: 2);
+      await apiService.addBots(
+        gameId: 'game-123',
+        botIds: ['bot-gemini1', 'bot-gemini2'],
+      );
 
       // ASSERT - verified by expect in MockClient callback
     });
@@ -68,7 +71,10 @@ void main() {
       );
 
       // ACT & ASSERT - should not throw
-      await apiService.addBots(gameId: 'game-123', botCount: 1);
+      await apiService.addBots(
+        gameId: 'game-123',
+        botIds: ['bot-gemini1'],
+      );
     });
 
     test('should handle server error (400)', () async {
@@ -88,7 +94,10 @@ void main() {
 
       // ACT & ASSERT
       expect(
-        () => apiService.addBots(gameId: 'game-123', botCount: 3),
+        () => apiService.addBots(
+          gameId: 'game-123',
+          botIds: ['bot-gemini1', 'bot-gemini2', 'bot-gemini3'],
+        ),
         throwsA(isA<Exception>().having(
           (e) => e.toString(),
           'message',
@@ -114,7 +123,10 @@ void main() {
 
       // ACT & ASSERT
       expect(
-        () => apiService.addBots(gameId: 'game-123', botCount: 1),
+        () => apiService.addBots(
+          gameId: 'game-123',
+          botIds: ['bot-gemini1'],
+        ),
         throwsA(isA<Exception>().having(
           (e) => e.toString(),
           'message',
@@ -137,7 +149,10 @@ void main() {
 
       // ACT & ASSERT
       expect(
-        () => apiService.addBots(gameId: 'game-123', botCount: 2),
+        () => apiService.addBots(
+          gameId: 'game-123',
+          botIds: ['bot-gemini1', 'bot-gemini2'],
+        ),
         throwsA(isA<Exception>().having(
           (e) => e.toString(),
           'message',
@@ -162,7 +177,10 @@ void main() {
 
       // ACT & ASSERT
       expect(
-        () => apiService.addBots(gameId: 'game-123', botCount: 1),
+        () => apiService.addBots(
+          gameId: 'game-123',
+          botIds: ['bot-gemini1'],
+        ),
         throwsA(isA<Exception>().having(
           (e) => e.toString(),
           'message',
@@ -197,7 +215,10 @@ void main() {
       );
 
       // ACT
-      await apiService.addBots(gameId: 'game-123', botCount: 2);
+      await apiService.addBots(
+        gameId: 'game-123',
+        botIds: ['bot-gemini1', 'bot-gemini2'],
+      );
 
       // ASSERT
       verify(() => mockAuthService.refreshAccessToken()).called(1);

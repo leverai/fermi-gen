@@ -75,7 +75,6 @@ ignore = [
 exclude = ["prompts.py"]
 
 
-
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
 

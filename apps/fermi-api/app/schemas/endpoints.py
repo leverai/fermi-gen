@@ -55,13 +55,13 @@ class IdModel(BaseModel):
 
 
 class AddBotsRequest(IdModel):
-    """Request model for adding bots to a game.
+    """Request model for adding bots to a game by ID.
 
-    The host can add 1-3 bots to any game in lobby state.
-    Bots are added in capability order: gpt-5.1, gpt-5-mini, gpt-5-nano.
+    The host can add bots to any game in lobby state by specifying their IDs.
+    All IDs must be valid and unique. Max players limit (8) is enforced.
     """
 
-    bot_count: int = 1  # Validated to be 1, 2, or 3 in use case
+    bot_ids: list[str]
 
 
 class VoteVerdictResponse(BaseModel):

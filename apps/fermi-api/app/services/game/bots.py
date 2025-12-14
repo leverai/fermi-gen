@@ -26,6 +26,7 @@ class BotInfo(TypedDict):
 
 # Bot definitions - IDs prefixed with 'bot-' for easy identification
 BOTS: dict[str, BotInfo] = {
+    # GPT bots (smart, competitive)
     'bot-gpt51': BotInfo(
         id='bot-gpt51',
         name='GPT 5.1',
@@ -44,10 +45,38 @@ BOTS: dict[str, BotInfo] = {
         picture='/static/avatars/bots/gpt-5-nano.svg',
         model_key='gpt_5_nano',
     ),
+    # Gemini Flash bots (casual, high-temperature, less accurate)
+    'bot-gemini1': BotInfo(
+        id='bot-gemini1',
+        name='RoboMcBotface',
+        picture='/static/avatars/bots/gemini-flash-1.svg',
+        model_key='gemini_flash_1',
+    ),
+    'bot-gemini2': BotInfo(
+        id='bot-gemini2',
+        name='Toast-R2',
+        picture='/static/avatars/bots/gemini-flash-2.svg',
+        model_key='gemini_flash_2',
+    ),
+    'bot-gemini3': BotInfo(
+        id='bot-gemini3',
+        name='Sir Beeps-a-Lot',
+        picture='/static/avatars/bots/gemini-flash-3.svg',
+        model_key='gemini_flash_3',
+    ),
+    'bot-gemini4': BotInfo(
+        id='bot-gemini4',
+        name='GiggleByte',
+        picture='/static/avatars/bots/gemini-flash-4.svg',
+        model_key='gemini_flash_4',
+    ),
+    'bot-gemini5': BotInfo(
+        id='bot-gemini5',
+        name='Wheely Big Cheese',
+        picture='/static/avatars/bots/gemini-flash-5.svg',
+        model_key='gemini_flash_5',
+    ),
 }
-
-# Ordered list for selecting N bots (best to worst by capability)
-BOT_ORDER: list[str] = ['bot-gpt51', 'bot-gpt5mini', 'bot-gpt5nano']
 
 BOT_IDS = frozenset(BOTS.keys())
 
