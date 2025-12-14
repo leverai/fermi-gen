@@ -13,7 +13,11 @@ from app.services.enrichment_service import (
     enrich_difficulties,
     sync_fermi_table,
 )
-from app.services.llm_answer_service import LLMAnswerResult, llm_answer_questions
+from app.services.llm_answer_service import (
+    LLMAnswerResult,
+    gemini_flash_answer_questions,
+    llm_answer_questions,
+)
 from app.services.question_service import (
     QuestionBatchResult,
     insert_literal_questions,
@@ -103,6 +107,18 @@ async def _run_answer_workflow(
         except Exception:
             logger.exception(f'LLM answering failed for model {model}')
             # Continue with other models even if one fails
+
+    # Step 4.5: Gemini Flash answer questions (5 models)
+    logger.info('Step 4.5: Gemini Flash answering newly enriched questions...')
+    try:
+        gemini_result = await gemini_flash_answer_questions(
+            limit=answer_result.questions_answered,
+            config=config,
+        )
+        llm_answer_results.append(gemini_result)
+    except Exception:
+        logger.exception('Gemini Flash answering failed')
+        # Continue even if Gemini Flash fails
 
     # Step 5: Sync fermi table with new questions
     await sync_fermi_table()

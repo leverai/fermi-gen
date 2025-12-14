@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["hatchling<1.16"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
