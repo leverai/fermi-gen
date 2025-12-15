@@ -176,7 +176,7 @@ async def answer_unanswered_questions(
         logger.info(f'Fetching latest {num_questions} unanswered questions...')
 
         # Use efficient LEFT JOIN query to get unanswered questions in one query
-        unanswered_ids = await db_client.answers.get_latest_unanswered_questions(
+        unanswered_ids = await db_client.fermi_answers.get_latest_unanswered_questions(
             limit=num_questions,
         )
 
