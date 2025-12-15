@@ -1,9 +1,16 @@
 """Schemas for SerpAPI-based answer pipeline."""
 
-from typing import Any, Literal
+import math
+from typing import Any, Literal, Self
 
 from pint import UnitRegistry
-from pydantic import BaseModel, Field, computed_field, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
 ureg = UnitRegistry()
 
@@ -128,18 +135,59 @@ class LocationSelection(BaseModel):
 
 
 class ExtractedInfo(BaseModel):
-    """Information extracted from snippet - with validated unit."""
+    """Information extracted from snippet - with validated unit.
 
-    number: float = Field(description='Numeric answer in scientific notation', gt=0)
+    Uses separate coefficient and exponent fields to avoid OpenAI structured
+    outputs truncating scientific notation. The number is computed as:
+    number = coefficient * 10^exponent
+    """
+
+    coefficient: float = Field(
+        description=(
+            'The coefficient part of the scientific notation. '
+            'For 27.5 million (2.75e7), this would be 2.75. '
+            'Must be between 1.0 and 10.0 for proper scientific notation.'
+        ),
+        gt=0,
+    )
+    exponent: int = Field(
+        description=(
+            'The exponent (power of 10) in scientific notation. '
+            'For 27.5 million (2.75e7), this would be 7. '
+            'For 3,500 (3.5e3), this would be 3.'
+        ),
+    )
     unit: VALID_UNITS = Field(description='Unit from predefined list.')
     confidence: float = Field(ge=0, le=1, description='Extraction confidence')
 
-    def to_base_unit(self) -> tuple[float, str | None]:
+    @computed_field
+    @property
+    def number(self) -> float:
+        """Compute the full number from coefficient and exponent."""
+        return self.coefficient * (10**self.exponent)
+
+    @field_validator('unit', mode='after')
+    @classmethod
+    def _no_unit_as_none(cls, v: Literal['dimensionless'] | str) -> str | None:
+        """Convert 'dimensionless' to None."""
+        if v == 'dimensionless':
+            return None
+        return v
+
+    @model_validator(mode='after')
+    def to_base_unit(self) -> Self:
         """Convert to base unit."""
         if self.unit is None:
-            return self.number, None
+            return self
+        # Compute number, convert to base units, then update coefficient/exponent
         quantity_base = ureg.Quantity(self.number, self.unit).to_base_units()
-        return quantity_base.magnitude, str(quantity_base.units)
+        base_number = quantity_base.magnitude
+        assert base_number > 0, 'Base number must be greater than 0'
+        # Recompute coefficient and exponent from base number
+        self.exponent = math.floor(math.log10(base_number))
+        self.coefficient = base_number / (10**self.exponent)
+        self.unit = str(quantity_base.units)  # type: ignore[reportAttributeAccessIssue]
+        return self
 
 
 class SerpAnswer(BaseModel):
