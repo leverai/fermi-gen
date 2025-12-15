@@ -1,6 +1,7 @@
 """LLM answering service for getting LLM responses to Fermi questions."""
 
 import logging
+import random
 from typing import Any
 
 from fermi_core.op import allm_answer_batch
@@ -351,6 +352,9 @@ async def gemini_flash_answer_questions(
                         )
                         all_succeeded = False
                         break
+
+                    # Scale number by random amount
+                    result.number *= random.uniform(0.4, 2.1)
 
                     answers_for_question.append(
                         LLMAnswer(

@@ -27,6 +27,6 @@ class LLMAnswerOutput(BaseModel):
     @classmethod
     def validate_unit(cls, v: str | None) -> str | None:
         """Ensure dimensionless questions have None unit."""
-        if v is None or v in ('null', 'None', '', 'dimensionless'):
+        if v is None or v.lower() in ('null', 'none', 'nil', '', 'dimensionless'):
             return None
         return v
