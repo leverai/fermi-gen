@@ -455,6 +455,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                               ),
                             ],
                           ),
+                          const Spacer(),
                           Expanded(
                             child: Align(
                               alignment: Alignment.centerRight,
@@ -472,8 +473,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                     'assets/icons/gear.svg',
                                     colorFilter: ColorFilter.mode(
                                         appTheme.border, BlendMode.srcIn),
-                                    width: 72,
-                                    height: 72,
+                                    width: 48,
+                                    height: 48,
                                   ),
                                 ),
                               ),

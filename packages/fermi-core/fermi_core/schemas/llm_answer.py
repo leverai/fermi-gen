@@ -1,8 +1,7 @@
 """Schemas for LLM answer operations."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing_extensions import TypedDict
-from pydantic import field_validator
 
 
 class LLMAnswerInput(TypedDict):
