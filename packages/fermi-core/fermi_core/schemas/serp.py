@@ -85,11 +85,15 @@ VALID_UNITS = Literal[
 ]
 
 
-class SerpAIOverview(BaseModel):
-    """AI Overview from Google Search via SerpAPI."""
+class GoogleAIModeResult(BaseModel):
+    """Result from Google AI Mode API.
 
-    text_blocks: list[dict[str, Any]]  # Contains snippets, lists, headings
-    references: list[dict[str, Any]]  # Source references with links
+    The AI Mode engine returns structured text_blocks directly,
+    without the need for page token fallback requests.
+    """
+
+    text_blocks: list[dict[str, Any]] = []
+    references: list[dict[str, Any]] = []
 
     model_config = {'extra': 'allow'}  # Allow extra fields from SerpAPI
 
@@ -99,8 +103,7 @@ class SerpAIOverview(BaseModel):
         """Extract complete answer by flattening all text_blocks.
 
         Recursively extracts all snippets from text_blocks (including nested lists)
-        to create a comprehensive answer paragraph. This ensures we capture the
-        complete answer even when it spans multiple blocks (summary + conclusion).
+        to create a comprehensive answer paragraph.
 
         Returns:
             Flattened snippet with all text_blocks content
@@ -109,37 +112,12 @@ class SerpAIOverview(BaseModel):
         return _flatten_text_blocks(self.text_blocks)
 
 
-class SerpAIOverviewX(BaseModel):
-    """AI Overview value when an extra request is needed."""
-
-    page_token: str
-    serpapi_link: str
-
-
-class SerpRelatedQuestion(BaseModel):
-    """Related question from Google Search."""
-
-    question: str
-    snippet: str | None = None
-
-    model_config = {'extra': 'allow'}  # Allow extra fields from SerpAPI
-
-
-class SerpSearchResult(BaseModel):
-    """Complete search result from SerpAPI - lenient on extra fields."""
-
-    ai_overview: SerpAIOverview | SerpAIOverviewX | None = None
-    related_questions: list[SerpRelatedQuestion] = []
-
-    model_config = {'extra': 'allow'}  # Allow extra fields from SerpAPI
-
-
 class SnippetCandidate(BaseModel):
     """A candidate snippet extracted from search results."""
 
     snippet: str
-    metadata: dict[str, Any]  # Full context (ai_overview dict or related_question dict)
-    source: Literal['ai_overview', 'related_question']
+    metadata: dict[str, Any]  # Full context from AI Mode result
+    source: Literal['ai_mode'] = 'ai_mode'
 
 
 class LocationSelection(BaseModel):
