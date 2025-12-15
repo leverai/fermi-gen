@@ -32,11 +32,10 @@ class _FakeQuantiles:
         return dict(self._values)
 
 
-class _FakeUsersHistory:
+class _FakeFermi:
     def __init__(self, call_log: list[str]) -> None:
         self._call_log = call_log
         self.last_get_params: dict[str, Any] | None = None
-        self.history_calls: list[tuple[list[str], tuple[uuid.UUID, ...]]] = []
 
     async def get_unseen_random_questions(
         self,
@@ -76,6 +75,12 @@ class _FakeUsersHistory:
                 snippet='p',
             ),
         ]
+
+
+class _FakeUsersHistory:
+    def __init__(self, call_log: list[str]) -> None:
+        self._call_log = call_log
+        self.history_calls: list[tuple[list[str], tuple[uuid.UUID, ...]]] = []
 
     async def add_questions_to_users_history(
         self,
@@ -147,6 +152,7 @@ class _FakeQuestionVotes:
 
 class _FakeDbClient:
     def __init__(self, call_log: list[str]) -> None:
+        self.fermi = _FakeFermi(call_log)
         self.users_history = _FakeUsersHistory(call_log)
         self.answers = _FakeAnswers(call_log)
         self.question_votes = _FakeQuestionVotes()
@@ -168,8 +174,8 @@ def test_get_questions_and_answers_docs_general_mapping_and_shapes() -> None:
     )
 
     # DB was called with category None
-    assert db.users_history.last_get_params is not None
-    assert db.users_history.last_get_params['category'] is None
+    assert db.fermi.last_get_params is not None
+    assert db.fermi.last_get_params['category'] is None
     # Shapes
     assert len(questions_docs) == 2
     assert len(answers_docs) == 2
