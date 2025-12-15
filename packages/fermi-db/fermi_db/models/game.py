@@ -64,15 +64,15 @@ class Fermi(SQLModel, table=True):
     gpt_5_nano_number: float
     gpt_5_nano_unit: str | None
     # Gemini Flash answers (high temperature, for casual/dumb bots)
-    gemini_flash_1_number: float | None
+    gemini_flash_1_number: float
     gemini_flash_1_unit: str | None
-    gemini_flash_2_number: float | None
+    gemini_flash_2_number: float
     gemini_flash_2_unit: str | None
-    gemini_flash_3_number: float | None
+    gemini_flash_3_number: float
     gemini_flash_3_unit: str | None
-    gemini_flash_4_number: float | None
+    gemini_flash_4_number: float
     gemini_flash_4_unit: str | None
-    gemini_flash_5_number: float | None
+    gemini_flash_5_number: float
     gemini_flash_5_unit: str | None
 
 
