@@ -4,7 +4,6 @@ from sqlmodel import select
 
 from fermi_db.models import FermiQuestion
 from fermi_db.repositories import BaseRepository
-from fermi_db.schemas import QuestionCategory
 
 
 class QuestionRepository(BaseRepository):
@@ -84,9 +83,3 @@ class QuestionRepository(BaseRepository):
 
         result = await self.session.exec(statement)
         return list(result.all())
-
-    async def get_questions_categories(
-        self,
-    ) -> list[QuestionCategory]:
-        """Get all question categories."""
-        return QuestionCategory.get_all(exclude_other=True)
