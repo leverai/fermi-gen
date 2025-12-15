@@ -271,10 +271,11 @@ async def aget_questions_answers_serp(
             )
         else:
             # Success! Build SerpAnswer
-            number, unit = extracted_info.to_base_unit()
+            # Note: unit conversion to base units happens automatically
+            # in ExtractedInfo's model_validator
             results[idx] = SerpAnswer(
-                number=number,
-                unit=unit,
+                number=extracted_info.number,
+                unit=extracted_info.unit,
                 snippet=snippet.snippet,
                 used_ai_overview=True,  # Always true with AI Mode
                 metadata=snippet.metadata,

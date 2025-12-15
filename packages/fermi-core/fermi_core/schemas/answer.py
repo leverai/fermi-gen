@@ -67,16 +67,3 @@ class Answer(BaseModel):
         if val and val.lower() in ('dimensionless', 'unknown'):
             return None
         return val
-
-
-class ExtractedInfo(BaseModel):
-    """Information extracted from the question and answer paragraph by the LLM."""
-
-    number: float = Field(..., description='The extracted numeric answer.')
-    unit: str = Field(..., description='The unit of the answer.')
-    confidence: float = Field(
-        ...,
-        ge=0,
-        le=1,
-        description="Confidence score in the answer's correctness.",
-    )
