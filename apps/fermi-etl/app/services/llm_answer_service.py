@@ -298,8 +298,8 @@ async def gemini_flash_answer_questions(
                 try:
                     results = await allm_answer_batch(
                         questions=[llm_input],
-                        model='gemini-1.5-flash',
-                        model_provider='google_genai',
+                        model='gemini-2.0-flash-lite',
+                        model_provider='google-vertexai',
                         temperature=config.gemini_flash_temperature,
                     )
                     result = results[0]
