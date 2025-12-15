@@ -487,6 +487,24 @@ return [row[0] for row in rows if row[0] is not None]
 
 **Impact:** The ETL service now calls `sync_fermi_table()` after enrichment to populate the `fermi` table with newly enriched questions.
 
+### Reset: Migration History Consolidated (2025-12-14)
+
+**Change:** All migrations were consolidated into a single `initial_schema.py` to reset migration history and fix nullable constraints.
+
+**Why:**
+- Gemini Flash columns were previously nullable due to being added after data existed
+- Fresh database on dev environment allowed a clean reset
+- Simplified migration chain from 4 files to 1
+
+**What Changed:**
+- Deleted: `6795fdb37410_initial_pipeline_tables.py`, `add_llm_answers.py`, `convert_fermi_to_table.py`, `add_gemini_flash.py`
+- Created: `initial_schema.py` with complete schema
+- All `fermi.gemini_flash_*_number` columns are now NOT NULL
+
+**Required Actions:**
+1. Drop all tables in the database (`make down`)
+2. Run migrations to recreate schema (`make migrate`)
+
 ---
 
 ## Related Documentation
