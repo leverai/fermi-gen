@@ -65,7 +65,7 @@ async def asearch_google_ai_mode(
 
     # Build search params for Google AI Mode engine
     params = {
-        'q': f'Estimate the Fermi problem: {truncated_query}',
+        'q': f'How to estimate the following problem step by step: {truncated_query}',
         'gl': gl,
         'hl': 'en',
         'engine': 'google_ai_mode',
