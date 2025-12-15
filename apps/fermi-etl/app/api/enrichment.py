@@ -8,7 +8,7 @@ from fermi_db.session import session_context
 
 from app.config import get_config
 from app.schemas.requests import EnrichmentRequest
-from app.schemas.responses import EnrichmentResponse
+from app.schemas.responses import EnrichmentResponse, EnrichmentResult
 from app.services.enrichment_service import enrich_categories, enrich_difficulties
 
 logger = logging.getLogger(__name__)
@@ -113,7 +113,10 @@ async def join_all() -> EnrichmentResponse:
         logger.info(f'Fermi table sync successful: {count} questions added')
         return EnrichmentResponse(
             success=True,
-            result={'questions_added': count},
+            result=EnrichmentResult(
+                enriched=count,
+                skipped=0,
+            ),
         )
 
     except Exception as exc:

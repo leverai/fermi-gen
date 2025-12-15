@@ -20,7 +20,7 @@ class EnrichmentResult(BaseModel):
 
     enriched: int
     skipped: int
-    details: dict[str, Any]
+    details: dict[str, Any] | None = None
 
 
 async def enrich_categories(
