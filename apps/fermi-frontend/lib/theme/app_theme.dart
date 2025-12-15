@@ -58,7 +58,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
     required this.success,
     required this.info,
     this.borderWidth = 3.0,
-    this.borderRadius = 0.0,
+    this.borderRadius = 12.0,
     this.shadowOffset = const Offset(4, 4),
     this.shadowColor = Colors.black,
   });
