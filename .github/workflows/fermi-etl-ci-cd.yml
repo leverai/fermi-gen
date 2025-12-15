@@ -186,7 +186,7 @@ jobs:
             --port=8081
             --min-instances=${{ steps.compute.outputs.min_instances }}
             --max-instances=${{ steps.compute.outputs.max_instances }}
-            --memory=512Mi
+            --memory=1Gi
             --cpu=1
             --timeout=300s
             --concurrency=80
