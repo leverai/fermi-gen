@@ -1,11 +1,11 @@
-"""Repository for answer-related database operations."""
+"""Repository for answer-events-related database operations."""
 
 from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import func, select, text
 
-from fermi_db.models import AnswerEvent, AnswersQuantiles, FermiAnswer, FermiQuestion
+from fermi_db.models import AnswerEvent, AnswersQuantiles
 from fermi_db.schemas import (
     PlayerPercentile,
     PlayerPercentileByCategory,
@@ -139,37 +139,6 @@ class AnswerRepository(BaseRepository):
             by_difficulty=by_difficulty,
             overall=overall,
         )
-
-    async def get_latest_unanswered_questions(
-        self,
-        limit: int,
-    ) -> list[int]:
-        """Get the latest N unanswered question IDs efficiently.
-
-        Uses a LEFT JOIN to find questions without any answer attempts.
-        Only returns questions that have never been attempted (no answer record
-        exists). Questions with failed attempts (success=False) are excluded
-        to avoid retrying. Questions are ordered by created_at DESC (newest first).
-
-        Args:
-            limit: Maximum number of question IDs to return
-
-        Returns:
-            List of question IDs that have no answer attempts
-
-        """
-        statement = (
-            select(FermiQuestion.id)  # type: ignore
-            .outerjoin(FermiAnswer, FermiQuestion.id == FermiAnswer.question_id)  # type: ignore
-            .where(FermiAnswer.id.is_(None))  # type: ignore
-            .order_by(FermiQuestion.created_at.desc())  # type: ignore
-            .limit(limit)
-        )
-
-        result = await self.session.exec(statement)
-        # Extract IDs from Row objects (result.all() returns Rows, not raw integers)
-        rows = result.all()
-        return [row[0] for row in rows if row[0] is not None]
 
     async def get_user_answer_events(
         self,
