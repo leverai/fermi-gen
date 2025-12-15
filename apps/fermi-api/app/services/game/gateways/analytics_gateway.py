@@ -51,7 +51,7 @@ class GameAnalyticsGateway:
             question_round_settings.category,
         )
         # 1. Fetch questions (with correct answers)
-        questions = await self._db_client.users_history.get_unseen_random_questions(
+        questions = await self._db_client.fermi.get_unseen_random_questions(
             count=question_round_settings.n_questions,
             for_user_ids=user_ids,
             category=request_category,
