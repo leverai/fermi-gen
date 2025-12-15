@@ -65,7 +65,7 @@ class FermiRepository(BaseRepository):
         """
         statement = select(Fermi).where(Fermi.uid == uid)
         result = await self.session.exec(statement)
-        return result.first()
+        return result.one_or_none()
 
     async def bulk_update(self, updates: list[FermiUpdate]) -> int:
         """Bulk update Fermi entries.

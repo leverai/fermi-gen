@@ -62,7 +62,7 @@ async def submit_bot_answers(
     # 1. Fetch fermi row for this question to get LLM answers
     async with session_context() as session:
         db_client = DatabaseClient(session)
-        fermi_row = await db_client.users_history.get_question_by_uid(
+        fermi_row = await db_client.fermi.get_by_uid(
             uuid.UUID(question_uid),
         )
 

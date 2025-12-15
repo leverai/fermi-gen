@@ -98,20 +98,6 @@ class UserHistoryRepository(BaseRepository):
         results = await self.session.exec(statement)
         return list(results.all())
 
-    async def get_question_by_uid(self, question_uid: UUID) -> Fermi | None:
-        """Fetch a single question from the fermi MV by its UID.
-
-        Args:
-            question_uid: The question's unique identifier.
-
-        Returns:
-            The Fermi row if found, None otherwise.
-
-        """
-        statement = select(Fermi).where(Fermi.uid == question_uid)
-        result = await self.session.exec(statement)
-        return result.one_or_none()
-
     async def add_questions_to_users_history(
         self,
         user_ids: Iterable[str],
