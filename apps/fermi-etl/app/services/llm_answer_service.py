@@ -298,9 +298,11 @@ async def gemini_flash_answer_questions(
                 try:
                     results = await allm_answer_batch(
                         questions=[llm_input],
-                        model='gemini-2.0-flash-lite',
+                        model=config.gemini_flash_model,
                         model_provider='google-vertexai',
                         temperature=config.gemini_flash_temperature,
+                        top_p=0.99,  # Full nucleus sampling (less restrictive)
+                        top_k=40,  # Larger candidate pool (default is often lower)
                     )
                     result = results[0]
 

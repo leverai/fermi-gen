@@ -96,6 +96,10 @@ class ETLConfig(BaseSettings):
         ],
         description='Gemini Flash model instances for casual bots',
     )
+    gemini_flash_model: str = Field(
+        default='gemini-2.5-flash-lite',
+        description='Gemini Flash model instance for casual bots',
+    )
     gemini_flash_temperature: float = Field(
         default=1.5,
         description='High temperature for varied/casual answers',
