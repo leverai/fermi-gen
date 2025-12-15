@@ -321,10 +321,25 @@ async def gemini_flash_answer_questions(
                         all_succeeded = False
                         break
 
-                    # Validate unit
                     if units_set and result.unit not in units_set:
                         logger.error(
                             f'Gemini unit {result.unit} not in {units_set} '
+                            f'for Q{question_id}',
+                            extra={
+                                'json_fields': {
+                                    'stage': Stage.LLM_ANSWER,
+                                    'model': model_name,
+                                    'question_id': question_id,
+                                },
+                            },
+                        )
+                        all_succeeded = False
+                        break
+
+                    # Validate unit
+                    if not units_set and result.unit:
+                        logger.error(
+                            f'Gemini unit {result.unit} received with no units set '
                             f'for Q{question_id}',
                             extra={
                                 'json_fields': {

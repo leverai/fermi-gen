@@ -2,6 +2,7 @@
 
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
+from pydantic import field_validator
 
 
 class LLMAnswerInput(TypedDict):
@@ -21,3 +22,11 @@ class LLMAnswerOutput(BaseModel):
         None,
         description='The unit for dimensional questions, null for dimensionless',
     )
+
+    @field_validator('unit', mode='after')
+    @classmethod
+    def validate_unit(cls, v: str | None) -> str | None:
+        """Ensure dimensionless questions have None unit."""
+        if v is None or v in ('null', 'None', '', 'dimensionless'):
+            return None
+        return v

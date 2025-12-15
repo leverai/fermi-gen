@@ -17,12 +17,12 @@ Given a Fermi estimation question, provide your best estimate for the answer.
 ## Output Format
 
 - `number`: Your numeric estimate, provided **in Scientific Notation**.
-- `unit`: The unit for your answer. Use `null` for dimensionless questions (counts, ratios, percentages). For dimensional questions, select from the provided unit set.
+- `unit`: The unit for your answer. Use Python's None for dimensionless questions (counts, ratios, percentages). For dimensional questions, select from the provided unit set.
 
 ## Examples
 
 **Question:** "How many piano tuners are there in Chicago?"
-**Answer:** number="2.0e2", unit=null
+**Answer:** number="2.0e2", unit=None
 
 **Question:** "What is the mass of the Eiffel Tower?"
 **Unit Set:** ["gram", "kilogram", "metric_ton"]
