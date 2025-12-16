@@ -248,6 +248,7 @@ def test_bot_answers_appear_in_players_results(
     create_private_game: Callable[[dict[str, str]], str],
     get_firestore_doc: Callable[[str], dict[str, Any]],
     get_players_results_doc: Callable[[str, str], dict[str, Any]],
+    get_answer_doc: Callable[[str, str], dict[str, Any]],
 ) -> None:
     """Bot answers should appear in players_results after question reveal."""
     host_headers = get_api_auth_headers(
@@ -275,10 +276,14 @@ def test_bot_answers_appear_in_players_results(
     game_doc = _wait_started(get_firestore_doc, game_id)
     question_uid = game_doc['question_uid']
 
-    # Human submits answer
+    # Query the correct answer to get the expected unit
+    answer_doc = get_answer_doc(game_id, question_uid)
+    expected_unit = answer_doc.get('unit')  # None for dimensionless, str for dimensional
+
+    # Human submits answer with matching unit type
     api_client.post(
         '/api/v1/game/answer',
-        json={'resource_id': game_id, 'answer': {'number': 100, 'unit': None}},
+        json={'resource_id': game_id, 'answer': {'number': 100, 'unit': expected_unit}},
         headers=host_headers,
     )
 
@@ -311,6 +316,7 @@ def test_bot_answers_not_archived_to_answer_events(
     get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
     create_private_game: Callable[[dict[str, str]], str],
     get_firestore_doc: Callable[[str], dict[str, Any]],
+    get_answer_doc: Callable[[str, str], dict[str, Any]],
 ) -> None:
     """Bot answers should NOT be stored in answer_events table."""
     import asyncio
@@ -343,12 +349,17 @@ def test_bot_answers_not_archived_to_answer_events(
         json={'resource_id': game_id},
         headers=host_headers,
     )
-    _wait_started(get_firestore_doc, game_id)
+    game_doc = _wait_started(get_firestore_doc, game_id)
+    question_uid = game_doc['question_uid']
 
-    # Human answers
+    # Query the correct answer to get the expected unit
+    answer_doc = get_answer_doc(game_id, question_uid)
+    expected_unit = answer_doc.get('unit')  # None for dimensionless, str for dimensional
+
+    # Human answers with matching unit type
     api_client.post(
         '/api/v1/game/answer',
-        json={'resource_id': game_id, 'answer': {'number': 100, 'unit': None}},
+        json={'resource_id': game_id, 'answer': {'number': 100, 'unit': expected_unit}},
         headers=host_headers,
     )
 
@@ -396,6 +407,7 @@ def test_bot_answers_not_added_to_user_history(
     get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
     create_private_game: Callable[[dict[str, str]], str],
     get_firestore_doc: Callable[[str], dict[str, Any]],
+    get_answer_doc: Callable[[str, str], dict[str, Any]],
 ) -> None:
     """Bot player IDs should NOT be added to user_question_history."""
     import asyncio
@@ -431,9 +443,13 @@ def test_bot_answers_not_added_to_user_history(
     game_doc = _wait_started(get_firestore_doc, game_id)
     question_uid = game_doc['question_uid']
 
+    # Query the correct answer to get the expected unit
+    answer_doc = get_answer_doc(game_id, question_uid)
+    expected_unit = answer_doc.get('unit')  # None for dimensionless, str for dimensional
+
     api_client.post(
         '/api/v1/game/answer',
-        json={'resource_id': game_id, 'answer': {'number': 100, 'unit': None}},
+        json={'resource_id': game_id, 'answer': {'number': 100, 'unit': expected_unit}},
         headers=host_headers,
     )
     _wait_all_answered(get_firestore_doc, game_id)
@@ -478,6 +494,7 @@ def test_e2e_game_with_bots_completes_successfully(
     get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
     create_private_game: Callable[[dict[str, str]], str],
     get_firestore_doc: Callable[[str], dict[str, Any]],
+    get_answer_doc: Callable[[str, str], dict[str, Any]],
 ) -> None:
     """End-to-end test: human plays full game with 2 bots."""
     host_headers = get_api_auth_headers(
@@ -511,10 +528,16 @@ def test_e2e_game_with_bots_completes_successfully(
 
     # Play through 2 questions
     for round_num in range(2):
-        # Human answers
+        # Get current question_uid and query the correct answer unit
+        game_doc = get_firestore_doc(game_id)
+        question_uid = game_doc['question_uid']
+        answer_doc = get_answer_doc(game_id, question_uid)
+        expected_unit = answer_doc.get('unit')  # None for dimensionless, str for dimensional
+
+        # Human answers with matching unit type
         api_client.post(
             '/api/v1/game/answer',
-            json={'resource_id': game_id, 'answer': {'number': 100, 'unit': None}},
+            json={'resource_id': game_id, 'answer': {'number': 100, 'unit': expected_unit}},
             headers=host_headers,
         )
 

@@ -529,6 +529,71 @@ def get_players_results_doc() -> Callable[[str, str], dict[str, Any]]:
 
 
 @pytest.fixture
+def get_answer_doc() -> Callable[[str, str], dict[str, Any]]:
+    """Return a callable that fetches an answer document by question_uid.
+
+    Usage: ``doc = get_answer_doc(game_id, question_uid)``
+    """
+
+    def _get(game_id: str, question_uid: str) -> dict[str, Any]:
+        project = os.environ['GOOGLE_CLOUD_PROJECT']
+        fs_host = os.environ['FIRESTORE_EMULATOR_HOST']
+        base = f'http://{fs_host}/v1/projects/{project}/databases/(default)/documents'
+
+        def _convert(node: Any) -> Any:
+            if isinstance(node, dict):
+                if 'mapValue' in node:
+                    fields = node['mapValue'].get('fields', {})
+                    return {k: _convert(v) for k, v in fields.items()}
+                if 'arrayValue' in node:
+                    vals = node['arrayValue'].get('values', [])
+                    return [_convert(v) for v in vals]
+                if 'integerValue' in node:
+                    try:
+                        return int(node['integerValue'])
+                    except Exception:
+                        return node['integerValue']
+                if 'doubleValue' in node:
+                    try:
+                        return float(node['doubleValue'])
+                    except Exception:
+                        return node['doubleValue']
+                for k in (
+                    'stringValue',
+                    'booleanValue',
+                    'nullValue',
+                    'timestampValue',
+                ):
+                    if k in node:
+                        return node[k]
+                return {k: _convert(v) for k, v in node.items()}
+            return node
+
+        # Poll up to ~5s for eventual consistency
+        import time
+
+        for _ in range(50):
+            r = httpx.get(
+                f'{base}/games/{game_id}/answers/{question_uid}',
+                headers={
+                    'Authorization': 'Bearer owner',
+                    'X-Goog-User-Project': project,
+                },
+                timeout=2.0,
+            )
+            if r.status_code == 200:
+                data = r.json()
+                if 'fields' in data:
+                    fields = data['fields']
+                    return {k: _convert(v) for k, v in fields.items()}
+                return data
+            time.sleep(0.1)
+        return {}
+
+    return _get
+
+
+@pytest.fixture
 def create_private_game(api_client: TestClient) -> Callable[[dict[str, str]], str]:
     """Return a callable that creates a private game and returns its id.
 
