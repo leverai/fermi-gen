@@ -157,8 +157,7 @@ class StyledDialog extends StatelessWidget {
                           width: 2,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(appTheme.borderRadius),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         foregroundColor: appTheme.text,
                         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -198,8 +197,7 @@ class StyledDialog extends StatelessWidget {
                         width: 2,
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(appTheme.borderRadius),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       shadowColor: Colors
                           .transparent, // We'll handle shadow manually if needed, or just flat
