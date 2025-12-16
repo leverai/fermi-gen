@@ -60,6 +60,8 @@ def enrich_firebase_claims(
                 animal_name,
             )
             player_name = player_name.replace('-', ' ').title()
+            # Limit to 2 words
+            player_name = ' '.join(player_name.split(' ')[:2])
             firebase_claims['name'] = player_name
 
     if not firebase_claims.get('name'):

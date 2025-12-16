@@ -338,6 +338,7 @@ class CategoryCardM3 extends StatelessWidget {
           color: isSelected ? categoryColor : Colors.transparent,
           width: 2,
         ),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: isSelected
             ? [
                 BoxShadow(

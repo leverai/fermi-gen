@@ -149,12 +149,13 @@ class SelectorWidget extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? appTheme.bg : appTheme.bgLight,
-          border: isSelected
-              ? Border.all(
-                  color: appTheme.border,
-                  width: 2,
-                )
-              : null,
+          // border: isSelected
+          //     ? Border.all(
+          //         color: appTheme.border,
+          //         width: 1,
+          //       )
+          //     : null,
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

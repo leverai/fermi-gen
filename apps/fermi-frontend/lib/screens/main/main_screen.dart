@@ -316,7 +316,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                           },
                           allowNoSelection: true,
                         ),
-                        const SizedBox(height: 24),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -364,12 +363,12 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             child: Container(
               width: 1,
               height: 24,
-              color: appTheme.border,
+              color: appTheme.borderMuted,
             ),
           ),
           SvgPicture.asset(
-            'assets/icons/icon.svg',
-            height: 32,
+            'assets/icons/logo-fg.svg',
+            height: 22,
           ),
         ],
       ),
@@ -399,7 +398,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   ),
                 ),
                 Text(
-                  'Ready to test your knowledge?',
+                  'Ready to Guesstimate?',
                   textAlign: TextAlign.center,
                   style: AppFont.primaryTextStyle(
                     context,
@@ -638,19 +637,19 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 // Settings & Tutorial Overlays
                 // Keep Settings in bottom right, but move it up a bit if needed
                 Positioned(
-                  bottom: 24, // Adjusted position for FloatingActionButton
+                  bottom: 12, // Adjusted position for FloatingActionButton
                   right: 12,
                   child: FloatingActionButton(
                     onPressed: _toggleSettings,
-                    backgroundColor: appTheme.bgLight,
-                    elevation: 4,
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
                     shape: const CircleBorder(),
                     child: SvgPicture.asset(
                       'assets/icons/gear.svg',
                       colorFilter:
                           ColorFilter.mode(appTheme.text, BlendMode.srcIn),
-                      width: 24,
-                      height: 24,
+                      width: 36,
+                      height: 36,
                     ),
                   ),
                 ),
