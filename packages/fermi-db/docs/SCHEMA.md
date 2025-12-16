@@ -84,7 +84,7 @@ CREATE INDEX idx_user_history_user ON user_question_history(user_firebase_uid);
 CREATE INDEX idx_user_history_question ON user_question_history(question_uid);
 ```
 
-**Note:** `question_uid` references the `fermi` materialized view (not a foreign key due to materialized view limitations).
+**Note:** `question_uid` references the `fermi` table (now a regular table, not a materialized view).
 
 #### `answer_events`
 
@@ -280,6 +280,96 @@ CREATE INDEX idx_seeds_usage_seed ON seeds_usage(seed_id);
 - `yielded`: Number of unique questions after deduplication
 
 **Usage:** Thompson Sampling uses `yielded` (successes) and `requested - yielded` (failures) to compute Beta distribution parameters.
+
+---
+
+### Daily Question Tables
+
+These tables support the Daily Question game mode, where a single question is served to all users daily with synchronized timing and leaderboard functionality.
+
+#### `daily_questions`
+
+Tracks the daily question for each date with window times and status.
+
+```sql
+CREATE TYPE dailyquestionstatus AS ENUM ('SCHEDULED', 'ACTIVE', 'CLOSED');
+
+CREATE TABLE daily_questions (
+    id SERIAL PRIMARY KEY,
+    question_date DATE NOT NULL UNIQUE,
+    question_uid UUID NOT NULL REFERENCES fermi(uid),
+    status dailyquestionstatus NOT NULL DEFAULT 'SCHEDULED',
+    window_start TIMESTAMP NOT NULL,
+    window_end TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_daily_questions_question_date ON daily_questions(question_date);
+CREATE INDEX idx_daily_questions_status ON daily_questions(status);
+```
+
+**Fields:**
+- `question_date`: The date for this daily question (unique)
+- `question_uid`: Reference to the fermi question
+- `status`: Current status (SCHEDULED, ACTIVE, CLOSED)
+- `window_start`: When the DQ window opens (UTC)
+- `window_end`: When the DQ window closes (UTC, typically 8 PM Central)
+
+**Timing:**
+- Window: 8 AM - 8 PM US Central Time
+- All timestamps stored in UTC, converted at API layer
+- Status transitions: SCHEDULED → ACTIVE (at window_start) → CLOSED (after window_end + grace period)
+
+#### `daily_question_answers`
+
+Stores user answers for daily questions with scores and ranks.
+
+```sql
+CREATE TABLE daily_question_answers (
+    id SERIAL PRIMARY KEY,
+    daily_question_id INTEGER NOT NULL REFERENCES daily_questions(id),
+    user_firebase_uid TEXT NOT NULL,
+    answer_number FLOAT NOT NULL,
+    answer_unit TEXT,
+    score FLOAT NOT NULL,
+    started_at TIMESTAMP NOT NULL,
+    submitted_at TIMESTAMP NOT NULL,
+    time_taken_s FLOAT NOT NULL,
+    rank INTEGER,
+    UNIQUE(daily_question_id, user_firebase_uid)
+);
+
+CREATE INDEX idx_daily_question_answers_daily_question_id ON daily_question_answers(daily_question_id);
+CREATE INDEX idx_daily_question_answers_user_firebase_uid ON daily_question_answers(user_firebase_uid);
+CREATE INDEX idx_daily_question_answers_score ON daily_question_answers(score);
+```
+
+**Fields:**
+- `daily_question_id`: Reference to the daily question
+- `user_firebase_uid`: Firebase user ID
+- `answer_number`: User's numeric answer
+- `answer_unit`: User's selected unit (optional)
+- `score`: Computed score (0-100)
+- `started_at`: When user started the question (UTC)
+- `submitted_at`: When answer was submitted (UTC)
+- `time_taken_s`: Time taken to answer in seconds
+- `rank`: User's rank (populated after window closes)
+
+**Constraints:**
+- Unique constraint ensures one answer per user per daily question
+- `rank` is NULL until the window closes and ranks are computed
+
+**Deadlines:**
+- Answer Deadline (AD): `min(started_at + 30s, window_end)`
+- AD Grace Period: 5 seconds after AD
+- Question Deadline (QD) Grace Period: 20 seconds after window_end
+
+**Key Differences from Party Mode:**
+- Answers stored in `daily_question_answers`, NOT `answer_events`
+- Does NOT update `user_question_history`
+- Questions marked with `is_daily_question=true` in `fermi` table
+
+---
 
 ### Game Tables
 

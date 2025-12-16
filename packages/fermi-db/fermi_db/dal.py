@@ -3,6 +3,10 @@
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from .repositories.answer_repository import AnswerRepository
+from .repositories.daily_question_answer_repository import (
+    DailyQuestionAnswerRepository,
+)
+from .repositories.daily_question_repository import DailyQuestionRepository
 from .repositories.enrichment_repository import EnrichmentRepository
 from .repositories.fermi_answer_repository import FermiAnswerRepository
 from .repositories.fermi_repository import FermiRepository
@@ -27,6 +31,9 @@ class DatabaseClient:
         self.answers = AnswerRepository(self.session)
         self.question_votes = QuestionVotesRepository(self.session)
         self.fermi = FermiRepository(self.session)
+        # Daily Question repositories
+        self.daily_questions = DailyQuestionRepository(self.session)
+        self.dq_answers = DailyQuestionAnswerRepository(self.session)
         # Pipeline repositories
         self.seeds = SeedRepository(self.session)
         self.raw_questions = RawQuestionRepository(self.session)

@@ -174,7 +174,11 @@ class FermiRepository(BaseRepository):
         )
 
         # Main query - only return APPROVED questions (human-reviewed)
-        statement = select(Fermi).where(Fermi.status == QuestionStatus.APPROVED)
+        # Also exclude questions reserved for Daily Question mode
+        statement = select(Fermi).where(
+            Fermi.status == QuestionStatus.APPROVED,
+            Fermi.is_daily_question == False,  # noqa: E712
+        )
 
         if category is not None:
             statement = statement.where(Fermi.category == category)
