@@ -152,12 +152,9 @@ class StyledDialog extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: onSecondaryPressed,
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: appTheme.border,
-                          width: 2,
-                        ),
+                        side: const BorderSide(color: Colors.transparent),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         foregroundColor: appTheme.text,
                         padding: const EdgeInsets.symmetric(horizontal: 24),
