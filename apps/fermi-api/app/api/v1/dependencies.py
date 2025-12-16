@@ -10,6 +10,7 @@ from google.cloud.firestore_v1.async_client import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.services.auth import AuthService
+from app.services.daily_question.service import DailyQuestionService
 from app.services.game.service import GameService
 from app.services.scoring import ScoringService
 from app.services.user import UserService
@@ -34,6 +35,13 @@ def get_user_repository(session: AsyncSession = Depends(get_session)) -> UserRep
 def get_game_service(db_client: DatabaseClient = Depends(get_db_client)) -> GameService:  # noqa: B008
     """Get an instance of the GameService."""
     return GameService(db_client=db_client)
+
+
+def get_daily_question_service(
+    db_client: DatabaseClient = Depends(get_db_client),  # noqa: B008
+) -> DailyQuestionService:
+    """Get an instance of the DailyQuestionService."""
+    return DailyQuestionService(db_client=db_client)
 
 
 @lru_cache

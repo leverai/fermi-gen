@@ -1,5 +1,9 @@
 """DB models."""
 
+from .daily_question import (
+    DailyQuestion,
+    DailyQuestionAnswer,
+)
 from .game import (
     AnswerEvent,
     AnswersQuantiles,
@@ -21,6 +25,8 @@ from .user import User
 __all__ = [
     'AnswerEvent',
     'AnswersQuantiles',
+    'DailyQuestion',
+    'DailyQuestionAnswer',
     'Fermi',
     'FermiAnswer',
     'FermiQuestion',

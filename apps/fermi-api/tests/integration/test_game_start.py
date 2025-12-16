@@ -98,11 +98,11 @@ def test_start_game_by_host_reveals_first_and_inits_progress(
             assert doc.get('question_uid') == first_q
             assert doc.get('question_order') == 1
             qdur = doc.get('question_duration_s')
-            assert qdur in {10, 20, 40}
+            assert qdur in {30, 35, 40}
             # Verify duration matches question difficulty mapping
             qdoc = _get_question_doc(game_id, first_q)
             diff = qdoc.get('difficulty')
-            expected = {'EASY': 10, 'MEDIUM': 20, 'HARD': 40}[str(diff)]
+            expected = {'EASY': 30, 'MEDIUM': 35, 'HARD': 40}[str(diff)]
             assert qdur == expected
             # Progress initialized
             progress = doc.get('progress') or {}

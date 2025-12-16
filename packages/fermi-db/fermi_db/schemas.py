@@ -17,6 +17,14 @@ class QuestionStatus(StrEnum):
     REJECTED = 'REJECTED'
 
 
+class DailyQuestionStatus(StrEnum):
+    """Status of a daily question."""
+
+    SCHEDULED = 'SCHEDULED'
+    ACTIVE = 'ACTIVE'
+    CLOSED = 'CLOSED'
+
+
 class QuestionDifficulty(StrEnum):
     """Difficulty of a game."""
 

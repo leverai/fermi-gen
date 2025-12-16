@@ -140,7 +140,8 @@ async def seed_test_data(test_data_path: Path) -> None:
                 gemini_flash_4_unit,
                 gemini_flash_5_number,
                 gemini_flash_5_unit,
-                status
+                status,
+                is_daily_question
             )
             SELECT
                 uuid_generate_v5(
@@ -186,7 +187,8 @@ async def seed_test_data(test_data_path: Path) -> None:
                 la_gemini4.unit AS gemini_flash_4_unit,
                 la_gemini5.number AS gemini_flash_5_number,
                 la_gemini5.unit AS gemini_flash_5_unit,
-                'APPROVED' AS status  -- Test data is pre-approved
+                'APPROVED' AS status,  -- Test data is pre-approved
+                false AS is_daily_question  -- Default: not a daily question
             FROM fermi_answers fa
             INNER JOIN fermi_questions fq ON fa.question_id = fq.id
             INNER JOIN llm_answers la_51 ON fq.id = la_51.question_id
@@ -207,6 +209,17 @@ async def seed_test_data(test_data_path: Path) -> None:
                 AND la_gemini5.model = 'gemini-1.5-flash-005'
             WHERE fa.success = true
             ON CONFLICT (question_id) DO NOTHING
+            """),
+        )
+        await session.commit()
+
+        # 6. Mark first 3 questions as daily questions (one has a unit for testing)
+        print('📅 Marking questions 1, 2, 3 as daily questions...')
+        await session.execute(
+            sa.text("""
+            UPDATE fermi
+            SET is_daily_question = true
+            WHERE question_id IN (1, 2, 3)
             """),
         )
         await session.commit()

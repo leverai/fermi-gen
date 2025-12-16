@@ -23,8 +23,8 @@ if TYPE_CHECKING:
 # for small client-server clock drift and network latency. Enforcement happens
 # exclusively in the ``SubmitAnswerUseCase``.
 DIFFICULTY_TIMEOUT_SECONDS = {
-    QuestionDifficulty.EASY: 25,
-    QuestionDifficulty.MEDIUM: 30,
+    QuestionDifficulty.EASY: 30,
+    QuestionDifficulty.MEDIUM: 35,
     QuestionDifficulty.HARD: 40,
 }
 

@@ -330,6 +330,94 @@ State becomes `QUESTION_LAST_FINISHED` and the game is considered over.
 
 **Backend communication:**
 - All back-end communication with the database (for questions and answers) is done through the DAL in `fermi-db`.
+**Example:**
+- User 1 answers first → rank 1
+- User 2 answers with same score → rank 1 (tie)
+- User 3 answers with lower score → rank 3 (not rank 2, because two users are ahead)
+
+---
+
+## Daily Question Mode
+
+The Daily Question (DQ) mode serves a single question to all users daily with synchronized timing and leaderboard functionality.
+
+### Architecture
+
+**Storage:**
+- Questions marked with `is_daily_question=true` in `fermi` table
+- `daily_questions` table tracks daily question state
+- `daily_question_answers` table stores user answers (separate from `answer_events`)
+- Firestore `daily_questions/{date}` collection for real-time state
+
+**Timing (US Central Time):**
+- Window: 8 AM - 8 PM
+- Answer Deadline: 30 seconds after starting (or window end, whichever is sooner)
+- Grace Periods: 5s after AD, 20s after window end
+- All timestamps stored in UTC, converted at API layer
+
+### Service Layer
+
+Located in `app/services/daily_question/`:
+- `timing.py`: UTC/Central conversion, deadline calculations
+- `schemas.py`: Pydantic models for API responses
+- `firestore_writer.py`: Real-time Firestore document management
+- `service.py`: Main `DailyQuestionService` orchestrating DQ flow
+
+### API Endpoints
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /daily_question/status` | Get window status and user status |
+| `POST /daily_question/start` | Start question, returns deadline |
+| `POST /daily_question/answer` | Submit answer within deadline |
+| `GET /daily_question/results` | Get results after window closes |
+| `GET /daily_question/history` | Get user's past DQ results |
+
+### Firestore Schema
+
+**Document: `daily_questions/{date}`**
+```json
+{
+  "question_uid": "uuid-string",
+  "status": "ACTIVE",  // or "RESULTS"
+  "window_start": "2025-12-15T13:00:00Z",
+  "window_end": "2025-12-16T01:00:00Z",
+  "results_ready": false
+}
+```
+
+**Subcollection: `daily_questions/{date}/user_sessions/{user_id}`**
+```json
+{
+  "started_at": "2025-12-15T14:30:00Z",
+  "answer_deadline": "2025-12-15T14:30:30Z",
+  "submitted": false
+}
+```
+
+### Key Differences from Party Mode
+
+| Aspect | Party Mode | Daily Question Mode |
+|--------|-----------|---------------------|
+| Question Pool | `is_daily_question=false` | `is_daily_question=true` |
+| Answer Storage | `answer_events` | `daily_question_answers` |
+| User History | Updates `user_question_history` | Does NOT update history |
+| Timing | Per-game, host-controlled | Global, synchronized |
+| Leaderboard | Per-game | Global daily |
+
+### Scheduled Jobs
+
+Daily Question lifecycle is managed by Cloud Run jobs (triggered by Cloud Scheduler):
+
+1. **Start DQ Job** (8:00 AM CT):
+   - Selects next unused DQ question
+   - Creates `daily_questions` row with SCHEDULED status
+   - Creates Firestore document
+
+2. **End DQ Job** (8:00:20 PM CT):
+   - Updates status to CLOSED
+   - Computes ranks for all answers
+   - Sets `results_ready=true` in Firestore
 
 ---
 

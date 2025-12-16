@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     account_deletion,
     auth,
+    daily_question,
     game,
     health,
     privacy_policy,
@@ -15,6 +16,11 @@ from app.api.v1.endpoints import (
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix='/auth', tags=['auth'])
 api_router.include_router(game.router, prefix='/game', tags=['game'])
+api_router.include_router(
+    daily_question.router,
+    prefix='/daily_question',
+    tags=['daily_question'],
+)
 api_router.include_router(health.router, prefix='/health', tags=['health'])
 api_router.include_router(account_deletion.router, tags=['account'])
 api_router.include_router(privacy_policy.router, tags=['privacy'])

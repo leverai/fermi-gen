@@ -448,6 +448,141 @@ Notes:
   - current: NO_VOTE; action: UPVOTE -> verdict: UPVOTE (1)
   - current: DOWNVOTE; action: UPVOTE -> verdict: NO_VOTE (0)
 
+---
+
+### Daily Question Endpoints
+
+The Daily Question (DQ) mode serves a single question to all users daily with synchronized timing and leaderboard functionality.
+
+**Key Concepts:**
+- Window: 8 AM - 8 PM US Central Time
+- Answer Deadline: 30 seconds after starting (or window end, whichever is sooner)
+- Grace periods: 5s after AD, 20s after window end
+- All timestamps in UTC (converted at API layer)
+- Separate storage from Party mode
+
+#### `GET /daily_question/status`
+Get the current daily question status and timing information.
+
+-   **Request:** (No body)
+-   **Response (200 OK):** `DQStatusResponse`
+    ```json
+    {
+      "window_status": "ACTIVE",  // NOT_STARTED, ACTIVE, CLOSED
+      "seconds_until_window_end": 3600.5,
+      "question_date": "2025-12-15",
+      "user_status": "NOT_STARTED",  // NOT_STARTED, IN_PROGRESS, SUBMITTED, MISSED
+      "has_results": false
+    }
+    ```
+
+#### `POST /daily_question/start`
+Start the daily question for the current user. Returns the question with deadline.
+
+-   **Request:** (No body)
+-   **Response (200 OK):** `DQQuestionResponse`
+    ```json
+    {
+      "question": {
+        "question_uid": "uuid-string",
+        "text": "How many...",
+        "category": "PLANET_EARTH",
+        "difficulty": "MEDIUM",
+        "unit_hint": "kilometers"
+      },
+      "answer_deadline_utc": "2025-12-15T20:30:45.123Z",
+      "seconds_to_answer": 30.0
+    }
+    ```
+-   **Errors:**
+    -   `409 Conflict`: Window closed or user already started
+
+#### `POST /daily_question/answer`
+Submit an answer for the daily question.
+
+-   **Request Body:** `DQAnswerRequest`
+    ```json
+    {
+      "answer": {
+        "number": 100,
+        "unit": "kilometers"
+      }
+    }
+    ```
+-   **Response (200 OK):** `DQSubmitResponse`
+    ```json
+    {
+      "submitted": true,
+      "score": 85.5,
+      "message": "Answer submitted successfully. Results available after 8 PM CT."
+    }
+    ```
+-   **Errors:**
+    -   `409 Conflict`: Deadline passed, not started, or already submitted
+
+#### `GET /daily_question/results`
+Get results for today's daily question (available after window closes).
+
+-   **Request:** (No body)
+-   **Response (200 OK):** `DQResultsResponse`
+    ```json
+    {
+      "question_date": "2025-12-15",
+      "question_uid": "uuid-string",
+      "question_text": "How many...",
+      "correct_answer": {
+        "number": 100,
+        "unit": "kilometers"
+      },
+      "user_answer": {
+        "number": 95,
+        "unit": "kilometers"
+      },
+      "user_score": 85.5,
+      "user_rank": 42,
+      "total_participants": 150,
+      "leaderboard": [
+        {
+          "rank": 1,
+          "display_name": null,
+          "score": 100.0,
+          "time_taken_s": 15.2
+        }
+      ]
+    }
+    ```
+-   **Errors:**
+    -   `409 Conflict`: Results not yet available
+
+#### `GET /daily_question/history`
+Get the user's past daily question results.
+
+-   **Request:** Query parameter `limit` (default: 30)
+-   **Response (200 OK):** `DQHistoryResponse`
+    ```json
+    {
+      "history": [
+        {
+          "question_date": "2025-12-14",
+          "question_text": "How many...",
+          "user_answer": {
+            "number": 95,
+            "unit": "kilometers"
+          },
+          "correct_answer": {
+            "number": 100,
+            "unit": "kilometers"
+          },
+          "score": 85.5,
+          "rank": 42,
+          "total_participants": 150
+        }
+      ]
+    }
+    ```
+
+---
+
 #### `POST /user/set_locale`
 Setting the user's locale to US/EU
 

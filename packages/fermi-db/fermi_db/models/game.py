@@ -56,6 +56,8 @@ class Fermi(SQLModel, table=True):
         default=QuestionStatus.PENDING_REVIEW,
         index=True,
     )
+    # Daily Question mode flag - True for questions reserved for DQ mode
+    is_daily_question: bool = Field(default=False, index=True)
     # LLM answers for bot players
     gpt_5_1_number: float
     gpt_5_1_unit: str | None
