@@ -160,12 +160,9 @@ class GamePlayersAnswersWriter:
             },
         )
 
-        # Calculate all_answered by simulating the post-update state
-        # This ensures we correctly determine if all players will have answered
-        # after marking the current player as answered
-        updated_answered = progress['answered'].copy()
-        updated_answered[player_id] = True
-        all_answered = all(updated_answered.values())
+        all_answered = all(
+            val for pid, val in progress['answered'].items() if pid != player_id
+        )
 
         writer.update(
             game_ref,
@@ -253,7 +250,7 @@ class GamePlayersAnswersWriter:
             f'players_results.{player_id}.converted_answers': converted_answers
             for player_id, converted_answers in updates.items()
         }
-        update_dict['revealed'] = True
+        update_dict['revealed'] = True  # type: ignore[literal-required]
 
         writer.update(players_results_ref.document(question_uid), update_dict)
 

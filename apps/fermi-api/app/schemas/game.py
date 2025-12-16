@@ -163,7 +163,7 @@ class PlayerResult(TypedDict):
     answer: AnswerBare
     correct_answer: AnswerBare
     score: Score
-    converted_answers: dict[str, AnswerBare]
+    converted_answers: NotRequired[dict[str, AnswerBare]]
 
 
 class PlayersResultsDoc(TypedDict):

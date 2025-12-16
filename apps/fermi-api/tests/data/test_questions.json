@@ -30985,7 +30985,7 @@
         {
             "question_id": 4,
             "number": 41000000,
-            "unit": null,
+            "unit": "mile",
             "snippet": "The world has approximately 41 million kilometers of paved roads.",
             "used_ai_overview": false,
             "success": true,
@@ -30996,7 +30996,7 @@
         {
             "question_id": 5,
             "number": 100,
-            "unit": null,
+            "unit": "acre",
             "snippet": "Americans consume about 100 acres worth of pizza per day, roughly 350 slices per second.",
             "used_ai_overview": true,
             "success": true,
@@ -31007,7 +31007,7 @@
         {
             "question_id": 6,
             "number": 10000000,
-            "unit": null,
+            "unit": "ton",
             "snippet": "Global coffee consumption is approximately 10 million tons per year.",
             "used_ai_overview": false,
             "success": true,
@@ -31051,7 +31051,7 @@
         {
             "question_id": 10,
             "number": 150000000,
-            "unit": null,
+            "unit": "metric_ton",
             "snippet": "There are an estimated 150 million metric tons of plastic in the oceans.",
             "used_ai_overview": false,
             "success": true,
@@ -31095,7 +31095,7 @@
         {
             "question_id": 14,
             "number": 4.011e+16,
-            "unit": null,
+            "unit": "meter",
             "snippet": "Proxima Centauri, the nearest star to Earth (excluding the Sun), is 4.24 light-years away (approximately 4.01 \u00d7 10^16 meters).",
             "used_ai_overview": true,
             "success": true,
@@ -31106,7 +31106,7 @@
         {
             "question_id": 15,
             "number": 1.335e+18,
-            "unit": null,
+            "unit": "km ** 3",
             "snippet": "The oceans contain approximately 1.335 billion cubic kilometers of water.",
             "used_ai_overview": false,
             "success": true,
@@ -31174,55 +31174,55 @@
             "question_id": 4,
             "model": "gpt-5.1",
             "number": 30750000.0,
-            "unit": null
+            "unit": "mile"
         },
         {
             "question_id": 4,
             "model": "gpt-5-mini",
             "number": 20500000.0,
-            "unit": null
+            "unit": "kilometer"
         },
         {
             "question_id": 4,
             "model": "gpt-5-nano",
             "number": 10250000.0,
-            "unit": null
+            "unit": "meter"
         },
         {
             "question_id": 5,
             "model": "gpt-5.1",
             "number": 75.0,
-            "unit": null
+            "unit": "acre"
         },
         {
             "question_id": 5,
             "model": "gpt-5-mini",
             "number": 50.0,
-            "unit": null
+            "unit": "acre"
         },
         {
             "question_id": 5,
             "model": "gpt-5-nano",
             "number": 25.0,
-            "unit": null
+            "unit": "acre"
         },
         {
             "question_id": 6,
             "model": "gpt-5.1",
             "number": 7500000.0,
-            "unit": null
+            "unit": "ton"
         },
         {
             "question_id": 6,
             "model": "gpt-5-mini",
             "number": 5000000.0,
-            "unit": null
+            "unit": "ton"
         },
         {
             "question_id": 6,
             "model": "gpt-5-nano",
             "number": 2500000.0,
-            "unit": null
+            "unit": "ton"
         },
         {
             "question_id": 7,
@@ -31282,19 +31282,19 @@
             "question_id": 10,
             "model": "gpt-5.1",
             "number": 112500000.0,
-            "unit": null
+            "unit": "metric_ton"
         },
         {
             "question_id": 10,
             "model": "gpt-5-mini",
             "number": 75000000.0,
-            "unit": null
+            "unit": "metric_ton"
         },
         {
             "question_id": 10,
             "model": "gpt-5-nano",
             "number": 37500000.0,
-            "unit": null
+            "unit": "metric_ton"
         },
         {
             "question_id": 11,
@@ -31354,37 +31354,37 @@
             "question_id": 14,
             "model": "gpt-5.1",
             "number": 3.00825e+16,
-            "unit": null
+            "unit": "meter"
         },
         {
             "question_id": 14,
             "model": "gpt-5-mini",
             "number": 2.0055e+16,
-            "unit": null
+            "unit": "meter"
         },
         {
             "question_id": 14,
             "model": "gpt-5-nano",
             "number": 1.00275e+16,
-            "unit": null
+            "unit": "meter"
         },
         {
             "question_id": 15,
             "model": "gpt-5.1",
             "number": 1.00125e+18,
-            "unit": null
+            "unit": "km ** 3"
         },
         {
             "question_id": 15,
             "model": "gpt-5-mini",
             "number": 6.675e+17,
-            "unit": null
+            "unit": "km ** 3"
         },
         {
             "question_id": 15,
             "model": "gpt-5-nano",
             "number": 3.3375e+17,
-            "unit": null
+            "unit": "km ** 3"
         },
         {
             "question_id": 1,
@@ -31480,91 +31480,91 @@
             "question_id": 4,
             "model": "gemini-1.5-flash-001",
             "number": 168136026.96292743,
-            "unit": null
+            "unit": "mile"
         },
         {
             "question_id": 4,
             "model": "gemini-1.5-flash-002",
             "number": 6311933.327321579,
-            "unit": null
+            "unit": "mile"
         },
         {
             "question_id": 4,
             "model": "gemini-1.5-flash-003",
             "number": 24571971.623617005,
-            "unit": null
+            "unit": "mile"
         },
         {
             "question_id": 4,
             "model": "gemini-1.5-flash-004",
             "number": 21228653.697834823,
-            "unit": null
+            "unit": "mile"
         },
         {
             "question_id": 4,
             "model": "gemini-1.5-flash-005",
             "number": 213846505.61078072,
-            "unit": null
+            "unit": "mile"
         },
         {
             "question_id": 5,
             "model": "gemini-1.5-flash-001",
             "number": 30.21234263091429,
-            "unit": null
+            "unit": "acre"
         },
         {
             "question_id": 5,
             "model": "gemini-1.5-flash-002",
             "number": 25.751366359761306,
-            "unit": null
+            "unit": "acre"
         },
         {
             "question_id": 5,
             "model": "gemini-1.5-flash-003",
             "number": 11.397951807115026,
-            "unit": null
+            "unit": "acre"
         },
         {
             "question_id": 5,
             "model": "gemini-1.5-flash-004",
             "number": 130.51397088211996,
-            "unit": null
+            "unit": "acre"
         },
         {
             "question_id": 5,
             "model": "gemini-1.5-flash-005",
             "number": 19.61469881915908,
-            "unit": null
+            "unit": "acre"
         },
         {
             "question_id": 6,
             "model": "gemini-1.5-flash-001",
             "number": 19177527.526773363,
-            "unit": null
+            "unit": "ton"
         },
         {
             "question_id": 6,
             "model": "gemini-1.5-flash-002",
             "number": 1087786.1168470706,
-            "unit": null
+            "unit": "ton"
         },
         {
             "question_id": 6,
             "model": "gemini-1.5-flash-003",
             "number": 1968751.526578961,
-            "unit": null
+            "unit": "ton"
         },
         {
             "question_id": 6,
             "model": "gemini-1.5-flash-004",
             "number": 12323353.046487652,
-            "unit": null
+            "unit": "ton"
         },
         {
             "question_id": 6,
             "model": "gemini-1.5-flash-005",
             "number": 1783795.919293086,
-            "unit": null
+            "unit": "ton"
         },
         {
             "question_id": 7,
@@ -31660,31 +31660,31 @@
             "question_id": 10,
             "model": "gemini-1.5-flash-001",
             "number": 480544747.99840045,
-            "unit": null
+            "unit": "metric_ton"
         },
         {
             "question_id": 10,
             "model": "gemini-1.5-flash-002",
             "number": 14212421.499075832,
-            "unit": null
+            "unit": "metric_ton"
         },
         {
             "question_id": 10,
             "model": "gemini-1.5-flash-003",
             "number": 82735633.82651655,
-            "unit": null
+            "unit": "metric_ton"
         },
         {
             "question_id": 10,
             "model": "gemini-1.5-flash-004",
             "number": 27987093.529931318,
-            "unit": null
+            "unit": "metric_ton"
         },
         {
             "question_id": 10,
             "model": "gemini-1.5-flash-005",
             "number": 18474756.87576636,
-            "unit": null
+            "unit": "metric_ton"
         },
         {
             "question_id": 11,
@@ -31780,61 +31780,61 @@
             "question_id": 14,
             "model": "gemini-1.5-flash-001",
             "number": 3544735002115228.5,
-            "unit": null
+            "unit": "meter"
         },
         {
             "question_id": 14,
             "model": "gemini-1.5-flash-002",
             "number": 5058365770202088.0,
-            "unit": null
+            "unit": "meter"
         },
         {
             "question_id": 14,
             "model": "gemini-1.5-flash-003",
             "number": 8.893072520702165e+16,
-            "unit": null
+            "unit": "meter"
         },
         {
             "question_id": 14,
             "model": "gemini-1.5-flash-004",
             "number": 1.2576200683218646e+17,
-            "unit": null
+            "unit": "meter"
         },
         {
             "question_id": 14,
             "model": "gemini-1.5-flash-005",
             "number": 1.1707066923236098e+17,
-            "unit": null
+            "unit": "meter"
         },
         {
             "question_id": 15,
             "model": "gemini-1.5-flash-001",
             "number": 5.879879597473542e+18,
-            "unit": null
+            "unit": "km ** 3"
         },
         {
             "question_id": 15,
             "model": "gemini-1.5-flash-002",
             "number": 2.4931739945871843e+17,
-            "unit": null
+            "unit": "km ** 3"
         },
         {
             "question_id": 15,
             "model": "gemini-1.5-flash-003",
             "number": 6.950100529477296e+18,
-            "unit": null
+            "unit": "km ** 3"
         },
         {
             "question_id": 15,
             "model": "gemini-1.5-flash-004",
             "number": 7.723813495483201e+18,
-            "unit": null
+            "unit": "km ** 3"
         },
         {
             "question_id": 15,
             "model": "gemini-1.5-flash-005",
             "number": 2.7760139426346204e+18,
-            "unit": null
+            "unit": "km ** 3"
         }
     ]
 }

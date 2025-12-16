@@ -159,7 +159,18 @@ class _MyAppState extends State<MyApp> {
         // Start preloading data in the background
         _preloadService.preload();
       } else {
-        debugPrint('Failed to sign in anonymously during app initialization');
+        // Check if user was created despite token exchange failure
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          // Anonymous sign-in succeeded but token exchange failed
+          // User can still use the app, so preload data
+          debugPrint(
+              'Anonymous sign-in succeeded but token exchange failed. User can still use the app.');
+          _preloadService.preload();
+        } else {
+          // Actual sign-in failure
+          debugPrint('Failed to sign in anonymously during app initialization');
+        }
       }
     } else {
       // User already exists, ensure we have a token
