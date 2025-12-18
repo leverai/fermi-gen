@@ -151,3 +151,38 @@ Frontend should subscribe to this document and react to:
 3. **Timer management**: Start timer on `/start` response, submit automatically if timer expires.
 
 4. **Offline handling**: Cache last known archive state, show stale indicators.
+
+---
+
+## Unified DQ Screen with Results Bottom Sheet
+
+The DQ screen (`DailyQuestionScreen`) serves both question-taking and results viewing:
+
+### Screen States
+
+| State | Input Widgets | Bottom Sheet | Handle Text |
+|-------|--------------|--------------|-------------|
+| Taking question | Enabled | Hidden | - |
+| Submitted (pending) | Disabled | Visible, collapsed | "Results in Xh Xm" (muted) |
+| Results ready | Disabled | Visible, can drag | "Results ready!" (success) |
+| Results seen | Disabled | Visible, can drag | "Results seen" (muted) |
+
+### Navigation
+
+All DQ card taps navigate to `DailyQuestionScreen`:
+- **Active + not participated**: Start question flow
+- **Active + participated**: Show submitted state with pending results. **Important**: Navigation should NOT pass `questionDate` so the screen can detect participation via `hasParticipatedToday` and show the submitted view without needing to load question data.
+- **Closed/Past**: Show results view with expanded sheet
+
+### Results Seen Tracking
+
+The `unseen_results` set is stored in the controller. Call `markResultsSeen(date)` when:
+1. User expands the results bottom sheet
+2. User navigates to a past DQ
+
+### Countdown Timer
+
+For "Results in X" display:
+- Read `window_end` from Firestore once (via `DQDocument`)
+- Use local timer to update countdown every minute
+- No continuous Firestore polling required
