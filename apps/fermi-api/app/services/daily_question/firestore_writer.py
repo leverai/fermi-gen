@@ -4,7 +4,9 @@ Manages the Firestore documents that clients listen to for real-time updates.
 """
 
 import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
+
+from app.services.daily_question.schemas import DqDoc, DQUserSession, DQWindowStatus
 
 if TYPE_CHECKING:
     from google.cloud.firestore_v1 import AsyncClient
@@ -44,25 +46,64 @@ class DQFirestoreWriter:
         window_start_utc: datetime.datetime,
         window_end_utc: datetime.datetime,
     ) -> None:
-        """Create the daily question Firestore document.
+        """Create the daily question Firestore document with NOT_STARTED status.
+
+        This is called when the DQ is scheduled (at 2AM UTC).
+        The document will be updated to ACTIVE status at 12PM UTC.
 
         Args:
             date: The date for this DQ.
             question_uid: The question's UID.
-            window_start_utc: Window start time in UTC.
-            window_end_utc: Window end time in UTC.
+            window_start_utc: Window start time in UTC (12PM UTC).
+            window_end_utc: Window end time in UTC (2AM UTC next day).
 
         """
         doc_id = self._date_to_doc_id(date)
         doc_ref = self._fs.collection(self.COLLECTION).document(doc_id)
 
         await doc_ref.set(
+            DqDoc(
+                question_uid=question_uid,
+                status=DQWindowStatus.NOT_STARTED,
+                window_start=window_start_utc,
+                window_end=window_end_utc,
+                results_ready=False,
+            ),
+        )
+
+    async def activate_dq_document(self, date: datetime.date) -> None:
+        """Update the daily question document status to ACTIVE.
+
+        This is called when the DQ window opens (at 12PM UTC).
+
+        Args:
+            date: The date for this DQ.
+
+        """
+        doc_id = self._date_to_doc_id(date)
+        doc_ref = self._fs.collection(self.COLLECTION).document(doc_id)
+
+        await doc_ref.update(
             {
-                'question_uid': question_uid,
-                'status': 'ACTIVE',
-                'window_start': window_start_utc.isoformat(),
-                'window_end': window_end_utc.isoformat(),
-                'results_ready': False,
+                'status': DQWindowStatus.ACTIVE,
+            },
+        )
+
+    async def close_dq_document(self, date: datetime.date) -> None:
+        """Close the daily question document.
+
+        This is called when the DQ window closes (at 2AM UTC next day).
+
+        Args:
+            date: The date for this DQ.
+
+        """
+        doc_id = self._date_to_doc_id(date)
+        doc_ref = self._fs.collection(self.COLLECTION).document(doc_id)
+
+        await doc_ref.update(
+            {
+                'status': DQWindowStatus.CLOSED,
             },
         )
 
@@ -78,7 +119,6 @@ class DQFirestoreWriter:
 
         await doc_ref.update(
             {
-                'status': 'RESULTS',
                 'results_ready': True,
             },
         )
@@ -109,14 +149,17 @@ class DQFirestoreWriter:
 
         await session_ref.set(
             {
-                'started_at': started_at_utc.isoformat(),
-                'answer_deadline': answer_deadline_utc.isoformat(),
+                'started_at': started_at_utc,
+                'answer_deadline': answer_deadline_utc,
                 'submitted': False,
             },
         )
 
-    async def mark_user_submitted(self, date: datetime.date, user_id: str) -> None:
-        """Mark a user as having submitted their answer.
+    async def delete_user_session(self, date: datetime.date, user_id: str) -> None:
+        """Delete the user session document after submission.
+
+        The session is deleted after the user submits their answer,
+        whether on-time or late.
 
         Args:
             date: The date for this DQ.
@@ -131,17 +174,13 @@ class DQFirestoreWriter:
             .document(user_id)
         )
 
-        await session_ref.update(
-            {
-                'submitted': True,
-            },
-        )
+        await session_ref.delete()
 
     async def get_user_session(
         self,
         date: datetime.date,
         user_id: str,
-    ) -> dict | None:
+    ) -> DQUserSession | None:
         """Get a user's session document.
 
         Args:
@@ -162,10 +201,10 @@ class DQFirestoreWriter:
 
         doc = await session_ref.get()
         if doc.exists:
-            return doc.to_dict()
+            return cast(DQUserSession, doc.to_dict())
         return None
 
-    async def get_dq_document(self, date: datetime.date) -> dict | None:
+    async def get_dq_document(self, date: datetime.date) -> DqDoc | None:
         """Get the daily question document.
 
         Args:
@@ -180,5 +219,5 @@ class DQFirestoreWriter:
 
         doc = await doc_ref.get()
         if doc.exists:
-            return doc.to_dict()
+            return cast(DqDoc, doc.to_dict())
         return None

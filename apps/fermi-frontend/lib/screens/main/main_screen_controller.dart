@@ -106,6 +106,8 @@ class MainScreenController extends ChangeNotifier {
     GameConfig? preloadedConfig,
     PlayerStatsResponse? preloadedStats,
   }) async {
+    print(
+        '[MainScreenController] initialize called. preloadedConfig=${preloadedConfig != null}, preloadedStats=${preloadedStats != null}');
     // If we have preloaded data, use it immediately
     if (preloadedConfig != null) {
       _configDto = preloadedConfig;
@@ -137,10 +139,13 @@ class MainScreenController extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
+      print('[MainScreenController] Fetching game config...');
       final GameConfig config = await api.getGameConfigTyped();
+      print('[MainScreenController] Got config, fetching stats...');
       PlayerStatsResponse? stats;
       if (auth.firebaseUid != null) {
         stats = await api.getPlayerStatsTyped(playerId: auth.firebaseUid!);
+        print('[MainScreenController] Got stats');
       }
       _configDto = config;
       _playerStatsDto = stats;
@@ -155,6 +160,7 @@ class MainScreenController extends ChangeNotifier {
           selectedCategoryIndex = idx;
         }
       }
+      print('[MainScreenController] initialize complete');
     } catch (e, st) {
       errorMessage = e.toString();
       print('❌ MainScreenController.initialize error: $e');

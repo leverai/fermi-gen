@@ -2,36 +2,24 @@
 
 from datetime import datetime
 from enum import StrEnum
+from typing import TypedDict
 
 from fermi_db.schemas import AnswerBare, QuestionCategory, QuestionDifficulty
 from pydantic import BaseModel
 
 
 class DQWindowStatus(StrEnum):
-    """Status of the daily question window."""
+    """Status of the daily question window.
 
-    NOT_STARTED = 'NOT_STARTED'  # Before 8 AM
-    ACTIVE = 'ACTIVE'  # 8 AM - 8 PM
-    CLOSED = 'CLOSED'  # After 8 PM
+    Timing (all in UTC):
+    - NOT_STARTED: 2AM UTC to 12PM UTC (same day)
+    - ACTIVE: 12PM UTC to 2AM UTC (next day)
+    - CLOSED: After 2AM UTC (next day)
+    """
 
-
-class DQUserStatus(StrEnum):
-    """User's status for the current daily question."""
-
-    NOT_STARTED = 'NOT_STARTED'  # User hasn't started yet
-    IN_PROGRESS = 'IN_PROGRESS'  # User is answering
-    SUBMITTED = 'SUBMITTED'  # User has submitted
-    MISSED = 'MISSED'  # Window closed, user didn't answer
-
-
-class DQStatusResponse(BaseModel):
-    """Response for GET /daily_question/status."""
-
-    window_status: DQWindowStatus
-    seconds_until_window_end: float | None = None
-    question_date: str | None = None  # YYYY-MM-DD format
-    user_status: DQUserStatus | None = None
-    has_results: bool = False
+    NOT_STARTED = 'NOT_STARTED'
+    ACTIVE = 'ACTIVE'
+    CLOSED = 'CLOSED'
 
 
 class DQQuestionData(BaseModel):
@@ -89,31 +77,33 @@ class DQResultsResponse(BaseModel):
     leaderboard: list[DQLeaderboardEntry]
 
 
-class DQHistoryItem(BaseModel):
-    """A single item in the user's DQ history."""
+class DQLiteArchiveResponse(BaseModel):
+    """Response for GET /daily_question/archive/week and /archive/month.
 
-    question_date: str  # YYYY-MM-DD
-    question_text: str
-    user_answer: AnswerBare
-    correct_answer: AnswerBare
-    score: float
-    rank: int | None
-    total_participants: int
-
-
-class DQHistoryResponse(BaseModel):
-    """Response for GET /daily_question/history."""
-
-    history: list[DQHistoryItem]
-
-
-class DQUserSession(BaseModel):
-    """User session data from Firestore.
-
-    Used to parse and validate session documents retrieved from Firestore.
-    Pydantic automatically converts ISO 8601 strings to datetime objects.
+    Provides a lightweight archive for the DQ carousel and calendar views.
+    Frontend uses this to show past DQs and whether the user participated.
     """
+
+    items: dict[str, bool]  # {date_str (YYYY-MM-DD): user_participated}
+    today: str  # The current DQ date the frontend should subscribe to
+
+
+class DQUserSession(TypedDict):
+    """User session data from Firestore."""
 
     started_at: datetime
     answer_deadline: datetime
     submitted: bool
+
+
+class DqDoc(TypedDict):
+    """Daily question document data from Firestore.
+
+    The frontend subscribes to this document for real-time status updates.
+    """
+
+    question_uid: str
+    status: DQWindowStatus
+    window_start: datetime
+    window_end: datetime
+    results_ready: bool

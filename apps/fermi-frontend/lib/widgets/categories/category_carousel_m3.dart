@@ -40,7 +40,7 @@ class _CategoryCarouselM3State extends State<CategoryCarouselM3> {
   // Fixed card dimensions: multiples of 24px
   static const double _cardWidth = 24.0 * 5; // 120px
   static const double _cardHeight = 24.0 * 6; // 144px
-  static const double _spacing = 24.0; // 24px spacing between cards
+  static const double _spacing = 16.0; // 24px spacing between cards
 
   final CarouselController _controller = CarouselController();
 
@@ -128,7 +128,7 @@ class _CategoryCarouselM3State extends State<CategoryCarouselM3> {
   Widget build(BuildContext context) {
     // Vertical padding to prevent glow clipping (blurRadius: 8)
     // Using 24px (multiple of 12) for consistency with design system
-    const double glowPadding = 24.0;
+    const double glowPadding = 16.0;
 
     return SizedBox(
       height: _cardHeight + (2 * glowPadding),
@@ -140,7 +140,7 @@ class _CategoryCarouselM3State extends State<CategoryCarouselM3> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           shape: const HorizontalInsetShape(
-            horizontalInset: 12.0,
+            horizontalInset: 8.0,
             baseShape: RoundedRectangleBorder(),
           ),
           padding: const EdgeInsets.only(
@@ -158,8 +158,8 @@ class _CategoryCarouselM3State extends State<CategoryCarouselM3> {
 
               return Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: _spacing /
-                        2), // 12px on each side = 24px total between cards
+                    horizontal:
+                        8), // 12px on each side = 24px total between cards
                 child: CategoryCardM3(
                   title: category.title,
                   svgPath: category.svgPath,

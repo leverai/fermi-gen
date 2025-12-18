@@ -21,6 +21,10 @@ class ApiService {
         _apiBaseUrl = apiBaseUrl ?? resolveApiBaseUrlOrThrow();
 
   // --- Auth-aware request helpers ---
+  Future<http.Response> get(String path) => _authGet(path);
+  Future<http.Response> post(String path, Object? body) =>
+      _authPost(path, body);
+
   Future<http.Response> _authGet(String path) async {
     final String? token = authService.accessToken;
     if (token == null) throw Exception('User is not authorized');

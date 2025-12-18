@@ -347,19 +347,66 @@ The Daily Question (DQ) mode serves a single question to all users daily with sy
 - Questions marked with `is_daily_question=true` in `fermi` table
 - `daily_questions` table tracks daily question state
 - `daily_question_answers` table stores user answers (separate from `answer_events`)
-- Firestore `daily_questions/{date}` collection for real-time state
+- Firestore `daily_questions/{date}` document for real-time state
 
-**Timing (US Central Time):**
-- Window: 8 AM - 8 PM
+**Timing (UTC):**
+
+For a calendar date X, the backend defines a 24-hour window divided into three phases:
+
+| Status | Time Range (UTC) | Description |
+|--------|------------------|-------------|
+| NOT_STARTED | 2AM date X → 12PM date X | Question scheduled but not yet active |
+| ACTIVE | 12PM date X → 2AM date X+1 | Question is active, users can participate |
+| CLOSED | After 2AM date X+1 | Question closed, results available |
+
+**Deadlines:**
 - Answer Deadline: 30 seconds after starting (or window end, whichever is sooner)
-- Grace Periods: 5s after AD, 20s after window end
-- All timestamps stored in UTC, converted at API layer
+- Grace Periods: 5s after Answer Deadline, 20s after window end
+
+### Workflow
+
+```mermaid
+sequenceDiagram
+    participant Scheduler
+    participant Backend
+    participant Firestore
+    participant Frontend
+    participant User
+
+    Note over Scheduler,Firestore: 2AM UTC - Schedule Today's DQ
+    Scheduler->>Backend: Trigger close/schedule job
+    Backend->>Backend: Close yesterday's DQ, compute ranks
+    Backend->>Firestore: Set yesterday's status=CLOSED, results_ready=true
+    Backend->>Backend: Schedule today's DQ
+    Backend->>Firestore: Create doc with status=NOT_STARTED
+
+    Note over Scheduler,Firestore: 12PM UTC - Activate Today's DQ
+    Scheduler->>Backend: Trigger activate job
+    Backend->>Firestore: Set status=ACTIVE
+
+    Note over Frontend,User: User Opens App
+    Frontend->>Backend: GET /archive/week
+    Backend-->>Frontend: {items: {dates → participated}, today: "YYYY-MM-DD"}
+    Frontend->>Firestore: Subscribe to today's DQ doc
+    Firestore-->>Frontend: Real-time status updates
+
+    Note over Frontend,User: User Takes DQ (when ACTIVE)
+    User->>Frontend: Press "Start"
+    Frontend->>Backend: POST /start
+    Backend->>Firestore: Create user session
+    Backend-->>Frontend: Question + deadline
+    User->>Frontend: Enter answer
+    Frontend->>Backend: POST /answer
+    Backend->>Backend: Score answer
+    Backend->>Firestore: Delete user session
+    Backend-->>Frontend: Score confirmation
+```
 
 ### Service Layer
 
 Located in `app/services/daily_question/`:
-- `timing.py`: UTC/Central conversion, deadline calculations
-- `schemas.py`: Pydantic models for API responses
+- `timing.py`: UTC timing utilities and deadline calculations
+- `schemas.py`: Pydantic models and TypedDicts for API responses
 - `firestore_writer.py`: Real-time Firestore document management
 - `service.py`: Main `DailyQuestionService` orchestrating DQ flow
 
@@ -367,30 +414,35 @@ Located in `app/services/daily_question/`:
 
 | Endpoint | Purpose |
 |----------|---------|
-| `GET /daily_question/status` | Get window status and user status |
-| `POST /daily_question/start` | Start question, returns deadline |
+| `POST /daily_question/start` | Start question, returns deadline (only when ACTIVE) |
 | `POST /daily_question/answer` | Submit answer within deadline |
-| `GET /daily_question/results` | Get results after window closes |
-| `GET /daily_question/history` | Get user's past DQ results |
+| `GET /daily_question/results` | Get today's results (only when CLOSED) |
+| `GET /daily_question/results/{date}` | Get results for a specific date |
+| `GET /daily_question/archive/week` | Lite archive for carousel (past 7 days + today) |
+| `GET /daily_question/archive/month?year=&month=` | Lite archive for calendar view |
+
+The frontend gets DQ status (NOT_STARTED/ACTIVE/CLOSED) by subscribing to the Firestore document, not via API.
 
 ### Firestore Schema
 
-**Document: `daily_questions/{date}`**
+**Document: `daily_questions/{YYYY-MM-DD}`**
 ```json
 {
   "question_uid": "uuid-string",
-  "status": "ACTIVE",  // or "RESULTS"
-  "window_start": "2025-12-15T13:00:00Z",
-  "window_end": "2025-12-16T01:00:00Z",
+  "status": "NOT_STARTED",  // or "ACTIVE" or "CLOSED"
+  "window_start": "2025-12-17T12:00:00Z",
+  "window_end": "2025-12-18T02:00:00Z",
   "results_ready": false
 }
 ```
 
 **Subcollection: `daily_questions/{date}/user_sessions/{user_id}`**
+
+Created when user starts, deleted when user submits:
 ```json
 {
-  "started_at": "2025-12-15T14:30:00Z",
-  "answer_deadline": "2025-12-15T14:30:30Z",
+  "started_at": "2025-12-17T14:30:00Z",
+  "answer_deadline": "2025-12-17T14:30:30Z",
   "submitted": false
 }
 ```
@@ -402,22 +454,24 @@ Located in `app/services/daily_question/`:
 | Question Pool | `is_daily_question=false` | `is_daily_question=true` |
 | Answer Storage | `answer_events` | `daily_question_answers` |
 | User History | Updates `user_question_history` | Does NOT update history |
-| Timing | Per-game, host-controlled | Global, synchronized |
+| Timing | Per-game, host-controlled | Global, synchronized (UTC) |
 | Leaderboard | Per-game | Global daily |
+| Status Updates | Via API | Via Firestore subscription |
 
 ### Scheduled Jobs
 
 Daily Question lifecycle is managed by Cloud Run jobs (triggered by Cloud Scheduler):
 
-1. **Start DQ Job** (8:00 AM CT):
-   - Selects next unused DQ question
-   - Creates `daily_questions` row with SCHEDULED status
-   - Creates Firestore document
-
-2. **End DQ Job** (8:00:20 PM CT):
-   - Updates status to CLOSED
-   - Computes ranks for all answers
+1. **Close/Schedule Job** (2:00 AM UTC):
+   - Closes yesterday's DQ in Firestore (`status=CLOSED`)
+   - Computes and updates ranks for all answers
    - Sets `results_ready=true` in Firestore
+   - Schedules today's DQ in database
+   - Creates today's Firestore document (`status=NOT_STARTED`)
+
+2. **Activate Job** (12:00 PM UTC):
+   - Updates today's DQ status to ACTIVE in database
+   - Updates Firestore document (`status=ACTIVE`)
 
 ---
 

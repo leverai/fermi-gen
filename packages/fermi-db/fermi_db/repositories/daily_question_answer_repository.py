@@ -1,9 +1,11 @@
 """Repository for Daily Question Answer operations."""
 
 import datetime
+from typing import Any, cast
 
 from sqlalchemy import func
-from sqlmodel import select
+from sqlalchemy.engine import CursorResult
+from sqlmodel import select, update
 
 from fermi_db.models import DailyQuestionAnswer
 from fermi_db.repositories import BaseRepository
@@ -91,8 +93,12 @@ class DailyQuestionAnswerRepository(BaseRepository):
             True if the user has already answered, False otherwise.
 
         """
-        answer = await self.get_user_answer(daily_question_id, user_firebase_uid)
-        return answer is not None
+        statement = select(DailyQuestionAnswer.id).where(
+            DailyQuestionAnswer.daily_question_id == daily_question_id,
+            DailyQuestionAnswer.user_firebase_uid == user_firebase_uid,
+        )
+        answer = await self.session.exec(statement)
+        return answer.one_or_none() is not None
 
     async def get_leaderboard(
         self,
@@ -125,30 +131,24 @@ class DailyQuestionAnswerRepository(BaseRepository):
     ) -> int | None:
         """Get a user's rank for a daily question.
 
-        Rank is computed as 1 + count of users with higher scores.
+        Rank is read directly from the answers table. Ensure the `
+        compute_and_update_ranks` method has been called.
+
 
         Args:
             daily_question_id: The ID of the daily question.
             user_firebase_uid: The user's Firebase UID.
 
         Returns:
-            The user's rank (1-indexed), or None if user hasn't answered.
+            The user's rank (starting from 1), or None if user hasn't answered.
 
         """
-        # First get the user's score
-        user_answer = await self.get_user_answer(daily_question_id, user_firebase_uid)
-        if not user_answer:
-            return None
-
-        # Count how many users have a higher score
-        statement = select(func.count(DailyQuestionAnswer.id)).where(
+        statement = select(DailyQuestionAnswer.rank).where(
             DailyQuestionAnswer.daily_question_id == daily_question_id,
-            DailyQuestionAnswer.score > user_answer.score,
+            DailyQuestionAnswer.user_firebase_uid == user_firebase_uid,
         )
         result = await self.session.exec(statement)
-        higher_count = result.one() or 0
-
-        return higher_count + 1
+        return result.one_or_none()
 
     async def count_participants(self, daily_question_id: int) -> int:
         """Count the total number of participants for a daily question.
@@ -168,6 +168,7 @@ class DailyQuestionAnswerRepository(BaseRepository):
 
     async def compute_and_update_ranks(self, daily_question_id: int) -> int:
         """Compute and update ranks for all answers after window closes.
+        TODO: Account for time to answer.
 
         Ranks are assigned based on score (highest score = rank 1).
         Ties are handled by assigning the same rank.
@@ -179,28 +180,26 @@ class DailyQuestionAnswerRepository(BaseRepository):
             The number of answers updated.
 
         """
-        # Get all answers ordered by score
-        statement = (
-            select(DailyQuestionAnswer)
+        rank_query = (
+            select(
+                DailyQuestionAnswer.id,
+                func.rank()
+                .over(order_by=DailyQuestionAnswer.score.desc())  # type: ignore
+                .label('new_rank'),
+            )
             .where(DailyQuestionAnswer.daily_question_id == daily_question_id)
-            .order_by(DailyQuestionAnswer.score.desc())  # type: ignore
+            .subquery()
         )
-        result = await self.session.exec(statement)
-        answers = list(result.all())
 
-        if not answers:
-            return 0
+        stmt = (
+            update(DailyQuestionAnswer)
+            .where(DailyQuestionAnswer.id == rank_query.c.id)  # type: ignore
+            .values(rank=rank_query.c.new_rank)
+            # Only keep this if you *need* in-memory ORM instances updated
+            .execution_options(synchronize_session=False)
+        )
 
-        # Assign ranks (handle ties)
-        current_rank = 1
-        prev_score: float | None = None
+        result = cast(CursorResult[Any], await self.session.execute(stmt))
 
-        for i, answer in enumerate(answers):
-            if prev_score is not None and answer.score < prev_score:
-                current_rank = i + 1
-            answer.rank = current_rank
-            prev_score = answer.score
-            self.session.add(answer)
-
-        await self.session.flush()
-        return len(answers)
+        # No need to flush here; the UPDATE has already been sent/executed.
+        return int(result.rowcount or 0)

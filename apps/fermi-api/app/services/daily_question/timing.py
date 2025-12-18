@@ -1,68 +1,45 @@
 """Timezone and deadline utilities for Daily Question mode.
 
-All timestamps are stored in UTC. This module handles conversion
-to/from US Central time for display and deadline calculations.
+All timestamps are stored and processed in UTC. The DQ window is defined as:
+- NOT_STARTED: 2AM UTC to 12PM UTC (same day)
+- ACTIVE: 12PM UTC to 2AM UTC (next day)
+- CLOSED: After 2AM UTC (next day)
 """
 
 import datetime
 from zoneinfo import ZoneInfo
 
-# Time zone constants
-CENTRAL_TZ = ZoneInfo('America/Chicago')
+# Time zone constant
 UTC_TZ = ZoneInfo('UTC')
 
-# DQ window constants (in Central time)
-DQ_START_HOUR = 8  # 8 AM Central
-DQ_END_HOUR = 20  # 8 PM Central
+# DQ window constants (in UTC hours)
+DQ_DAY_START_HOUR = 2  # 2 AM UTC - when the DQ "day" starts
+DQ_WINDOW_OPEN_HOUR = 12  # 12 PM UTC - when DQ becomes ACTIVE
 
 # Deadline constants (in seconds)
 ANSWER_TIMEOUT_S = 30  # Time to answer once started
-AD_GRACE_S = 5  # Grace period after Answer Deadline
+AD_GRACE_S = 10  # Grace period after Answer Deadline
 QD_GRACE_S = 20  # Grace period after Question Deadline
 
 
-def central_to_utc(dt: datetime.datetime) -> datetime.datetime:
-    """Convert a Central time datetime to UTC.
+def get_dq_date_for_utc(now_utc: datetime.datetime) -> datetime.date:
+    """Get the DQ date for a given UTC time.
+
+    The DQ "day" runs from 2AM UTC to 2AM UTC (next day).
+    - Between midnight and 2AM UTC: still in previous day's DQ window.
+    - From 2AM UTC onwards: new DQ day.
 
     Args:
-        dt: A datetime in Central time (with or without tzinfo).
+        now_utc: Current time in UTC (naive datetime).
 
     Returns:
-        The same moment in UTC as a naive datetime.
+        The DQ date.
 
     """
-    if dt.tzinfo is None:
-        # Assume it's Central time
-        dt = dt.replace(tzinfo=CENTRAL_TZ)
-    return dt.astimezone(UTC_TZ).replace(tzinfo=None)
-
-
-def utc_to_central(dt: datetime.datetime) -> datetime.datetime:
-    """Convert a UTC datetime to Central time.
-
-    Args:
-        dt: A naive datetime assumed to be UTC.
-
-    Returns:
-        The same moment in Central time as a naive datetime.
-
-    """
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=UTC_TZ)
-    return dt.astimezone(CENTRAL_TZ).replace(tzinfo=None)
-
-
-def get_todays_date_central(now_utc: datetime.datetime) -> datetime.date:
-    """Get today's date in Central time.
-
-    Args:
-        now_utc: Current time in UTC.
-
-    Returns:
-        Today's date in Central timezone.
-
-    """
-    return utc_to_central(now_utc).date()
+    if now_utc.hour < DQ_DAY_START_HOUR:
+        # Still in previous day's DQ window
+        return (now_utc - datetime.timedelta(days=1)).date()
+    return now_utc.date()
 
 
 def get_window_for_date_utc(
@@ -70,54 +47,39 @@ def get_window_for_date_utc(
 ) -> tuple[datetime.datetime, datetime.datetime]:
     """Get the DQ window start and end times in UTC for a given date.
 
+    For a DQ date X:
+    - Window starts (ACTIVE) at 12PM UTC on date X
+    - Window ends (CLOSED) at 2AM UTC on date X+1
+
     Args:
-        date: The date (in Central time) for which to get the window.
+        date: The DQ date.
 
     Returns:
         Tuple of (window_start_utc, window_end_utc) as naive datetimes.
 
     """
-    # Create Central time datetimes
-    window_start_central = datetime.datetime(
+    # Window opens at 12PM UTC on the DQ date
+    window_start = datetime.datetime(  # noqa: DTZ001
         date.year,
         date.month,
         date.day,
-        DQ_START_HOUR,
+        DQ_WINDOW_OPEN_HOUR,
         0,
         0,
-        tzinfo=CENTRAL_TZ,
-    )
-    window_end_central = datetime.datetime(
-        date.year,
-        date.month,
-        date.day,
-        DQ_END_HOUR,
-        0,
-        0,
-        tzinfo=CENTRAL_TZ,
     )
 
-    # Convert to UTC
-    return (
-        window_start_central.astimezone(UTC_TZ).replace(tzinfo=None),
-        window_end_central.astimezone(UTC_TZ).replace(tzinfo=None),
+    # Window closes at 2AM UTC on the next day
+    next_day = date + datetime.timedelta(days=1)
+    window_end = datetime.datetime(  # noqa: DTZ001
+        next_day.year,
+        next_day.month,
+        next_day.day,
+        DQ_DAY_START_HOUR,
+        0,
+        0,
     )
 
-
-def is_window_open(
-    now_utc: datetime.datetime, dq_window_end_utc: datetime.datetime,
-) -> bool:
-    """Check if the DQ window is currently open.
-
-    Args:
-        now_utc: Current time in UTC.
-        dq_window_end_utc: The DQ window end time in UTC.
-
-    Returns:
-        True if the window is open (now < window_end).
-
-    """
-    return now_utc < dq_window_end_utc
+    return (window_start, window_end)
 
 
 def get_answer_deadline(
