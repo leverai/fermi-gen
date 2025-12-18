@@ -67,7 +67,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     // Trigger DQ load after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<DailyQuestionController>().load();
+        context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
       }
     });
   }

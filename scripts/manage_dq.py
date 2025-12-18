@@ -2,7 +2,8 @@
 """Local DQ Management Script.
 
 Use this script to manage daily questions when testing locally.
-It creates, starts, and ends daily questions in your local PostgreSQL database.
+It creates, starts, and ends daily questions in your local PostgreSQL database
+and Firestore emulator.
 
 Usage:
     # List available DQ questions
@@ -25,22 +26,34 @@ Usage:
 
 Prerequisites:
     - PostgreSQL running (via docker-compose)
+    - Firebase emulators running (via docker-compose)
     - A DATABASE_URL environment variable or .env file
+    - FIRESTORE_EMULATOR_HOST, FIREBASE_AUTH_EMULATOR_HOST,
+      GOOGLE_CLOUD_PROJECT env vars
+
+DQ Timing (UTC):
+    - DQ "day" runs from 2AM UTC to 2AM UTC (next day)
+    - NOT_STARTED phase: 2AM UTC to 12PM UTC
+    - ACTIVE phase: 12PM UTC to 2AM UTC (next day)
+    - CLOSED phase: After 2AM UTC (next day)
 """
 
 import asyncio
+import os
 import sys
-from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
+from datetime import timedelta
 
+from fermi_core.utils import utcnow_naive
 from fermi_db import DatabaseClient
 from fermi_db.models import DailyQuestion, Fermi
 from fermi_db.schemas import DailyQuestionStatus, QuestionStatus
 from fermi_db.session import DATABASE_URL, get_session
 from sqlmodel import select
 
-# Central Time zone for DQ window calculation
-CT = ZoneInfo('America/Chicago')
+from app.services.daily_question.timing import (
+    get_dq_date_for_utc,
+    get_window_for_date_utc,
+)
 
 
 def check_database_url() -> None:
@@ -61,30 +74,35 @@ def check_database_url() -> None:
         sys.exit(1)
 
 
-def get_today_ct() -> datetime:
-    """Get today's date in Central Time."""
-    return datetime.now(CT).replace(hour=0, minute=0, second=0, microsecond=0)
+async def get_firestore_writer():
+    """Get Firestore writer configured for emulator if env vars are set.
 
-
-def get_window_times(date: datetime) -> tuple[datetime, datetime]:
-    """Get the DQ window start and end times for a given date.
-
-    Window: 12 AM CT to 8 PM CT (8 PM = 20:00)
-    Returns UTC naive datetimes.
+    Returns:
+        DQFirestoreWriter instance if Firestore is configured, None otherwise.
     """
-    # Window start: midnight CT
-    start_ct = date.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=CT)
-    # Window end: 8 PM CT (20:00)
-    end_ct = date.replace(hour=20, minute=0, second=0, microsecond=0, tzinfo=CT)
+    emulator_host = os.getenv('FIRESTORE_EMULATOR_HOST')
+    project_id = os.getenv('GOOGLE_CLOUD_PROJECT', 'fermi-local')
 
-    # Convert to UTC and make naive
-    start_utc = start_ct.astimezone(timezone.utc).replace(tzinfo=None)
-    end_utc = end_ct.astimezone(timezone.utc).replace(tzinfo=None)
+    if not emulator_host:
+        print('⚠️  Firestore emulator not configured (FIRESTORE_EMULATOR_HOST not set)')
+        print('   Firestore documents will NOT be created/updated')
+        return None
 
-    return start_utc, end_utc
+    try:
+        from google.cloud.firestore import AsyncClient
+        from app.services.daily_question.firestore_writer import DQFirestoreWriter
+
+        # AsyncClient will automatically use FIRESTORE_EMULATOR_HOST if set
+        client = AsyncClient(project=project_id)
+        print(f'✓ Connected to Firestore emulator at {emulator_host}')
+        return DQFirestoreWriter(client)
+    except Exception as e:
+        print(f'⚠️  Failed to initialize Firestore: {e}')
+        print('   Continuing with database-only mode')
+        return None
 
 
-async def list_dq_questions():
+async def list_dq_questions() -> None:
     """List available DQ questions and current DQ status."""
     async for session in get_session():
         # Count available DQ questions
@@ -101,8 +119,9 @@ async def list_dq_questions():
         if len(dq_questions) > 5:
             print(f'  ... and {len(dq_questions) - 5} more')
 
-        # Get today's DQ
-        today = get_today_ct().date()
+        # Get today's DQ (using UTC-based date calculation)
+        now_utc = utcnow_naive()
+        today = get_dq_date_for_utc(now_utc)
         stmt = select(DailyQuestion).where(DailyQuestion.question_date == today)
         result = await session.exec(stmt)
         dq = result.one_or_none()
@@ -111,7 +130,7 @@ async def list_dq_questions():
             print(f"\n📅 Today's DQ (ID: {dq.id}):")
             print(f'  Question UID: {dq.question_uid}')
             print(f'  Status: {dq.status}')
-            print(f'  Window: {dq.window_start} - {dq.window_end}')
+            print(f'  Window: {dq.window_start} - {dq.window_end} UTC')
         else:
             print(f'\n⚠️  No DQ scheduled for today ({today})')
 
@@ -119,10 +138,11 @@ async def list_dq_questions():
         break
 
 
-async def create_dq():
+async def create_dq() -> None:
     """Create today's daily question from the next available DQ question."""
     async for session in get_session():
-        today = get_today_ct().date()
+        now_utc = utcnow_naive()
+        today = get_dq_date_for_utc(now_utc)
 
         # Check if DQ already exists for today
         stmt = select(DailyQuestion).where(DailyQuestion.question_date == today)
@@ -153,12 +173,12 @@ async def create_dq():
             print('   Run: python scripts/manage_dq.py seed --count 10')
             return
 
-        # Create DQ for today
-        window_start, window_end = get_window_times(get_today_ct())
+        # Create DQ for today using UTC-based timing
+        window_start, window_end = get_window_for_date_utc(today)
         dq = DailyQuestion(
             question_uid=question.uid,
             question_date=today,
-            status=DailyQuestionStatus.ACTIVE,  # Start as ACTIVE for local testing
+            status=DailyQuestionStatus.ACTIVE,  # ACTIVE for local testing
             window_start=window_start,
             window_end=window_end,
         )
@@ -171,11 +191,28 @@ async def create_dq():
         print(f'   Status: {dq.status}')
         print(f'   Window: {dq.window_start} - {dq.window_end} UTC')
 
+        # Create Firestore document
+        fs_writer = await get_firestore_writer()
+        if fs_writer:
+            try:
+                await fs_writer.create_dq_document(
+                    today,
+                    str(question.uid),
+                    window_start,
+                    window_end,
+                )
+                # Immediately activate it for local testing
+                await fs_writer.activate_dq_document(today)
+                print('   ✓ Firestore document created and activated')
+            except Exception as e:
+                print(f'   ⚠️  Firestore update failed: {e}')
 
-async def start_dq():
+
+async def start_dq() -> None:
     """Set today's DQ status to ACTIVE."""
     async for session in get_session():
-        today = get_today_ct().date()
+        now_utc = utcnow_naive()
+        today = get_dq_date_for_utc(now_utc)
 
         stmt = select(DailyQuestion).where(DailyQuestion.question_date == today)
         result = await session.exec(stmt)
@@ -192,11 +229,21 @@ async def start_dq():
 
         print(f'✅ DQ {dq.id} is now ACTIVE')
 
+        # Update Firestore document
+        fs_writer = await get_firestore_writer()
+        if fs_writer:
+            try:
+                await fs_writer.activate_dq_document(today)
+                print('   ✓ Firestore document activated')
+            except Exception as e:
+                print(f'   ⚠️  Firestore update failed: {e}')
 
-async def end_dq():
+
+async def end_dq() -> None:
     """Set today's DQ status to CLOSED and compute ranks."""
     async for session in get_session():
-        today = get_today_ct().date()
+        now_utc = utcnow_naive()
+        today = get_dq_date_for_utc(now_utc)
 
         stmt = select(DailyQuestion).where(DailyQuestion.question_date == today)
         result = await session.exec(stmt)
@@ -220,13 +267,25 @@ async def end_dq():
 
         print(f'✅ DQ {dq.id} is now CLOSED')
 
+        # Close Firestore document and set results_ready
+        fs_writer = await get_firestore_writer()
+        if fs_writer:
+            try:
+                await fs_writer.close_dq_document(today)
+                await fs_writer.set_results_ready(today)
+                print('   ✓ Firestore document closed and results ready')
+            except Exception as e:
+                print(f'   ⚠️  Firestore update failed: {e}')
 
-async def advance_dq():
+
+async def advance_dq() -> None:
     """Advance to next day: shift all DQs back, close today's DQ, create new DQ."""
     async for session in get_session():
-        today = get_today_ct().date()
+        now_utc = utcnow_naive()
+        today = get_dq_date_for_utc(now_utc)
 
-        # 1. Cascade shift ALL existing DQs back by 1 day (oldest first to avoid conflicts)
+        # 1. Cascade shift ALL existing DQs back by 1 day (oldest first to avoid
+        # conflicts)
         stmt = select(DailyQuestion).order_by(DailyQuestion.question_date.asc())
         result = await session.exec(stmt)
         all_dqs = result.all()
@@ -260,6 +319,16 @@ async def advance_dq():
                 print(f'   Computed ranks for {count} participants')
             print(f'✅ Closed DQ {current_dq.id} (now at {current_dq.question_date})')
 
+            # Close and mark results ready in Firestore
+            fs_writer = await get_firestore_writer()
+            if fs_writer:
+                try:
+                    await fs_writer.close_dq_document(yesterday)
+                    await fs_writer.set_results_ready(yesterday)
+                    print('   ✓ Firestore document closed and results ready')
+                except Exception as e:
+                    print(f'   ⚠️  Firestore update failed: {e}')
+
         # 3. Create new DQ for today
         # Find next unused DQ question
         used_uids = select(DailyQuestion.question_uid).subquery()
@@ -282,12 +351,12 @@ async def advance_dq():
             await session.commit()
             return
 
-        # Create DQ for today
-        window_start, window_end = get_window_times(get_today_ct())
+        # Create DQ for today using UTC-based timing
+        window_start, window_end = get_window_for_date_utc(today)
         new_dq = DailyQuestion(
             question_uid=question.uid,
             question_date=today,
-            status=DailyQuestionStatus.ACTIVE,  # Start as ACTIVE for local testing
+            status=DailyQuestionStatus.ACTIVE,  # ACTIVE for testing
             window_start=window_start,
             window_end=window_end,
         )
@@ -299,10 +368,27 @@ async def advance_dq():
         print(f'   Question: {question.text[:80]}...')
         print(f'   Status: {new_dq.status}')
         print(f'   Window: {new_dq.window_start} - {new_dq.window_end} UTC')
+
+        # Create Firestore document
+        fs_writer = await get_firestore_writer()
+        if fs_writer:
+            try:
+                await fs_writer.create_dq_document(
+                    today,
+                    str(question.uid),
+                    window_start,
+                    window_end,
+                )
+                # Immediately activate it for local testing
+                await fs_writer.activate_dq_document(today)
+                print('   ✓ Firestore document created and activated')
+            except Exception as e:
+                print(f'   ⚠️  Firestore update failed: {e}')
+
         break
 
 
-async def seed_dq_questions(count: int = 10):
+async def seed_dq_questions(count: int = 10) -> None:
     """Mark some APPROVED questions as daily question candidates."""
     async for session in get_session():
         # Find APPROVED questions that aren't already DQ-flagged
@@ -334,6 +420,7 @@ async def seed_dq_questions(count: int = 10):
 
 
 def main() -> None:
+    """Main entry point for the script."""
     check_database_url()
 
     if len(sys.argv) < 2:

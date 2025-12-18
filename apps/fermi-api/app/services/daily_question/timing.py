@@ -119,7 +119,7 @@ def is_within_ad_grace(
 
     """
     grace_end = ad_utc + datetime.timedelta(seconds=AD_GRACE_S)
-    return now_utc <= grace_end
+    return now_utc.astimezone(UTC_TZ) <= grace_end.astimezone(UTC_TZ)
 
 
 def is_within_qd_grace(

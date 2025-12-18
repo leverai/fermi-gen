@@ -3,6 +3,7 @@
 import datetime
 from typing import Any, cast
 
+import pytz
 from sqlalchemy import func
 from sqlalchemy.engine import CursorResult
 from sqlmodel import select, update
@@ -39,6 +40,8 @@ class DailyQuestionAnswerRepository(BaseRepository):
             The created DailyQuestionAnswer.
 
         """
+        submitted_at = submitted_at.replace(tzinfo=None)
+        started_at = started_at.replace(tzinfo=None)
         time_taken_s = (submitted_at - started_at).total_seconds()
 
         answer = DailyQuestionAnswer(

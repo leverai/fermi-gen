@@ -61,7 +61,7 @@ Body: { answer: { number: 42.5, unit: "meters" } }
 → Returns: { submitted: true, score: 85.5, message: "..." }
 ```
 
-**Important**: The frontend MUST submit before the timer expires. The backend provides a 5-second grace period but frontend should treat the deadline as firm.
+**Important**: The frontend MUST submit before the timer expires. The backend provides some grace period but frontend should treat the deadline as firm.
 
 ### 5. After Submission
 
@@ -76,7 +76,7 @@ When the Firestore document's `results_ready` changes to `true`:
 1. End subscription to old "today" document
 2. Re-fetch `GET /archive/week` (the `today` field will be the new date)
 3. Subscribe to the new "today" document
-4. Add old date to local `unseen_results` set (show indicator on card)
+4. If user participated in the old date, add old date to local `unseen_results` set (show indicator on card)
 
 ### 7. Viewing Results
 

@@ -12,6 +12,7 @@ import 'package:fermi_frontend/firebase_options.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
+import 'package:fermi_frontend/services/dq_firestore.dart';
 import 'package:fermi_frontend/services/deep_link_service.dart';
 import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/screens/main/main_screen.dart';
@@ -134,6 +135,7 @@ class _MyAppState extends State<MyApp> {
   late final ApiService _apiService;
   late final PreloadService _preloadService;
   late final DailyQuestionService _dailyQuestionService;
+  late final DQFirestoreService _dqFirestoreService;
   late final DailyQuestionController _dailyQuestionController;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
@@ -144,8 +146,11 @@ class _MyAppState extends State<MyApp> {
     _themeConfigService.addListener(_onThemeChanged);
     _apiService = ApiService(authService: _authService);
     _dailyQuestionService = DailyQuestionService(api: _apiService);
-    _dailyQuestionController =
-        DailyQuestionController(service: _dailyQuestionService);
+    _dqFirestoreService = DQFirestoreService();
+    _dailyQuestionController = DailyQuestionController(
+      service: _dailyQuestionService,
+      firestoreService: _dqFirestoreService,
+    );
     _preloadService = PreloadService(api: _apiService, auth: _authService);
     _deepLinkService = DeepLinkService();
     _deepLinkService.init(onJoinGame: _handleJoinGame);
@@ -307,6 +312,8 @@ class _MyAppState extends State<MyApp> {
 
     return MultiProvider(
       providers: [
+        Provider<AuthService>.value(value: _authService),
+        Provider<ApiService>.value(value: _apiService),
         ChangeNotifierProvider.value(value: _dailyQuestionController),
         Provider<DailyQuestionService>.value(value: _dailyQuestionService),
       ],
