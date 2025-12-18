@@ -47,7 +47,7 @@ from fermi_core.utils import utcnow_naive
 from fermi_db import DatabaseClient
 from fermi_db.models import DailyQuestion, Fermi
 from fermi_db.schemas import DailyQuestionStatus, QuestionStatus
-from fermi_db.session import DATABASE_URL, get_session
+from fermi_db.session import get_session
 from sqlmodel import select
 
 from app.services.daily_question.timing import (
@@ -55,23 +55,12 @@ from app.services.daily_question.timing import (
     get_window_for_date_utc,
 )
 
-
-def check_database_url() -> None:
-    """Verify DATABASE_URL is set and points to PostgreSQL, not SQLite."""
-    if 'sqlite' in DATABASE_URL.lower():
-        print('❌ Error: DATABASE_URL is pointing to SQLite.', file=sys.stderr)
-        print('', file=sys.stderr)
-        print('This script requires a PostgreSQL database.', file=sys.stderr)
-        print('Set DATABASE_URL before running:', file=sys.stderr)
-        print('', file=sys.stderr)
-        print(
-            '  export DATABASE_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/fermi-db',
-            file=sys.stderr,
-        )
-        print('', file=sys.stderr)
-        print('Or run via Makefile which sets it automatically:', file=sys.stderr)
-        print('  make run-frontend', file=sys.stderr)
-        sys.exit(1)
+os.environ['DATABASE_URL'] = (
+    'postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/fermi-db'
+)
+os.environ['FIRESTORE_EMULATOR_HOST'] = '127.0.0.1:8080'
+os.environ['FIREBASE_AUTH_EMULATOR_HOST'] = '127.0.0.1:9099'
+os.environ['GOOGLE_CLOUD_PROJECT'] = 'fermi-local'
 
 
 async def get_firestore_writer():
@@ -90,6 +79,7 @@ async def get_firestore_writer():
 
     try:
         from google.cloud.firestore import AsyncClient
+
         from app.services.daily_question.firestore_writer import DQFirestoreWriter
 
         # AsyncClient will automatically use FIRESTORE_EMULATOR_HOST if set
@@ -421,8 +411,6 @@ async def seed_dq_questions(count: int = 10) -> None:
 
 def main() -> None:
     """Main entry point for the script."""
-    check_database_url()
-
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)

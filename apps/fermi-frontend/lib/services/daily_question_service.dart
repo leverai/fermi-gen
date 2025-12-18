@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
-import 'package:fermi_frontend/utils/number_decompose.dart';
+import 'package:fermi_frontend/utils/number_decompose.dart'; // composeNumber, decomposeNumber
 import 'package:http/http.dart' as http;
 
 /// Lite archive response from /archive/week and /archive/month.
@@ -249,9 +249,11 @@ class DailyQuestionService {
   /// Submit an answer for the daily question.
   Future<DQSubmitResponse> submitAnswer(AnswerValue answer) async {
     print('[DQService] Calling submitAnswer...');
+    // Compose the number back from (number, orderOfMagnitude) to absolute value
+    final absoluteNumber = composeNumber(answer);
     final response = await _api.post('/daily_question/answer', {
       'answer': {
-        'number': answer.number,
+        'number': absoluteNumber,
         'unit': answer.unit,
       }
     });
