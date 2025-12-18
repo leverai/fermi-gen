@@ -555,7 +555,7 @@ Get results for today's daily question (available after window closes).
     -   `409 Conflict`: Results not yet available
 
 #### `GET /daily_question/history`
-Get the user's past daily question results.
+Get the user's past daily question results (only DQs the user participated in).
 
 -   **Request:** Query parameter `limit` (default: 30)
 -   **Response (200 OK):** `DQHistoryResponse`
@@ -580,6 +580,72 @@ Get the user's past daily question results.
       ]
     }
     ```
+
+#### `GET /daily_question/archive`
+Get all past daily questions with user participation status (for carousel and archive view).
+
+Unlike `/history`, this endpoint returns **all** closed DQs regardless of whether the user participated, making it suitable for displaying the full DQ timeline in the UI.
+
+-   **Request:** Query parameter `limit` (default: 30)
+-   **Response (200 OK):** `DQArchiveResponse`
+    ```json
+    {
+      "items": [
+        {
+          "question_date": "2025-12-14",
+          "question_text": "How many...",
+          "total_participants": 150,
+          "user_participated": true,
+          "user_score": 85.5,
+          "user_rank": 42
+        },
+        {
+          "question_date": "2025-12-13",
+          "question_text": "What is the...",
+          "total_participants": 200,
+          "user_participated": false,
+          "user_score": null,
+          "user_rank": null
+        }
+      ]
+    }
+    ```
+
+**Key differences from `/history`:**
+- Returns all closed DQs, not just user's participated DQs
+- Includes `user_participated` boolean flag
+- `user_score` and `user_rank` are `null` if user didn't participate
+- Designed for carousel/archive UI that shows all DQs
+
+#### Local Testing
+
+For local development and testing, use the `manage_dq.py` script to manage daily questions:
+
+```bash
+# List available DQ questions
+python scripts/manage_dq.py list
+
+# Create today's daily question (picks next available question)
+python scripts/manage_dq.py create
+
+# Manually start the DQ window (set status to ACTIVE)
+python scripts/manage_dq.py start
+
+# Manually end the DQ window (set status to CLOSED)
+python scripts/manage_dq.py end
+
+# Advance to next day: close current DQ, shift date back, create new DQ
+python scripts/manage_dq.py advance
+
+# Mark some fermi questions as daily question candidates
+python scripts/manage_dq.py seed --count 10
+```
+
+**Testing Workflow:**
+1. Start with a clean slate: `make run-frontend` uses `--no-dq-history` flag to avoid creating past DQ entries
+2. Create today's DQ: `python scripts/manage_dq.py create`
+3. Test the active DQ flow
+4. To test history/archive: Use `python scripts/manage_dq.py advance` to create past DQs
 
 ---
 

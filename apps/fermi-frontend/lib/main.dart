@@ -11,6 +11,7 @@ import 'dart:io' show Platform;
 import 'package:fermi_frontend/firebase_options.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/services/api_service.dart';
+import 'package:fermi_frontend/services/daily_question_service.dart';
 import 'package:fermi_frontend/services/deep_link_service.dart';
 import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/screens/main/main_screen.dart';
@@ -24,6 +25,8 @@ import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/state/theme_config_service.dart';
 import 'package:fermi_frontend/state/theme_config_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 
 const bool useEmulators =
     bool.fromEnvironment('USE_EMULATORS', defaultValue: false);
@@ -130,6 +133,8 @@ class _MyAppState extends State<MyApp> {
   final AuthService _authService = AuthService();
   late final ApiService _apiService;
   late final PreloadService _preloadService;
+  late final DailyQuestionService _dailyQuestionService;
+  late final DailyQuestionController _dailyQuestionController;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
@@ -138,6 +143,9 @@ class _MyAppState extends State<MyApp> {
     _themeConfigService = ThemeConfigService();
     _themeConfigService.addListener(_onThemeChanged);
     _apiService = ApiService(authService: _authService);
+    _dailyQuestionService = DailyQuestionService(api: _apiService);
+    _dailyQuestionController =
+        DailyQuestionController(service: _dailyQuestionService);
     _preloadService = PreloadService(api: _apiService, auth: _authService);
     _deepLinkService = DeepLinkService();
     _deepLinkService.init(onJoinGame: _handleJoinGame);
@@ -297,262 +305,271 @@ class _MyAppState extends State<MyApp> {
     ];
     final AppTheme appTheme = _themeConfigService.computeTheme();
 
-    return ThemeConfigProvider(
-      service: _themeConfigService,
-      child: FutureBuilder<String>(
-        future: _getInitialRoute(),
-        builder: (context, snapshot) {
-          // Show loading while determining initial route
-          if (!snapshot.hasData) {
-            return const MaterialApp(
-              debugShowCheckedModeBanner: false,
-              home: Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              ),
-            );
-          }
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: _dailyQuestionController),
+        Provider<DailyQuestionService>.value(value: _dailyQuestionService),
+      ],
+      child: ThemeConfigProvider(
+        service: _themeConfigService,
+        child: FutureBuilder<String>(
+          future: _getInitialRoute(),
+          builder: (context, snapshot) {
+            // Show loading while determining initial route
+            if (!snapshot.hasData) {
+              return const MaterialApp(
+                debugShowCheckedModeBanner: false,
+                home: Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                ),
+              );
+            }
 
-          final app = MaterialApp(
-            debugShowCheckedModeBanner: false,
-            navigatorKey: _navigatorKey,
-            scaffoldMessengerKey: _appScaffoldMessengerKey,
-            theme: ThemeData(
-              extensions: <ThemeExtension<dynamic>>[
-                appTheme,
-                const AppFont(),
-              ],
-            ),
-            initialRoute: snapshot.data!,
-            routes: {
-              '/sign-in': (context) {
-                return AuthScreen(
-                  providers: providers,
-                  actions: [
-                    AuthStateChangeAction<UserCreated>((context, state) async {
-                      final ok = await _authService.exchangeToken();
-                      if (!context.mounted) return;
-                      if (ok) {
-                        // Onboarding is shown before auth, so user has already seen it
-                        // Ensure we mark it as seen now that they have signed in
-                        SharedPreferences.getInstance().then(
-                            (prefs) => prefs.setBool('onboarding_seen', true));
-                        Navigator.pushReplacementNamed(context, '/main');
-                        // Check for deep link join
-                        _checkPendingJoin();
-                      } else {
-                        _appScaffoldMessengerKey.currentState?.showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Sign-in succeeded but token exchange failed.'),
-                          ),
-                        );
-                      }
-                    }),
-                    AuthStateChangeAction<SignedIn>((context, state) async {
-                      // Check if user was anonymous and is now signing in with a provider
-                      // Firebase UI Auth should handle linking automatically
-                      final ok = await _authService.exchangeToken();
-                      if (!context.mounted) return;
-                      if (ok) {
-                        SharedPreferences.getInstance().then(
-                            (prefs) => prefs.setBool('onboarding_seen', true));
-                        Navigator.pushReplacementNamed(context, '/main');
-                        // Check for pending deep link join
-                        _checkPendingJoin();
-                      } else {
-                        _appScaffoldMessengerKey.currentState?.showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Sign-in succeeded but token exchange failed.'),
-                          ),
-                        );
-                      }
-                    }),
-                    // Handle credential linking when anonymous user signs in from sign-in screen
-                    AuthStateChangeAction<CredentialLinked>(
-                      (context, state) async {
+            final app = MaterialApp(
+              debugShowCheckedModeBanner: false,
+              navigatorKey: _navigatorKey,
+              scaffoldMessengerKey: _appScaffoldMessengerKey,
+              theme: ThemeData(
+                extensions: <ThemeExtension<dynamic>>[
+                  appTheme,
+                  const AppFont(),
+                ],
+              ),
+              initialRoute: snapshot.data!,
+              routes: {
+                '/sign-in': (context) {
+                  return AuthScreen(
+                    providers: providers,
+                    actions: [
+                      AuthStateChangeAction<UserCreated>(
+                          (context, state) async {
                         final ok = await _authService.exchangeToken();
                         if (!context.mounted) return;
                         if (ok) {
-                          _appScaffoldMessengerKey.currentState?.showSnackBar(
-                            const SnackBar(
-                              content: Text('Account created successfully!'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-
+                          // Onboarding is shown before auth, so user has already seen it
+                          // Ensure we mark it as seen now that they have signed in
                           SharedPreferences.getInstance().then((prefs) =>
                               prefs.setBool('onboarding_seen', true));
                           Navigator.pushReplacementNamed(context, '/main');
+                          // Check for deep link join
                           _checkPendingJoin();
                         } else {
                           _appScaffoldMessengerKey.currentState?.showSnackBar(
                             const SnackBar(
                               content: Text(
-                                  'Account linking succeeded but token exchange failed.'),
+                                  'Sign-in succeeded but token exchange failed.'),
                             ),
                           );
                         }
-                      },
-                    ),
-                    AuthStateChangeAction<AuthFailed>((context, state) {
-                      debugPrint('Auth error: ${state.exception}');
-                    }),
-                  ],
-                );
-              },
-              '/startup-auth': (context) => const StartupAuthScreen(),
-              '/onboarding': (context) => OnboardingScreen(
-                    preloadService: _preloadService,
-                  ),
-              '/onboarding-test': (context) {
-                // Quick and dirty bypass for testing - clears the flag on entry
-                // and uses testMode to prevent setting it on exit
-                SharedPreferences.getInstance().then((prefs) {
-                  prefs.setBool('onboarding_seen', false);
-                });
-                return OnboardingScreen(
-                  testMode: true,
-                  preloadService: _preloadService,
-                );
-              },
-              '/profile': (context) {
-                return ProfileScreen(
-                  providers: providers,
-                  actions: [
-                    SignedOutAction((context) {
-                      Navigator.pushReplacementNamed(context, '/sign-in');
-                    }),
-                  ],
-                );
-              },
-              '/upgrade-account': (context) {
-                return AuthScreen(
-                  providers: providers,
-                  actions: [
-                    // Handle credential linking when anonymous user signs in
-                    AuthStateChangeAction<CredentialLinked>(
-                      (context, state) async {
-                        // Credential has been linked, exchange token to get updated user info
+                      }),
+                      AuthStateChangeAction<SignedIn>((context, state) async {
+                        // Check if user was anonymous and is now signing in with a provider
+                        // Firebase UI Auth should handle linking automatically
                         final ok = await _authService.exchangeToken();
                         if (!context.mounted) return;
                         if (ok) {
-                          // Show success message
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Account created successfully!'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                          // Navigate back to main screen
-                          Navigator.of(context).pop();
+                          SharedPreferences.getInstance().then((prefs) =>
+                              prefs.setBool('onboarding_seen', true));
+                          Navigator.pushReplacementNamed(context, '/main');
+                          // Check for pending deep link join
+                          _checkPendingJoin();
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          _appScaffoldMessengerKey.currentState?.showSnackBar(
                             const SnackBar(
                               content: Text(
-                                  'Account linking succeeded but token exchange failed.'),
+                                  'Sign-in succeeded but token exchange failed.'),
                             ),
                           );
                         }
-                      },
-                    ),
-                    // Also handle regular sign-in (in case user already has account)
-                    AuthStateChangeAction<SignedIn>(
-                      (context, state) async {
-                        // If user signs in with existing account, try to link
-                        // This handles the case where anonymous user signs in with email/Google
-                        final user = FirebaseAuth.instance.currentUser;
-                        if (user != null && user.isAnonymous) {
-                          // This shouldn't happen if linking worked, but handle gracefully
-                          debugPrint('User is still anonymous after sign-in');
-                        } else {
-                          // User signed in successfully, exchange token
+                      }),
+                      // Handle credential linking when anonymous user signs in from sign-in screen
+                      AuthStateChangeAction<CredentialLinked>(
+                        (context, state) async {
                           final ok = await _authService.exchangeToken();
                           if (!context.mounted) return;
                           if (ok) {
+                            _appScaffoldMessengerKey.currentState?.showSnackBar(
+                              const SnackBar(
+                                content: Text('Account created successfully!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+
+                            SharedPreferences.getInstance().then((prefs) =>
+                                prefs.setBool('onboarding_seen', true));
+                            Navigator.pushReplacementNamed(context, '/main');
+                            _checkPendingJoin();
+                          } else {
+                            _appScaffoldMessengerKey.currentState?.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Account linking succeeded but token exchange failed.'),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                      AuthStateChangeAction<AuthFailed>((context, state) {
+                        debugPrint('Auth error: ${state.exception}');
+                      }),
+                    ],
+                  );
+                },
+                '/startup-auth': (context) => const StartupAuthScreen(),
+                '/onboarding': (context) => OnboardingScreen(
+                      preloadService: _preloadService,
+                    ),
+                '/onboarding-test': (context) {
+                  // Quick and dirty bypass for testing - clears the flag on entry
+                  // and uses testMode to prevent setting it on exit
+                  SharedPreferences.getInstance().then((prefs) {
+                    prefs.setBool('onboarding_seen', false);
+                  });
+                  return OnboardingScreen(
+                    testMode: true,
+                    preloadService: _preloadService,
+                  );
+                },
+                '/profile': (context) {
+                  return ProfileScreen(
+                    providers: providers,
+                    actions: [
+                      SignedOutAction((context) {
+                        Navigator.pushReplacementNamed(context, '/sign-in');
+                      }),
+                    ],
+                  );
+                },
+                '/upgrade-account': (context) {
+                  return AuthScreen(
+                    providers: providers,
+                    actions: [
+                      // Handle credential linking when anonymous user signs in
+                      AuthStateChangeAction<CredentialLinked>(
+                        (context, state) async {
+                          // Credential has been linked, exchange token to get updated user info
+                          final ok = await _authService.exchangeToken();
+                          if (!context.mounted) return;
+                          if (ok) {
+                            // Show success message
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Account created successfully!'),
                                 backgroundColor: Colors.green,
                               ),
                             );
+                            // Navigate back to main screen
                             Navigator.of(context).pop();
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Account linking succeeded but token exchange failed.'),
+                              ),
+                            );
                           }
-                        }
-                      },
-                    ),
-                    AuthStateChangeAction<AuthFailed>(
-                      (context, state) {
-                        final exception = state.exception;
-                        String errorMessage = 'Failed to create account.';
-
-                        if (exception is FirebaseAuthException) {
-                          switch (exception.code) {
-                            case 'email-already-in-use':
-                              errorMessage =
-                                  'This email is already associated with another account.';
-                              break;
-                            case 'account-exists-with-different-credential':
-                              errorMessage =
-                                  'An account already exists with this email but different sign-in method.';
-                              break;
-                            case 'invalid-credential':
-                              errorMessage =
-                                  'Invalid credentials. Please try again.';
-                              break;
-                            default:
-                              errorMessage =
-                                  'Error: ${exception.message ?? exception.code}';
+                        },
+                      ),
+                      // Also handle regular sign-in (in case user already has account)
+                      AuthStateChangeAction<SignedIn>(
+                        (context, state) async {
+                          // If user signs in with existing account, try to link
+                          // This handles the case where anonymous user signs in with email/Google
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user != null && user.isAnonymous) {
+                            // This shouldn't happen if linking worked, but handle gracefully
+                            debugPrint('User is still anonymous after sign-in');
+                          } else {
+                            // User signed in successfully, exchange token
+                            final ok = await _authService.exchangeToken();
+                            if (!context.mounted) return;
+                            if (ok) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content:
+                                      Text('Account created successfully!'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                              Navigator.of(context).pop();
+                            }
                           }
-                        }
+                        },
+                      ),
+                      AuthStateChangeAction<AuthFailed>(
+                        (context, state) {
+                          final exception = state.exception;
+                          String errorMessage = 'Failed to create account.';
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(errorMessage),
-                            backgroundColor: Colors.red,
+                          if (exception is FirebaseAuthException) {
+                            switch (exception.code) {
+                              case 'email-already-in-use':
+                                errorMessage =
+                                    'This email is already associated with another account.';
+                                break;
+                              case 'account-exists-with-different-credential':
+                                errorMessage =
+                                    'An account already exists with this email but different sign-in method.';
+                                break;
+                              case 'invalid-credential':
+                                errorMessage =
+                                    'Invalid credentials. Please try again.';
+                                break;
+                              default:
+                                errorMessage =
+                                    'Error: ${exception.message ?? exception.code}';
+                            }
+                          }
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(errorMessage),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                    onLeave: () => Navigator.of(context).pop(),
+                  );
+                },
+                '/main': (context) {
+                  return FutureBuilder<bool>(
+                    future: _authService.accessToken != null
+                        ? Future<bool>.value(true)
+                        : _authService.exchangeToken(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Scaffold(
+                          body: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      if (snapshot.data == true) {
+                        return MainScreen(
+                          apiService: _apiService,
+                          authService: _authService,
+                          preloadService: _preloadService,
+                          dailyQuestionService: _dailyQuestionService,
+                        );
+                      }
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _appScaffoldMessengerKey.currentState?.showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Authentication required. Please sign in again.'),
                           ),
                         );
-                      },
-                    ),
-                  ],
-                  onLeave: () => Navigator.of(context).pop(),
-                );
+                        Navigator.pushReplacementNamed(context, '/sign-in');
+                      });
+                      return const SizedBox.shrink();
+                    },
+                  );
+                },
               },
-              '/main': (context) {
-                return FutureBuilder<bool>(
-                  future: _authService.accessToken != null
-                      ? Future<bool>.value(true)
-                      : _authService.exchangeToken(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Scaffold(
-                        body: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    if (snapshot.data == true) {
-                      return MainScreen(
-                        apiService: _apiService,
-                        authService: _authService,
-                        preloadService: _preloadService,
-                      );
-                    }
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      _appScaffoldMessengerKey.currentState?.showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              'Authentication required. Please sign in again.'),
-                        ),
-                      );
-                      Navigator.pushReplacementNamed(context, '/sign-in');
-                    });
-                    return const SizedBox.shrink();
-                  },
-                );
-              },
-            },
-          );
-          return app;
-        },
+            );
+            return app;
+          },
+        ),
       ),
     );
   }

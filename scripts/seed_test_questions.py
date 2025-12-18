@@ -12,15 +12,34 @@ This script loads test data from the new schema format and seeds:
 import asyncio
 import json
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import sqlalchemy as sa
-from fermi_db.models import FermiAnswer, FermiQuestion, LLMAnswer, Seed
+from fermi_db.models import (
+    DailyQuestion,
+    DailyQuestionAnswer,
+    FermiAnswer,
+    FermiQuestion,
+    LLMAnswer,
+    Seed,
+)
+from fermi_db.schemas import DailyQuestionStatus
 from fermi_db.session import get_session
 
+# Central Time zone for DQ window calculation
+CT = ZoneInfo('America/Chicago')
 
-async def seed_test_data(test_data_path: Path) -> None:
-    """Seed test data into the database."""
+
+async def seed_test_data(test_data_path: Path, create_dq_history: bool = True) -> None:
+    """Seed test data into the database.
+
+    Args:
+        test_data_path: Path to the test data JSON file.
+        create_dq_history: If True, creates past 7 days of DQ entries with mock answers.
+                          If False, skips DQ history creation for clean slate testing.
+    """
     if not test_data_path.exists():
         print(f'❌ Test data file not found: {test_data_path}', file=sys.stderr)
         sys.exit(1)
@@ -213,18 +232,136 @@ async def seed_test_data(test_data_path: Path) -> None:
         )
         await session.commit()
 
-        # 6. Mark first 3 questions as daily questions (one has a unit for testing)
-        print('📅 Marking questions 1, 2, 3 as daily questions...')
+        # 6. Mark first 10 questions as daily questions (gives us pool for today + 7 past days)
+        print('📅 Marking questions 1-10 as daily question candidates...')
         await session.execute(
             sa.text("""
             UPDATE fermi
             SET is_daily_question = true
-            WHERE question_id IN (1, 2, 3)
+            WHERE question_id IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
             """),
         )
         await session.commit()
 
+        # 7. Get the fermi UIDs for the DQ-flagged questions
+        print('🔍 Fetching DQ-flagged fermi UIDs...')
+        dq_fermi_result = await session.execute(
+            sa.text("""
+            SELECT uid, question_id FROM fermi
+            WHERE is_daily_question = true
+            ORDER BY question_id ASC
+            """),
+        )
+        dq_fermi_rows = dq_fermi_result.fetchall()
+
+        if create_dq_history:
+            if len(dq_fermi_rows) < 8:
+                print(
+                    f'⚠️  Only {len(dq_fermi_rows)} DQ questions found, need at least 8'
+                )
+                print('✅ Test data seeded successfully (without full DQ history)')
+                break
+
+            # 8. Create daily_questions entries: today (ACTIVE) + past 7 days (CLOSED)
+            print('📅 Creating daily_questions entries...')
+            today_ct = datetime.now(CT).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+
+            dq_entries = []
+            for day_offset in range(8):  # 0=today, 1-7=past days
+                day_date = today_ct - timedelta(days=day_offset)
+                question_uid = dq_fermi_rows[day_offset][0]  # uid column
+
+                # Window: midnight CT to 8 PM CT
+                window_start_ct = day_date.replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+                window_end_ct = day_date.replace(
+                    hour=20, minute=0, second=0, microsecond=0
+                )
+
+                # Convert to UTC naive
+                window_start_utc = window_start_ct.astimezone(timezone.utc).replace(
+                    tzinfo=None
+                )
+                window_end_utc = window_end_ct.astimezone(timezone.utc).replace(
+                    tzinfo=None
+                )
+
+                # Today is ACTIVE, past days are CLOSED
+                status = (
+                    DailyQuestionStatus.ACTIVE
+                    if day_offset == 0
+                    else DailyQuestionStatus.CLOSED
+                )
+
+                dq = DailyQuestion(
+                    question_date=day_date.date(),
+                    question_uid=question_uid,
+                    status=status,
+                    window_start=window_start_utc,
+                    window_end=window_end_utc,
+                )
+                dq_entries.append(dq)
+                session.add(dq)
+
+            await session.commit()
+
+            # Refresh to get IDs
+            for dq in dq_entries:
+                await session.refresh(dq)
+
+            print(f'  Created {len(dq_entries)} daily_questions entries')
+            print(
+                f'    - Today ({dq_entries[0].question_date}): {dq_entries[0].status}'
+            )
+            print(
+                f'    - Yesterday ({dq_entries[1].question_date}): {dq_entries[1].status}'
+            )
+
+            # 9. Create mock daily_question_answers for past DQs (simulate test user history)
+            print('📝 Creating mock daily_question_answers for past DQs...')
+            mock_user_uid = 'test-user-local-dev'
+
+            for i, dq in enumerate(
+                dq_entries[1:], start=1
+            ):  # Skip today, start from yesterday
+                # Random-ish score and rank for variety
+                score = 85.0 + (i * 2) % 15  # Scores between 85-100
+                rank = i  # Rank 1-7
+
+                # Submitted around noon CT
+                submitted_ct = (today_ct - timedelta(days=i)).replace(
+                    hour=12, minute=30
+                )
+                submitted_utc = submitted_ct.astimezone(timezone.utc).replace(
+                    tzinfo=None
+                )
+                started_utc = submitted_utc - timedelta(
+                    seconds=15
+                )  # Started 15s before
+
+                answer = DailyQuestionAnswer(
+                    daily_question_id=dq.id,
+                    user_firebase_uid=mock_user_uid,
+                    answer_number=42.0,  # Mock answer
+                    answer_unit=None,
+                    score=score,
+                    started_at=started_utc,
+                    submitted_at=submitted_utc,
+                    time_taken_s=15.0,
+                    rank=rank,
+                )
+                session.add(answer)
+
+            await session.commit()
+            print(f'  Created {len(dq_entries) - 1} mock answers for history testing')
+        else:
+            print('⏭️  Skipping DQ history creation (--no-dq-history)')
+
         print('✅ Test data seeded successfully')
+
         break  # Exit after first session
 
 
@@ -241,10 +378,15 @@ def main() -> None:
         required=True,
         help='Path to test data JSON file',
     )
+    parser.add_argument(
+        '--no-dq-history',
+        action='store_true',
+        help='Skip creating past DQ history entries (for clean slate testing)',
+    )
 
     args = parser.parse_args()
 
-    asyncio.run(seed_test_data(args.file))
+    asyncio.run(seed_test_data(args.file, create_dq_history=not args.no_dq_history))
 
 
 if __name__ == '__main__':

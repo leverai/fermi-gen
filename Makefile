@@ -141,7 +141,9 @@ run-frontend:
 	export GOOGLE_CLOUD_PROJECT=fermi-local; \
 	$(MAKE) migrate; \
 	echo "Seeding questions..." && \
-	uv run --package fermi-db python scripts/seed_test_questions.py --file apps/fermi-api/tests/data/test_questions.json; \
+	uv run --package fermi-db python scripts/seed_test_questions.py --file apps/fermi-api/tests/data/test_questions.json --no-dq-history; \
+	echo "Creating initial DQ..." && \
+	uv run --package fermi-db python scripts/manage_dq.py create; \
 	docker compose up -d api && \
 	echo "Launching Flutter app..." && \
 	cd apps/fermi-frontend && \
