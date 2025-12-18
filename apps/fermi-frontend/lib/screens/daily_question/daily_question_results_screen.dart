@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
+import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/question_widget.dart';
@@ -30,6 +31,14 @@ class _DailyQuestionResultsScreenState
   void initState() {
     super.initState();
     _loadResults();
+    // Mark this date's results as seen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context
+            .read<DailyQuestionController>()
+            .markResultsSeen(widget.questionDate);
+      }
+    });
   }
 
   String _getFriendlyErrorMessage(String error) {

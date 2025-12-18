@@ -176,6 +176,27 @@ class DQFirestoreWriter:
 
         await session_ref.delete()
 
+    async def mark_user_submitted(self, date: datetime.date, user_id: str) -> None:
+        """Mark the user session as submitted.
+
+        Updates the session document to indicate the user has submitted,
+        rather than deleting it, so we can track participation status.
+
+        Args:
+            date: The date for this DQ.
+            user_id: The user's Firebase UID.
+
+        """
+        doc_id = self._date_to_doc_id(date)
+        session_ref = (
+            self._fs.collection(self.COLLECTION)
+            .document(doc_id)
+            .collection(self.USER_SESSIONS_SUBCOLLECTION)
+            .document(user_id)
+        )
+
+        await session_ref.update({'submitted': True})
+
     async def get_user_session(
         self,
         date: datetime.date,

@@ -1,23 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:fermi_frontend/services/daily_question_service.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
+import 'package:fermi_frontend/screens/daily_question/daily_question_screen.dart';
 import 'package:fermi_frontend/screens/daily_question/daily_question_results_screen.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 
-class DailyQuestionArchiveSheet extends StatelessWidget {
+class DailyQuestionArchiveSheet extends StatefulWidget {
   const DailyQuestionArchiveSheet({super.key});
+
+  @override
+  State<DailyQuestionArchiveSheet> createState() =>
+      _DailyQuestionArchiveSheetState();
+}
+
+class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
+  late int _selectedYear;
+  late int _selectedMonth;
+  Map<String, bool> _monthItems = {};
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now().toUtc();
+    _selectedYear = now.year;
+    _selectedMonth = now.month;
+    _loadMonthlyArchive();
+  }
+
+  Future<void> _loadMonthlyArchive() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final service = context.read<DailyQuestionService>();
+      final archive =
+          await service.getMonthlyArchive(_selectedYear, _selectedMonth);
+      if (mounted) {
+        setState(() {
+          _monthItems = archive.items;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _changeMonth(int delta) {
+    setState(() {
+      _selectedMonth += delta;
+      if (_selectedMonth > 12) {
+        _selectedMonth = 1;
+        _selectedYear++;
+      } else if (_selectedMonth < 1) {
+        _selectedMonth = 12;
+        _selectedYear--;
+      }
+    });
+    _loadMonthlyArchive();
+  }
 
   @override
   Widget build(BuildContext context) {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
-    final controller = context.watch<DailyQuestionController>();
-    final archive = controller.archive;
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
+      height: MediaQuery.of(context).size.height * 0.7,
       decoration: BoxDecoration(
         color: appTheme.bg,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -35,116 +96,206 @@ class DailyQuestionArchiveSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          Text(
-            'Archive',
+          // Month/Year selector
+          _buildMonthSelector(appTheme),
+          const SizedBox(height: 16),
+          // Content
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Center(
+                        child: Text(
+                          'Error loading archive',
+                          style: AppFont.secondaryTextStyle(
+                            context,
+                            color: appTheme.danger,
+                          ),
+                        ),
+                      )
+                    : _buildCalendarGrid(appTheme),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMonthSelector(AppTheme appTheme) {
+    final monthName =
+        DateFormat('MMMM yyyy').format(DateTime(_selectedYear, _selectedMonth));
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: Icon(Icons.chevron_left, color: appTheme.text),
+          onPressed: () => _changeMonth(-1),
+        ),
+        SizedBox(
+          width: 160,
+          child: Text(
+            monthName,
+            textAlign: TextAlign.center,
             style: AppFont.primaryTextStyle(
               context,
-              fontSize: 24,
+              fontSize: 20,
               fontWeight: FontWeight.w700,
               color: appTheme.text,
             ),
           ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: archive.isEmpty
-                ? Center(
-                    child: Text(
-                      'No past questions yet',
-                      style: AppFont.secondaryTextStyle(
-                        context,
-                        color: appTheme.borderMuted,
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: archive.length,
-                    itemBuilder: (context, index) {
-                      final item = archive[index];
-                      final date = DateTime.parse(item.questionDate);
-                      final dateFormat = DateFormat('MMM d, yyyy');
-                      final weekdayFormat = DateFormat('EEEE');
+        ),
+        IconButton(
+          icon: Icon(Icons.chevron_right, color: appTheme.text),
+          onPressed: () => _changeMonth(1),
+        ),
+      ],
+    );
+  }
 
-                      return ListTile(
-                        title: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              weekdayFormat.format(date),
-                              style: AppFont.secondaryTextStyle(
-                                context,
-                                fontSize: 12,
-                                color: appTheme.borderMuted,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              dateFormat.format(date),
-                              style: AppFont.primaryTextStyle(
-                                context,
-                                fontWeight: FontWeight.w600,
-                                color: appTheme.text,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              item.questionText,
-                              style: AppFont.secondaryTextStyle(
-                                context,
-                                fontSize: 12,
-                                color: appTheme.textMuted,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+  Widget _buildCalendarGrid(AppTheme appTheme) {
+    final firstDayOfMonth = DateTime(_selectedYear, _selectedMonth, 1);
+    final lastDayOfMonth = DateTime(_selectedYear, _selectedMonth + 1, 0);
+    final daysInMonth = lastDayOfMonth.day;
+    final startWeekday = firstDayOfMonth.weekday; // 1 = Monday, 7 = Sunday
+
+    // Adjust to start from Sunday (0)
+    final startOffset = startWeekday % 7;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          // Weekday headers
+          Row(
+            children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+                .map((day) => Expanded(
+                      child: Center(
+                        child: Text(
+                          day,
+                          style: AppFont.secondaryTextStyle(
+                            context,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: appTheme.textMuted,
+                          ),
                         ),
-                        trailing: item.userParticipated
-                            ? Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  if (item.userScore != null)
-                                    Text(
-                                      'Score: ${item.userScore!.toStringAsFixed(0)}',
-                                      style: AppFont.primaryTextStyle(
-                                        context,
-                                        fontWeight: FontWeight.bold,
-                                        color: appTheme.primary,
-                                      ),
-                                    ),
-                                  if (item.userRank != null)
-                                    Text(
-                                      'Rank #${item.userRank}',
-                                      style: AppFont.secondaryTextStyle(
-                                        context,
-                                        fontSize: 12,
-                                        color: appTheme.textMuted,
-                                      ),
-                                    ),
-                                ],
-                              )
-                            : Text(
-                                'View Results',
-                                style: AppFont.secondaryTextStyle(
-                                  context,
-                                  fontWeight: FontWeight.w600,
-                                  color: appTheme.primary,
+                      ),
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: 8),
+          // Calendar grid
+          Expanded(
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                childAspectRatio: 1.0,
+              ),
+              itemCount: startOffset + daysInMonth,
+              itemBuilder: (context, index) {
+                if (index < startOffset) {
+                  return const SizedBox.shrink();
+                }
+
+                final day = index - startOffset + 1;
+                final dateStr = DateFormat('yyyy-MM-dd')
+                    .format(DateTime(_selectedYear, _selectedMonth, day));
+                final participated = _monthItems[dateStr];
+                final hasData = participated != null;
+
+                return InkWell(
+                  onTap: hasData
+                      ? () {
+                          // Check if this is today's active DQ
+                          final dqController =
+                              context.read<DailyQuestionController>();
+                          final isToday = dateStr == dqController.todayDate;
+                          final todayDoc = dqController.todayDocument;
+                          final isActive =
+                              isToday && (todayDoc?.status == 'ACTIVE');
+                          final hasParticipated =
+                              dqController.weeklyItems[dateStr] ?? false;
+
+                          if (isActive && !hasParticipated) {
+                            // Navigate to DQ play screen
+                            Navigator.of(context).pop(); // Close the sheet
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const DailyQuestionScreen(),
+                              ),
+                            );
+                          } else if (isActive && hasParticipated) {
+                            // Already submitted, show message
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Already submitted! Results available after the deadline.'),
+                              ),
+                            );
+                          } else {
+                            // Past date or closed - show results
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => DailyQuestionResultsScreen(
+                                  questionDate: dateStr,
                                 ),
                               ),
-                        onTap: () {
-                          // Navigate to results screen for past DQs
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => DailyQuestionResultsScreen(
-                                questionDate: item.questionDate,
+                            );
+                          }
+                        }
+                      : null,
+                  child: Container(
+                    margin: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: hasData
+                          ? (participated
+                              ? appTheme.primary.withOpacity(0.2)
+                              : appTheme.bgLight)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: hasData
+                          ? Border.all(
+                              color: participated
+                                  ? appTheme.primary
+                                  : appTheme.borderMuted,
+                              width: 1,
+                            )
+                          : null,
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            day.toString(),
+                            style: AppFont.primaryTextStyle(
+                              context,
+                              fontSize: 14,
+                              fontWeight:
+                                  hasData ? FontWeight.w600 : FontWeight.w400,
+                              color: hasData
+                                  ? appTheme.text
+                                  : appTheme.textMuted.withOpacity(0.5),
+                            ),
+                          ),
+                          if (hasData && participated)
+                            Container(
+                              margin: const EdgeInsets.only(top: 2),
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: appTheme.success,
+                                shape: BoxShape.circle,
                               ),
                             ),
-                          );
-                        },
-                      );
-                    },
+                        ],
+                      ),
+                    ),
                   ),
+                );
+              },
+            ),
           ),
         ],
       ),

@@ -12,6 +12,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastapi import HTTPException, status
+from fermi_core.units import get_unit_family
 from fermi_core.utils import utcnow_naive
 from fermi_db.schemas import AnswerBare, DailyQuestionStatus
 
@@ -157,13 +158,21 @@ class DailyQuestionService:
             answer_deadline_utc,
         )
 
+        # Get unit family for dimensional questions
+        units = None
+        if fermi.unit:
+            try:
+                units = get_unit_family(fermi.unit)
+            except ValueError:
+                logger.warning('Unknown unit for DQ: %s', fermi.unit)
+
         return DQQuestionResponse(
             question=DQQuestionData(
                 question_uid=str(fermi.uid),
                 text=fermi.text,
                 category=fermi.category,
                 difficulty=fermi.difficulty,
-                unit_hint=fermi.unit,
+                units=units,
             ),
             answer_deadline_utc=answer_deadline_utc.isoformat(),
             seconds_to_answer=seconds_until(answer_deadline_utc, now_utc),
@@ -217,7 +226,10 @@ class DailyQuestionService:
             )
 
         # Check if within grace period
-        if not is_within_ad_grace(now_utc, user_session['answer_deadline']):
+        if not is_within_ad_grace(
+            now_utc,
+            user_session['answer_deadline'],
+        ):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail='Answer deadline has passed.',
@@ -255,8 +267,11 @@ class DailyQuestionService:
             submitted_at=now_utc,
         )
 
-        # Delete user session from Firestore after submission
-        await fs_writer.delete_user_session(today, user_firebase_uid)
+        # Commit the database transaction
+        await self._db.session.commit()
+
+        # Mark user session as submitted in Firestore (keep for tracking)
+        await fs_writer.mark_user_submitted(today, user_firebase_uid)
 
         logger.info(
             'User %s submitted DQ answer for %s, score: %s',

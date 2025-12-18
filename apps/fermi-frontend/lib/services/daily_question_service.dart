@@ -5,36 +5,25 @@ import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/utils/number_decompose.dart';
 import 'package:http/http.dart' as http;
 
-/// Status response from the API.
-class DQStatusResponse {
-  final String windowStatus; // NOT_STARTED, ACTIVE, CLOSED
-  final double? secondsUntilWindowEnd;
-  final String? questionDate; // YYYY-MM-DD
-  final String? userStatus; // NOT_STARTED, IN_PROGRESS, SUBMITTED, MISSED
-  final bool hasResults;
+/// Lite archive response from /archive/week and /archive/month.
+/// Contains participation data and the current "today" date.
+class DQLiteArchiveResponse {
+  final Map<String, bool> items; // {date (YYYY-MM-DD): user_participated}
+  final String today; // Current DQ date for Firestore subscription
 
-  DQStatusResponse({
-    required this.windowStatus,
-    this.secondsUntilWindowEnd,
-    this.questionDate,
-    this.userStatus,
-    required this.hasResults,
+  DQLiteArchiveResponse({
+    required this.items,
+    required this.today,
   });
 
-  factory DQStatusResponse.fromJson(Map<String, dynamic> json) {
-    return DQStatusResponse(
-      windowStatus: json['window_status'] as String,
-      secondsUntilWindowEnd: json['seconds_until_window_end'] != null
-          ? (json['seconds_until_window_end'] as num).toDouble()
-          : null,
-      questionDate: json['question_date'] as String?,
-      userStatus: json['user_status'] as String?,
-      hasResults: json['has_results'] as bool? ?? false,
+  factory DQLiteArchiveResponse.fromJson(Map<String, dynamic> json) {
+    final rawItems = json['items'] as Map<String, dynamic>;
+    final items = rawItems.map((k, v) => MapEntry(k, v as bool));
+    return DQLiteArchiveResponse(
+      items: items,
+      today: json['today'] as String,
     );
   }
-
-  /// Convenience getter: returns 'ACTIVE' equivalent for display purposes
-  String get status => windowStatus;
 }
 
 /// Question response when starting a DQ.
@@ -43,27 +32,65 @@ class DQQuestionResponse {
   final String text;
   final String category;
   final String difficulty;
+  final Map<String, List<Map<String, String>>>? units; // {US: [...], EU: [...]}
   final DateTime answerDeadline;
-  // Add other fields if needed from QuestionDoc
+  final double secondsToAnswer;
 
   DQQuestionResponse({
     required this.questionUid,
     required this.text,
     required this.category,
     required this.difficulty,
+    this.units,
     required this.answerDeadline,
+    required this.secondsToAnswer,
   });
 
   factory DQQuestionResponse.fromJson(Map<String, dynamic> json) {
-    // Backend returns nested structure: { question: { question_uid, text, ... }, answer_deadline_utc, ... }
     final questionData = json['question'] as Map<String, dynamic>;
+
+    // Parse units from question data
+    Map<String, List<Map<String, String>>>? units;
+    if (questionData['units'] != null) {
+      final rawUnits = questionData['units'] as Map<String, dynamic>;
+      units = rawUnits.map((locale, unitList) => MapEntry(
+            locale,
+            (unitList as List)
+                .map((u) => Map<String, String>.from(u as Map))
+                .toList(),
+          ));
+    }
+
     return DQQuestionResponse(
       questionUid: questionData['question_uid'] as String,
       text: questionData['text'] as String,
       category: questionData['category'] as String? ?? '',
       difficulty: questionData['difficulty'] as String? ?? '',
+      units: units,
       answerDeadline:
-          DateTime.parse(json['answer_deadline_utc'] as String).toLocal(),
+          DateTime.parse(json['answer_deadline_utc'] as String).toUtc(),
+      secondsToAnswer: (json['seconds_to_answer'] as num).toDouble(),
+    );
+  }
+}
+
+/// Submit response from /answer endpoint.
+class DQSubmitResponse {
+  final bool submitted;
+  final double? score;
+  final String? message;
+
+  DQSubmitResponse({
+    required this.submitted,
+    this.score,
+    this.message,
+  });
+
+  factory DQSubmitResponse.fromJson(Map<String, dynamic> json) {
+    return DQSubmitResponse(
+      submitted: json['submitted'] as bool,
+      score: json['score'] != null ? (json['score'] as num).toDouble() : null,
+      message: json['message'] as String?,
     );
   }
 }
@@ -153,82 +180,6 @@ class DQLeaderboardEntry {
   }
 }
 
-class DQHistoryItem {
-  final String questionDate; // YYYY-MM-DD
-  final String questionText;
-  final AnswerValue userAnswer;
-  final AnswerValue correctAnswer;
-  final double score;
-  final int? rank;
-  final int totalParticipants;
-
-  DQHistoryItem({
-    required this.questionDate,
-    required this.questionText,
-    required this.userAnswer,
-    required this.correctAnswer,
-    required this.score,
-    this.rank,
-    required this.totalParticipants,
-  });
-
-  factory DQHistoryItem.fromJson(Map<String, dynamic> json) {
-    // Parse user answer
-    final userAnswerJson = json['user_answer'] as Map<String, dynamic>;
-    final userAnswerNumber = (userAnswerJson['number'] as num).toDouble();
-    final userAnswerUnit = (userAnswerJson['unit'] as String?) ?? '';
-    final userAnswer = decomposeNumber(userAnswerNumber, userAnswerUnit);
-
-    // Parse correct answer
-    final correctAnswerJson = json['correct_answer'] as Map<String, dynamic>;
-    final correctAnswerNumber = (correctAnswerJson['number'] as num).toDouble();
-    final correctAnswerUnit = (correctAnswerJson['unit'] as String?) ?? '';
-    final correctAnswer =
-        decomposeNumber(correctAnswerNumber, correctAnswerUnit);
-
-    return DQHistoryItem(
-      questionDate: json['question_date'] as String,
-      questionText: json['question_text'] as String,
-      userAnswer: userAnswer,
-      correctAnswer: correctAnswer,
-      score: (json['score'] as num).toDouble(),
-      rank: json['rank'] as int?,
-      totalParticipants: json['total_participants'] as int,
-    );
-  }
-}
-
-class DQArchiveItem {
-  final String questionDate; // YYYY-MM-DD
-  final String questionText;
-  final int totalParticipants;
-  final bool userParticipated;
-  final double? userScore;
-  final int? userRank;
-
-  DQArchiveItem({
-    required this.questionDate,
-    required this.questionText,
-    required this.totalParticipants,
-    required this.userParticipated,
-    this.userScore,
-    this.userRank,
-  });
-
-  factory DQArchiveItem.fromJson(Map<String, dynamic> json) {
-    return DQArchiveItem(
-      questionDate: json['question_date'] as String,
-      questionText: json['question_text'] as String,
-      totalParticipants: json['total_participants'] as int,
-      userParticipated: json['user_participated'] as bool,
-      userScore: json['user_score'] != null
-          ? (json['user_score'] as num).toDouble()
-          : null,
-      userRank: json['user_rank'] as int?,
-    );
-  }
-}
-
 class DailyQuestionService {
   final ApiService _api;
 
@@ -265,35 +216,52 @@ class DailyQuestionService {
     }
   }
 
-  Future<DQStatusResponse> getStatus() async {
-    print('[DQService] Calling getStatus...');
-    final response = await _api.get('/daily_question/status');
+  /// Get lite archive for DQ carousel (past 7 days + today).
+  Future<DQLiteArchiveResponse> getWeeklyArchive() async {
+    print('[DQService] Calling getWeeklyArchive...');
+    final response = await _api.get('/daily_question/archive/week');
     print(
-        '[DQService] Status response: ${response.statusCode} - ${response.body}');
+        '[DQService] Weekly archive response: ${response.statusCode} - ${response.body}');
     final data = _decodeOkJson(response);
-    return DQStatusResponse.fromJson(data);
+    return DQLiteArchiveResponse.fromJson(data);
   }
 
+  /// Get lite archive for a specific month (calendar view).
+  Future<DQLiteArchiveResponse> getMonthlyArchive(int year, int month) async {
+    print('[DQService] Calling getMonthlyArchive($year, $month)...');
+    final response = await _api.get(
+      '/daily_question/archive/month?year=$year&month=$month',
+    );
+    print(
+        '[DQService] Monthly archive response: ${response.statusCode} - ${response.body}');
+    final data = _decodeOkJson(response);
+    return DQLiteArchiveResponse.fromJson(data);
+  }
+
+  /// Start today's daily question.
   Future<DQQuestionResponse> startQuestion() async {
+    print('[DQService] Calling startQuestion...');
     final response = await _api.post('/daily_question/start', {});
     final data = _decodeOkJson(response);
     return DQQuestionResponse.fromJson(data);
   }
 
-  Future<void> submitAnswer(AnswerValue answer) async {
+  /// Submit an answer for the daily question.
+  Future<DQSubmitResponse> submitAnswer(AnswerValue answer) async {
+    print('[DQService] Calling submitAnswer...');
     final response = await _api.post('/daily_question/answer', {
       'answer': {
         'number': answer.number,
         'unit': answer.unit,
       }
     });
-    // Check status code - backend returns 200 on success
-    if (response.statusCode != 200) {
-      throw Exception(_extractErrorMessage(response));
-    }
+    final data = _decodeOkJson(response);
+    return DQSubmitResponse.fromJson(data);
   }
 
+  /// Get results for today's daily question.
   Future<DQResultsResponse> getResults() async {
+    print('[DQService] Calling getResults...');
     final response = await _api.get('/daily_question/results');
     final data = _decodeOkJson(response);
     return DQResultsResponse.fromJson(data);
@@ -307,22 +275,5 @@ class DailyQuestionService {
         '[DQService] Results response: ${response.statusCode} - ${response.body}');
     final data = _decodeOkJson(response);
     return DQResultsResponse.fromJson(data);
-  }
-
-  Future<List<DQHistoryItem>> getHistory() async {
-    final response = await _api.get('/daily_question/history');
-    final data = _decodeOkJson(response);
-    final list = data['history'] as List;
-    return list.map((e) => DQHistoryItem.fromJson(e)).toList();
-  }
-
-  Future<List<DQArchiveItem>> getArchive() async {
-    print('[DQService] Calling getArchive...');
-    final response = await _api.get('/daily_question/archive');
-    print(
-        '[DQService] Archive response: ${response.statusCode} - ${response.body}');
-    final data = _decodeOkJson(response);
-    final list = data['items'] as List;
-    return list.map((e) => DQArchiveItem.fromJson(e)).toList();
   }
 }

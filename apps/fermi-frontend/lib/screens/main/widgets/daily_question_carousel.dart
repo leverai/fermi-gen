@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 import 'package:fermi_frontend/screens/main/widgets/daily_question_card.dart';
@@ -30,68 +29,55 @@ class DailyQuestionCarousel extends StatelessWidget {
       return const SizedBox.shrink(); // Silently hide on API error
     }
 
-    // We want to show Today + Past 6 days in the carousel + Archive Button
-    // The controller has `archive` (all past DQs) and `statusResponse` (today).
-    // Let's combine them into a list of "Display Items".
-
-    // 1. Today
-    final todayItem = controller.statusResponse;
-    if (todayItem == null) {
-      // No DQ available - silently hide
-      return const SizedBox.shrink();
+    // Get sorted dates for carousel (most recent first)
+    final dates = controller.carouselDates;
+    if (dates.isEmpty) {
+      return const SizedBox.shrink(); // No DQs available
     }
 
-    // 2. Past items from archive (limit to last 6)
-    // Archive is already sorted by date desc from backend, but sort again to be safe
-    final archive = List.from(controller.archive);
-    archive
-        .sort((a, b) => b.questionDate.compareTo(a.questionDate)); // Descending
-
-    final recentArchive = archive.take(6).toList();
+    final todayDate = controller.todayDate;
+    final todayDocument = controller.todayDocument;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Text(
-            'Daily Question',
-            style: AppFont.primaryTextStyle(
-              context,
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: appTheme.text,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
         SizedBox(
-          height: 180, // Height for cards
+          height: 210, // Increased height to accommodate shadows
           child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            clipBehavior:
+                Clip.none, // Allow shadows to exceed carousel bounds if needed
             scrollDirection: Axis.horizontal,
-            itemCount: 1 +
-                recentArchive.length +
-                1, // Today + Archive + Archive Button
-            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            itemCount: dates.length + 1, // Dates + Archive Button
+            separatorBuilder: (context, index) => const SizedBox(width: 16),
             itemBuilder: (context, index) {
               // Archive Button (Last item)
-              if (index == 1 + recentArchive.length) {
-                return _buildArchiveButton(context, appTheme);
+              if (index == dates.length) {
+                return Align(
+                  alignment: Alignment.bottomCenter,
+                  child: _buildArchiveButton(context, appTheme),
+                );
               }
 
-              // Today (First item)
-              if (index == 0) {
-                final windowStatus = todayItem.windowStatus;
-                final userStatus = todayItem.userStatus;
-                final hasResults = todayItem.hasResults;
+              final date = dates[index];
+              final participated = controller.weeklyItems[date] ?? false;
+              final isToday = date == todayDate;
+              final hasUnseen = controller.hasUnseenResults(date);
 
-                // Determine display status and navigation behavior
-                String displayStatus;
-                VoidCallback? onTapCallback;
+              // Determine display status and navigation behavior
+              String displayStatus;
+              VoidCallback? onTapCallback;
 
-                if (windowStatus == 'ACTIVE') {
-                  if (userStatus == null || userStatus == 'NOT_STARTED') {
+              if (isToday) {
+                // Today's card: use real-time Firestore status
+                final status = todayDocument?.status ?? 'NOT_STARTED';
+                print(
+                    '[DQCarousel] isToday=true, date=$date, todayDate=$todayDate, '
+                    'todayDocument=${todayDocument != null}, status=$status, participated=$participated');
+
+                if (status == 'ACTIVE') {
+                  if (!participated) {
                     // User can play
                     displayStatus = 'ACTIVE';
                     onTapCallback = () {
@@ -102,43 +88,29 @@ class DailyQuestionCarousel extends StatelessWidget {
                         ),
                       );
                     };
-                  } else if (userStatus == 'IN_PROGRESS') {
-                    // User started but hasn't submitted - backend disallows re-start
-                    displayStatus = 'IN_PROGRESS';
-                    onTapCallback = () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content:
-                              Text('You have already started this question.'),
-                        ),
-                      );
-                    };
-                  } else if (userStatus == 'SUBMITTED') {
-                    // User submitted - show "submitted" state
+                  } else {
+                    // User already submitted
                     displayStatus = 'SUBMITTED';
                     onTapCallback = () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                              'You have already submitted your answer. Results available after 8 PM CT.'),
+                              'You have already submitted. Results available after deadline.'),
                         ),
                       );
                     };
-                  } else {
-                    displayStatus = 'ACTIVE';
-                    onTapCallback = null;
                   }
-                } else if (windowStatus == 'CLOSED') {
-                  if (hasResults) {
+                } else if (status == 'CLOSED') {
+                  final resultsReady = todayDocument?.resultsReady ?? false;
+                  if (resultsReady) {
                     // Results are ready - navigate to results
                     displayStatus = 'RESULTS_READY';
                     onTapCallback = () {
-                      print('[DQCarousel] Navigating to results');
+                      controller.markResultsSeen(date);
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) => DailyQuestionResultsScreen(
-                            questionDate: todayItem.questionDate ??
-                                DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                            questionDate: date,
                           ),
                         ),
                       );
@@ -156,45 +128,47 @@ class DailyQuestionCarousel extends StatelessWidget {
                     };
                   }
                 } else {
-                  // NOT_STARTED or other
-                  displayStatus = windowStatus;
-                  onTapCallback = null;
+                  // NOT_STARTED
+                  displayStatus = 'NOT_STARTED';
+                  onTapCallback = () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Coming soon! Check back at 12 PM UTC.'),
+                      ),
+                    );
+                  };
                 }
-
-                return SizedBox(
-                  width: 200, // Today is larger/wider
-                  child: DailyQuestionCard(
-                    date: DateTime.now(), // Today
-                    status: displayStatus,
-                    isToday: true,
-                    score: userStatus == 'SUBMITTED'
-                        ? null
-                        : null, // Score only shown in results
-                    rank: null,
-                    onTap: onTapCallback,
-                  ),
-                );
-              }
-
-              // Archive Items (past DQs)
-              final archiveItem = recentArchive[index - 1];
-              return DailyQuestionCard(
-                date: DateTime.parse(archiveItem.questionDate),
-                status:
-                    'RESULTS_READY', // All archive items are CLOSED with results
-                isToday: false,
-                score: archiveItem.userScore,
-                rank: archiveItem.userRank,
-                onTap: () {
-                  // Navigate to results view for past DQs
+              } else {
+                // Past dates: always RESULTS_READY (all past DQs are closed)
+                displayStatus = 'RESULTS_READY';
+                onTapCallback = () {
+                  controller.markResultsSeen(date);
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => DailyQuestionResultsScreen(
-                        questionDate: archiveItem.questionDate,
+                        questionDate: date,
                       ),
                     ),
                   );
-                },
+                };
+              }
+
+              return Align(
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: isToday
+                      ? MediaQuery.of(context).size.width - 72
+                      : 200, // Today is much wider
+                  child: DailyQuestionCard(
+                    date: DateTime.parse(date),
+                    status: displayStatus,
+                    isToday: isToday,
+                    participated: participated,
+                    hasUnseenResults: hasUnseen,
+                    showTitle: isToday,
+                    onTap: onTapCallback,
+                  ),
+                ),
               );
             },
           ),
@@ -216,6 +190,7 @@ class DailyQuestionCarousel extends StatelessWidget {
       borderRadius: BorderRadius.circular(appTheme.borderRadius),
       child: Container(
         width: 100,
+        height: 210, // Added explicit height to match cards
         decoration: BoxDecoration(
           color: appTheme.bgLight,
           borderRadius: BorderRadius.circular(appTheme.borderRadius),
@@ -223,6 +198,13 @@ class DailyQuestionCarousel extends StatelessWidget {
             color: appTheme.borderMuted,
             width: appTheme.borderWidth,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: appTheme.shadowColor,
+              offset: appTheme.shadowOffset,
+              blurRadius: 0,
+            ),
+          ],
         ),
         child: Center(
           child: Column(

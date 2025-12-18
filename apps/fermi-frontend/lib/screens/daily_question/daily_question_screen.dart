@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
+import 'package:fermi_frontend/services/auth_service.dart';
+import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
@@ -11,6 +13,7 @@ import 'package:fermi_frontend/widgets/question_widget.dart';
 import 'package:fermi_frontend/widgets/answer_accuracy_scale.dart';
 import 'package:fermi_frontend/widgets/slider_text_mirror.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
+import 'package:fermi_frontend/widgets/unit_tape.dart';
 
 class DailyQuestionScreen extends StatefulWidget {
   const DailyQuestionScreen({super.key});
@@ -22,10 +25,13 @@ class DailyQuestionScreen extends StatefulWidget {
 class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
   DQQuestionResponse? _question;
   bool _isLoading = true;
-  AnswerValue _currentAnswer = const AnswerValue(
-      number: 1, orderOfMagnitude: '', unit: ''); // Default valid answer
+  AnswerValue _currentAnswer =
+      const AnswerValue(number: 1, orderOfMagnitude: '', unit: '');
 
-  // UnitTapeController _unitTapeController = UnitTapeController(); // Removed unused
+  // Unit selection state
+  String _currentLocale = 'US';
+  List<String> _unitAbbreviations = [];
+  Map<String, String> _unitOptions = {}; // name -> abbreviation
 
   // Timer
   Timer? _timer;
@@ -45,11 +51,21 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
 
   Future<void> _startQuestion() async {
     final controller = context.read<DailyQuestionController>();
+    final authService = context.read<AuthService>();
+
     try {
       final question = await controller.startQuestion();
+
+      // Get user's locale preference, default to 'US'
+      final userLocale = authService.locale ?? 'US';
+
       setState(() {
         _question = question;
         _isLoading = false;
+        _currentLocale = userLocale;
+
+        // Initialize unit options from question
+        _initializeUnits(question.units, userLocale);
 
         // Start Timer
         final now = DateTime.now();
@@ -63,7 +79,6 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       });
     } catch (e) {
       if (mounted) {
-        // Show error and pop
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error: $e')));
         Navigator.of(context).pop();
@@ -71,17 +86,83 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     }
   }
 
+  void _initializeUnits(
+    Map<String, List<Map<String, String>>>? units,
+    String locale,
+  ) {
+    if (units == null || units.isEmpty) {
+      _unitAbbreviations = [];
+      _unitOptions = {};
+      return;
+    }
+
+    // Get units for the current locale
+    final localeUnits = units[locale.toUpperCase()] ?? units['US'] ?? [];
+
+    if (localeUnits.isEmpty) {
+      _unitAbbreviations = [];
+      _unitOptions = {};
+      return;
+    }
+
+    // Build abbreviations list and options map
+    _unitAbbreviations = localeUnits
+        .map((u) => u['abbreviation'] ?? '')
+        .where((a) => a.isNotEmpty)
+        .toList();
+
+    _unitOptions = {
+      for (final u in localeUnits)
+        if (u['name'] != null && u['abbreviation'] != null)
+          u['name']!: u['abbreviation']!
+    };
+
+    // Default to largest unit (last in ladder)
+    if (_unitAbbreviations.isNotEmpty) {
+      final defaultUnit = _unitAbbreviations.last;
+      _currentAnswer = _currentAnswer.copyWith(unit: defaultUnit);
+    }
+  }
+
+  void _onLocaleChanged(String newLocale) {
+    if (_question?.units == null) return;
+
+    setState(() {
+      _currentLocale = newLocale;
+      _initializeUnits(_question!.units, newLocale);
+    });
+
+    // Persist locale change to backend
+    final apiService = context.read<ApiService>();
+    apiService.setUserLocale(locale: newLocale);
+  }
+
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       setState(() {
         if (_timeLeft.inSeconds > 0) {
           _timeLeft = _timeLeft - const Duration(seconds: 1);
         } else {
           _timer?.cancel();
-          // Time up logic? Auto submit?
+          _autoSubmit();
         }
       });
     });
+  }
+
+  Future<void> _autoSubmit() async {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Time\'s up! Submitting your answer...'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+    await _submit();
   }
 
   Future<void> _submit() async {
@@ -89,7 +170,6 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     try {
       await controller.submitAnswer(_currentAnswer);
       if (mounted) {
-        // Show confirmation dialog before returning to main screen
         await showDialog(
           context: context,
           barrierDismissible: false,
@@ -138,6 +218,8 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       );
     }
 
+    final bool hasUnits = _unitAbbreviations.isNotEmpty;
+
     return Scaffold(
       backgroundColor: appTheme.bg,
       appBar: AppBar(
@@ -169,7 +251,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                     QuestionWidget(
                       text: _question!.text,
                       tags: [_question!.category, _question!.difficulty],
-                      height: 200, // Fixed height or auto?
+                      height: 200,
                     ),
                     const SizedBox(height: 32),
 
@@ -179,11 +261,21 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         SliderTextMirror(value: _currentAnswer),
-                        // Unit Tape if needed. Need data from question?
-                        // DQ Response usually doesn't have units unless implied or strict.
-                        // But we can enable it if we had units.
-                        // The `DQQuestionResponse` I defined didn't capture units.
-                        // Assuming simplified version without units for now or add if needed.
+                        if (hasUnits)
+                          UnitTape(
+                            units: _unitAbbreviations,
+                            unitOptions: _unitOptions,
+                            initialValue: _currentAnswer.unit,
+                            currentLocale: _currentLocale,
+                            onUnitChanged: (unit) {
+                              setState(() {
+                                _currentAnswer =
+                                    _currentAnswer.copyWith(unit: unit);
+                              });
+                            },
+                            onLocaleChanged: _onLocaleChanged,
+                            editable: true,
+                          ),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -194,7 +286,6 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                           _currentAnswer = val;
                         });
                       },
-                      // We check minimal constructor params
                     ),
                   ],
                 ),

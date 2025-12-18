@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TypedDict
 
+from fermi_core.schemas.units import UnitInfo
 from fermi_db.schemas import AnswerBare, QuestionCategory, QuestionDifficulty
 from pydantic import BaseModel
 
@@ -29,7 +30,9 @@ class DQQuestionData(BaseModel):
     text: str
     category: QuestionCategory | None
     difficulty: QuestionDifficulty | None
-    unit_hint: str | None = None  # Suggested unit if applicable
+    units: dict[str, list[UnitInfo]] | None = (
+        None  # Unit family: {US: [...], EU: [...]}
+    )
 
 
 class DQQuestionResponse(BaseModel):
