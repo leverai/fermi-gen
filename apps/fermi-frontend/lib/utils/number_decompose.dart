@@ -1,6 +1,20 @@
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/utils/om_constants.dart';
 
+/// Composes an AnswerValue back into its absolute numeric value.
+///
+/// This is the inverse of decomposeNumber, converting from
+/// (number, orderOfMagnitude) format back to an absolute value.
+///
+/// Examples:
+/// - AnswerValue(number: 1, om: 'K') -> 1000
+/// - AnswerValue(number: 400, om: 'M') -> 400000000
+/// - AnswerValue(number: 5, om: '') -> 5
+double composeNumber(AnswerValue answer) {
+  final multiplier = orderOfMagnitudeMultipliers[answer.orderOfMagnitude] ?? 1;
+  return answer.number.toDouble() * multiplier;
+}
+
 /// Decomposes an absolute number into (number, orderOfMagnitude) format.
 ///
 /// The number component will be in the range [1, 999] and the order of magnitude
