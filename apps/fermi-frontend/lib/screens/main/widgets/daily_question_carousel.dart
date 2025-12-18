@@ -4,7 +4,6 @@ import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 import 'package:fermi_frontend/screens/main/widgets/daily_question_card.dart';
 import 'package:fermi_frontend/screens/main/widgets/daily_question_archive_sheet.dart';
 import 'package:fermi_frontend/screens/daily_question/daily_question_screen.dart';
-import 'package:fermi_frontend/screens/daily_question/daily_question_results_screen.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 
@@ -89,13 +88,13 @@ class DailyQuestionCarousel extends StatelessWidget {
                       );
                     };
                   } else {
-                    // User already submitted
+                    // User already submitted - go to screen to view submission
                     displayStatus = 'SUBMITTED';
                     onTapCallback = () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              'You have already submitted. Results available after deadline.'),
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          // Don't pass questionDate - screen will use controller.todayDate
+                          builder: (context) => const DailyQuestionScreen(),
                         ),
                       );
                     };
@@ -103,13 +102,13 @@ class DailyQuestionCarousel extends StatelessWidget {
                 } else if (status == 'CLOSED') {
                   final resultsReady = todayDocument?.resultsReady ?? false;
                   if (resultsReady) {
-                    // Results are ready - navigate to results
+                    // Results are ready - navigate to unified screen
                     displayStatus = 'RESULTS_READY';
                     onTapCallback = () {
                       controller.markResultsSeen(date);
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => DailyQuestionResultsScreen(
+                          builder: (context) => DailyQuestionScreen(
                             questionDate: date,
                           ),
                         ),
@@ -145,7 +144,7 @@ class DailyQuestionCarousel extends StatelessWidget {
                   controller.markResultsSeen(date);
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => DailyQuestionResultsScreen(
+                      builder: (_) => DailyQuestionScreen(
                         questionDate: date,
                       ),
                     ),

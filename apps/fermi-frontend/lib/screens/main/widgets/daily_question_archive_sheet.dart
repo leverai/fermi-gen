@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 import 'package:fermi_frontend/screens/daily_question/daily_question_screen.dart';
-import 'package:fermi_frontend/screens/daily_question/daily_question_results_screen.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 
@@ -225,19 +224,21 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
                               ),
                             );
                           } else if (isActive && hasParticipated) {
-                            // Already submitted, show message
+                            // Already submitted - go to unified screen
                             Navigator.of(context).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    'Already submitted! Results available after the deadline.'),
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => DailyQuestionScreen(
+                                  questionDate: dateStr,
+                                ),
                               ),
                             );
                           } else {
-                            // Past date or closed - show results
+                            // Past date or closed - show unified screen with results
+                            Navigator.of(context).pop();
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => DailyQuestionResultsScreen(
+                                builder: (_) => DailyQuestionScreen(
                                   questionDate: dateStr,
                                 ),
                               ),
