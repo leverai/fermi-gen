@@ -142,9 +142,9 @@ run-frontend:
 	$(MAKE) migrate; \
 	echo "Seeding questions..." && \
 	uv run --package fermi-db python scripts/seed_test_questions.py --file apps/fermi-api/tests/data/test_questions.json --no-dq-history; \
+	docker compose up -d api && \
 	echo "Creating initial DQ..." && \
 	uv run --package fermi-db python scripts/manage_dq.py close_and_schedule; \
-	docker compose up -d api && \
 	echo "Launching Flutter app..." && \
 	cd apps/fermi-frontend && \
 	fvm flutter run -t lib/main.dart \

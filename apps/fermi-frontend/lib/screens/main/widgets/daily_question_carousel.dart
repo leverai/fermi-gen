@@ -18,7 +18,7 @@ class DailyQuestionCarousel extends StatelessWidget {
 
     if (controller.isLoading) {
       return const SizedBox(
-        height: 200,
+        height: 190,
         child: Center(child: CircularProgressIndicator()),
       );
     }
@@ -41,7 +41,7 @@ class DailyQuestionCarousel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 210, // Increased height to accommodate shadows
+          height: 190, // Increased height to accommodate shadows
           child: ListView.separated(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
@@ -156,8 +156,8 @@ class DailyQuestionCarousel extends StatelessWidget {
                 alignment: Alignment.topCenter,
                 child: SizedBox(
                   width: isToday
-                      ? MediaQuery.of(context).size.width - 72
-                      : 200, // Today is much wider
+                      ? MediaQuery.of(context).size.width - 148
+                      : 260, // Today is much wider
                   child: DailyQuestionCard(
                     date: DateTime.parse(date),
                     status: displayStatus,
@@ -189,7 +189,7 @@ class DailyQuestionCarousel extends StatelessWidget {
       borderRadius: BorderRadius.circular(appTheme.borderRadius),
       child: Container(
         width: 100,
-        height: 210, // Added explicit height to match cards
+        height: double.infinity, // Added explicit height to match cards
         decoration: BoxDecoration(
           color: appTheme.bgLight,
           borderRadius: BorderRadius.circular(appTheme.borderRadius),
@@ -197,13 +197,6 @@ class DailyQuestionCarousel extends StatelessWidget {
             color: appTheme.borderMuted,
             width: appTheme.borderWidth,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: appTheme.shadowColor,
-              offset: appTheme.shadowOffset,
-              blurRadius: 0,
-            ),
-          ],
         ),
         child: Center(
           child: Column(

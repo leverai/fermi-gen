@@ -115,7 +115,7 @@ class DqDoc(TypedDict):
 class DQEndResponse(BaseModel):
     """Response for POST /daily_question/end/{date}."""
 
-    closed_date: str  # YYYY-MM-DD
+    closed_date: str | None  # YYYY-MM-DD
     participants_ranked: int
     next_date: str | None = None  # YYYY-MM-DD, None if no questions available
     next_question_uid: str | None = None

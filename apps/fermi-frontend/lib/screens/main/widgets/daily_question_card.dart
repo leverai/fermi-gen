@@ -44,6 +44,8 @@ class DailyQuestionCard extends StatelessWidget {
         child: Stack(
           children: [
             Container(
+              width: double.infinity,
+              height: double.infinity,
               decoration: BoxDecoration(
                 color: isToday ? appTheme.primary : appTheme.bgLight,
                 borderRadius: BorderRadius.circular(appTheme.borderRadius),
@@ -51,22 +53,28 @@ class DailyQuestionCard extends StatelessWidget {
                   color: appTheme.border,
                   width: appTheme.borderWidth,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: appTheme.shadowColor,
-                    offset: appTheme.shadowOffset,
-                    blurRadius: 0,
-                  ),
-                ],
+                boxShadow: isToday
+                    ? [
+                        BoxShadow(
+                          color: appTheme.shadowColor,
+                          offset: appTheme.shadowOffset,
+                          blurRadius: 0,
+                        ),
+                      ]
+                    : [],
               ),
               padding: const EdgeInsets.all(16.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: isToday
+                    ? CrossAxisAlignment.start
+                    : CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Content
                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: isToday
+                        ? CrossAxisAlignment.start
+                        : CrossAxisAlignment.center,
                     children: [
                       if (showTitle) ...[
                         Text(
@@ -78,58 +86,106 @@ class DailyQuestionCard extends StatelessWidget {
                             color: isToday ? appTheme.bg : appTheme.text,
                           ),
                         ),
+                        Text(
+                          'Challenge the World!',
+                          style: AppFont.primaryTextStyle(
+                            context,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: isToday
+                                ? appTheme.bg.withOpacity(0.8)
+                                : appTheme.textMuted,
+                          ),
+                        ),
                         const SizedBox(height: 12),
                       ],
-                      // Date Header
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            weekdayFormat.format(date).toUpperCase(),
-                            style: AppFont.secondaryTextStyle(
-                              context,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: isToday ? appTheme.bg : appTheme.textMuted,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Text(
-                                dayFormat.format(date),
-                                style: AppFont.primaryTextStyle(
-                                  context,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w700,
-                                  color: isToday ? appTheme.bg : appTheme.text,
-                                  height: 1.0,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                monthFormat.format(date).toUpperCase(),
-                                style: AppFont.secondaryTextStyle(
-                                  context,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: isToday ? appTheme.bg : appTheme.text,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
                     ],
                   ),
 
-                  // Status Button
-                  _buildStatusButton(context, appTheme),
+                  const Spacer(),
+
+                  // Bottom part: Date and Status button
+                  Row(
+                    mainAxisAlignment: isToday
+                        ? MainAxisAlignment.spaceBetween
+                        : MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Date
+                      Column(
+                        crossAxisAlignment: isToday
+                            ? CrossAxisAlignment.start
+                            : CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!isToday)
+                            Text(
+                              weekdayFormat.format(date),
+                              style: AppFont.primaryTextStyle(
+                                context,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: appTheme.text,
+                              ),
+                            ),
+                          if (isToday) ...[
+                            Text(
+                              weekdayFormat.format(date).toUpperCase(),
+                              style: AppFont.secondaryTextStyle(
+                                context,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: appTheme.bg,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Text(
+                                  dayFormat.format(date),
+                                  style: AppFont.primaryTextStyle(
+                                    context,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w700,
+                                    color: appTheme.bg,
+                                    height: 1.0,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  monthFormat.format(date).toUpperCase(),
+                                  style: AppFont.secondaryTextStyle(
+                                    context,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: appTheme.bg,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+
+                      if (isToday) _buildStatusButton(context, appTheme),
+                    ],
+                  ),
                 ],
               ),
             ),
+            // Status Button for non-today cards (overlapping or in separate row?)
+            // Requirement says: "Move the status button from bottom left to bottom right"
+            // For older cards, they are narrower (200px vs full width).
+            // Let's refine the layout for older cards.
+            if (!isToday)
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: _buildStatusButton(context, appTheme, small: true),
+              ),
+
             // Unseen results indicator (green dot)
             if (hasUnseenResults)
               Positioned(
@@ -154,7 +210,8 @@ class DailyQuestionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusButton(BuildContext context, AppTheme appTheme) {
+  Widget _buildStatusButton(BuildContext context, AppTheme appTheme,
+      {bool small = false}) {
     String buttonText;
     Color bgColor;
     Color textColor;
@@ -202,12 +259,13 @@ class DailyQuestionCard extends StatelessWidget {
         color: bgColor,
         borderRadius: BorderRadius.circular(appTheme.borderRadius / 2),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.symmetric(
+          horizontal: small ? 8 : 12, vertical: small ? 4 : 8),
       child: Text(
         buttonText,
         style: AppFont.secondaryTextStyle(
           context,
-          fontSize: 14,
+          fontSize: small ? 12 : 14,
           fontWeight: FontWeight.w700,
           color: textColor,
         ),
