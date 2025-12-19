@@ -114,10 +114,13 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         // Start Timer
         final now = DateTime.now();
         final deadline = question.answerDeadline;
+        print('[DQ] Timer init - Now: $now, Deadline: $deadline');
         if (deadline.isAfter(now)) {
           _timeLeft = deadline.difference(now);
+          print('[DQ] Starting timer with ${_timeLeft.inSeconds} seconds');
           _startTimer();
         } else {
+          print('[DQ] WARNING: Deadline already passed! Cannot start timer.');
           _timeLeft = Duration.zero;
         }
       });
@@ -184,38 +187,61 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
+        print('[DQ] Timer cancelled - widget not mounted');
         timer.cancel();
         return;
       }
+
+      print(
+          '[DQ] Timer tick - Time left: ${_timeLeft.inSeconds}s, isSubmitted: $_isSubmitted');
+
       setState(() {
         if (_timeLeft.inSeconds > 0) {
           _timeLeft = _timeLeft - const Duration(seconds: 1);
-        } else {
-          _timer?.cancel();
-          _autoSubmit();
         }
       });
+
+      // Trigger auto-submit AFTER setState completes, when time reaches 0
+      if (_timeLeft.inSeconds <= 0 && !_isSubmitted) {
+        print('[DQ] ⏰ AUTO-SUBMIT TRIGGERED - Time expired!');
+        _timer?.cancel();
+        _autoSubmit();
+      }
     });
   }
 
   Future<void> _autoSubmit() async {
-    if (!mounted || _isSubmitted) return;
+    print(
+        '[DQ] _autoSubmit called - mounted: $mounted, isSubmitted: $_isSubmitted');
+    if (!mounted || _isSubmitted) {
+      print('[DQ] _autoSubmit early return - guards failed');
+      return;
+    }
+    print('[DQ] Showing "Time\'s up" snackbar...');
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Time\'s up! Submitting your answer...'),
         duration: Duration(seconds: 1),
       ),
     );
+    print('[DQ] Calling _submit()...');
     await _submit();
   }
 
   Future<void> _submit() async {
-    if (_isSubmitted) return;
+    print('[DQ] _submit called - isSubmitted: $_isSubmitted');
+    if (_isSubmitted) {
+      print('[DQ] _submit early return - already submitted');
+      return;
+    }
 
     final controller = context.read<DailyQuestionController>();
     try {
+      print('[DQ] Submitting answer to backend...');
       await controller.submitAnswer(_currentAnswer);
       if (mounted) {
+        print(
+            '[DQ] Answer submitted successfully, cancelling timer and updating state');
         _timer?.cancel();
         setState(() {
           _isSubmitted = true;
@@ -228,6 +254,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         );
       }
     } catch (e) {
+      print('[DQ] Error submitting answer: $e');
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error submitting: $e')));
@@ -355,7 +382,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                           // Question-Answer Card
                           QuestionAnswerCard(
                             questionText: _question!.text,
-                            tags: [_question!.category, _question!.difficulty],
+                            tags: const [], // No tags for daily question
                             currentAnswer: _currentAnswer,
                             submittedAnswer: null,
                             unitOptions: _unitOptions,

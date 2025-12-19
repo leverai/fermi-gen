@@ -18,6 +18,7 @@ from fermi_db.schemas import AnswerBare, DailyQuestionStatus
 
 from app.services.daily_question.firestore_writer import DQFirestoreWriter
 from app.services.daily_question.schemas import (
+    DQEndResponse,
     DQLeaderboardEntry,
     DQLiteArchiveResponse,
     DQQuestionData,
@@ -142,6 +143,11 @@ class DailyQuestionService:
 
         # Calculate answer deadline
         answer_deadline_utc = get_answer_deadline(now_utc, window_end_utc)
+        seconds_remaining = seconds_until(answer_deadline_utc, now_utc)
+        print(
+            f'[DQ Service] Deadline calculation: now={now_utc}, window_end={window_end_utc}, '
+            f'answer_deadline={answer_deadline_utc}, seconds_to_answer={seconds_remaining:.1f}',
+        )
 
         # Record user start in Firestore
         await fs_writer.record_user_start(
@@ -174,7 +180,7 @@ class DailyQuestionService:
                 difficulty=fermi.difficulty,
                 units=units,
             ),
-            answer_deadline_utc=answer_deadline_utc.isoformat(),
+            answer_deadline_utc=answer_deadline_utc.isoformat() + 'Z',
             seconds_to_answer=seconds_until(answer_deadline_utc, now_utc),
         )
 
@@ -266,8 +272,6 @@ class DailyQuestionService:
             started_at=user_session['started_at'],
             submitted_at=now_utc,
         )
-
-        # Commit the database transaction
         await self._db.session.commit()
 
         # Mark user session as submitted in Firestore (keep for tracking)
@@ -461,3 +465,214 @@ class DailyQuestionService:
             items=items,
             today=today.strftime('%Y-%m-%d'),
         )
+
+    async def close_active_and_schedule_new_dq(
+        self,
+        firestore_client: 'AsyncClient',
+    ) -> DQEndResponse:
+        """Close the active DQ (if any) and schedule the next one.
+
+        This is designed to handle the first run gracefully - if no active DQ exists,
+        the close step is skipped and only scheduling happens.
+        """
+        now_utc = utcnow_naive()
+        today = get_dq_date_for_utc(now_utc)
+        fs_writer = DQFirestoreWriter(firestore_client)
+
+        # Try to close the active DQ if one exists
+        active_date = await self._db.daily_questions.get_active_dq_date()
+        closed_date: str | None = None
+        participants_ranked = 0
+
+        if active_date:
+            closed_date, participants_ranked = await self._close_dq_for_date(
+                active_date,
+                fs_writer,
+            )
+        else:
+            logger.info('No active DQ to close, proceeding to schedule new DQ')
+
+        # Schedule the new DQ (either the day after the closed one, or today)
+        next_date = active_date + datetime.timedelta(days=1) if active_date else today
+        next_date_str, next_question_uid = await self._schedule_new_dq_for_date(
+            next_date,
+            fs_writer,
+        )
+
+        return DQEndResponse(
+            closed_date=closed_date,
+            participants_ranked=participants_ranked,
+            next_date=next_date_str,
+            next_question_uid=next_question_uid,
+        )
+
+    async def _close_dq_for_date(
+        self,
+        question_date: datetime.date,
+        fs_writer: DQFirestoreWriter,
+    ) -> tuple[str | None, int]:
+        """Close the DQ for a given date.
+
+        Steps:
+        1. Close the Firestore document
+        2. Close the database entry (set status to CLOSED)
+        3. Compute and update participant ranks
+        4. Set results_ready in Firestore
+
+        Args:
+            question_date: The date of the DQ to close.
+            fs_writer: Firestore writer instance.
+
+        Returns:
+            Tuple of (closed_date as string, participants_ranked count).
+            Returns (None, 0) if DQ doesn't exist or is already closed.
+
+        """
+        dq = await self._db.daily_questions.get_dq_for_date(question_date)
+        assert dq.id is not None
+
+        # Step 1: Close Firestore document
+        try:
+            await fs_writer.close_dq_document(question_date)
+            logger.info('Closed Firestore document for %s', question_date)
+        except Exception:
+            logger.exception(
+                'Failed to close Firestore document for %s',
+                question_date,
+            )
+
+        # Step 2: Close DB entry
+        await self._db.daily_questions.update_dq_status(
+            dq.id,
+            DailyQuestionStatus.CLOSED,
+        )
+        logger.info('Closed DB entry for DQ %s', dq.id)
+
+        # Step 3: Compute and update ranks
+        participants_ranked = await self._db.dq_answers.compute_and_update_ranks(dq.id)
+        logger.info('Computed ranks for %d participants', participants_ranked)
+
+        # Commit DB changes for closing
+        await self._db.session.commit()
+
+        # Step 4: Set results ready in Firestore
+        try:
+            await fs_writer.set_results_ready(question_date)
+            logger.info('Set results_ready for %s', question_date)
+        except Exception:
+            logger.exception('Failed to set results_ready for %s', question_date)
+
+        return question_date.strftime('%Y-%m-%d'), participants_ranked
+
+    async def _schedule_new_dq_for_date(
+        self,
+        next_date: datetime.date,
+        fs_writer: DQFirestoreWriter,
+    ) -> tuple[str | None, str | None]:
+        """Schedule a new DQ for the given date.
+
+        Steps:
+        1. Schedule the DQ in the database
+        2. Create the Firestore document
+
+        Args:
+            next_date: The date to schedule the DQ for.
+            fs_writer: Firestore writer instance.
+
+        Returns:
+            Tuple of (next_date as string, next_question_uid).
+            Returns (None, None) if scheduling fails.
+
+        """
+        next_window_start, next_window_end = get_window_for_date_utc(next_date)
+        next_question_uid: str | None = None
+        scheduled_date: datetime.date | None = next_date
+
+        try:
+            next_dq = await self._db.daily_questions.schedule_dq_for_date(
+                next_date,
+                next_window_start,
+                next_window_end,
+            )
+            # Commit DB changes for scheduling
+            await self._db.session.commit()
+            next_question_uid = str(next_dq.question_uid)
+            logger.info(
+                'Scheduled DQ for %s with question %s',
+                next_date,
+                next_question_uid,
+            )
+        except ValueError:
+            logger.exception('Could not schedule next DQ')
+            scheduled_date = None
+
+        if scheduled_date:
+            # Create Firestore document for next DQ
+            try:
+                await fs_writer.create_dq_document(
+                    scheduled_date,
+                    next_question_uid,
+                    next_window_start,
+                    next_window_end,
+                )
+                logger.info('Created Firestore document for %s', scheduled_date)
+            except Exception:
+                logger.exception(
+                    'Failed to create Firestore document for %s',
+                    scheduled_date,
+                )
+
+        return (
+            scheduled_date.strftime('%Y-%m-%d') if scheduled_date else None,
+            next_question_uid,
+        )
+
+    async def _activate_scheduled_dq_for_date(
+        self,
+        question_date: datetime.date,
+        firestore_client: 'AsyncClient',
+    ) -> None:
+        """Activate the scheduled DQ for a given date.
+        1. Call `update_dq_status` @daily_question_repository.py#L124-142  to activate
+        the scheduled DQ.
+        2. Updates the DQ doc status to ACTIVE.
+        """
+        # Get the DQ for the given date to activate it.
+        dq = await self._db.daily_questions.get_dq_for_date(question_date)
+        if not dq:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='No Scheduled DQ found for the given date.',
+            )
+        if dq.status == DailyQuestionStatus.ACTIVE:
+            logger.warning('DQ for %s is already active', question_date)
+            return
+        if dq.status == DailyQuestionStatus.CLOSED:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='DQ for %s is closed',
+            )
+        await self._db.daily_questions.update_dq_status(
+            dq.id,
+            DailyQuestionStatus.ACTIVE,
+        )
+        await self._db.session.commit()
+
+        fs_writer = DQFirestoreWriter(firestore_client)
+        try:
+            await fs_writer.activate_dq_document(question_date)
+            logger.info('Set active for %s', question_date)
+        except Exception as exc:
+            logger.exception('Failed to set active for %s', question_date)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail='Failed to set active for %s',
+            ) from exc
+
+    async def activate_scheduled_dq(self, firestore_client: 'AsyncClient') -> None:
+        """Activate the scheduled DQ for this date. This is invoked by a scheduled job
+        at 12PM UTC.
+        """
+        now_utc = utcnow_naive()
+        today = get_dq_date_for_utc(now_utc)
+        await self._activate_scheduled_dq_for_date(today, firestore_client)

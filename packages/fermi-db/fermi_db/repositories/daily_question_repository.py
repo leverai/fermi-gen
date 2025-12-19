@@ -124,20 +124,26 @@ class DailyQuestionRepository(BaseRepository):
         self,
         dq_id: int,
         status: DailyQuestionStatus,
-    ) -> None:
+    ) -> bool:
         """Update the status of a daily question.
 
         Args:
             dq_id: The ID of the daily question.
             status: The new status.
 
+        Returns:
+            True if the update was successful, False otherwise.
+
         """
         statement = select(DailyQuestion).where(DailyQuestion.id == dq_id)
         result = await self.session.exec(statement)
         dq = result.one()
+        if not dq:
+            return False
         dq.status = status
         self.session.add(dq)
         await self.session.flush()
+        return True
 
     async def get_next_unused_fermi_dq(self) -> Fermi | None:
         """Get the next unused DQ-flagged question.
@@ -175,6 +181,19 @@ class DailyQuestionRepository(BaseRepository):
 
         """
         statement = select(DailyQuestion).where(
+            DailyQuestion.status == DailyQuestionStatus.ACTIVE,
+        )
+        result = await self.session.exec(statement)
+        return result.one_or_none()
+
+    async def get_active_dq_date(self) -> datetime.date | None:
+        """Get the date of the currently active daily question.
+
+        Returns:
+            The date of the active daily question, or None.
+
+        """
+        statement = select(DailyQuestion.question_date).where(
             DailyQuestion.status == DailyQuestionStatus.ACTIVE,
         )
         result = await self.session.exec(statement)

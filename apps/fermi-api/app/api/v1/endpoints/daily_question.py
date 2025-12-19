@@ -14,6 +14,7 @@ from app.api.v1.dependencies import (
 )
 from app.services.daily_question.schemas import (
     DQAnswerRequest,
+    DQEndResponse,
     DQLiteArchiveResponse,
     DQQuestionResponse,
     DQResultsResponse,
@@ -130,3 +131,36 @@ async def get_archive_month(
         year=year,
         month=month,
     )
+
+
+@router.post('/close_and_schedule', response_model=DQEndResponse)
+async def close_and_schedule_dq(
+    firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
+    dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
+) -> DQEndResponse:
+    """End the active DQ and schedule the next one.
+
+    Called by Cloud Scheduler at 2AM UTC to:
+    1. Close the DQ document in Firestore
+    2. Close the DQ entry in the database
+    3. Compute and update participant ranks
+    4. Schedule the next day's DQ
+    5. Set results_ready in Firestore
+
+    This endpoint has no user authentication as it's called by Cloud Scheduler.
+    In production, Cloud Run ingress rules and IAM protect this endpoint.
+    """
+    return await dq_service.close_active_and_schedule_new_dq(
+        firestore_client=firestore_client,
+    )
+
+
+@router.post('/activate', response_model=DQEndResponse)
+async def activate_dq(
+    firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
+    dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
+) -> DQEndResponse:
+    """Activate the scheduled DQ for this date. This is invoked by a scheduled job at
+    12PM UTC.
+    """
+    return await dq_service.activate_scheduled_dq(firestore_client=firestore_client)

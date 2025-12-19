@@ -420,6 +420,8 @@ Located in `app/services/daily_question/`:
 | `GET /daily_question/results/{date}` | Get results for a specific date |
 | `GET /daily_question/archive/week` | Lite archive for carousel (past 7 days + today) |
 | `GET /daily_question/archive/month?year=&month=` | Lite archive for calendar view |
+| `POST /daily_question/close_and_schedule` | End today's DQ and schedule the next one. This is invoked by a scheduled job at 2AM UTC. |
+| `POST /daily_question/activate` | Activate the scheduled DQ for this date. This is invoked by a scheduled job at 12PM UTC. |
 
 The frontend gets DQ status (NOT_STARTED/ACTIVE/CLOSED) by subscribing to the Firestore document, not via API.
 
