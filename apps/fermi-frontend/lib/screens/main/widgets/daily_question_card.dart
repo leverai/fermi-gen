@@ -321,7 +321,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
         // Show countdown timer if windowStart is available
         if (widget.windowStart != null) {
           final remaining = _formatRemainingTime(_timeUntilActive);
-          buttonText = 'Starts in $remaining';
+          buttonText = 'Starts in: $remaining';
         } else {
           buttonText = 'Coming Soon';
         }
