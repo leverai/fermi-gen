@@ -13,6 +13,7 @@ class MeTab extends StatelessWidget {
     this.displayName,
     required this.isAnonymous,
     this.onCreateAccount,
+    this.onEditProfile,
   });
 
   /// URL of the user's avatar image.
@@ -26,6 +27,9 @@ class MeTab extends StatelessWidget {
 
   /// Callback when "Create Account" button is pressed.
   final VoidCallback? onCreateAccount;
+
+  /// Callback when "Edit Profile" (pencil) is pressed.
+  final VoidCallback? onEditProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -50,14 +54,56 @@ class MeTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          Text(
-            displayName ?? 'Guest',
-            style: AppFont.primaryTextStyle(
-              context,
-              fontSize: 32,
-              fontWeight: FontWeight.w600,
-              color: appTheme.text,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Balance the Row so the name remains perfectly centered
+              if (onEditProfile != null) ...[
+                Opacity(
+                  opacity: 0,
+                  child: IgnorePointer(
+                    child: IconButton(
+                      onPressed: null,
+                      icon: const Icon(Icons.edit),
+                      // Maintain exact same size constraints
+                      padding: const EdgeInsets.all(8.0),
+                      constraints: const BoxConstraints(
+                        minWidth: kMinInteractiveDimension,
+                        minHeight: kMinInteractiveDimension,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Text(
+                  displayName ?? 'Guest',
+                  style: AppFont.primaryTextStyle(
+                    context,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w600,
+                    color: appTheme.text,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (onEditProfile != null) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: onEditProfile,
+                  icon: Icon(Icons.edit, color: appTheme.textMuted),
+                  tooltip: 'Edit Profile',
+                  splashColor: appTheme.primary.withOpacity(0.3),
+                  highlightColor: appTheme.primary.withOpacity(0.1),
+                  padding: const EdgeInsets.all(8.0),
+                  constraints: const BoxConstraints(
+                    minWidth: kMinInteractiveDimension,
+                    minHeight: kMinInteractiveDimension,
+                  ),
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: 8),
           if (isAnonymous)

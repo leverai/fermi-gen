@@ -617,7 +617,43 @@ Unlike `/history`, this endpoint returns **all** closed DQs regardless of whethe
 - `user_score` and `user_rank` are `null` if user didn't participate
 - Designed for carousel/archive UI that shows all DQs
 
-#### Local Testing
+### User Endpoints
+
+#### `POST /user/delete`
+Deletes the authenticated user and all associated data from the database.
+
+-   **Request:** (No body)
+-   **Response (200 OK):** Literal[200]
+-   **Errors:**
+    -   `401 Unauthorized`: If the access token is missing or invalid.
+-   **Side Effects:**
+    -   The user record is deleted from the `user` table.
+    -   All associated data is deleted:
+        -   `user_question_history` entries for the user
+        -   `answer_events` entries for the user
+        -   `questions_votes` entries for the user
+    -   The operation is idempotent: calling it multiple times has no additional effect after the first successful deletion.
+
+#### `POST /user/set_locale`
+Setting the user's locale to US/EU
+
+-   **Request Body:** `SetLocaleRequest`
+    ```json
+    {
+      "locale": "string"
+    }
+    ```
+-   **Response (200 OK):** Literal[200]
+
+### Assets Endpoints
+
+#### `GET /assets/avatars`
+
+-   **Request:** (No body)
+-   **Response (200 OK):** `GetAvatarsResponse`
+
+
+### Local Testing
 
 For local development and testing, use the `manage_dq.py` script to manage daily questions:
 
@@ -648,32 +684,6 @@ python scripts/manage_dq.py seed --count 10
 4. To test history/archive: Use `python scripts/manage_dq.py advance` to create past DQs
 
 ---
-
-#### `POST /user/set_locale`
-Setting the user's locale to US/EU
-
--   **Request Body:** `SetLocaleRequest`
-    ```json
-    {
-      "locale": "string"
-    }
-    ```
--   **Response (200 OK):** Literal[200]
-
-#### `POST /user/delete`
-Deletes the authenticated user and all associated data from the database.
-
--   **Request:** (No body)
--   **Response (200 OK):** Literal[200]
--   **Errors:**
-    -   `401 Unauthorized`: If the access token is missing or invalid.
--   **Side Effects:**
-    -   The user record is deleted from the `user` table.
-    -   All associated data is deleted:
-        -   `user_question_history` entries for the user
-        -   `answer_events` entries for the user
-        -   `questions_votes` entries for the user
-    -   The operation is idempotent: calling it multiple times has no additional effect after the first successful deletion.
 
 ## Game Flow Walkthrough
 

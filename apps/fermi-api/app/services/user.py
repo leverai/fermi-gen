@@ -28,6 +28,19 @@ class UserService:
         """Set a user's locale."""
         await self._user_repository.update_locale(user_id, locale)
 
+    async def update_user_profile(
+        self,
+        user_id: int,
+        display_name: str | None = None,
+        picture: str | None = None,
+    ) -> None:
+        """Update a user's profile."""
+        await self._user_repository.update_user(
+            user_id,
+            display_name=display_name,
+            picture=picture,
+        )
+
     async def delete_user(self, user_id: int) -> None:
         """Delete a user and all associated data, including Firebase account."""
         # Get user to retrieve firebase_uid before deletion

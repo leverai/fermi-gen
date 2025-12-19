@@ -145,3 +145,16 @@ class SetLocaleRequest(BaseModel):
     """Request model for setting a user's locale."""
 
     locale: Locale
+
+
+class UpdateUserProfileRequest(BaseModel):
+    """Request model for updating a user's profile."""
+
+    display_name: str | None = None
+    avatar_url: str | None = None
+
+
+class GetAvatarsResponse(BaseModel):
+    """Response model for getting avatars."""
+
+    avatars: list[str]

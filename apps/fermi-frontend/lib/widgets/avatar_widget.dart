@@ -60,24 +60,29 @@ class AvatarWidget extends StatelessWidget {
             ? Border.all(color: borderColor!, width: borderWidth)
             : null,
       ),
-      child: ClipOval(
-        child: imageUrl == null
-            ? Center(child: placeholderWidget)
-            : Padding(
-                padding: padding,
-                child: _isSvg
-                    ? _buildSvgImage(placeholderWidget)
-                    : _buildRasterImage(placeholderWidget),
-              ),
+      child: Padding(
+        padding: padding,
+        child: ClipOval(
+          child: imageUrl == null
+              ? Center(child: placeholderWidget)
+              : (_isSvg
+                  ? _buildSvgImage(placeholderWidget)
+                  : _buildRasterImage(placeholderWidget)),
+        ),
       ),
     );
   }
 
   Widget _buildSvgImage(Widget placeholderWidget) {
-    return SvgPicture.network(
-      imageUrl!,
-      fit: BoxFit.contain,
-      placeholderBuilder: (context) => Center(child: placeholderWidget),
+    // Scale down to fit the square SVG inside the circle (1/sqrt(2) approx 0.707)
+    return FractionallySizedBox(
+      widthFactor: 0.707,
+      heightFactor: 0.707,
+      child: SvgPicture.network(
+        imageUrl!,
+        fit: BoxFit.contain,
+        placeholderBuilder: (context) => Center(child: placeholderWidget),
+      ),
     );
   }
 

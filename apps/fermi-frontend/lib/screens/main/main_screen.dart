@@ -19,6 +19,7 @@ import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 import 'package:fermi_frontend/screens/main/widgets/me_tab.dart';
 import 'package:fermi_frontend/screens/main/widgets/games_tab.dart';
 import 'package:fermi_frontend/screens/main/widgets/party_bottom_sheet.dart';
+import 'package:fermi_frontend/screens/main/widgets/profile_sheet.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({
@@ -265,6 +266,24 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
+  void _handleEditProfile() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ProfileSheet(
+        apiService: widget.apiService,
+        currentDisplayName: widget.authService.currentUser?.displayName,
+        currentAvatarUrl: widget.authService.currentUser?.picture,
+        onSave: (displayName, avatarUrl) async {
+          // Refresh user data to update the UI
+          await widget.authService.refreshAccessToken();
+          if (mounted) setState(() {});
+        },
+      ),
+    );
+  }
+
   // --------------------------------------------------------------------------
   // Build Helpers
   // --------------------------------------------------------------------------
@@ -364,6 +383,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                       .authService.currentUser?.displayName,
                                   isAnonymous: widget.authService.isAnonymous,
                                   onCreateAccount: _handleCreateAccount,
+                                  onEditProfile: _handleEditProfile,
                                 ),
                               ),
                             ],
