@@ -68,46 +68,47 @@ apps/fermi-frontend/
     │   └── player_stats.dart         # Player statistics
     ├── screens/
     │   ├── main/
-    │   │   ├── main_screen.dart
+    │   │   ├── main_screen.dart      # Main screen with tab navigation
     │   │   ├── main_screen_controller.dart
     │   │   └── widgets/
-    │   │       ├── top_bar_lock_avatar.dart
-    │   │       ├── percentile_panel.dart
-    │   │       └── primary_cta.dart
+    │   │       ├── games_tab.dart            # Games tab content
+    │   │       ├── me_tab.dart               # Me tab with user profile
+    │   │       ├── party_bottom_sheet.dart   # Party game settings sheet
+    │   │       ├── daily_question_carousel.dart
+    │   │       ├── daily_question_card.dart
+    │   │       ├── daily_question_archive_sheet.dart
+    │   │       ├── primary_cta.dart
+    │   │       └── top_bar_lock_avatar.dart
     │   ├── lobby/
     │   │   ├── lobby_screen.dart
     │   │   └── lobby_screen_controller.dart
-    │   ├── question_v2/                    # NEW: Question Screen V2 (current)
+    │   ├── daily_question/                   # Daily Question feature
+    │   │   ├── daily_question_screen.dart
+    │   │   └── daily_question_results_screen.dart
+    │   ├── question_v2/                      # Question Screen V2 (current)
     │   │   ├── question_screen_v2.dart
     │   │   ├── question_screen_v2_controller.dart
-    │   │   ├── controllers/                # NEW: Sub-controllers
-    │   │   │   └── game_timer_manager.dart
-    │   │   ├── models/                     # NEW: Local models
+    │   │   ├── controllers/                  # Manager classes
+    │   │   │   ├── animation_state_manager.dart
+    │   │   │   ├── answer_submission_handler.dart
+    │   │   │   ├── confetti_manager.dart
+    │   │   │   ├── game_timer_manager.dart
+    │   │   │   ├── navigation_coordinator.dart
+    │   │   │   ├── player_state_manager.dart
+    │   │   │   └── question_state_manager.dart
+    │   │   ├── models/
     │   │   │   ├── question_state.dart
     │   │   │   └── question_pane_state.dart
     │   │   └── widgets/
     │   │       ├── game_carousel.dart
     │   │       ├── game_card.dart
     │   │       └── quick_access_bar.dart
-    │   └── question/                       # Legacy V1 (kept for reference)
-    │       ├── question_screen.dart
-    │       ├── question_screen_controller.dart
-    │       ├── question_pane.dart
-    │       ├── models/
-    │       │   ├── question_view_model.dart
-    │       │   ├── answer_result.dart
-    │       │   └── question_flow_controller.dart
-    │       ├── widgets/
-    │       │   ├── players_header.dart
-    │       │   ├── question_pane_body.dart
-    │       │   ├── submit_bar.dart
-    │       │   └── pane_bindings.dart
-    │       └── helpers/
-    │           ├── layout_calculator.dart
-    │           └── snack.dart
+    │   └── question/                         # Legacy V1 (reference only)
+    │       └── ...
     ├── services/
     │   ├── api_service.dart
     │   ├── auth_service.dart
+    │   ├── daily_question_service.dart
     │   ├── player_stats_service.dart
     │   ├── game_realtime.dart
     │   ├── firestore_game_realtime.dart
@@ -116,6 +117,8 @@ apps/fermi-frontend/
     │   └── demo/
     │       ├── demo_game_realtime.dart
     │       └── demo_synth.dart
+    ├── controllers/
+    │   └── daily_question_controller.dart
     ├── state/
     │   └── question_pane_controller.dart
     ├── theme/
@@ -124,6 +127,7 @@ apps/fermi-frontend/
     │   ├── colormap.dart            # Score/percentile to color lerp (danger→success)
     │   └── layout_constants.dart    # Sizing/spacing constants
     └── widgets/
+        ├── avatar_widget.dart          # Reusable avatar (SVG/raster support)
         ├── answer_accuracy_scale.dart  # Continuous logarithmic slider (1 to 999T)
         ├── slider_text_mirror.dart     # Real-time value display (e.g., "124 Million")
         ├── percentile_widget.dart      # Compact "Top X%" display with animations

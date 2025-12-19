@@ -6,20 +6,19 @@ import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/services/preload_service.dart';
-import 'package:fermi_frontend/screens/main/widgets/primary_cta.dart';
 import 'package:fermi_frontend/config/app_config.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
-import 'package:fermi_frontend/widgets/selector_widget.dart';
-import 'package:fermi_frontend/widgets/lock_toggle_chip.dart';
-import 'package:fermi_frontend/widgets/categories/category_carousel_m3.dart';
 import 'package:fermi_frontend/widgets/settings_menu.dart';
 import 'package:fermi_frontend/widgets/styled_dialog.dart';
+import 'package:fermi_frontend/widgets/avatar_widget.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
-import 'package:fermi_frontend/screens/main/widgets/daily_question_carousel.dart';
+import 'package:fermi_frontend/screens/main/widgets/me_tab.dart';
+import 'package:fermi_frontend/screens/main/widgets/games_tab.dart';
+import 'package:fermi_frontend/screens/main/widgets/party_bottom_sheet.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({
@@ -41,9 +40,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late final MainScreenController _controller;
-  // We keep _controller here for lifecycle management, but we will also provide it.
-
-  // ... (existing state) ...
 
   DateTime? _lastResumeTime;
   bool _isSettingsOpen = false;
@@ -102,6 +98,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  // --------------------------------------------------------------------------
+  // Navigation Handlers
+  // --------------------------------------------------------------------------
+
   void _onBottomNavTapped(int index) {
     setState(() => _currentIndex = index);
     _pageController.animateToPage(
@@ -115,17 +115,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     setState(() => _currentIndex = index);
   }
 
-  List<CategoryItemM3> _categories() {
-    final cfg = _controller.configDto;
-    if (cfg == null) return const <CategoryItemM3>[];
-    return cfg.categories
-        .map((c) => CategoryItemM3(
-              id: c.index.toString(),
-              title: c.slug,
-              svgPath: c.picture,
-            ))
-        .toList(growable: false);
-  }
+  // --------------------------------------------------------------------------
+  // Game Action Handlers
+  // --------------------------------------------------------------------------
 
   Future<void> _onPrimaryAction() async {
     try {
@@ -217,6 +209,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
+  // --------------------------------------------------------------------------
+  // Settings Handlers
+  // --------------------------------------------------------------------------
+
   void _toggleSettings() {
     setState(() {
       _isSettingsOpen = !_isSettingsOpen;
@@ -269,339 +265,28 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _showPartyBottomSheet(BuildContext context, AppTheme appTheme) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: appTheme.bgLight,
-      isScrollControlled: true,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            // Rebuild sheet when controller notifies
-            return AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                final items = _categories();
-                return Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          'Party Settings',
-                          style: AppFont.primaryTextStyle(
-                            context,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w600,
-                            color: appTheme.text,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        CategoryCarouselM3(
-                          categories: items,
-                          initialIndex: _controller.selectedCategoryIndex,
-                          onCategorySelected: _controller.selectCategoryIndex,
-                          onCenteredIndexChanged:
-                              _controller.selectCategoryIndex,
-                          startColor: HSLColor.fromColor(appTheme.primary),
-                        ),
-                        const SizedBox(height: 0),
-                        SelectorWidget(
-                          options: _controller.difficulties
-                              .map((d) => SelectorOption(
-                                    label: d.slug,
-                                    value: d.name,
-                                    iconUrl: d.picture,
-                                  ))
-                              .toList(),
-                          selected: _controller.selectedDifficulty,
-                          onChanged: (value) {
-                            if (value == null ||
-                                value == _controller.selectedDifficulty) {
-                              _controller.selectDifficulty(null);
-                            } else {
-                              _controller.selectDifficulty(value);
-                            }
-                          },
-                          allowNoSelection: true,
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            LockToggleChip(
-                              isLocked: _controller.isLocked,
-                              onToggle: _controller.toggleLock,
-                            ),
-                            const SizedBox(width: 24),
-                            Expanded(
-                              child: PrimaryCta(
-                                isLoading: _controller.isSubmitting,
-                                onPressed: _onPrimaryAction,
-                                isLocked: _controller.isLocked,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
+  // --------------------------------------------------------------------------
+  // Build Helpers
+  // --------------------------------------------------------------------------
 
-  Widget _buildTopBar(AppTheme appTheme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SvgPicture.asset(
-            'assets/icons/llc_logo.svg',
-            height: 24,
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Container(
-              width: 1,
-              height: 24,
-              color: appTheme.borderMuted,
-            ),
-          ),
-          SvgPicture.asset(
-            'assets/icons/logo-fg.svg',
-            height: 22,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMeTab(AppTheme appTheme) {
+  Widget _buildMeIcon(AppTheme appTheme) {
     final user = widget.authService.currentUser;
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: appTheme.bgLight,
-                  border: Border.all(
-                    color: appTheme.border,
-                    width: 2,
-                  ),
-                ),
-                child: ClipOval(
-                  child: user?.picture != null
-                      ? (user!.picture!.toLowerCase().endsWith('.svg')
-                          ? Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: SvgPicture.network(
-                                user.picture!,
-                                fit: BoxFit.contain,
-                                placeholderBuilder: (context) => Container(
-                                  color: appTheme.bgLight,
-                                  child: const Center(
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  ),
-                                ),
-                              ),
-                            )
-                          : Image.network(
-                              user.picture!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Icon(
-                                Icons.person,
-                                size: 64,
-                                color: appTheme.borderMuted,
-                              ),
-                            ))
-                      : Icon(
-                          Icons.person,
-                          size: 64,
-                          color: appTheme.borderMuted,
-                        ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text(
-            user?.displayName ?? 'Guest',
-            style: AppFont.primaryTextStyle(
-              context,
-              fontSize: 32,
-              fontWeight: FontWeight.w600,
-              color: appTheme.text,
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (widget.authService.isAnonymous)
-            TextButton(
-              onPressed: _handleCreateAccount,
-              child: Text(
-                'Create Account',
-                style: TextStyle(color: appTheme.primary, fontSize: 16),
-              ),
-            ),
-        ],
-      ),
+    if (user?.picture == null) {
+      return const Icon(Icons.person);
+    }
+
+    return AvatarWidget(
+      imageUrl: user!.picture,
+      size: 24,
     );
   }
 
-  Widget _buildGamesTab(AppTheme appTheme) {
-    return Column(
-      children: [
-        _buildTopBar(appTheme),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-                vertical:
-                    16.0), // Remove horizontal padding for carousel full width
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text(
-                    'Hello, ${widget.authService.currentUser?.displayName ?? "Guest"}.',
-                    textAlign: TextAlign.center,
-                    style: AppFont.primaryTextStyle(
-                      context,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: appTheme.text,
-                      height: 1.2,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text(
-                    'Ready to Guesstimate?',
-                    textAlign: TextAlign.center,
-                    style: AppFont.primaryTextStyle(
-                      context,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                      color: appTheme.borderMuted,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Daily Question Carousel
-                const DailyQuestionCarousel(),
-
-                const SizedBox(height: 32),
-
-                // Party Card
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: InkWell(
-                    onTap: () => _showPartyBottomSheet(context, appTheme),
-                    borderRadius: BorderRadius.circular(appTheme.borderRadius),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: appTheme.bgLight,
-                        borderRadius:
-                            BorderRadius.circular(appTheme.borderRadius),
-                        border: Border.all(
-                          color: appTheme.border,
-                          width: appTheme.borderWidth,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: appTheme.shadowColor,
-                            offset: appTheme.shadowOffset,
-                            blurRadius: 0,
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Party',
-                                  style: AppFont.primaryTextStyle(
-                                    context,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w700,
-                                    color: appTheme.text,
-                                  ),
-                                ),
-                                Text(
-                                  'Play a 5-question round with friends.',
-                                  style: AppFont.primaryTextStyle(
-                                    context,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w400,
-                                    color: appTheme.borderMuted,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Tap to play',
-                                  style: AppFont.primaryTextStyle(
-                                    context,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: appTheme.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.grid_view_rounded,
-                            size: 48,
-                            color: appTheme.text,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 100), // Bottom padding
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  // --------------------------------------------------------------------------
+  // Build Method
+  // --------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    // Provide controllers here
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: _controller),
@@ -611,10 +296,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         builder: (context, _) {
           final AppTheme appTheme = Theme.of(context).extension<AppTheme>() ??
               AppTheme.defaultTheme();
-          // ... rest of build logic
-          // Note: using _controller directly inside AnimatedBuilder is fine as we also provided it.
-          // BUT the rest of the build method uses _controller.
-          // So we wrap the ENTIRE logic in MultiProvider.
 
           final ThemeData themed = Theme.of(context).copyWith(
             scaffoldBackgroundColor: appTheme.bgDark,
@@ -630,7 +311,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           );
 
           if (_controller.isLoading) {
-            // ...
             return Theme(
               data: themed,
               child: const Scaffold(
@@ -640,7 +320,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           }
 
           if (_controller.errorMessage != null) {
-            // ...
             return Theme(
               data: themed,
               child: Scaffold(
@@ -666,15 +345,34 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                             onPageChanged: _onPageChanged,
                             physics: const NeverScrollableScrollPhysics(),
                             children: [
-                              ClipRect(child: _buildGamesTab(appTheme)),
-                              ClipRect(child: _buildMeTab(appTheme)),
+                              ClipRect(
+                                child: GamesTab(
+                                  displayName: widget
+                                      .authService.currentUser?.displayName,
+                                  onPartyCardTapped: () => showPartyBottomSheet(
+                                    context: context,
+                                    controller: _controller,
+                                    onPrimaryAction: _onPrimaryAction,
+                                  ),
+                                ),
+                              ),
+                              ClipRect(
+                                child: MeTab(
+                                  avatarUrl:
+                                      widget.authService.currentUser?.picture,
+                                  displayName: widget
+                                      .authService.currentUser?.displayName,
+                                  isAnonymous: widget.authService.isAnonymous,
+                                  onCreateAccount: _handleCreateAccount,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                       ),
                     ],
                   ),
-                  // ... overlays ...
+                  // Settings FAB
                   Positioned(
                     bottom: 12,
                     right: 12,
@@ -692,7 +390,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
-                  // Tutorial
+                  // Tutorial button
                   Positioned(
                     top: 8,
                     right: 8,
@@ -710,6 +408,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
+                  // Settings menu overlay
                   if (_isSettingsOpen)
                     Positioned.fill(
                       child: SettingsMenu(
@@ -730,13 +429,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 unselectedItemColor: appTheme.borderMuted,
                 showSelectedLabels: true,
                 showUnselectedLabels: true,
-                items: const [
-                  BottomNavigationBarItem(
+                items: [
+                  const BottomNavigationBarItem(
                     icon: Icon(Icons.home_filled),
                     label: 'Games',
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.person),
+                    icon: _buildMeIcon(appTheme),
                     label: 'Me',
                   ),
                 ],

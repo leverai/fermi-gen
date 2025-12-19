@@ -48,7 +48,7 @@ class SelectorWidget extends StatelessWidget {
   /// The grid will create as many rows as needed to display all options.
   final int columns;
 
-  static const double _chipHeight = 40.0;
+  static const double _chipHeight = 48.0;
   static const double _spacing = 0.0;
   static const double _fontSize = 16.0;
 
@@ -123,12 +123,10 @@ class SelectorWidget extends StatelessWidget {
       );
     }
 
-    // For fill parent mode, ensure minimum height of 48px (for single row)
-    // This ensures the row in main_screen.dart maintains 48px height
-    return ConstrainedBox(
-      constraints: const BoxConstraints(
-        minHeight: 48.0,
-      ),
+    // For fill parent mode, constrain to exact height based on number of rows
+    // This prevents GridView from adding any extra padding
+    return SizedBox(
+      height: _chipHeight * numRows,
       child: container,
     );
   }

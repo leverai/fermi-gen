@@ -1,0 +1,187 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fermi_frontend/theme/app_font.dart';
+import 'package:fermi_frontend/theme/app_theme.dart';
+import 'package:fermi_frontend/screens/main/widgets/daily_question_carousel.dart';
+
+/// Displays the "Games" tab content with game options.
+///
+/// Contains the top bar, welcome message, Daily Question carousel, and Party card.
+class GamesTab extends StatelessWidget {
+  const GamesTab({
+    super.key,
+    this.displayName,
+    required this.onPartyCardTapped,
+  });
+
+  /// User's display name for the welcome message.
+  final String? displayName;
+
+  /// Callback when the Party card is tapped.
+  final VoidCallback onPartyCardTapped;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppTheme appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+
+    return Column(
+      children: [
+        _buildTopBar(appTheme),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 24),
+                _buildWelcomeMessage(context, appTheme),
+                const SizedBox(height: 32),
+                const DailyQuestionCarousel(),
+                const SizedBox(height: 32),
+                _buildPartyCard(context, appTheme),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTopBar(AppTheme appTheme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SvgPicture.asset(
+            'assets/icons/llc_logo.svg',
+            height: 24,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Container(
+              width: 1,
+              height: 24,
+              color: appTheme.borderMuted,
+            ),
+          ),
+          SvgPicture.asset(
+            'assets/icons/logo-fg.svg',
+            height: 22,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWelcomeMessage(BuildContext context, AppTheme appTheme) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Text(
+            'Hello, ${displayName ?? "Guest"}.',
+            textAlign: TextAlign.center,
+            style: AppFont.primaryTextStyle(
+              context,
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: appTheme.text,
+              height: 1.2,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Text(
+            'Ready to Guesstimate?',
+            textAlign: TextAlign.center,
+            style: AppFont.primaryTextStyle(
+              context,
+              fontSize: 18,
+              fontWeight: FontWeight.w400,
+              color: appTheme.borderMuted,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPartyCard(BuildContext context, AppTheme appTheme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: InkWell(
+        onTap: onPartyCardTapped,
+        borderRadius: BorderRadius.circular(appTheme.borderRadius),
+        child: Container(
+          decoration: BoxDecoration(
+            color: appTheme.bgLight,
+            borderRadius: BorderRadius.circular(appTheme.borderRadius),
+            border: Border.all(
+              color: appTheme.border,
+              width: appTheme.borderWidth,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: appTheme.shadowColor,
+                offset: appTheme.shadowOffset,
+                blurRadius: 0,
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Party',
+                      style: AppFont.primaryTextStyle(
+                        context,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: appTheme.text,
+                      ),
+                    ),
+                    Text(
+                      'Five-question round with friends.',
+                      style: AppFont.primaryTextStyle(
+                        context,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: appTheme.borderMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Tap to play',
+                      style: AppFont.primaryTextStyle(
+                        context,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: appTheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.grid_view_rounded,
+                size: 48,
+                color: appTheme.text,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
