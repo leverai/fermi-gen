@@ -556,17 +556,16 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                   'Party',
                                   style: AppFont.primaryTextStyle(
                                     context,
-                                    fontSize: 32,
+                                    fontSize: 24,
                                     fontWeight: FontWeight.w700,
                                     color: appTheme.text,
                                   ),
                                 ),
-                                const SizedBox(height: 8),
                                 Text(
                                   'Multiplayer round of 5 questions.',
                                   style: AppFont.primaryTextStyle(
                                     context,
-                                    fontSize: 16,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w400,
                                     color: appTheme.borderMuted,
                                   ),
