@@ -131,15 +131,7 @@ async def activate_dq() -> None:
             resp = await client.post(api_url, timeout=30.0)
             resp.raise_for_status()
             data = resp.json()
-
-        print(f'✅ DQ for {data["closed_date"]} has been closed')
-        print(f'   Participants ranked: {data["participants_ranked"]}')
-
-        if data.get('next_date'):
-            print(f'   Next DQ scheduled: {data["next_date"]}')
-            print(f'   Next question UID: {data["next_question_uid"]}')
-        else:
-            print('   ⚠️  No next DQ scheduled (no available questions)')
+        print('✅ DQ Activated')
 
     except httpx.HTTPStatusError as e:
         print(f'❌ API error: {e.response.status_code}')

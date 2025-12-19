@@ -127,15 +127,9 @@ class DailyQuestionCarousel extends StatelessWidget {
                     };
                   }
                 } else {
-                  // NOT_STARTED
+                  // NOT_STARTED - disable tap interaction
                   displayStatus = 'NOT_STARTED';
-                  onTapCallback = () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Coming soon! Check back at 12 PM UTC.'),
-                      ),
-                    );
-                  };
+                  onTapCallback = null;
                 }
               } else {
                 // Past dates: always RESULTS_READY (all past DQs are closed)
@@ -166,6 +160,7 @@ class DailyQuestionCarousel extends StatelessWidget {
                     hasUnseenResults: hasUnseen,
                     showTitle: isToday,
                     onTap: onTapCallback,
+                    windowStart: isToday ? todayDocument?.windowStart : null,
                   ),
                 ),
               );

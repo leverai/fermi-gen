@@ -212,8 +212,15 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
                           final todayDoc = dqController.todayDocument;
                           final isActive =
                               isToday && (todayDoc?.status == 'ACTIVE');
+                          final isNotStarted =
+                              isToday && (todayDoc?.status == 'NOT_STARTED');
                           final hasParticipated =
                               dqController.weeklyItems[dateStr] ?? false;
+
+                          // NOT_STARTED - do nothing (DQ hasn't activated yet)
+                          if (isNotStarted) {
+                            return;
+                          }
 
                           if (isActive && !hasParticipated) {
                             // Navigate to DQ play screen
