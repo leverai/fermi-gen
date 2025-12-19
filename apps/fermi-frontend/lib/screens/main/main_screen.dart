@@ -274,9 +274,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       context: context,
       backgroundColor: appTheme.bgLight,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-      ),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
@@ -667,9 +664,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                           child: PageView(
                             controller: _pageController,
                             onPageChanged: _onPageChanged,
+                            physics: const NeverScrollableScrollPhysics(),
                             children: [
-                              _buildGamesTab(appTheme),
-                              _buildMeTab(appTheme),
+                              ClipRect(child: _buildGamesTab(appTheme)),
+                              ClipRect(child: _buildMeTab(appTheme)),
                             ],
                           ),
                         ),
