@@ -101,7 +101,22 @@ def get_answer_deadline(
 
     """
     timeout_deadline = started_at_utc + datetime.timedelta(seconds=ANSWER_TIMEOUT_S)
-    return min(timeout_deadline, qd_utc)
+    result = min(timeout_deadline, qd_utc)
+
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(
+        '[get_answer_deadline] started_at=%s, qd=%s, '
+        'timeout_deadline=%s, result=%s (using %s)',
+        started_at_utc,
+        qd_utc,
+        timeout_deadline,
+        result,
+        'timeout' if result == timeout_deadline else 'qd',
+    )
+
+    return result
 
 
 def is_within_ad_grace(

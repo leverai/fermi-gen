@@ -57,6 +57,7 @@ class DailyQuestionAnswerRepository(BaseRepository):
         self.session.add(answer)
         await self.session.flush()
         await self.session.refresh(answer)
+        await self.session.commit()
         return answer
 
     async def get_user_answer(

@@ -43,6 +43,7 @@ import os
 import sys
 from datetime import timedelta
 
+import httpx
 from fermi_core.utils import utcnow_naive
 from fermi_db import DatabaseClient
 from fermi_db.models import DailyQuestion, Fermi
@@ -92,180 +93,60 @@ async def get_firestore_writer():
         return None
 
 
-async def list_dq_questions() -> None:
-    """List available DQ questions and current DQ status."""
-    async for session in get_session():
-        # Count available DQ questions
-        stmt = select(Fermi).where(
-            Fermi.status == QuestionStatus.APPROVED,
-            Fermi.is_daily_question == True,  # noqa: E712
-        )
-        result = await session.exec(stmt)
-        dq_questions = result.all()
+async def close_and_schedule() -> None:
+    """Close the active DQ and schedule a new one."""
+    api_url = 'http://localhost:8000/api/v1/daily_question/close_and_schedule'
+    print(f'📤 Calling API: POST {api_url}')
 
-        print(f'\n📋 DQ-flagged questions: {len(dq_questions)}')
-        for q in dq_questions[:5]:
-            print(f'  - {q.uid}: {q.text[:50]}...')
-        if len(dq_questions) > 5:
-            print(f'  ... and {len(dq_questions) - 5} more')
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(api_url, timeout=30.0)
+            resp.raise_for_status()
+            data = resp.json()
 
-        # Get today's DQ (using UTC-based date calculation)
-        now_utc = utcnow_naive()
-        today = get_dq_date_for_utc(now_utc)
-        stmt = select(DailyQuestion).where(DailyQuestion.question_date == today)
-        result = await session.exec(stmt)
-        dq = result.one_or_none()
+        print(f'✅ DQ for {data["closed_date"]} has been closed')
+        print(f'   Participants ranked: {data["participants_ranked"]}')
 
-        if dq:
-            print(f"\n📅 Today's DQ (ID: {dq.id}):")
-            print(f'  Question UID: {dq.question_uid}')
-            print(f'  Status: {dq.status}')
-            print(f'  Window: {dq.window_start} - {dq.window_end} UTC')
+        if data.get('next_date'):
+            print(f'   Next DQ scheduled: {data["next_date"]}')
+            print(f'   Next question UID: {data["next_question_uid"]}')
         else:
-            print(f'\n⚠️  No DQ scheduled for today ({today})')
+            print('   ⚠️  No next DQ scheduled (no available questions)')
 
-        print()
-        break
-
-
-async def create_dq() -> None:
-    """Create today's daily question from the next available DQ question."""
-    async for session in get_session():
-        now_utc = utcnow_naive()
-        today = get_dq_date_for_utc(now_utc)
-
-        # Check if DQ already exists for today
-        stmt = select(DailyQuestion).where(DailyQuestion.question_date == today)
-        result = await session.exec(stmt)
-        existing = result.one_or_none()
-
-        if existing:
-            print(f'⚠️  DQ already exists for today (ID: {existing.id})')
-            return
-
-        # Find next unused DQ question
-        used_uids = select(DailyQuestion.question_uid).subquery()
-        stmt = (
-            select(Fermi)
-            .where(
-                Fermi.status == QuestionStatus.APPROVED,
-                Fermi.is_daily_question == True,  # noqa: E712
-                ~Fermi.uid.in_(select(used_uids)),
-            )
-            .order_by(Fermi.created_at.desc())
-            .limit(1)
-        )
-        result = await session.exec(stmt)
-        question = result.one_or_none()
-
-        if not question:
-            print('❌ No unused DQ questions available!')
-            print('   Run: python scripts/manage_dq.py seed --count 10')
-            return
-
-        # Create DQ for today using UTC-based timing
-        window_start, window_end = get_window_for_date_utc(today)
-        dq = DailyQuestion(
-            question_uid=question.uid,
-            question_date=today,
-            status=DailyQuestionStatus.ACTIVE,  # ACTIVE for local testing
-            window_start=window_start,
-            window_end=window_end,
-        )
-        session.add(dq)
-        await session.commit()
-        await session.refresh(dq)
-
-        print(f"✅ Created today's DQ (ID: {dq.id})")
-        print(f'   Question: {question.text[:80]}...')
-        print(f'   Status: {dq.status}')
-        print(f'   Window: {dq.window_start} - {dq.window_end} UTC')
-
-        # Create Firestore document
-        fs_writer = await get_firestore_writer()
-        if fs_writer:
-            try:
-                await fs_writer.create_dq_document(
-                    today,
-                    str(question.uid),
-                    window_start,
-                    window_end,
-                )
-                # Immediately activate it for local testing
-                await fs_writer.activate_dq_document(today)
-                print('   ✓ Firestore document created and activated')
-            except Exception as e:
-                print(f'   ⚠️  Firestore update failed: {e}')
+    except httpx.HTTPStatusError as e:
+        print(f'❌ API error: {e.response.status_code}')
+        print(f'   {e.response.text}')
+    except httpx.RequestError as e:
+        print(f'❌ Request failed: {e}')
+        print('   Is the API server running? (make run-api)')
 
 
-async def start_dq() -> None:
-    """Set today's DQ status to ACTIVE."""
-    async for session in get_session():
-        now_utc = utcnow_naive()
-        today = get_dq_date_for_utc(now_utc)
+async def activate_dq() -> None:
+    """Activate today's DQ."""
+    api_url = 'http://localhost:8000/api/v1/daily_question/activate'
+    print(f'📤 Calling API: POST {api_url}')
 
-        stmt = select(DailyQuestion).where(DailyQuestion.question_date == today)
-        result = await session.exec(stmt)
-        dq = result.one_or_none()
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(api_url, timeout=30.0)
+            resp.raise_for_status()
+            data = resp.json()
 
-        if not dq:
-            print(f'❌ No DQ found for today ({today})')
-            print('   Run: python scripts/manage_dq.py create')
-            return
+        print(f'✅ DQ for {data["closed_date"]} has been closed')
+        print(f'   Participants ranked: {data["participants_ranked"]}')
 
-        dq.status = DailyQuestionStatus.ACTIVE
-        session.add(dq)
-        await session.commit()
+        if data.get('next_date'):
+            print(f'   Next DQ scheduled: {data["next_date"]}')
+            print(f'   Next question UID: {data["next_question_uid"]}')
+        else:
+            print('   ⚠️  No next DQ scheduled (no available questions)')
 
-        print(f'✅ DQ {dq.id} is now ACTIVE')
-
-        # Update Firestore document
-        fs_writer = await get_firestore_writer()
-        if fs_writer:
-            try:
-                await fs_writer.activate_dq_document(today)
-                print('   ✓ Firestore document activated')
-            except Exception as e:
-                print(f'   ⚠️  Firestore update failed: {e}')
-
-
-async def end_dq() -> None:
-    """Set today's DQ status to CLOSED and compute ranks."""
-    async for session in get_session():
-        now_utc = utcnow_naive()
-        today = get_dq_date_for_utc(now_utc)
-
-        stmt = select(DailyQuestion).where(DailyQuestion.question_date == today)
-        result = await session.exec(stmt)
-        dq = result.one_or_none()
-
-        if not dq:
-            print(f'❌ No DQ found for today ({today})')
-            return
-
-        dq.status = DailyQuestionStatus.CLOSED
-        session.add(dq)
-        await session.flush()
-
-        # Compute and update ranks for all participants
-        if dq.id:
-            db_client = DatabaseClient(session)
-            count = await db_client.dq_answers.compute_and_update_ranks(dq.id)
-            print(f'   Computed ranks for {count} participants')
-
-        await session.commit()
-
-        print(f'✅ DQ {dq.id} is now CLOSED')
-
-        # Close Firestore document and set results_ready
-        fs_writer = await get_firestore_writer()
-        if fs_writer:
-            try:
-                await fs_writer.close_dq_document(today)
-                await fs_writer.set_results_ready(today)
-                print('   ✓ Firestore document closed and results ready')
-            except Exception as e:
-                print(f'   ⚠️  Firestore update failed: {e}')
+    except httpx.HTTPStatusError as e:
+        print(f'❌ API error: {e.response.status_code}')
+        print(f'   {e.response.text}')
+    except httpx.RequestError as e:
+        print(f'❌ Request failed: {e}')
+        print('   Is the API server running? (make run-api)')
 
 
 async def advance_dq() -> None:
@@ -417,14 +298,10 @@ def main() -> None:
 
     command = sys.argv[1]
 
-    if command == 'list':
-        asyncio.run(list_dq_questions())
-    elif command == 'create':
-        asyncio.run(create_dq())
-    elif command == 'start':
-        asyncio.run(start_dq())
-    elif command == 'end':
-        asyncio.run(end_dq())
+    if command == 'close_and_schedule':
+        asyncio.run(close_and_schedule())
+    elif command == 'activate':
+        asyncio.run(activate_dq())
     elif command == 'advance':
         asyncio.run(advance_dq())
     elif command == 'seed':

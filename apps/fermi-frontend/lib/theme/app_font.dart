@@ -10,7 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 class AppFont extends ThemeExtension<AppFont> {
   const AppFont({
     this.primaryFamily = 'Ubuntu',
-    this.secondaryFamily = 'Open Sans',
+    this.secondaryFamily = 'Ubuntu',
     this.useGoogleFonts = true,
   });
 
