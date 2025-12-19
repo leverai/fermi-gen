@@ -9,12 +9,8 @@ import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
-import 'package:fermi_frontend/widgets/question_widget.dart';
-import 'package:fermi_frontend/widgets/answer_accuracy_scale.dart';
-import 'package:fermi_frontend/widgets/slider_text_mirror.dart';
+import 'package:fermi_frontend/widgets/question_answer_card.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
-import 'package:fermi_frontend/widgets/unit_tape.dart';
-import 'package:fermi_frontend/widgets/leave_button.dart';
 import 'package:fermi_frontend/screens/daily_question/widgets/dq_results_bottom_sheet.dart';
 
 /// Unified Daily Question screen for both taking questions and viewing results.
@@ -316,7 +312,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         backgroundColor: appTheme.bg,
         body: Stack(
           children: [
-            _buildLeaveButton(appTheme),
+            _buildBackButton(appTheme),
             Center(
               child: Text(
                 'No question available',
@@ -331,7 +327,6 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       );
     }
 
-    final bool hasUnits = _unitAbbreviations.isNotEmpty;
     final bool inputsEnabled = !_isSubmitted;
     final resultsStatus = _getResultsStatus();
     final showResultsSheet = _isSubmitted;
@@ -344,81 +339,48 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
           SafeArea(
             child: Column(
               children: [
-                // Header with leave button and timer
+                // Header with back button and timer
                 _buildHeader(appTheme, inputsEnabled),
 
                 // Question and input area
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        QuestionWidget(
-                          text: _question!.text,
-                          tags: [_question!.category, _question!.difficulty],
-                          height: 200,
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Answer Section
-                        Opacity(
-                          opacity: inputsEnabled ? 1.0 : 0.5,
-                          child: IgnorePointer(
-                            ignoring: !inputsEnabled,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                SliderTextMirror(value: _currentAnswer),
-                                if (hasUnits)
-                                  UnitTape(
-                                    units: _unitAbbreviations,
-                                    unitOptions: _unitOptions,
-                                    initialValue: _currentAnswer.unit,
-                                    currentLocale: _currentLocale,
-                                    onUnitChanged: (unit) {
-                                      setState(() {
-                                        _currentAnswer =
-                                            _currentAnswer.copyWith(unit: unit);
-                                      });
-                                    },
-                                    onLocaleChanged: _onLocaleChanged,
-                                    editable: inputsEnabled,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Opacity(
-                          opacity: inputsEnabled ? 1.0 : 0.5,
-                          child: AnswerAccuracyScale(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Question-Answer Card
+                          QuestionAnswerCard(
+                            questionText: _question!.text,
+                            tags: [_question!.category, _question!.difficulty],
                             currentAnswer: _currentAnswer,
-                            editable: inputsEnabled,
+                            submittedAnswer: null,
+                            unitOptions: _unitOptions,
+                            units: _unitAbbreviations,
+                            currentLocale: _currentLocale,
                             onAnswerChanged: inputsEnabled
                                 ? (val) {
                                     setState(() {
                                       _currentAnswer = val;
                                     });
                                   }
-                                : null,
+                                : (_) {},
+                            onLocaleChanged: _onLocaleChanged,
+                            editable: inputsEnabled,
+                            buttonWidget: MainButton(
+                              onPressed: inputsEnabled ? _submit : null,
+                              label: MainButtonLabel.submit,
+                              showSpacebarGlyph: false,
+                            ),
                           ),
-                        ),
 
-                        // Submit button (only when active)
-                        if (inputsEnabled) ...[
-                          const SizedBox(height: 24),
-                          MainButton(
-                            onPressed: _submit,
-                            label: MainButtonLabel.submit,
-                            showSpacebarGlyph: false,
-                          ),
+                          // Spacer for bottom sheet (always present to maintain centering)
+                          const SizedBox(height: 120),
                         ],
-
-                        // Spacer for bottom sheet
-                        if (showResultsSheet) const SizedBox(height: 120),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -445,7 +407,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
         children: [
-          // Leave button
+          // Back button
           IconButton(
             icon: Icon(Icons.arrow_back, color: appTheme.text),
             onPressed: () => Navigator.of(context).pop(),
@@ -495,11 +457,16 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     );
   }
 
-  Widget _buildLeaveButton(AppTheme appTheme) {
-    return LeaveButtonOverlay(
-      iconColor: appTheme.text,
-      splashColor: appTheme.primary.withOpacity(0.2),
-      onPressed: () => Navigator.of(context).pop(),
+  Widget _buildBackButton(AppTheme appTheme) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: IconButton(
+          icon: Icon(Icons.arrow_back, color: appTheme.text),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'Leave',
+        ),
+      ),
     );
   }
 
