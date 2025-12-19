@@ -57,11 +57,18 @@ class DQSubmitResponse(BaseModel):
     message: str | None = None
 
 
+class DQPlayer(BaseModel):
+    """Player info for leaderboard display."""
+
+    display_name: str | None
+    avatar_url: str | None
+
+
 class DQLeaderboardEntry(BaseModel):
     """A single entry in the leaderboard."""
 
     rank: int
-    display_name: str | None
+    player: DQPlayer | None
     score: float
     time_taken_s: float
 

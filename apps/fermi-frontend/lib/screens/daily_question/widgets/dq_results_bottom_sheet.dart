@@ -416,10 +416,15 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
                   )
                 : Column(
                     children: results.leaderboard.take(10).map((entry) {
+                      final player = entry.player;
+                      final displayName = player?.displayName ?? 'Anonymous';
+                      final avatarUrl = player?.avatarUrl;
+
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 3),
                         child: Row(
                           children: [
+                            // Rank
                             SizedBox(
                               width: 28,
                               child: Text(
@@ -431,15 +436,40 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 8),
+                            // Avatar
+                            CircleAvatar(
+                              radius: 14,
+                              backgroundColor: appTheme.border,
+                              backgroundImage: avatarUrl != null
+                                  ? NetworkImage(avatarUrl)
+                                  : null,
+                              child: avatarUrl == null
+                                  ? Text(
+                                      displayName.isNotEmpty
+                                          ? displayName[0].toUpperCase()
+                                          : '?',
+                                      style: AppFont.secondaryTextStyle(
+                                        context,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: appTheme.text,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 8),
+                            // Name
                             Expanded(
                               child: Text(
-                                entry.displayName ?? 'Anonymous',
+                                displayName,
                                 style: AppFont.secondaryTextStyle(
                                   context,
                                   color: appTheme.text,
                                 ),
                               ),
                             ),
+                            // Score
                             Text(
                               '${entry.score.toStringAsFixed(0)} pts',
                               style: AppFont.secondaryTextStyle(

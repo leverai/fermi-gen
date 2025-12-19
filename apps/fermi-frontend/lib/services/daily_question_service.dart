@@ -157,15 +157,32 @@ class DQResultsResponse {
   }
 }
 
+class DQPlayer {
+  final String? displayName;
+  final String? avatarUrl;
+
+  DQPlayer({
+    this.displayName,
+    this.avatarUrl,
+  });
+
+  factory DQPlayer.fromJson(Map<String, dynamic> json) {
+    return DQPlayer(
+      displayName: json['display_name'] as String?,
+      avatarUrl: json['avatar_url'] as String?,
+    );
+  }
+}
+
 class DQLeaderboardEntry {
   final int rank;
-  final String? displayName;
+  final DQPlayer? player;
   final double score;
   final double timeTakenS;
 
   DQLeaderboardEntry({
     required this.rank,
-    this.displayName,
+    this.player,
     required this.score,
     required this.timeTakenS,
   });
@@ -173,7 +190,9 @@ class DQLeaderboardEntry {
   factory DQLeaderboardEntry.fromJson(Map<String, dynamic> json) {
     return DQLeaderboardEntry(
       rank: json['rank'] as int,
-      displayName: json['display_name'] as String?,
+      player: json['player'] != null
+          ? DQPlayer.fromJson(json['player'] as Map<String, dynamic>)
+          : null,
       score: (json['score'] as num).toDouble(),
       timeTakenS: (json['time_taken_s'] as num).toDouble(),
     );
