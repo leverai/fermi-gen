@@ -26,6 +26,23 @@ class UserRepository(BaseRepository):
         )
         return result.one_or_none()
 
+    async def get_by_firebase_uids(self, firebase_uids: list[str]) -> list[User]:
+        """Fetch multiple users by their Firebase UIDs.
+
+        Args:
+            firebase_uids: List of Firebase UIDs to fetch.
+
+        Returns:
+            List of User objects matching the provided UIDs.
+
+        """
+        if not firebase_uids:
+            return []
+        result = await self.session.exec(
+            select(User).where(User.firebase_uid.in_(firebase_uids)),  # type: ignore
+        )
+        return list(result.all())
+
     async def register_user(
         self,
         firebase_claims: dict[str, Any],

@@ -17,6 +17,7 @@ from .repositories.raw_question_repository import RawQuestionRepository
 from .repositories.seed_repository import SeedRepository
 from .repositories.seeds_usage_repository import SeedsUsageRepository
 from .repositories.user_history_repository import UserHistoryRepository
+from .repositories.user_repository import UserRepository
 
 
 class DatabaseClient:
@@ -25,6 +26,8 @@ class DatabaseClient:
     def __init__(self, session: AsyncSession) -> None:
         """Initialize the database client and repositories."""
         self.session = session
+        # User repositories
+        self.users = UserRepository(self.session)
         # Question repositories
         self.questions = QuestionRepository(self.session)
         self.users_history = UserHistoryRepository(self.session)

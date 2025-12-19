@@ -21,6 +21,7 @@ from app.services.daily_question.schemas import (
     DQEndResponse,
     DQLeaderboardEntry,
     DQLiteArchiveResponse,
+    DQPlayer,
     DQQuestionData,
     DQQuestionResponse,
     DQResultsResponse,
@@ -340,10 +341,36 @@ class DailyQuestionService:
             dq.id,
             limit=10,
         )
+
+        # Extract unique Firebase UIDs from leaderboard entries
+        firebase_uids = [entry.user_firebase_uid for entry in leaderboard_entries]
+
+        # Batch-fetch user info for all leaderboard players
+        users_map: dict[str, dict[str, str | None]] = {}
+        if firebase_uids:
+            users = await self._db.users.get_by_firebase_uids(firebase_uids)
+            users_map = {
+                user.firebase_uid: {
+                    'display_name': user.display_name,
+                    'avatar_url': user.picture,
+                }
+                for user in users
+            }
+
+        # Construct leaderboard with player info
         leaderboard = [
             DQLeaderboardEntry(
                 rank=entry.rank or i,
-                display_name=None,
+                player=DQPlayer(
+                    display_name=users_map.get(entry.user_firebase_uid, {}).get(
+                        'display_name',
+                    ),
+                    avatar_url=users_map.get(entry.user_firebase_uid, {}).get(
+                        'avatar_url',
+                    ),
+                )
+                if entry.user_firebase_uid in users_map
+                else None,
                 score=entry.score,
                 time_taken_s=entry.time_taken_s,
             )

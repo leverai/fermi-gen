@@ -57,3 +57,25 @@ class UserService:
 
         # Delete user from database (and all associated data)
         await self._user_repository.delete_user(user_id)
+
+    async def get_users_by_firebase_uids(
+        self,
+        firebase_uids: list[str],
+    ) -> dict[str, dict[str, str | None]]:
+        """Get display name and avatar for multiple users.
+
+        Args:
+            firebase_uids: List of Firebase UIDs.
+
+        Returns:
+            Dict mapping firebase_uid to {display_name, avatar_url}.
+
+        """
+        users = await self._user_repository.get_by_firebase_uids(firebase_uids)
+        return {
+            user.firebase_uid: {
+                'display_name': user.display_name,
+                'avatar_url': user.picture,
+            }
+            for user in users
+        }
