@@ -559,7 +559,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                   ),
                                 ),
                                 Text(
-                                  'Multiplayer round of 5 questions.',
+                                  'Play a 5-question round with friends.',
                                   style: AppFont.primaryTextStyle(
                                     context,
                                     fontSize: 14,
