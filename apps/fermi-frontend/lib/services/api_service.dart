@@ -345,8 +345,45 @@ class ApiService {
         final error = _extractErrorMessage(resp);
         throw Exception('Failed to set locale: $error');
       }
-      // Optimistically update client-side auth state
+      // Optimistically updateclient-side auth state
       authService.locale = locale;
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateUserProfile({
+    String? displayName,
+    String? avatarUrl,
+  }) async {
+    try {
+      final resp = await _authPost('/user/update_profile', {
+        'display_name': displayName,
+        'avatar_url': avatarUrl,
+      });
+      if (resp.statusCode != 200) {
+        final error = _extractErrorMessage(resp);
+        throw Exception('Failed to update profile: $error');
+      }
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<String>> getAvatars() async {
+    try {
+      final resp = await _authGet('/assets/avatars');
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        return List<String>.from(data['avatars']);
+      } else {
+        final error = _extractErrorMessage(resp);
+        throw Exception('Failed to load avatars: $error');
+      }
     } on http.ClientException catch (_) {
       throw Exception('Network error: Please check your connection.');
     } catch (e) {

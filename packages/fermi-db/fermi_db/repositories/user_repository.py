@@ -99,6 +99,28 @@ class UserRepository(BaseRepository):
         await self.session.refresh(user)
         return user
 
+    async def update_user(
+        self,
+        user_id: int,
+        display_name: str | None = None,
+        picture: str | None = None,
+    ) -> User:
+        """Update a user's profile."""
+        user = await self.session.get(User, user_id)
+        if user is None:
+            raise ValueError(f'User with id {user_id} not found')
+
+        if display_name is not None:
+            user.display_name = display_name
+        if picture is not None:
+            user.picture = picture
+
+        user.updated_at = utcnow_naive()
+        self.session.add(user)
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user
+
     async def _update_login_streak(self, user: User) -> User:
         """Update the user's login streak based on last login at.
 
