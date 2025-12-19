@@ -143,8 +143,9 @@ run-frontend:
 	echo "Seeding questions..." && \
 	uv run --package fermi-db python scripts/seed_test_questions.py --file apps/fermi-api/tests/data/test_questions.json --no-dq-history; \
 	docker compose up -d api && \
+	until (curl -s http://localhost:8000/api/v1/health/health) 2>/dev/null; do sleep 1; done && \
 	echo "Creating initial DQ..." && \
-	uv run --package fermi-db python scripts/manage_dq.py close_and_schedule; \
+	uv run scripts/manage_dq.py close_and_schedule; \
 	echo "Launching Flutter app..." && \
 	cd apps/fermi-frontend && \
 	fvm flutter run -t lib/main.dart \

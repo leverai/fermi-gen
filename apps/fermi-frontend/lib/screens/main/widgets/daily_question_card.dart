@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 
-class DailyQuestionCard extends StatelessWidget {
+class DailyQuestionCard extends StatefulWidget {
   final DateTime date;
   final String
       status; // 'ACTIVE', 'RESULTS_READY', 'SUBMITTED', 'PENDING', 'NOT_STARTED'
@@ -12,6 +14,7 @@ class DailyQuestionCard extends StatelessWidget {
   final bool hasUnseenResults;
   final bool showTitle;
   final VoidCallback? onTap; // Nullable to support disabled state
+  final DateTime? windowStart; // When DQ becomes ACTIVE (for countdown)
 
   const DailyQuestionCard({
     super.key,
@@ -22,7 +25,84 @@ class DailyQuestionCard extends StatelessWidget {
     this.hasUnseenResults = false,
     this.showTitle = false,
     this.onTap,
+    this.windowStart,
   });
+
+  @override
+  State<DailyQuestionCard> createState() => _DailyQuestionCardState();
+}
+
+class _DailyQuestionCardState extends State<DailyQuestionCard> {
+  Timer? _countdownTimer;
+  Duration _timeUntilActive = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.status == 'NOT_STARTED' && widget.windowStart != null) {
+      _startCountdownTimer();
+    }
+  }
+
+  @override
+  void didUpdateWidget(DailyQuestionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Handle status change or windowStart change
+    if (widget.status != oldWidget.status ||
+        widget.windowStart != oldWidget.windowStart) {
+      if (widget.status == 'NOT_STARTED' && widget.windowStart != null) {
+        _startCountdownTimer();
+      } else {
+        _countdownTimer?.cancel();
+        _countdownTimer = null;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startCountdownTimer() {
+    _countdownTimer?.cancel();
+    _updateTimeUntilActive();
+
+    // Update every minute to avoid excessive rebuilds
+    _countdownTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      _updateTimeUntilActive();
+    });
+  }
+
+  void _updateTimeUntilActive() {
+    if (widget.windowStart == null) return;
+
+    final now = DateTime.now().toUtc();
+    final remaining = widget.windowStart!.difference(now);
+
+    if (mounted) {
+      setState(() {
+        _timeUntilActive = remaining.isNegative ? Duration.zero : remaining;
+      });
+    }
+  }
+
+  String _formatRemainingTime(Duration duration) {
+    if (duration.inHours > 0) {
+      final hours = duration.inHours;
+      final minutes = duration.inMinutes.remainder(60);
+      if (minutes > 0) {
+        return '${hours}h ${minutes}m';
+      }
+      return '${hours}h';
+    }
+    if (duration.inMinutes > 0) {
+      return '${duration.inMinutes}m';
+    }
+    return 'soon';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,10 +114,10 @@ class DailyQuestionCard extends StatelessWidget {
     final monthFormat = DateFormat('MMM');
     final weekdayFormat = DateFormat('EEEE');
 
-    final isDisabled = onTap == null;
+    final isDisabled = widget.onTap == null;
 
     return InkWell(
-      onTap: onTap,
+      onTap: widget.onTap,
       borderRadius: BorderRadius.circular(appTheme.borderRadius),
       child: Opacity(
         opacity: isDisabled ? 0.6 : 1.0,
@@ -47,13 +127,13 @@ class DailyQuestionCard extends StatelessWidget {
               width: double.infinity,
               height: double.infinity,
               decoration: BoxDecoration(
-                color: isToday ? appTheme.primary : appTheme.bgLight,
+                color: widget.isToday ? appTheme.primary : appTheme.bgLight,
                 borderRadius: BorderRadius.circular(appTheme.borderRadius),
                 border: Border.all(
                   color: appTheme.border,
                   width: appTheme.borderWidth,
                 ),
-                boxShadow: isToday
+                boxShadow: widget.isToday
                     ? [
                         BoxShadow(
                           color: appTheme.shadowColor,
@@ -65,25 +145,25 @@ class DailyQuestionCard extends StatelessWidget {
               ),
               padding: const EdgeInsets.all(16.0),
               child: Column(
-                crossAxisAlignment: isToday
+                crossAxisAlignment: widget.isToday
                     ? CrossAxisAlignment.start
                     : CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Content
                   Column(
-                    crossAxisAlignment: isToday
+                    crossAxisAlignment: widget.isToday
                         ? CrossAxisAlignment.start
                         : CrossAxisAlignment.center,
                     children: [
-                      if (showTitle) ...[
+                      if (widget.showTitle) ...[
                         Text(
                           'Daily Guess',
                           style: AppFont.primaryTextStyle(
                             context,
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
-                            color: isToday ? appTheme.bg : appTheme.text,
+                            color: widget.isToday ? appTheme.bg : appTheme.text,
                           ),
                         ),
                         Text(
@@ -92,9 +172,9 @@ class DailyQuestionCard extends StatelessWidget {
                             context,
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
-                            color: isToday
-                                ? appTheme.bg.withOpacity(0.8)
-                                : appTheme.textMuted,
+                            color: widget.isToday
+                                ? appTheme.bgDark
+                                : appTheme.borderMuted,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -106,21 +186,21 @@ class DailyQuestionCard extends StatelessWidget {
 
                   // Bottom part: Date and Status button
                   Row(
-                    mainAxisAlignment: isToday
+                    mainAxisAlignment: widget.isToday
                         ? MainAxisAlignment.spaceBetween
                         : MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       // Date
                       Column(
-                        crossAxisAlignment: isToday
+                        crossAxisAlignment: widget.isToday
                             ? CrossAxisAlignment.start
                             : CrossAxisAlignment.center,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (!isToday)
+                          if (!widget.isToday)
                             Text(
-                              weekdayFormat.format(date),
+                              weekdayFormat.format(widget.date),
                               style: AppFont.primaryTextStyle(
                                 context,
                                 fontSize: 18,
@@ -128,9 +208,9 @@ class DailyQuestionCard extends StatelessWidget {
                                 color: appTheme.text,
                               ),
                             ),
-                          if (isToday) ...[
+                          if (widget.isToday) ...[
                             Text(
-                              weekdayFormat.format(date).toUpperCase(),
+                              weekdayFormat.format(widget.date).toUpperCase(),
                               style: AppFont.secondaryTextStyle(
                                 context,
                                 fontSize: 12,
@@ -144,7 +224,7 @@ class DailyQuestionCard extends StatelessWidget {
                               textBaseline: TextBaseline.alphabetic,
                               children: [
                                 Text(
-                                  dayFormat.format(date),
+                                  dayFormat.format(widget.date),
                                   style: AppFont.primaryTextStyle(
                                     context,
                                     fontSize: 32,
@@ -155,7 +235,7 @@ class DailyQuestionCard extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  monthFormat.format(date).toUpperCase(),
+                                  monthFormat.format(widget.date).toUpperCase(),
                                   style: AppFont.secondaryTextStyle(
                                     context,
                                     fontSize: 14,
@@ -169,7 +249,7 @@ class DailyQuestionCard extends StatelessWidget {
                         ],
                       ),
 
-                      if (isToday) _buildStatusButton(context, appTheme),
+                      if (widget.isToday) _buildStatusButton(context, appTheme),
                     ],
                   ),
                 ],
@@ -179,7 +259,7 @@ class DailyQuestionCard extends StatelessWidget {
             // Requirement says: "Move the status button from bottom left to bottom right"
             // For older cards, they are narrower (200px vs full width).
             // Let's refine the layout for older cards.
-            if (!isToday)
+            if (!widget.isToday)
               Positioned(
                 bottom: 8,
                 right: 8,
@@ -187,7 +267,7 @@ class DailyQuestionCard extends StatelessWidget {
               ),
 
             // Unseen results indicator (green dot)
-            if (hasUnseenResults)
+            if (widget.hasUnseenResults)
               Positioned(
                 top: 8,
                 right: 8,
@@ -198,7 +278,8 @@ class DailyQuestionCard extends StatelessWidget {
                     color: appTheme.success,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isToday ? appTheme.primary : appTheme.bgLight,
+                      color:
+                          widget.isToday ? appTheme.primary : appTheme.bgLight,
                       width: 2,
                     ),
                   ),
@@ -216,40 +297,47 @@ class DailyQuestionCard extends StatelessWidget {
     Color bgColor;
     Color textColor;
 
-    switch (status) {
+    switch (widget.status) {
       case 'ACTIVE':
         buttonText = 'PLAY';
-        bgColor = isToday ? appTheme.bg : appTheme.primary;
-        textColor = isToday ? appTheme.primary : appTheme.bg;
+        bgColor = widget.isToday ? appTheme.bg : appTheme.primary;
+        textColor = widget.isToday ? appTheme.primary : appTheme.bg;
         break;
       case 'SUBMITTED':
         buttonText = 'Submitted ✓';
-        bgColor = isToday
+        bgColor = widget.isToday
             ? appTheme.bg.withOpacity(0.8)
             : appTheme.success.withOpacity(0.2);
-        textColor = isToday ? appTheme.success : appTheme.success;
+        textColor = widget.isToday ? appTheme.success : appTheme.success;
         break;
       case 'PENDING':
         buttonText = 'Pending...';
-        bgColor = isToday
+        bgColor = widget.isToday
             ? appTheme.bg.withOpacity(0.6)
             : appTheme.borderMuted.withOpacity(0.3);
-        textColor = isToday ? appTheme.textMuted : appTheme.textMuted;
+        textColor = widget.isToday ? appTheme.textMuted : appTheme.textMuted;
         break;
       case 'NOT_STARTED':
-        buttonText = 'Coming Soon';
-        bgColor = isToday
+        // Show countdown timer if windowStart is available
+        if (widget.windowStart != null) {
+          final remaining = _formatRemainingTime(_timeUntilActive);
+          buttonText = 'Starts in $remaining';
+        } else {
+          buttonText = 'Coming Soon';
+        }
+        bgColor = widget.isToday
             ? appTheme.bg.withOpacity(0.5)
             : appTheme.borderMuted.withOpacity(0.3);
-        textColor = isToday ? appTheme.textMuted : appTheme.textMuted;
+        textColor = widget.isToday ? appTheme.textMuted : appTheme.textMuted;
         break;
       case 'RESULTS_READY':
-        buttonText = participated ? 'View Results' : 'See Results';
-        bgColor = isToday ? appTheme.bg : appTheme.primary.withOpacity(0.1);
-        textColor = isToday ? appTheme.primary : appTheme.primary;
+        buttonText = widget.participated ? 'View Results' : 'See Results';
+        bgColor =
+            widget.isToday ? appTheme.bg : appTheme.primary.withOpacity(0.1);
+        textColor = widget.isToday ? appTheme.primary : appTheme.primary;
         break;
       default:
-        buttonText = status;
+        buttonText = widget.status;
         bgColor = appTheme.borderMuted;
         textColor = appTheme.textMuted;
     }

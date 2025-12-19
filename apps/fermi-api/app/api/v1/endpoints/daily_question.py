@@ -155,12 +155,12 @@ async def close_and_schedule_dq(
     )
 
 
-@router.post('/activate', response_model=DQEndResponse)
+@router.post('/activate')
 async def activate_dq(
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
-) -> DQEndResponse:
+) -> None:
     """Activate the scheduled DQ for this date. This is invoked by a scheduled job at
     12PM UTC.
     """
-    return await dq_service.activate_scheduled_dq(firestore_client=firestore_client)
+    await dq_service.activate_scheduled_dq(firestore_client=firestore_client)
