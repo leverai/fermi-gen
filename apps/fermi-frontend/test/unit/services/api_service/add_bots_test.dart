@@ -195,9 +195,9 @@ void main() {
       final mockClient = MockClient((request) async {
         callCount++;
         if (callCount == 1) {
-          return http.Response('{\"detail\": \"Unauthorized\"}', 401);
+          return http.Response('{"detail": "Unauthorized"}', 401);
         }
-        return http.Response('{\"resource_id\": \"game-123\"}', 200);
+        return http.Response('{"resource_id": "game-123"}', 200);
       });
 
       int tokenCallCount = 0;

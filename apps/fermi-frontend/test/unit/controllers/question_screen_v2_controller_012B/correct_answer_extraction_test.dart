@@ -80,21 +80,21 @@ void main() {
       controller.attach();
 
       // Emit game snapshot
-      gameStream.add(GameSnapshot(
+      gameStream.add(const GameSnapshot(
         state: GameState.questionNFinished,
         isHost: false,
         questionNumber: 1,
         nQuestions: testQuestionCount,
         durationSeconds: 15,
         players: {
-          currentPlayerId: const PlayerSummary(
+          currentPlayerId: PlayerSummary(
             playerId: currentPlayerId,
             name: 'Current Player',
             score: 0,
             isHost: false,
             isActive: true,
           ),
-          otherPlayerId: const PlayerSummary(
+          otherPlayerId: PlayerSummary(
             playerId: otherPlayerId,
             name: 'Other Player',
             score: 0,
@@ -124,14 +124,14 @@ void main() {
 
       // Emit players answers with correct answers for BOTH players
       // Critical: The 'correct' map has per-player converted answers
-      answersStream.add(PlayersAnswersSnapshot(
+      answersStream.add(const PlayersAnswersSnapshot(
         submitted: {
-          currentPlayerId: const AnswerValue(
+          currentPlayerId: AnswerValue(
             number: 1,
             orderOfMagnitude: '',
             unit: 'quart',
           ),
-          otherPlayerId: const AnswerValue(
+          otherPlayerId: AnswerValue(
             number: 20,
             orderOfMagnitude: 'K',
             unit: 'km**3',

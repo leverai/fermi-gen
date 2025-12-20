@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -87,13 +89,18 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       // Today's date - check if already submitted
       final hasParticipated = controller.hasParticipatedToday;
       if (hasParticipated) {
-        // User has already submitted - show submitted view without question
+        // User has already submitted
+        final resultsReady = controller.todayDocument?.resultsReady ?? false;
         setState(() {
           _isLoading = false;
           _isSubmitted = true;
-          _submittedWithoutQuestion =
-              true; // Special flag for submitted-today state
+          _submittedWithoutQuestion = true;
         });
+        // If results are already ready, load them immediately so QuestionAnswerCard
+        // can display with reveal animation
+        if (resultsReady) {
+          _loadResults();
+        }
       } else {
         // Start the question
         await _startQuestion();
@@ -122,13 +129,13 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         // Start Timer
         final now = DateTime.now();
         final deadline = question.answerDeadline;
-        print('[DQ] Timer init - Now: $now, Deadline: $deadline');
+        // print('[DQ] Timer init - Now: $now, Deadline: $deadline');
         if (deadline.isAfter(now)) {
           _timeLeft = deadline.difference(now);
-          print('[DQ] Starting timer with ${_timeLeft.inSeconds} seconds');
+          // print('[DQ] Starting timer with ${_timeLeft.inSeconds} seconds');
           _startTimer();
         } else {
-          print('[DQ] WARNING: Deadline already passed! Cannot start timer.');
+          // print('[DQ] WARNING: Deadline already passed! Cannot start timer.');
           _timeLeft = Duration.zero;
         }
       });
@@ -204,13 +211,13 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
-        print('[DQ] Timer cancelled - widget not mounted');
+        // print('[DQ] Timer cancelled - widget not mounted');
         timer.cancel();
         return;
       }
 
-      print(
-          '[DQ] Timer tick - Time left: ${_timeLeft.inSeconds}s, isSubmitted: $_isSubmitted');
+      // print(
+      //     '[DQ] Timer tick - Time left: ${_timeLeft.inSeconds}s, isSubmitted: $_isSubmitted');
 
       setState(() {
         if (_timeLeft.inSeconds > 0) {
@@ -220,7 +227,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
 
       // Trigger auto-submit AFTER setState completes, when time reaches 0
       if (_timeLeft.inSeconds <= 0 && !_isSubmitted) {
-        print('[DQ] ⏰ AUTO-SUBMIT TRIGGERED - Time expired!');
+        // print('[DQ] ⏰ AUTO-SUBMIT TRIGGERED - Time expired!');
         _timer?.cancel();
         _autoSubmit();
       }
@@ -228,43 +235,43 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
   }
 
   Future<void> _autoSubmit() async {
-    print(
-        '[DQ] _autoSubmit called - mounted: $mounted, isSubmitted: $_isSubmitted');
+    // print(
+    //     '[DQ] _autoSubmit called - mounted: $mounted, isSubmitted: $_isSubmitted');
     if (!mounted || _isSubmitted) {
-      print('[DQ] _autoSubmit early return - guards failed');
+      // print('[DQ] _autoSubmit early return - guards failed');
       return;
     }
-    print('[DQ] Showing "Time\'s up" snackbar...');
+    // print('[DQ] Showing "Time\'s up" snackbar...');
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Time\'s up! Submitting your answer...'),
         duration: Duration(seconds: 1),
       ),
     );
-    print('[DQ] Calling _submit()...');
+    // print('[DQ] Calling _submit()...');
     await _submit();
   }
 
   Future<void> _submit() async {
-    print('[DQ] _submit called - isSubmitted: $_isSubmitted');
+    // print('[DQ] _submit called - isSubmitted: $_isSubmitted');
     if (_isSubmitted) {
-      print('[DQ] _submit early return - already submitted');
+      // print('[DQ] _submit early return - already submitted');
       return;
     }
 
     final controller = context.read<DailyQuestionController>();
     try {
-      print('[DQ] Submitting answer to backend...');
+      // print('[DQ] Submitting answer to backend...');
       // Translate abbreviation to ID before submitting
       final unitId = _currentAnswer.unit.isNotEmpty
           ? (_unitAbbreviationToId[_currentAnswer.unit] ?? _currentAnswer.unit)
           : '';
       final answerToSubmit = _currentAnswer.copyWith(unit: unitId);
-      print('[DQ] Translated unit: ${_currentAnswer.unit} -> $unitId');
+      // print('[DQ] Translated unit: ${_currentAnswer.unit} -> $unitId');
       await controller.submitAnswer(answerToSubmit);
       if (mounted) {
-        print(
-            '[DQ] Answer submitted successfully, cancelling timer and updating state');
+        // print(
+        //     '[DQ] Answer submitted successfully, cancelling timer and updating state');
         _timer?.cancel();
         setState(() {
           _isSubmitted = true;
@@ -277,7 +284,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         );
       }
     } catch (e) {
-      print('[DQ] Error submitting answer: $e');
+      // print('[DQ] Error submitting answer: $e');
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error submitting: $e')));
@@ -349,12 +356,22 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
           if (results.userAnswer != null) {
             _currentAnswer = results.userAnswer!;
           }
+          // Clear submittedWithoutQuestion flag so QuestionAnswerCard can display
+          // with reveal animation using results.questionText
+          _submittedWithoutQuestion = false;
         });
       }
     } catch (e) {
       // Ignore errors - results may not be ready yet
-      print('[DQ] Error loading results: $e');
+      // print('[DQ] Error loading results: $e');
     }
+  }
+
+  /// Get question text from either question or results data
+  String? get _questionText {
+    if (_question != null) return _question!.text;
+    if (_resultsData != null) return _resultsData!.questionText;
+    return null;
   }
 
   @override
@@ -376,12 +393,15 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     }
 
     // User submitted but returned without question loaded - show submitted view
-    if (_submittedWithoutQuestion && _question == null) {
+    // UNLESS we have results data with question text for reveal animation
+    if (_submittedWithoutQuestion &&
+        _question == null &&
+        _resultsData == null) {
       return _buildSubmittedView(appTheme, controller);
     }
 
-    // No question loaded and not a past date view
-    if (_question == null) {
+    // No question loaded and no results data - can't display anything
+    if (_question == null && _resultsData == null) {
       return Scaffold(
         backgroundColor: appTheme.bg,
         body: Stack(
@@ -441,7 +461,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                         children: [
                           // Question-Answer Card
                           QuestionAnswerCard(
-                            questionText: _question!.text,
+                            questionText: _questionText ?? '',
                             tags: const [], // No tags for daily question
                             currentAnswer: _currentAnswer,
                             submittedAnswer: submittedAnswer,

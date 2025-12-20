@@ -375,6 +375,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                               borderRadius: BorderRadius.circular(4),
                               boxShadow: [
                                 BoxShadow(
+                                  // ignore: deprecated_member_use
                                   color: appTheme.shadowColor.withOpacity(0.1),
                                   blurRadius: 2,
                                   offset: const Offset(0, 2),
@@ -418,6 +419,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                           borderRadius: BorderRadius.circular(4),
                           boxShadow: [
                             BoxShadow(
+                              // ignore: deprecated_member_use
                               color: appTheme.shadowColor.withOpacity(0.1),
                               blurRadius: 2,
                               offset: const Offset(0, 2),
@@ -465,6 +467,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                                 boxShadow: [
                                   BoxShadow(
                                     color:
+                                        // ignore: deprecated_member_use
                                         appTheme.shadowColor.withOpacity(0.1),
                                     blurRadius: 2,
                                     offset: const Offset(0, 2),

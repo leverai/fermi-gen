@@ -52,19 +52,19 @@ class DQFirestoreService {
   /// Watch a specific DQ document by date.
   /// Date should be in YYYY-MM-DD format.
   Stream<DQDocument?> watchDQ(String date) {
-    print('[DQFirestore] Subscribing to daily_questions/$date');
+    // print('[DQFirestore] Subscribing to daily_questions/$date');
     return _firestore
         .collection('daily_questions')
         .doc(date)
         .snapshots()
         .map((snapshot) {
       if (!snapshot.exists || snapshot.data() == null) {
-        print('[DQFirestore] Document does not exist: $date');
+        // print('[DQFirestore] Document does not exist: $date');
         return null;
       }
       final data = snapshot.data()!;
-      print('[DQFirestore] Got update for $date: status=${data['status']}, '
-          'results_ready=${data['results_ready']}');
+      // print('[DQFirestore] Got update for $date: status=${data['status']}, '
+      //     'results_ready=${data['results_ready']}');
       return DQDocument.fromFirestore(data);
     });
   }

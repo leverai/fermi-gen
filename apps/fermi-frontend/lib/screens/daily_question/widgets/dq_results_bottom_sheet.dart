@@ -269,24 +269,45 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
   }
 
   Widget _buildHandle(AppTheme appTheme) {
-    String handleText;
-    Color handleColor;
     bool enabled = widget.status != DQResultsHandleStatus.pending;
 
-    switch (widget.status) {
-      case DQResultsHandleStatus.pending:
-        final remaining = _formatRemainingTime(_timeUntilResults);
-        handleText = 'Results in $remaining';
-        handleColor = appTheme.textMuted;
-        break;
-      case DQResultsHandleStatus.ready:
-        handleText = 'Results ready!';
-        handleColor = appTheme.success;
-        break;
-      case DQResultsHandleStatus.seen:
-        handleText = 'Results seen';
-        handleColor = appTheme.textMuted;
-        break;
+    Widget handleContent;
+    if (widget.status == DQResultsHandleStatus.pending) {
+      final remaining = _formatRemainingTime(_timeUntilResults);
+      handleContent = Text(
+        'Results in $remaining',
+        style: AppFont.secondaryTextStyle(
+          context,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: appTheme.textMuted,
+        ),
+      );
+    } else {
+      // For both ready and seen states, show "Leaderboard (N)"
+      final totalParticipants = _results?.totalParticipants ?? 0;
+      handleContent = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Leaderboard',
+            style: AppFont.primaryTextStyle(
+              context,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: appTheme.text,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '($totalParticipants)',
+            style: AppFont.secondaryTextStyle(
+              context,
+              color: appTheme.textMuted,
+            ),
+          ),
+        ],
+      );
     }
 
     return Container(
@@ -304,16 +325,8 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
             ),
           ),
           const SizedBox(height: 8),
-          // Status text
-          Text(
-            handleText,
-            style: AppFont.secondaryTextStyle(
-              context,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: handleColor,
-            ),
-          ),
+          // Status text/header
+          handleContent,
         ],
       ),
     );
@@ -368,30 +381,6 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Leaderboard header
-          Row(
-            children: [
-              Text(
-                'Leaderboard',
-                style: AppFont.primaryTextStyle(
-                  context,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: appTheme.text,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '(${results.totalParticipants})',
-                style: AppFont.secondaryTextStyle(
-                  context,
-                  color: appTheme.textMuted,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
           // Leaderboard entries
           if (leaderboardEntries.isEmpty)
             Padding(

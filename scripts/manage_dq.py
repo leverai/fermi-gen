@@ -44,18 +44,12 @@ import sys
 from datetime import timedelta
 
 import httpx
-from fermi_core.utils import utcnow_naive
-from fermi_db import DatabaseClient
 from fermi_db.models import DailyQuestion, Fermi
-from fermi_db.schemas import DailyQuestionStatus, QuestionStatus
+from fermi_db.schemas import QuestionStatus
 from fermi_db.session import get_session
 from sqlmodel import select
 
-from app.services.daily_question.timing import (
-    get_dq_date_for_utc,
-    get_window_for_date_utc,
-)
-
+# Actually need to export these.
 os.environ['DATABASE_URL'] = (
     'postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/fermi-db'
 )
@@ -69,6 +63,7 @@ async def get_firestore_writer():
 
     Returns:
         DQFirestoreWriter instance if Firestore is configured, None otherwise.
+
     """
     emulator_host = os.getenv('FIRESTORE_EMULATOR_HOST')
     project_id = os.getenv('GOOGLE_CLOUD_PROJECT', 'fermi-local')
@@ -158,8 +153,8 @@ async def advance_dq() -> None:
                 session.add(dq)
             await session.flush()
 
-        # 2. close_and_schedule
-        await close_and_schedule()
+    # 2. close_and_schedule
+    await close_and_schedule()
 
 
 async def seed_dq_questions(count: int = 10) -> None:

@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -314,7 +316,6 @@ class _MainButtonState extends State<MainButton>
                             width: 12,
                             height: 12,
                             decoration: BoxDecoration(
-                              // ignore: deprecated_member_use
                               color: Colors.white.withOpacity(0.3),
                               shape: BoxShape.circle,
                             ),

@@ -59,15 +59,15 @@ class MeTab extends StatelessWidget {
             children: [
               // Balance the Row so the name remains perfectly centered
               if (onEditProfile != null) ...[
-                Opacity(
+                const Opacity(
                   opacity: 0,
                   child: IgnorePointer(
                     child: IconButton(
                       onPressed: null,
-                      icon: const Icon(Icons.edit),
+                      icon: Icon(Icons.edit),
                       // Maintain exact same size constraints
-                      padding: const EdgeInsets.all(8.0),
-                      constraints: const BoxConstraints(
+                      padding: EdgeInsets.all(8.0),
+                      constraints: BoxConstraints(
                         minWidth: kMinInteractiveDimension,
                         minHeight: kMinInteractiveDimension,
                       ),
@@ -94,7 +94,9 @@ class MeTab extends StatelessWidget {
                   onPressed: onEditProfile,
                   icon: Icon(Icons.edit, color: appTheme.textMuted),
                   tooltip: 'Edit Profile',
+                  // ignore: deprecated_member_use
                   splashColor: appTheme.primary.withOpacity(0.3),
+                  // ignore: deprecated_member_use
                   highlightColor: appTheme.primary.withOpacity(0.1),
                   padding: const EdgeInsets.all(8.0),
                   constraints: const BoxConstraints(
