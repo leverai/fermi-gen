@@ -50,6 +50,16 @@ void showPartyBottomSheet({
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
+                      Text(
+                        'Select Category:',
+                        style: AppFont.primaryTextStyle(
+                          context,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: appTheme.textMuted,
+                        ),
+                        textAlign: TextAlign.left,
+                      ),
                       CategoryCarouselM3(
                         categories: items,
                         initialIndex: controller.selectedCategoryIndex,
@@ -57,7 +67,18 @@ void showPartyBottomSheet({
                         onCenteredIndexChanged: controller.selectCategoryIndex,
                         startColor: HSLColor.fromColor(appTheme.primary),
                       ),
-                      // const SizedBox(height: 8),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Select Difficulty:',
+                        style: AppFont.primaryTextStyle(
+                          context,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: appTheme.textMuted,
+                        ),
+                        textAlign: TextAlign.left,
+                      ),
+                      const SizedBox(height: 16),
                       SelectorWidget(
                         options: controller.difficulties
                             .map((d) => SelectorOption(

@@ -48,7 +48,8 @@ class SelectorWidget extends StatelessWidget {
   /// The grid will create as many rows as needed to display all options.
   final int columns;
 
-  static const double _chipHeight = 48.0;
+  static const double _chipHeight =
+      44.0; // Reduced to allow for 2px padding top/bottom (48 - 4)
   static const double _spacing = 0.0;
   static const double _fontSize = 16.0;
 
@@ -82,8 +83,11 @@ class SelectorWidget extends StatelessWidget {
 
     // Wrap in container with styling
     final container = Container(
-      decoration: const BoxDecoration(),
-      padding: const EdgeInsets.all(_spacing),
+      decoration: BoxDecoration(
+        color: appTheme.bgDark,
+        borderRadius: BorderRadius.circular(12), // High radius for pill shape
+      ),
+      padding: const EdgeInsets.all(2), // 2px padding on all sides
       child: LayoutBuilder(
         builder: (context, constraints) {
           // Calculate chip width based on available space (after padding)
@@ -125,8 +129,9 @@ class SelectorWidget extends StatelessWidget {
 
     // For fill parent mode, constrain to exact height based on number of rows
     // This prevents GridView from adding any extra padding
+    // Total height = (chip height * rows) + padding top + padding bottom
     return SizedBox(
-      height: _chipHeight * numRows,
+      height: (_chipHeight * numRows) + 4.0,
       child: container,
     );
   }
@@ -134,6 +139,8 @@ class SelectorWidget extends StatelessWidget {
   Widget _buildChip(
       BuildContext context, AppTheme appTheme, SelectorOption option) {
     final bool isSelected = selected == option.value;
+
+    final color = isSelected ? appTheme.text : appTheme.textMuted;
 
     return GestureDetector(
       onTap: () {
@@ -146,14 +153,8 @@ class SelectorWidget extends StatelessWidget {
         height: _chipHeight,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? appTheme.bg : appTheme.bgLight,
-          // border: isSelected
-          //     ? Border.all(
-          //         color: appTheme.border,
-          //         width: 1,
-          //       )
-          //     : null,
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? appTheme.bgLight : Colors.transparent,
+          borderRadius: BorderRadius.circular(11),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -163,7 +164,7 @@ class SelectorWidget extends StatelessWidget {
               _buildIcon(
                 option.iconUrl,
                 option.icon,
-                isSelected ? appTheme.text : appTheme.border,
+                color,
               ),
               const SizedBox(width: 6),
             ],
@@ -174,7 +175,7 @@ class SelectorWidget extends StatelessWidget {
                   context,
                   fontSize: _fontSize,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected ? appTheme.text : appTheme.border,
+                  color: color,
                   height: 1.2,
                 ).copyWith(letterSpacing: 0.8),
                 textAlign: TextAlign.center,

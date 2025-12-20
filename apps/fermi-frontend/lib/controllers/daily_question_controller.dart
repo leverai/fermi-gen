@@ -59,25 +59,25 @@ class DailyQuestionController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      print('[DQController] Fetching weekly archive...');
+      // print('[DQController] Fetching weekly archive...');
       final archive = await _service.getWeeklyArchive();
 
       _weeklyItems = archive.items;
       final newTodayDate = archive.today;
 
-      print(
-          '[DQController] Got ${_weeklyItems.length} items, today=$newTodayDate');
+      // print(
+      //     '[DQController] Got ${_weeklyItems.length} items, today=$newTodayDate');
 
       // If today changed, update subscription
       if (newTodayDate != _todayDate) {
-        print('[DQController] Today changed: $_todayDate -> $newTodayDate');
+        // print('[DQController] Today changed: $_todayDate -> $newTodayDate');
         await _cancelCurrentSubscription();
         _todayDate = newTodayDate;
         _subscribeToToday();
       }
     } catch (e, st) {
-      print('[DQController] Error: $e');
-      print('[DQController] Stack: $st');
+      // print('[DQController] Error: $e');
+      // print('[DQController] Stack: $st');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -89,13 +89,13 @@ class DailyQuestionController extends ChangeNotifier {
   void _subscribeToToday() {
     if (_todayDate == null) return;
 
-    print('[DQController] Subscribing to Firestore: $_todayDate');
+    // print('[DQController] Subscribing to Firestore: $_todayDate');
     _firestoreSubscription = _firestoreService.watchDQ(_todayDate!).listen(
       (doc) {
         _onFirestoreUpdate(doc);
       },
       onError: (e) {
-        print('[DQController] Firestore error: $e');
+        // print('[DQController] Firestore error: $e');
       },
     );
   }
@@ -105,15 +105,15 @@ class DailyQuestionController extends ChangeNotifier {
     final previousDoc = _todayDocument;
     _todayDocument = doc;
 
-    print('[DQController] Firestore update: status=${doc?.status}, '
-        'results_ready=${doc?.resultsReady}');
+    // print('[DQController] Firestore update: status=${doc?.status}, '
+    //     'results_ready=${doc?.resultsReady}');
 
     // Check if results just became ready
     if (doc != null &&
         doc.resultsReady &&
         previousDoc != null &&
         !previousDoc.resultsReady) {
-      print('[DQController] Results just became ready!');
+      // print('[DQController] Results just became ready!');
       _handleResultsReady();
     }
 
@@ -124,7 +124,7 @@ class DailyQuestionController extends ChangeNotifier {
   void _handleResultsReady() {
     // Add old today to unseen results if user participated
     if (_todayDate != null && (_weeklyItems[_todayDate] ?? false)) {
-      print('[DQController] Adding $_todayDate to unseen results');
+      // print('[DQController] Adding $_todayDate to unseen results');
       _unseenResults.add(_todayDate!);
     }
 
@@ -145,7 +145,7 @@ class DailyQuestionController extends ChangeNotifier {
   /// Mark results as seen for a date (removes unseen indicator).
   void markResultsSeen(String date) {
     if (_unseenResults.remove(date)) {
-      print('[DQController] Marked $date as seen');
+      // print('[DQController] Marked $date as seen');
       notifyListeners();
     }
   }
@@ -156,7 +156,7 @@ class DailyQuestionController extends ChangeNotifier {
   /// Start today's question. Returns the question details.
   Future<DQQuestionResponse> startQuestion() async {
     try {
-      print('[DQController] Starting question...');
+      // print('[DQController] Starting question...');
       return await _service.startQuestion();
     } catch (e) {
       _errorMessage = e.toString();
@@ -168,7 +168,7 @@ class DailyQuestionController extends ChangeNotifier {
   /// Submit an answer for the current question.
   Future<DQSubmitResponse> submitAnswer(AnswerValue answer) async {
     try {
-      print('[DQController] Submitting answer...');
+      // print('[DQController] Submitting answer...');
       final response = await _service.submitAnswer(answer);
 
       // Refresh archive to update participation status
@@ -184,7 +184,7 @@ class DailyQuestionController extends ChangeNotifier {
 
   @override
   void dispose() {
-    print('[DQController] Disposing...');
+    // print('[DQController] Disposing...');
     _firestoreSubscription?.cancel();
     super.dispose();
   }
