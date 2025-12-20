@@ -87,8 +87,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
 
       // Secondary - Vibrant Teal
       secondary: const HSLColor.fromAHSL(1.0, 292, 0.2, 0.52).toColor(),
-      secondaryMuted:
-          const HSLColor.fromAHSL(1.0, 176.29, 0.4512, 0.4216).toColor(),
+      secondaryMuted: const HSLColor.fromAHSL(1.0, 292, 0.2, 0.72).toColor(),
 
       // Semantic
       danger: const HSLColor.fromAHSL(1.0, 0.0, .38, 0.66).toColor(),

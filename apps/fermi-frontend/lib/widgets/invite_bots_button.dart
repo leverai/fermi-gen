@@ -62,10 +62,6 @@ class _InviteBotsButtonState extends State<InviteBotsButton> {
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: appTheme.bgLight,
-            width: appTheme.borderWidth,
-          ),
           boxShadow: [
             if (!_isPressed && isEnabled)
               BoxShadow(
