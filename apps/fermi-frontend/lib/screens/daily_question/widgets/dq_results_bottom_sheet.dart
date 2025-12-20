@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
-import 'package:fermi_frontend/widgets/question_widget.dart';
-import 'package:fermi_frontend/widgets/slider_text_mirror.dart';
 import 'package:fermi_frontend/widgets/avatar_widget.dart';
 
 /// Handle status for the DQ results bottom sheet.
@@ -41,6 +39,12 @@ class DQResultsBottomSheet extends StatefulWidget {
   /// Service to fetch results if not provided.
   final DailyQuestionService? service;
 
+  /// Current user's display name for showing in leaderboard.
+  final String? userDisplayName;
+
+  /// Current user's avatar URL for showing in leaderboard.
+  final String? userAvatarUrl;
+
   const DQResultsBottomSheet({
     super.key,
     required this.questionDate,
@@ -49,6 +53,8 @@ class DQResultsBottomSheet extends StatefulWidget {
     this.onResultsViewed,
     this.results,
     this.service,
+    this.userDisplayName,
+    this.userAvatarUrl,
   });
 
   @override
@@ -354,183 +360,177 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
 
     final results = _results!;
 
+    // Build leaderboard entries with user added if not in top 10
+    final leaderboardEntries = _buildLeaderboardEntries(results);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Question (compact)
-          QuestionWidget(
-            text: results.questionText,
-            tags: const [],
-            height: 100,
-          ),
-          const SizedBox(height: 16),
-
-          // Correct Answer
-          _buildSection(
-            appTheme,
-            'Correct Answer',
-            child: SliderTextMirror(value: results.correctAnswer),
-          ),
-          const SizedBox(height: 12),
-
-          // User's Answer (if participated)
-          if (results.userAnswer != null) ...[
-            _buildSection(
-              appTheme,
-              'Your Answer',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SliderTextMirror(value: results.userAnswer!),
-                  const SizedBox(height: 8),
-                  if (results.userScore != null)
-                    Text(
-                      'Score: ${results.userScore!.toStringAsFixed(0)}',
-                      style: AppFont.primaryTextStyle(
-                        context,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: appTheme.primary,
-                      ),
-                    ),
-                  if (results.userRank != null)
-                    Text(
-                      'Rank: #${results.userRank} of ${results.totalParticipants}',
-                      style: AppFont.secondaryTextStyle(
-                        context,
-                        color: appTheme.textMuted,
-                      ),
-                    ),
-                ],
+          // Leaderboard header
+          Row(
+            children: [
+              Text(
+                'Leaderboard',
+                style: AppFont.primaryTextStyle(
+                  context,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: appTheme.text,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-          ] else ...[
-            _buildSection(
-              appTheme,
-              'Your Result',
-              child: Text(
-                'You did not participate in this question.',
+              const SizedBox(width: 8),
+              Text(
+                '(${results.totalParticipants})',
                 style: AppFont.secondaryTextStyle(
                   context,
                   color: appTheme.textMuted,
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-          ],
-
-          // Leaderboard
-          _buildSection(
-            appTheme,
-            'Leaderboard (${results.totalParticipants})',
-            child: results.leaderboard.isEmpty
-                ? Text(
-                    'No participants yet.',
-                    style: AppFont.secondaryTextStyle(
-                      context,
-                      color: appTheme.textMuted,
-                    ),
-                  )
-                : Column(
-                    children: results.leaderboard.take(10).map((entry) {
-                      final player = entry.player;
-                      final displayName = player?.displayName ?? 'Anonymous';
-                      final avatarUrl = player?.avatarUrl;
-
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 3),
-                        child: Row(
-                          children: [
-                            // Rank
-                            SizedBox(
-                              width: 28,
-                              child: Text(
-                                '#${entry.rank}',
-                                style: AppFont.secondaryTextStyle(
-                                  context,
-                                  fontWeight: FontWeight.w700,
-                                  color: appTheme.text,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Avatar
-                            AvatarWidget(
-                              imageUrl: avatarUrl,
-                              size: 28,
-                              backgroundColor: appTheme.border,
-                              placeholder: Text(
-                                displayName.isNotEmpty
-                                    ? displayName[0].toUpperCase()
-                                    : '?',
-                                style: AppFont.secondaryTextStyle(
-                                  context,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: appTheme.text,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Name
-                            Expanded(
-                              child: Text(
-                                displayName,
-                                style: AppFont.secondaryTextStyle(
-                                  context,
-                                  color: appTheme.text,
-                                ),
-                              ),
-                            ),
-                            // Score
-                            Text(
-                              '${entry.score.toStringAsFixed(0)} pts',
-                              style: AppFont.secondaryTextStyle(
-                                context,
-                                fontWeight: FontWeight.w600,
-                                color: appTheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
+            ],
           ),
+          const SizedBox(height: 12),
+
+          // Leaderboard entries
+          if (leaderboardEntries.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Text(
+                'No participants yet.',
+                style: AppFont.secondaryTextStyle(
+                  context,
+                  color: appTheme.textMuted,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            )
+          else
+            ...leaderboardEntries,
         ],
       ),
     );
   }
 
-  Widget _buildSection(AppTheme appTheme, String title,
-      {required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: appTheme.bg,
-        borderRadius: BorderRadius.circular(appTheme.borderRadius),
-        border: Border.all(
-          color: appTheme.border,
-          width: appTheme.borderWidth,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
+  /// Build leaderboard entries, adding user if not in top 10
+  List<Widget> _buildLeaderboardEntries(DQResultsResponse results) {
+    final List<Widget> entries = [];
+    final userRank = results.userRank;
+    final top10 = results.leaderboard.take(10).toList();
+
+    // Build top 10 entries
+    for (final entry in top10) {
+      final isCurrentUser = userRank != null && entry.rank == userRank;
+      entries.add(_buildLeaderboardRow(entry, isCurrentUser));
+    }
+
+    // Add user's entry if they participated but aren't in top 10
+    if (userRank != null && userRank > 10 && results.userScore != null) {
+      // Add separator
+      entries.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            '···',
             style: AppFont.secondaryTextStyle(
               context,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: appTheme.textMuted,
+              color: Theme.of(context).extension<AppTheme>()?.textMuted ??
+                  AppTheme.defaultTheme().textMuted,
+              fontSize: 16,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+
+      // Create synthetic entry for current user
+      final userEntry = DQLeaderboardEntry(
+        rank: userRank,
+        player: DQPlayer(
+          displayName: widget.userDisplayName ?? 'You',
+          avatarUrl: widget.userAvatarUrl,
+        ),
+        score: results.userScore!,
+        timeTakenS: 0, // Not displayed
+      );
+      entries.add(_buildLeaderboardRow(userEntry, true));
+    }
+
+    return entries;
+  }
+
+  /// Build a single leaderboard row
+  Widget _buildLeaderboardRow(DQLeaderboardEntry entry, bool isCurrentUser) {
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+    final player = entry.player;
+    final displayName = player?.displayName ?? 'Anonymous';
+    final avatarUrl = player?.avatarUrl;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: isCurrentUser
+            ? appTheme.primaryMuted.withOpacity(0.3)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        border: isCurrentUser
+            ? Border.all(color: appTheme.primary, width: 2)
+            : null,
+      ),
+      child: Row(
+        children: [
+          // Rank
+          SizedBox(
+            width: 32,
+            child: Text(
+              '#${entry.rank}',
+              style: AppFont.secondaryTextStyle(
+                context,
+                fontWeight: FontWeight.w700,
+                color: isCurrentUser ? appTheme.primary : appTheme.text,
+              ),
             ),
           ),
-          const SizedBox(height: 6),
-          child,
+          const SizedBox(width: 8),
+          // Avatar
+          AvatarWidget(
+            imageUrl: avatarUrl,
+            size: 28,
+            backgroundColor: appTheme.border,
+            placeholder: Text(
+              displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+              style: AppFont.secondaryTextStyle(
+                context,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: appTheme.text,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Name
+          Expanded(
+            child: Text(
+              isCurrentUser ? '$displayName (You)' : displayName,
+              style: AppFont.secondaryTextStyle(
+                context,
+                color: appTheme.text,
+                fontWeight: isCurrentUser ? FontWeight.w600 : FontWeight.normal,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          // Score
+          Text(
+            '${entry.score.toStringAsFixed(0)} pts',
+            style: AppFont.secondaryTextStyle(
+              context,
+              fontWeight: FontWeight.w600,
+              color: appTheme.primary,
+            ),
+          ),
         ],
       ),
     );

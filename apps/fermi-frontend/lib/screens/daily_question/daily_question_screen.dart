@@ -44,10 +44,14 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
   String _currentLocale = 'US';
   List<String> _unitAbbreviations = [];
   Map<String, String> _unitOptions = {}; // name -> abbreviation
+  Map<String, String> _unitAbbreviationToId = {}; // abbreviation -> id
 
   // Timer
   Timer? _timer;
   Duration _timeLeft = Duration.zero;
+
+  // Results data for reveal animation
+  DQResultsResponse? _resultsData;
 
   @override
   void initState() {
@@ -144,6 +148,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     if (units == null || units.isEmpty) {
       _unitAbbreviations = [];
       _unitOptions = {};
+      _unitAbbreviationToId = {};
       return;
     }
 
@@ -153,6 +158,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     if (localeUnits.isEmpty) {
       _unitAbbreviations = [];
       _unitOptions = {};
+      _unitAbbreviationToId = {};
       return;
     }
 
@@ -166,6 +172,13 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       for (final u in localeUnits)
         if (u['name'] != null && u['abbreviation'] != null)
           u['name']!: u['abbreviation']!
+    };
+
+    // Build abbreviation -> id map for API submission
+    _unitAbbreviationToId = {
+      for (final u in localeUnits)
+        if (u['abbreviation'] != null && u['id'] != null)
+          u['abbreviation']!: u['id']!
     };
 
     // Default to largest unit (last in ladder)
@@ -242,7 +255,13 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     final controller = context.read<DailyQuestionController>();
     try {
       print('[DQ] Submitting answer to backend...');
-      await controller.submitAnswer(_currentAnswer);
+      // Translate abbreviation to ID before submitting
+      final unitId = _currentAnswer.unit.isNotEmpty
+          ? (_unitAbbreviationToId[_currentAnswer.unit] ?? _currentAnswer.unit)
+          : '';
+      final answerToSubmit = _currentAnswer.copyWith(unit: unitId);
+      print('[DQ] Translated unit: ${_currentAnswer.unit} -> $unitId');
+      await controller.submitAnswer(answerToSubmit);
       if (mounted) {
         print(
             '[DQ] Answer submitted successfully, cancelling timer and updating state');
@@ -314,6 +333,30 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     }
   }
 
+  /// Load results when they become ready
+  Future<void> _loadResults() async {
+    if (_resultsData != null) return;
+    final effectiveDate = _effectiveDate;
+    if (effectiveDate == null) return;
+
+    try {
+      final service = context.read<DailyQuestionService>();
+      final results = await service.getResultsForDate(effectiveDate);
+      if (mounted) {
+        setState(() {
+          _resultsData = results;
+          // Update current answer display to user's submitted answer
+          if (results.userAnswer != null) {
+            _currentAnswer = results.userAnswer!;
+          }
+        });
+      }
+    } catch (e) {
+      // Ignore errors - results may not be ready yet
+      print('[DQ] Error loading results: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final appTheme =
@@ -362,6 +405,19 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     final resultsStatus = _getResultsStatus();
     final showResultsSheet = _isSubmitted;
 
+    // Load results when status changes to ready/seen
+    if (resultsStatus != DQResultsHandleStatus.pending &&
+        _resultsData == null) {
+      _loadResults();
+    }
+
+    // Determine reveal animation values
+    final bool showReveal = _resultsData != null;
+    final revealedAnswer = showReveal ? _resultsData!.correctAnswer : null;
+    final revealedColor = showReveal ? appTheme.success : null;
+    final submittedAnswer = showReveal ? _resultsData!.userAnswer : null;
+    final authService = context.read<AuthService>();
+
     return Scaffold(
       backgroundColor: appTheme.bg,
       body: Stack(
@@ -388,7 +444,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                             questionText: _question!.text,
                             tags: const [], // No tags for daily question
                             currentAnswer: _currentAnswer,
-                            submittedAnswer: null,
+                            submittedAnswer: submittedAnswer,
                             unitOptions: _unitOptions,
                             units: _unitAbbreviations,
                             currentLocale: _currentLocale,
@@ -401,6 +457,8 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                                 : (_) {},
                             onLocaleChanged: _onLocaleChanged,
                             editable: inputsEnabled,
+                            revealedAnswer: revealedAnswer,
+                            revealedColor: revealedColor,
                             buttonWidget: MainButton(
                               onPressed: inputsEnabled ? _submit : null,
                               label: MainButtonLabel.submit,
@@ -427,6 +485,8 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
               windowEnd: controller.todayDocument?.windowEnd,
               onResultsViewed: _onResultsViewed,
               service: context.read<DailyQuestionService>(),
+              userDisplayName: authService.currentUser?.displayName,
+              userAvatarUrl: authService.currentUser?.picture,
             ),
         ],
       ),
@@ -594,6 +654,9 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
             windowEnd: controller.todayDocument?.windowEnd,
             onResultsViewed: _onResultsViewed,
             service: context.read<DailyQuestionService>(),
+            userDisplayName:
+                context.read<AuthService>().currentUser?.displayName,
+            userAvatarUrl: context.read<AuthService>().currentUser?.picture,
           ),
         ],
       ),
@@ -640,6 +703,9 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
             status: DQResultsHandleStatus.seen,
             onResultsViewed: _onResultsViewed,
             service: context.read<DailyQuestionService>(),
+            userDisplayName:
+                context.read<AuthService>().currentUser?.displayName,
+            userAvatarUrl: context.read<AuthService>().currentUser?.picture,
           ),
         ],
       ),

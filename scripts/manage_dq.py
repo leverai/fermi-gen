@@ -144,9 +144,6 @@ async def activate_dq() -> None:
 async def advance_dq() -> None:
     """Advance to next day: shift all DQs back, close today's DQ, create new DQ."""
     async for session in get_session():
-        now_utc = utcnow_naive()
-        today = get_dq_date_for_utc(now_utc)
-
         # 1. Cascade shift ALL existing DQs back by 1 day (oldest first to avoid
         # conflicts)
         stmt = select(DailyQuestion).order_by(DailyQuestion.question_date.asc())
@@ -161,94 +158,8 @@ async def advance_dq() -> None:
                 session.add(dq)
             await session.flush()
 
-        # 2. Find and close the DQ that was at today (now at yesterday)
-        yesterday = today - timedelta(days=1)
-        stmt = select(DailyQuestion).where(DailyQuestion.question_date == yesterday)
-        result = await session.exec(stmt)
-        current_dq = result.one_or_none()
-
-        if current_dq and current_dq.status != DailyQuestionStatus.CLOSED:
-            # Close and compute ranks
-            current_dq.status = DailyQuestionStatus.CLOSED
-            session.add(current_dq)
-            await session.flush()
-
-            # Compute and update ranks
-            if current_dq.id:
-                db_client = DatabaseClient(session)
-                count = await db_client.dq_answers.compute_and_update_ranks(
-                    current_dq.id,
-                )
-                print(f'   Computed ranks for {count} participants')
-            print(f'✅ Closed DQ {current_dq.id} (now at {current_dq.question_date})')
-
-            # Close and mark results ready in Firestore
-            fs_writer = await get_firestore_writer()
-            if fs_writer:
-                try:
-                    await fs_writer.close_dq_document(yesterday)
-                    await fs_writer.set_results_ready(yesterday)
-                    print('   ✓ Firestore document closed and results ready')
-                except Exception as e:
-                    print(f'   ⚠️  Firestore update failed: {e}')
-
-        # 3. Create new DQ for today
-        # Find next unused DQ question
-        used_uids = select(DailyQuestion.question_uid).subquery()
-        stmt = (
-            select(Fermi)
-            .where(
-                Fermi.status == QuestionStatus.APPROVED,
-                Fermi.is_daily_question == True,  # noqa: E712
-                ~Fermi.uid.in_(select(used_uids)),
-            )
-            .order_by(Fermi.created_at.asc())
-            .limit(1)
-        )
-        result = await session.exec(stmt)
-        question = result.one_or_none()
-
-        if not question:
-            print('❌ No unused DQ questions available!')
-            print('   Run: python scripts/manage_dq.py seed --count 10')
-            await session.commit()
-            return
-
-        # Create DQ for today using UTC-based timing
-        window_start, window_end = get_window_for_date_utc(today)
-        new_dq = DailyQuestion(
-            question_uid=question.uid,
-            question_date=today,
-            status=DailyQuestionStatus.ACTIVE,  # ACTIVE for testing
-            window_start=window_start,
-            window_end=window_end,
-        )
-        session.add(new_dq)
-        await session.commit()
-        await session.refresh(new_dq)
-
-        print(f"✅ Created today's DQ (ID: {new_dq.id})")
-        print(f'   Question: {question.text[:80]}...')
-        print(f'   Status: {new_dq.status}')
-        print(f'   Window: {new_dq.window_start} - {new_dq.window_end} UTC')
-
-        # Create Firestore document
-        fs_writer = await get_firestore_writer()
-        if fs_writer:
-            try:
-                await fs_writer.create_dq_document(
-                    today,
-                    str(question.uid),
-                    window_start,
-                    window_end,
-                )
-                # Immediately activate it for local testing
-                await fs_writer.activate_dq_document(today)
-                print('   ✓ Firestore document created and activated')
-            except Exception as e:
-                print(f'   ⚠️  Firestore update failed: {e}')
-
-        break
+        # 2. close_and_schedule
+        await close_and_schedule()
 
 
 async def seed_dq_questions(count: int = 10) -> None:
