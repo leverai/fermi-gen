@@ -74,6 +74,7 @@ class _SettingsMenuState extends State<SettingsMenu>
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Container(
+                  // ignore: deprecated_member_use
                   color: appTheme.borderMuted.withOpacity(0.5),
                 ),
               ),
@@ -95,6 +96,7 @@ class _SettingsMenuState extends State<SettingsMenu>
                   border: Border.all(color: appTheme.border, width: 2),
                   boxShadow: [
                     BoxShadow(
+                      // ignore: deprecated_member_use
                       color: appTheme.borderMuted.withOpacity(0.2),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
@@ -134,6 +136,7 @@ class _SettingsMenuState extends State<SettingsMenu>
                       Divider(
                           height: 1,
                           thickness: 1,
+                          // ignore: deprecated_member_use
                           color: appTheme.border.withOpacity(0.3)),
                       _buildMenuItem(
                         context,

@@ -158,6 +158,7 @@ class StyledDialog extends StatelessWidget {
                         overlayColor: WidgetStateProperty.resolveWith<Color?>(
                           (Set<WidgetState> states) {
                             if (states.contains(WidgetState.pressed)) {
+                              // ignore: deprecated_member_use
                               return appTheme.text.withOpacity(0.2);
                             }
                             return Colors.transparent;
@@ -195,6 +196,7 @@ class StyledDialog extends StatelessWidget {
                       overlayColor: WidgetStateProperty.resolveWith<Color?>(
                         (Set<WidgetState> states) {
                           if (states.contains(WidgetState.pressed)) {
+                            // ignore: deprecated_member_use
                             return appTheme.text.withOpacity(0.2);
                           }
                           return Colors.transparent;

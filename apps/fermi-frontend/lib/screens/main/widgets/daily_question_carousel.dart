@@ -71,16 +71,16 @@ class DailyQuestionCarousel extends StatelessWidget {
               if (isToday) {
                 // Today's card: use real-time Firestore status
                 final status = todayDocument?.status ?? 'NOT_STARTED';
-                print(
-                    '[DQCarousel] isToday=true, date=$date, todayDate=$todayDate, '
-                    'todayDocument=${todayDocument != null}, status=$status, participated=$participated');
+                // print(
+                //     '[DQCarousel] isToday=true, date=$date, todayDate=$todayDate, '
+                //     'todayDocument=${todayDocument != null}, status=$status, participated=$participated');
 
                 if (status == 'ACTIVE') {
                   if (!participated) {
                     // User can play
                     displayStatus = 'ACTIVE';
                     onTapCallback = () {
-                      print('[DQCarousel] Navigating to DailyQuestionScreen');
+                      // print('[DQCarousel] Navigating to DailyQuestionScreen');
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) => const DailyQuestionScreen(),

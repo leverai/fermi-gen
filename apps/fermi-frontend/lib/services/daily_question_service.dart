@@ -245,29 +245,29 @@ class DailyQuestionService {
 
   /// Get lite archive for DQ carousel (past 7 days + today).
   Future<DQLiteArchiveResponse> getWeeklyArchive() async {
-    print('[DQService] Calling getWeeklyArchive...');
+    // print('[DQService] Calling getWeeklyArchive...');
     final response = await _api.get('/daily_question/archive/week');
-    print(
-        '[DQService] Weekly archive response: ${response.statusCode} - ${response.body}');
+    // print(
+    //     '[DQService] Weekly archive response: ${response.statusCode} - ${response.body}');
     final data = _decodeOkJson(response);
     return DQLiteArchiveResponse.fromJson(data);
   }
 
   /// Get lite archive for a specific month (calendar view).
   Future<DQLiteArchiveResponse> getMonthlyArchive(int year, int month) async {
-    print('[DQService] Calling getMonthlyArchive($year, $month)...');
+    // print('[DQService] Calling getMonthlyArchive($year, $month)...');
     final response = await _api.get(
       '/daily_question/archive/month?year=$year&month=$month',
     );
-    print(
-        '[DQService] Monthly archive response: ${response.statusCode} - ${response.body}');
+    // print(
+    //     '[DQService] Monthly archive response: ${response.statusCode} - ${response.body}');
     final data = _decodeOkJson(response);
     return DQLiteArchiveResponse.fromJson(data);
   }
 
   /// Start today's daily question.
   Future<DQQuestionResponse> startQuestion() async {
-    print('[DQService] Calling startQuestion...');
+    // print('[DQService] Calling startQuestion...');
     final response = await _api.post('/daily_question/start', {});
     final data = _decodeOkJson(response);
     return DQQuestionResponse.fromJson(data);
@@ -275,7 +275,7 @@ class DailyQuestionService {
 
   /// Submit an answer for the daily question.
   Future<DQSubmitResponse> submitAnswer(AnswerValue answer) async {
-    print('[DQService] Calling submitAnswer...');
+    // print('[DQService] Calling submitAnswer...');
     // Compose the number back from (number, orderOfMagnitude) to absolute value
     final absoluteNumber = composeNumber(answer);
     final response = await _api.post('/daily_question/answer', {
@@ -290,7 +290,7 @@ class DailyQuestionService {
 
   /// Get results for today's daily question.
   Future<DQResultsResponse> getResults() async {
-    print('[DQService] Calling getResults...');
+    // print('[DQService] Calling getResults...');
     final response = await _api.get('/daily_question/results');
     final data = _decodeOkJson(response);
     return DQResultsResponse.fromJson(data);
@@ -298,10 +298,10 @@ class DailyQuestionService {
 
   /// Get results for a specific past daily question by date.
   Future<DQResultsResponse> getResultsForDate(String questionDate) async {
-    print('[DQService] Calling getResultsForDate for $questionDate...');
+    // print('[DQService] Calling getResultsForDate for $questionDate...');
     final response = await _api.get('/daily_question/results/$questionDate');
-    print(
-        '[DQService] Results response: ${response.statusCode} - ${response.body}');
+    // print(
+    //     '[DQService] Results response: ${response.statusCode} - ${response.body}');
     final data = _decodeOkJson(response);
     return DQResultsResponse.fromJson(data);
   }
