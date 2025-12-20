@@ -93,7 +93,7 @@ class _SettingsMenuState extends State<SettingsMenu>
                 decoration: BoxDecoration(
                   color: appTheme.bgLight,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: appTheme.border, width: 2),
+                  // border: Border.all(color: appTheme.border, width: 2),
                   boxShadow: [
                     BoxShadow(
                       // ignore: deprecated_member_use

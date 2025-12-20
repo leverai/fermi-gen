@@ -20,7 +20,6 @@ class PrimaryCta extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         isLoading: isLoading,
         label: isLocked ? MainButtonLabel.create : MainButtonLabel.join,
-        showSpacebarGlyph: true,
         iconAssetPath: 'assets/icons/spacebar.svg',
       ),
     );

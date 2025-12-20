@@ -81,7 +81,6 @@ void main() {
       // Drag from left to right
       const startX = 12.0;
       final endX = width - 12.0;
-      final centerY = size.height / 2;
 
       await tester.drag(
         finder,

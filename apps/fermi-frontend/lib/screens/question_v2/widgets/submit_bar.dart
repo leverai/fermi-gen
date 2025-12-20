@@ -42,7 +42,6 @@ class SubmitBar extends StatelessWidget {
             key: submitButtonKey,
             onPressed: onSubmit,
             label: MainButtonLabel.submit,
-            showSpacebarGlyph: true,
           ),
         );
       case QuestionPaneState.locked:
@@ -64,7 +63,6 @@ class SubmitBar extends StatelessWidget {
                 child: MainButton(
                   onPressed: onNext,
                   label: MainButtonLabel.finish,
-                  showSpacebarGlyph: true,
                   controller: mainButtonController,
                 ),
               ),
@@ -100,7 +98,6 @@ class SubmitBar extends StatelessWidget {
               child: MainButton(
                 onPressed: isHost ? onNext : null,
                 label: MainButtonLabel.next,
-                showSpacebarGlyph: true,
                 isLoading: false,
                 controller: mainButtonController,
               ),

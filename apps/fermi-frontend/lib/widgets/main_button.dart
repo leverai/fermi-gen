@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/circular_determinate_spinner.dart';
 
@@ -57,7 +57,6 @@ class MainButton extends StatefulWidget {
     this.isLoading = false,
     this.iconAssetPath,
     this.label,
-    this.showSpacebarGlyph = false,
     this.controller,
   });
 
@@ -81,10 +80,6 @@ class MainButton extends StatefulWidget {
   /// Optional predefined label to display in the center of the button.
   final MainButtonLabel? label;
 
-  /// Whether to render the spacebar-like glyph (a short horizontal line)
-  /// near the bottom of the button face. Defaults to false.
-  final bool showSpacebarGlyph;
-
   /// Optional controller to programmatically trigger the press animation.
   final MainButtonController? controller;
 
@@ -104,10 +99,6 @@ class _MainButtonState extends State<MainButton>
   bool get _isEnabled => widget.onPressed != null && !widget.isLoading;
 
   VoidCallback? _controllerListener;
-
-  // Baseline design used for spacebar glyph sizing (screen 402x874 -> button 175x48)
-  static const double _baselineScreenWidth = 402.0;
-  static const double _baselineButtonWidth = 175.0;
 
   // Hover overlay color
   static const Color _hoverOverlayColor =
@@ -165,11 +156,6 @@ class _MainButtonState extends State<MainButton>
     // Use fixed height of 48px
     const double buttonHeight = 48.0;
     final double borderRadius = appTheme.borderRadius;
-
-    // Use calculated width for spacebar glyph sizing, but allow button to fill available width
-    final Size screenSize = MediaQuery.of(context).size;
-    final double calculatedButtonWidth =
-        screenSize.width * (_baselineButtonWidth / _baselineScreenWidth);
 
     return Opacity(
       opacity: _isEnabled ? 1.0 : 0.4,
@@ -241,24 +227,18 @@ class _MainButtonState extends State<MainButton>
                               ),
                             // Show content when not loading
                             if (!widget.isLoading) ...[
-                              // Optional label placed near the top center
+                              // Optional label centered
                               if (widget.label != null)
-                                Positioned(
-                                  top: buttonHeight * 0.14,
-                                  left: 0,
-                                  right: 0,
-                                  child: Align(
-                                    alignment: Alignment.topCenter,
-                                    child: Text(
-                                      widget.label!.text,
-                                      textAlign: TextAlign.center,
-                                      style: AppFont.primaryTextStyle(context,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w400,
-                                              color: appTheme.text,
-                                              decoration: TextDecoration.none)
-                                          .copyWith(letterSpacing: 1.5),
-                                    ),
+                                Center(
+                                  child: Text(
+                                    widget.label!.text,
+                                    textAlign: TextAlign.center,
+                                    style: AppFont.primaryTextStyle(context,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w400,
+                                            color: appTheme.text,
+                                            decoration: TextDecoration.none)
+                                        .copyWith(letterSpacing: 1.5),
                                   ),
                                 ),
                               // Optional custom icon (fallback behavior from earlier API)
@@ -279,26 +259,6 @@ class _MainButtonState extends State<MainButton>
                                         Icons.space_bar,
                                         color: iconFgColor,
                                         size: 24,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              // Optional spacebar-like glyph near the bottom
-                              if (widget.showSpacebarGlyph)
-                                Positioned(
-                                  left: 0,
-                                  right: 0,
-                                  bottom: buttonHeight * 0.18,
-                                  child: Align(
-                                    alignment: Alignment.bottomCenter,
-                                    child: SvgPicture.asset(
-                                      widget.iconAssetPath ??
-                                          'assets/icons/spacebar.svg',
-                                      width: calculatedButtonWidth * 0.30,
-                                      height: 8,
-                                      colorFilter: ColorFilter.mode(
-                                        appTheme.text,
-                                        BlendMode.srcIn,
                                       ),
                                     ),
                                   ),

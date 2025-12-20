@@ -121,7 +121,6 @@ class LobbyScreen extends StatelessWidget {
                         MainButton(
                           onPressed: startEnabled ? onStart : null,
                           label: MainButtonLabel.start,
-                          showSpacebarGlyph: true,
                           iconAssetPath: 'assets/icons/spacebar.svg',
                         ),
                       ],
