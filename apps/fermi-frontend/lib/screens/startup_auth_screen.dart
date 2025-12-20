@@ -123,15 +123,18 @@ class StartupAuthScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => _continueAsGuest(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: appTheme.primary,
-                    foregroundColor: appTheme.bgLight,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(appTheme.borderRadius),
+                  style: ButtonStyle(
+                    elevation: WidgetStateProperty.all(0),
+                    backgroundColor: WidgetStateProperty.all(appTheme.primary),
+                    foregroundColor: WidgetStateProperty.all(appTheme.bgLight),
+                    padding: WidgetStateProperty.all(
+                        const EdgeInsets.symmetric(vertical: 16)),
+                    shape: WidgetStateProperty.all(
+                      RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(appTheme.borderRadius),
+                      ),
                     ),
-                    elevation: 0,
                   ),
                   child: Text(
                     'Continue as Guest',

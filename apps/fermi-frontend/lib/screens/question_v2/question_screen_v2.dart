@@ -178,14 +178,7 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
           fit: StackFit.expand,
           children: [
             Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [appTheme.bg, appTheme.bg, appTheme.bgDark],
-                  stops: const [0.0, 0.8, 1.0],
-                ),
-              ),
+              color: appTheme.bgDark,
             ),
             BottomSheetHeightProvider(
               heightNotifier: _bottomSheetHeightNotifier,

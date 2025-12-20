@@ -119,12 +119,8 @@ class GamesTab extends StatelessWidget {
         borderRadius: BorderRadius.circular(appTheme.borderRadius),
         child: Container(
           decoration: BoxDecoration(
-            color: appTheme.bgLight,
+            color: appTheme.secondary,
             borderRadius: BorderRadius.circular(appTheme.borderRadius),
-            border: Border.all(
-              color: appTheme.bgLight,
-              width: appTheme.borderWidth,
-            ),
             boxShadow: [
               BoxShadow(
                 color: appTheme.shadowColor,
@@ -148,7 +144,7 @@ class GamesTab extends StatelessWidget {
                         context,
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
-                        color: appTheme.text,
+                        color: appTheme.bg,
                       ),
                     ),
                     Text(
@@ -157,7 +153,7 @@ class GamesTab extends StatelessWidget {
                         context,
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
-                        color: appTheme.borderMuted,
+                        color: appTheme.bgDark,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -167,7 +163,7 @@ class GamesTab extends StatelessWidget {
                         context,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: appTheme.primary,
+                        color: appTheme.secondaryMuted,
                       ),
                     ),
                   ],
@@ -176,7 +172,7 @@ class GamesTab extends StatelessWidget {
               Icon(
                 Icons.grid_view_rounded,
                 size: 48,
-                color: appTheme.text,
+                color: appTheme.bg,
               ),
             ],
           ),
