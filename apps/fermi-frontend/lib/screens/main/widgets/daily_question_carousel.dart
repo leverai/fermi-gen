@@ -150,8 +150,8 @@ class DailyQuestionCarousel extends StatelessWidget {
                 alignment: Alignment.topCenter,
                 child: SizedBox(
                   width: isToday
-                      ? MediaQuery.of(context).size.width - 148
-                      : 260, // Today is much wider
+                      ? MediaQuery.of(context).size.width - 112
+                      : 120, // Today is much wider
                   child: DailyQuestionCard(
                     date: DateTime.parse(date),
                     status: displayStatus,
@@ -189,7 +189,7 @@ class DailyQuestionCarousel extends StatelessWidget {
           color: appTheme.bgLight,
           borderRadius: BorderRadius.circular(appTheme.borderRadius),
           border: Border.all(
-            color: appTheme.borderMuted,
+            color: appTheme.bgLight,
             width: appTheme.borderWidth,
           ),
         ),
@@ -197,16 +197,16 @@ class DailyQuestionCarousel extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.calendar_month, color: appTheme.textMuted),
+              Icon(Icons.calendar_month, color: appTheme.text),
               const SizedBox(height: 8),
               Text(
                 'Archive',
-                style: AppFont.secondaryTextStyle(
+                style: AppFont.primaryTextStyle(
                   context,
                   fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: appTheme.textMuted,
-                ),
+                  fontWeight: FontWeight.w600,
+                  color: appTheme.text,
+                ).copyWith(letterSpacing: 0.5),
               ),
             ],
           ),

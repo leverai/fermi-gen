@@ -122,7 +122,7 @@ class GamesTab extends StatelessWidget {
             color: appTheme.bgLight,
             borderRadius: BorderRadius.circular(appTheme.borderRadius),
             border: Border.all(
-              color: appTheme.border,
+              color: appTheme.bgLight,
               width: appTheme.borderWidth,
             ),
             boxShadow: [

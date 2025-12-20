@@ -9,7 +9,6 @@ fermi-api and fermi-etl applications.
 """
 
 import logging
-from collections.abc import Generator
 from enum import StrEnum
 from typing import TYPE_CHECKING, cast
 
@@ -32,98 +31,174 @@ class Locale(StrEnum):
     EU = 'EU'
 
 
+# UnitsIds
 # --- Mass ---
-OUNCE = UnitInfo(id='ounce', abbreviation='oz', name='Ounce')
-POUND = UnitInfo(id='pound', abbreviation='lb', name='Pound')
-TON_US = UnitInfo(id='ton', abbreviation='ton', name='Ton')  # short ton
-GRAM = UnitInfo(id='gram', abbreviation='g', name='Gram')
-KILOGRAM = UnitInfo(id='kilogram', abbreviation='kg', name='Kilogram')
-TON_METRIC = UnitInfo(id='metric_ton', abbreviation='ton', name='Ton')  # metric ton
-
+OUNCE = 'ounce'
+POUND = 'pound'
+TON = 'ton'
+GRAM = 'gram'
+KILOGRAM = 'kilogram'
+METRIC_TON = 'metric_ton'
 # --- Length ---
-INCH = UnitInfo(id='inch', abbreviation='in', name='Inch')
-FOOT = UnitInfo(id='foot', abbreviation='ft', name='Foot')
-MILE = UnitInfo(id='mile', abbreviation='mi', name='Mile')
-CENTIMETER = UnitInfo(id='centimeter', abbreviation='cm', name='Centimeter')
-METER = UnitInfo(id='meter', abbreviation='m', name='Meter')
-KILOMETER = UnitInfo(id='kilometer', abbreviation='km', name='Kilometer')
-
+INCH = 'inch'
+FOOT = 'foot'
+MILE = 'mile'
+CENTIMETER = 'centimeter'
+METER = 'meter'
+KILOMETER = 'kilometer'
 # --- Area ---
-FOOT2 = UnitInfo(id='foot ** 2', abbreviation='ft²', name='Foot²')
-ACRE = UnitInfo(id='acre', abbreviation='ac', name='Acre')
-MILE2 = UnitInfo(id='mile ** 2', abbreviation='mi²', name='Mile²')
-METER2 = UnitInfo(id='meter ** 2', abbreviation='m²', name='Meter²')
-HECTARE = UnitInfo(id='hectare', abbreviation='ha', name='Hectare')
-KM2 = UnitInfo(id='km ** 2', abbreviation='km²', name='Kilometer²')
-
+FOOT2 = 'foot ** 2'
+ACRE = 'acre'
+MILE2 = 'mile ** 2'
+METER2 = 'meter ** 2'
+HECTARE = 'hectare'
+KM2 = 'km ** 2'
 # --- Volume ---
-GALLON = UnitInfo(id='gallon', abbreviation='gal', name='Gallon')
-LITER = UnitInfo(id='liter', abbreviation='L', name='Liter')
-QUART = UnitInfo(id='quart', abbreviation='qt', name='Quart')
-METER3 = UnitInfo(id='meter ** 3', abbreviation='m³', name='Meter³')
-FOOT3 = UnitInfo(id='foot ** 3', abbreviation='ft³', name='Foot³')
-KM3 = UnitInfo(id='km ** 3', abbreviation='km³', name='Kilometer³')
-MILE3 = UnitInfo(id='mile ** 3', abbreviation='mi³', name='Mile³')
-
+GALLON = 'gallon'
+LITER = 'liter'
+QUART = 'quart'
+METER3 = 'meter ** 3'
+FOOT3 = 'foot ** 3'
+KM3 = 'km ** 3'
+MILE3 = 'mile ** 3'
 # --- Time ---
-SECOND = UnitInfo(id='second', abbreviation='s', name='Second')
-MINUTE = UnitInfo(id='minute', abbreviation='min', name='Minute')
-HOUR = UnitInfo(id='hour', abbreviation='h', name='Hour')
-DAY = UnitInfo(id='day', abbreviation='d', name='Day')
-WEEK = UnitInfo(id='week', abbreviation='wk', name='Week')
-MONTH = UnitInfo(id='month', abbreviation='mo', name='Month')
-YEAR = UnitInfo(id='year', abbreviation='yr', name='Year')
-CENTURY = UnitInfo(id='century', abbreviation='cent', name='Century')
-MILLENNIUM = UnitInfo(id='millennium', abbreviation='mill', name='Millennium')
-
+SECOND = 'second'
+MINUTE = 'minute'
+HOUR = 'hour'
+DAY = 'day'
+WEEK = 'week'
+MONTH = 'month'
+YEAR = 'year'
+CENTURY = 'century'
+MILLENNIUM = 'millennium'
 # --- Temperature ---
-FAHRENHEIT = UnitInfo(id='fahrenheit', abbreviation='°F', name='Fahrenheit')
-CELSIUS = UnitInfo(id='celsius', abbreviation='°C', name='Celsius')
-
+FAHRENHEIT = 'fahrenheit'
+CELSIUS = 'celsius'
 # --- Data size ---
-KILOBYTE = UnitInfo(id='kilobyte', abbreviation='KB', name='Kilobyte')
-MEGABYTE = UnitInfo(id='megabyte', abbreviation='MB', name='Megabyte')
-GIGABYTE = UnitInfo(id='gigabyte', abbreviation='GB', name='Gigabyte')
-TERABYTE = UnitInfo(id='terabyte', abbreviation='TB', name='Terabyte')
-PETABYTE = UnitInfo(id='petabyte', abbreviation='PB', name='Petabyte')
+KILOBYTE = 'kilobyte'
+MEGABYTE = 'megabyte'
+GIGABYTE = 'gigabyte'
+TERABYTE = 'terabyte'
+PETABYTE = 'petabyte'
 
+
+_UNITS = {
+    # --- Mass ---
+    OUNCE: UnitInfo(id='ounce', abbreviation='oz', name='Ounce'),
+    POUND: UnitInfo(id='pound', abbreviation='lb', name='Pound'),
+    TON: UnitInfo(id='ton', abbreviation='ton', name='Ton'),
+    GRAM: UnitInfo(id='gram', abbreviation='g', name='Gram'),
+    KILOGRAM: UnitInfo(id='kilogram', abbreviation='kg', name='Kilogram'),
+    METRIC_TON: UnitInfo(id='metric_ton', abbreviation='m. ton', name='Metric Ton'),
+    # --- Length ---
+    INCH: UnitInfo(id='inch', abbreviation='in', name='Inch'),
+    FOOT: UnitInfo(id='foot', abbreviation='ft', name='Foot'),
+    MILE: UnitInfo(id='mile', abbreviation='mi', name='Mile'),
+    CENTIMETER: UnitInfo(id='centimeter', abbreviation='cm', name='Centimeter'),
+    METER: UnitInfo(id='meter', abbreviation='m', name='Meter'),
+    KILOMETER: UnitInfo(id='kilometer', abbreviation='km', name='Kilometer'),
+    # --- Area ---
+    FOOT2: UnitInfo(id='foot ** 2', abbreviation='ft²', name='Foot²'),
+    ACRE: UnitInfo(id='acre', abbreviation='ac', name='Acre'),
+    MILE2: UnitInfo(id='mile ** 2', abbreviation='mi²', name='Mile²'),
+    METER2: UnitInfo(id='meter ** 2', abbreviation='m²', name='Meter²'),
+    HECTARE: UnitInfo(id='hectare', abbreviation='ha', name='Hectare'),
+    KM2: UnitInfo(id='km ** 2', abbreviation='km²', name='Kilometer²'),
+    # --- Volume ---
+    GALLON: UnitInfo(id='gallon', abbreviation='gal', name='Gallon'),
+    LITER: UnitInfo(id='liter', abbreviation='L', name='Liter'),
+    QUART: UnitInfo(id='quart', abbreviation='qt', name='Quart'),
+    METER3: UnitInfo(id='meter ** 3', abbreviation='m³', name='Meter³'),
+    FOOT3: UnitInfo(id='foot ** 3', abbreviation='ft³', name='Foot³'),
+    KM3: UnitInfo(id='km ** 3', abbreviation='km³', name='Kilometer³'),
+    MILE3: UnitInfo(id='mile ** 3', abbreviation='mi³', name='Mile³'),
+    # --- Time ---
+    SECOND: UnitInfo(id='second', abbreviation='s', name='Second'),
+    MINUTE: UnitInfo(id='minute', abbreviation='min', name='Minute'),
+    HOUR: UnitInfo(id='hour', abbreviation='h', name='Hour'),
+    DAY: UnitInfo(id='day', abbreviation='d', name='Day'),
+    WEEK: UnitInfo(id='week', abbreviation='wk', name='Week'),
+    MONTH: UnitInfo(id='month', abbreviation='mo', name='Month'),
+    YEAR: UnitInfo(id='year', abbreviation='yr', name='Year'),
+    CENTURY: UnitInfo(id='century', abbreviation='cent', name='Century'),
+    MILLENNIUM: UnitInfo(id='millennium', abbreviation='mill', name='Millennium'),
+    # --- Temperature ---
+    FAHRENHEIT: UnitInfo(id='fahrenheit', abbreviation='°F', name='Fahrenheit'),
+    CELSIUS: UnitInfo(id='celsius', abbreviation='°C', name='Celsius'),
+    # --- Data size ---
+    KILOBYTE: UnitInfo(id='kilobyte', abbreviation='KB', name='Kilobyte'),
+    MEGABYTE: UnitInfo(id='megabyte', abbreviation='MB', name='Megabyte'),
+    GIGABYTE: UnitInfo(id='gigabyte', abbreviation='GB', name='Gigabyte'),
+    TERABYTE: UnitInfo(id='terabyte', abbreviation='TB', name='Terabyte'),
+    PETABYTE: UnitInfo(id='petabyte', abbreviation='PB', name='Petabyte'),
+}
 
 # Curated popular units per quantity type.
 _QUANTITY_SYSTEM_UNITS_MAP: dict[str, dict[Locale, list[UnitInfo]]] = {
     # Mass
     'MASS': {
-        Locale.US: [OUNCE, POUND, TON_US],
-        Locale.EU: [GRAM, KILOGRAM, TON_METRIC],
+        Locale.US: [_UNITS[OUNCE], _UNITS[POUND], _UNITS[TON]],
+        Locale.EU: [_UNITS[GRAM], _UNITS[KILOGRAM], _UNITS[METRIC_TON]],
     },
     # Length / distance
     'LENGTH': {
-        Locale.US: [INCH, FOOT, MILE],
-        Locale.EU: [CENTIMETER, METER, KILOMETER],
+        Locale.US: [_UNITS[INCH], _UNITS[FOOT], _UNITS[MILE]],
+        Locale.EU: [_UNITS[CENTIMETER], _UNITS[METER], _UNITS[KILOMETER]],
     },
     # Area
     'AREA': {
-        Locale.US: [FOOT2, ACRE, MILE2],
-        Locale.EU: [METER2, HECTARE, KM2],
+        Locale.US: [_UNITS[FOOT2], _UNITS[ACRE], _UNITS[MILE2]],
+        Locale.EU: [_UNITS[METER2], _UNITS[HECTARE], _UNITS[KM2]],
     },
     # Volume
     'VOLUME': {
-        Locale.US: [QUART, GALLON, FOOT3, MILE3],
-        Locale.EU: [LITER, METER3, KM3],
+        Locale.US: [_UNITS[QUART], _UNITS[GALLON], _UNITS[FOOT3], _UNITS[MILE3]],
+        Locale.EU: [_UNITS[LITER], _UNITS[METER3], _UNITS[KM3]],
     },
     # Time (common across regions)
     'TIME': {
-        Locale.US: [SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, YEAR, CENTURY, MILLENNIUM],
-        Locale.EU: [SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, YEAR, CENTURY, MILLENNIUM],
+        Locale.US: [
+            _UNITS[SECOND],
+            _UNITS[MINUTE],
+            _UNITS[HOUR],
+            _UNITS[DAY],
+            _UNITS[WEEK],
+            _UNITS[MONTH],
+            _UNITS[YEAR],
+            _UNITS[CENTURY],
+            _UNITS[MILLENNIUM],
+        ],
+        Locale.EU: [
+            _UNITS[SECOND],
+            _UNITS[MINUTE],
+            _UNITS[HOUR],
+            _UNITS[DAY],
+            _UNITS[WEEK],
+            _UNITS[MONTH],
+            _UNITS[YEAR],
+            _UNITS[CENTURY],
+            _UNITS[MILLENNIUM],
+        ],
     },
     # Temperature (regional display preference)
     'TEMPERATURE': {
-        Locale.US: [FAHRENHEIT],
-        Locale.EU: [CELSIUS],
+        Locale.US: [_UNITS[FAHRENHEIT]],
+        Locale.EU: [_UNITS[CELSIUS]],
     },
     # Data size (not regional; mirror)
     'DATA_SIZE': {
-        Locale.US: [KILOBYTE, MEGABYTE, GIGABYTE, TERABYTE],
-        Locale.EU: [KILOBYTE, MEGABYTE, GIGABYTE, TERABYTE],
+        Locale.US: [
+            _UNITS[KILOBYTE],
+            _UNITS[MEGABYTE],
+            _UNITS[GIGABYTE],
+            _UNITS[TERABYTE],
+        ],
+        Locale.EU: [
+            _UNITS[KILOBYTE],
+            _UNITS[MEGABYTE],
+            _UNITS[GIGABYTE],
+            _UNITS[TERABYTE],
+        ],
     },
 }
 
@@ -163,28 +238,20 @@ def get_unit_family(
     return _QUANTITY_SYSTEM_UNITS_MAP[qtype]
 
 
-def get_units_ladder(unit_id: str) -> list[UnitInfo]:
-    """Get the units ladder for a given unit."""
-    units_family = get_unit_family(unit_id)
-    unit_locale = get_unit_locale(unit_id)
-    units_ladder = units_family[unit_locale]
-    return units_ladder
-
-
-def step_down_units_ladder(unit_id: str) -> Generator[str, None, None]:
-    """Iterate up a unit in the units ladder."""
-    units_ladder = get_units_ladder(unit_id)
-    units_ids_ladder = [unit['id'] for unit in units_ladder]
-    unit_idx = units_ids_ladder.index(unit_id)
-    yield from units_ids_ladder[unit_idx::-1]
-
-
 def get_unit_locale(unit_id: str) -> Locale:
     """Get the locale of a unit."""
     locale = _UNIT_LOCALE_MAP.get(unit_id)
     if locale is None:
         raise ValueError(f'Unit {unit_id} not found')
     return locale
+
+
+def get_units_ladder(unit_id: str) -> list[UnitInfo]:
+    """Get the units ladder for a given unit."""
+    units_family = get_unit_family(unit_id)
+    unit_locale = get_unit_locale(unit_id)
+    units_ladder = units_family[unit_locale]
+    return units_ladder
 
 
 def convert_answer_to_user_unit(
@@ -205,3 +272,11 @@ def convert_answer_to_user_unit(
             'unit': None if converted_quantity.dimensionless else player_unit_id,
         },
     )
+
+
+def get_unit_info(unit_id: str) -> UnitInfo:
+    """Get the unit info for a given unit."""
+    unit = _UNITS.get(unit_id)
+    if unit is None:
+        raise ValueError(f'Unit {unit_id} not found')
+    return unit

@@ -6,6 +6,7 @@ import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/question_widget.dart';
 import 'package:fermi_frontend/widgets/slider_text_mirror.dart';
+import 'package:fermi_frontend/widgets/avatar_widget.dart';
 
 /// Handle status for the DQ results bottom sheet.
 enum DQResultsHandleStatus {
@@ -83,6 +84,25 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
   @override
   void didUpdateWidget(DQResultsBottomSheet oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    // Question date changed (new DQ scheduled after results reveal)
+    if (widget.questionDate != oldWidget.questionDate) {
+      // Clear old data and reset state
+      _results = null;
+      _error = null;
+      _isExpanded = false;
+
+      if (widget.status == DQResultsHandleStatus.pending &&
+          widget.windowEnd != null) {
+        _startCountdownTimer();
+      } else {
+        _countdownTimer?.cancel();
+        if (widget.status != DQResultsHandleStatus.pending) {
+          _loadResults();
+        }
+      }
+      return; // No need to check other conditions
+    }
 
     // Status changed from pending to ready
     if (oldWidget.status == DQResultsHandleStatus.pending &&
@@ -438,25 +458,21 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
                             ),
                             const SizedBox(width: 8),
                             // Avatar
-                            CircleAvatar(
-                              radius: 14,
+                            AvatarWidget(
+                              imageUrl: avatarUrl,
+                              size: 28,
                               backgroundColor: appTheme.border,
-                              backgroundImage: avatarUrl != null
-                                  ? NetworkImage(avatarUrl)
-                                  : null,
-                              child: avatarUrl == null
-                                  ? Text(
-                                      displayName.isNotEmpty
-                                          ? displayName[0].toUpperCase()
-                                          : '?',
-                                      style: AppFont.secondaryTextStyle(
-                                        context,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: appTheme.text,
-                                      ),
-                                    )
-                                  : null,
+                              placeholder: Text(
+                                displayName.isNotEmpty
+                                    ? displayName[0].toUpperCase()
+                                    : '?',
+                                style: AppFont.secondaryTextStyle(
+                                  context,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: appTheme.text,
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 8),
                             // Name

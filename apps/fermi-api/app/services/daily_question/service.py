@@ -12,12 +12,13 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastapi import HTTPException, status
-from fermi_core.units import get_unit_family
+from fermi_core.units import convert_answer_to_user_unit, get_unit_family, get_unit_info
 from fermi_core.utils import utcnow_naive
 from fermi_db.schemas import AnswerBare, DailyQuestionStatus
 
 from app.services.daily_question.firestore_writer import DQFirestoreWriter
 from app.services.daily_question.schemas import (
+    DQAnswer,
     DQEndResponse,
     DQLeaderboardEntry,
     DQLiteArchiveResponse,
@@ -145,9 +146,13 @@ class DailyQuestionService:
         # Calculate answer deadline
         answer_deadline_utc = get_answer_deadline(now_utc, window_end_utc)
         seconds_remaining = seconds_until(answer_deadline_utc, now_utc)
-        print(
-            f'[DQ Service] Deadline calculation: now={now_utc}, window_end={window_end_utc}, '
-            f'answer_deadline={answer_deadline_utc}, seconds_to_answer={seconds_remaining:.1f}',
+        logger.info(
+            '[DQ Service] Deadline calculation: now=%s, window_end=%s, '
+            'answer_deadline=%s, seconds_to_answer=%s',
+            now_utc,
+            window_end_utc,
+            answer_deadline_utc,
+            seconds_remaining,
         )
 
         # Record user start in Firestore
@@ -383,16 +388,39 @@ class DailyQuestionService:
             user_firebase_uid,
         )
         if not user_answer:
-            user_answer_bare = None
+            user_answer_dq = None
             user_rank = None
         else:
-            user_answer_bare = {
-                'number': user_answer.answer_number,
-                'unit': user_answer.answer_unit,
-            }
+            # Get unit info for user's answer
+            user_unit_info = None
+            if user_answer.answer_unit:
+                try:
+                    user_unit_info = get_unit_info(user_answer.answer_unit)
+                except ValueError:
+                    logger.warning('Unknown unit: %s', user_answer.answer_unit)
+            user_answer_dq = DQAnswer(
+                number=user_answer.answer_number,
+                unit=user_unit_info,
+            )
             user_rank = await self._db.dq_answers.get_user_rank(
                 dq.id,
                 user_firebase_uid,
+            )
+
+        # Get correct answer in user's unit (if any)
+        if user_answer and user_answer.answer_unit:
+            correct_answer = convert_answer_to_user_unit(
+                user_answer.answer_unit,
+                {'number': fermi.number, 'unit': fermi.unit},
+            )
+            correct_answer_dq = DQAnswer(
+                number=correct_answer['number'],
+                unit=get_unit_info(correct_answer['unit']),
+            )
+        else:
+            correct_answer_dq = DQAnswer(
+                number=fermi.number,
+                unit=None,
             )
 
         # Get total participants
@@ -402,8 +430,8 @@ class DailyQuestionService:
             question_date=question_date.strftime('%Y-%m-%d'),
             question_uid=str(fermi.uid),
             question_text=fermi.text,
-            correct_answer={'number': fermi.number, 'unit': fermi.unit},
-            user_answer=user_answer_bare,
+            correct_answer=correct_answer_dq,
+            user_answer=user_answer_dq,
             user_score=user_answer.score if user_answer else None,
             user_rank=user_rank,
             total_participants=total_participants,
@@ -556,6 +584,7 @@ class DailyQuestionService:
 
         """
         dq = await self._db.daily_questions.get_dq_for_date(question_date)
+        assert dq is not None
         assert dq.id is not None
 
         # Step 1: Close Firestore document
@@ -636,6 +665,7 @@ class DailyQuestionService:
         if scheduled_date:
             # Create Firestore document for next DQ
             try:
+                assert next_question_uid is not None
                 await fs_writer.create_dq_document(
                     scheduled_date,
                     next_question_uid,
@@ -666,6 +696,8 @@ class DailyQuestionService:
         """
         # Get the DQ for the given date to activate it.
         dq = await self._db.daily_questions.get_dq_for_date(question_date)
+        assert dq is not None
+        assert dq.id is not None
         if not dq:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

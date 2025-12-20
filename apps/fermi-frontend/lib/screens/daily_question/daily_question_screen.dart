@@ -35,6 +35,8 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
   bool _isPastDate = false;
   bool _submittedWithoutQuestion =
       false; // True when user returns after submission
+  String?
+      _effectiveDate; // Frozen on init to prevent changing when controller updates
   AnswerValue _currentAnswer =
       const AnswerValue(number: 1, orderOfMagnitude: '', unit: '');
 
@@ -63,8 +65,10 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     final controller = context.read<DailyQuestionController>();
     final todayDate = controller.todayDate;
 
-    // Determine effective date for this view
+    // Determine and freeze effective date for this view
+    // This prevents the date from changing when controller.todayDate updates
     final effectiveDate = widget.questionDate ?? todayDate;
+    _effectiveDate = effectiveDate;
 
     // Determine if this is a past date view (not today)
     _isPastDate = effectiveDate != null && effectiveDate != todayDate;
@@ -272,7 +276,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
 
   DQResultsHandleStatus _getResultsStatus() {
     final controller = context.watch<DailyQuestionController>();
-    final effectiveDate = widget.questionDate ?? controller.todayDate;
+    final effectiveDate = _effectiveDate;
 
     if (effectiveDate == null) {
       return DQResultsHandleStatus.pending;
@@ -304,7 +308,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
 
   void _onResultsViewed() {
     final controller = context.read<DailyQuestionController>();
-    final effectiveDate = widget.questionDate ?? controller.todayDate;
+    final effectiveDate = _effectiveDate;
     if (effectiveDate != null) {
       controller.markResultsSeen(effectiveDate);
     }
@@ -418,7 +422,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
           // Results bottom sheet
           if (showResultsSheet)
             DQResultsBottomSheet(
-              questionDate: widget.questionDate ?? controller.todayDate ?? '',
+              questionDate: _effectiveDate ?? '',
               status: resultsStatus,
               windowEnd: controller.todayDocument?.windowEnd,
               onResultsViewed: _onResultsViewed,
@@ -501,7 +505,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
   Widget _buildSubmittedView(
       AppTheme appTheme, DailyQuestionController controller) {
     final resultsStatus = _getResultsStatus();
-    final effectiveDate = widget.questionDate ?? controller.todayDate ?? '';
+    final effectiveDate = _effectiveDate ?? '';
 
     return Scaffold(
       backgroundColor: appTheme.bg,

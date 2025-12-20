@@ -39,7 +39,7 @@ class _ShareButtonState extends State<ShareButton> {
           color: backgroundColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: appTheme.border,
+            color: appTheme.secondary,
             width: appTheme.borderWidth,
           ),
           boxShadow: [
