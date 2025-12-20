@@ -218,10 +218,6 @@ class _MainButtonState extends State<MainButton>
                         decoration: BoxDecoration(
                           color: buttonFaceColor,
                           borderRadius: BorderRadius.circular(borderRadius),
-                          border: Border.all(
-                            color: appTheme.border,
-                            width: appTheme.borderWidth,
-                          ),
                         ),
                         child: Stack(
                           children: [

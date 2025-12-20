@@ -34,13 +34,19 @@ class SliderTextMirror extends StatelessWidget {
   /// Format the answer value as display text.
   String _formatValue(AnswerValue answer) {
     final omWord = _getOMWord(answer.orderOfMagnitude);
-    if (omWord.isEmpty) {
-      // No order of magnitude, just show the number
-      return '${answer.number}';
+    final parts = <String>[answer.number.toString()];
+
+    if (omWord.isNotEmpty) {
+      // Capitalize first letter of OM word
+      final capitalizedWord = omWord[0].toUpperCase() + omWord.substring(1);
+      parts.add(capitalizedWord);
     }
-    // Capitalize first letter of OM word
-    final capitalizedWord = omWord[0].toUpperCase() + omWord.substring(1);
-    return '${answer.number} $capitalizedWord';
+
+    if (answer.unit.isNotEmpty) {
+      parts.add(answer.unit);
+    }
+
+    return parts.join(' ');
   }
 
   @override

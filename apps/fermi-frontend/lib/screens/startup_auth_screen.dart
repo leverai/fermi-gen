@@ -74,10 +74,6 @@ class StartupAuthScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: appTheme.bgLight,
                     borderRadius: BorderRadius.circular(appTheme.borderRadius),
-                    border: Border.all(
-                      color: appTheme.border,
-                      width: appTheme.borderWidth,
-                    ),
                   ),
                   child: Column(
                     children: [
@@ -134,10 +130,6 @@ class StartupAuthScreen extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius:
                           BorderRadius.circular(appTheme.borderRadius),
-                      side: BorderSide(
-                        color: appTheme.border,
-                        width: appTheme.borderWidth,
-                      ),
                     ),
                     elevation: 0,
                   ),
@@ -161,11 +153,8 @@ class StartupAuthScreen extends StatelessWidget {
                   onPressed: () => _signIn(context),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: appTheme.text,
+                    side: BorderSide.none,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: BorderSide(
-                      color: appTheme.border,
-                      width: appTheme.borderWidth,
-                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius:
                           BorderRadius.circular(appTheme.borderRadius),

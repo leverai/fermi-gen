@@ -62,7 +62,7 @@ class DQFirestoreWriter:
         doc_ref = self._fs.collection(self.COLLECTION).document(doc_id)
 
         await doc_ref.set(
-            DqDoc(
+            DqDoc(  # type: ignore
                 question_uid=question_uid,
                 status=DQWindowStatus.NOT_STARTED,
                 window_start=window_start_utc,

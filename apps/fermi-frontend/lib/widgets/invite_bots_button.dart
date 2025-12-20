@@ -63,7 +63,7 @@ class _InviteBotsButtonState extends State<InviteBotsButton> {
           color: backgroundColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: appTheme.border,
+            color: appTheme.bgLight,
             width: appTheme.borderWidth,
           ),
           boxShadow: [

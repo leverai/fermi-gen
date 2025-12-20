@@ -99,10 +99,6 @@ class QuestionAnswerCard extends StatelessWidget {
             // ignore: deprecated_member_use
             revealedColor?.withOpacity(0.1) ?? Colors.transparent,
             appTheme.bgLight),
-        border: Border.all(
-          color: appTheme.border,
-          width: appTheme.borderWidth,
-        ),
         borderRadius: BorderRadius.circular(appTheme.borderRadius),
         boxShadow: [
           BoxShadow(

@@ -5,6 +5,7 @@ from enum import StrEnum
 from typing import TypedDict
 
 from fermi_core.schemas.units import UnitInfo
+from fermi_core.units import Locale
 from fermi_db.schemas import AnswerBare, QuestionCategory, QuestionDifficulty
 from pydantic import BaseModel
 
@@ -30,7 +31,7 @@ class DQQuestionData(BaseModel):
     text: str
     category: QuestionCategory | None
     difficulty: QuestionDifficulty | None
-    units: dict[str, list[UnitInfo]] | None = (
+    units: dict[Locale, list[UnitInfo]] | None = (
         None  # Unit family: {US: [...], EU: [...]}
     )
 
@@ -73,14 +74,21 @@ class DQLeaderboardEntry(BaseModel):
     time_taken_s: float
 
 
+class DQAnswer(BaseModel):
+    """Answer with full unit info for results display."""
+
+    number: float
+    unit: UnitInfo | None
+
+
 class DQResultsResponse(BaseModel):
     """Response for GET /daily_question/results."""
 
     question_date: str  # YYYY-MM-DD
     question_uid: str
     question_text: str
-    correct_answer: AnswerBare
-    user_answer: AnswerBare | None
+    correct_answer: DQAnswer
+    user_answer: DQAnswer | None
     user_score: float | None
     user_rank: int | None
     total_participants: int

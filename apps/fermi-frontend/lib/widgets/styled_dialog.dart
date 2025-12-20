@@ -83,10 +83,6 @@ class StyledDialog extends StatelessWidget {
     final container = Container(
       decoration: BoxDecoration(
         color: appTheme.bgLight,
-        border: Border.all(
-          color: appTheme.border,
-          width: appTheme.borderWidth,
-        ),
         borderRadius: BorderRadius.circular(appTheme.borderRadius),
         boxShadow: [
           BoxShadow(
@@ -189,10 +185,6 @@ class StyledDialog extends StatelessWidget {
                       backgroundColor: primaryButtonColor,
                       foregroundColor: appTheme.bgLight,
                       elevation: 0,
-                      side: BorderSide(
-                        color: appTheme.border,
-                        width: 2,
-                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),

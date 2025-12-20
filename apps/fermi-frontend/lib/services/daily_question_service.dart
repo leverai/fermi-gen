@@ -119,19 +119,27 @@ class DQResultsResponse {
   });
 
   factory DQResultsResponse.fromJson(Map<String, dynamic> json) {
-    // Parse correct answer
+    // Parse correct answer - unit is now a UnitInfo object {id, name, abbreviation}
     final correctAnswerJson = json['correct_answer'] as Map<String, dynamic>;
     final correctAnswerNumber = (correctAnswerJson['number'] as num).toDouble();
-    final correctAnswerUnit = (correctAnswerJson['unit'] as String?) ?? '';
+    String correctAnswerUnit = '';
+    if (correctAnswerJson['unit'] != null) {
+      final unitInfo = correctAnswerJson['unit'] as Map<String, dynamic>;
+      correctAnswerUnit = (unitInfo['abbreviation'] as String?) ?? '';
+    }
     final correctAnswer =
         decomposeNumber(correctAnswerNumber, correctAnswerUnit);
 
-    // Parse user answer (nullable)
+    // Parse user answer (nullable) - unit is now a UnitInfo object
     AnswerValue? userAnswer;
     if (json['user_answer'] != null) {
       final userAnswerJson = json['user_answer'] as Map<String, dynamic>;
       final userAnswerNumber = (userAnswerJson['number'] as num).toDouble();
-      final userAnswerUnit = (userAnswerJson['unit'] as String?) ?? '';
+      String userAnswerUnit = '';
+      if (userAnswerJson['unit'] != null) {
+        final unitInfo = userAnswerJson['unit'] as Map<String, dynamic>;
+        userAnswerUnit = (unitInfo['abbreviation'] as String?) ?? '';
+      }
       userAnswer = decomposeNumber(userAnswerNumber, userAnswerUnit);
     }
 

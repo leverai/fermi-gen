@@ -127,10 +127,14 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
               width: double.infinity,
               height: double.infinity,
               decoration: BoxDecoration(
-                color: widget.isToday ? appTheme.primary : appTheme.bgLight,
+                color: widget.isToday
+                    ? appTheme.primary
+                    : (widget.participated
+                        ? appTheme.primary
+                        : appTheme.bgLight),
                 borderRadius: BorderRadius.circular(appTheme.borderRadius),
                 border: Border.all(
-                  color: appTheme.border,
+                  color: appTheme.primary,
                   width: appTheme.borderWidth,
                 ),
                 boxShadow: widget.isToday
@@ -179,36 +183,35 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                         ),
                         const SizedBox(height: 12),
                       ],
+                      // For non-today cards, show weekday at the top
+                      if (!widget.isToday)
+                        Text(
+                          weekdayFormat.format(widget.date),
+                          style: AppFont.primaryTextStyle(
+                            context,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: widget.participated
+                                ? appTheme.bg
+                                : appTheme.text,
+                          ),
+                        ),
                     ],
                   ),
 
                   const Spacer(),
 
-                  // Bottom part: Date and Status button
-                  Row(
-                    mainAxisAlignment: widget.isToday
-                        ? MainAxisAlignment.spaceBetween
-                        : MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Date
-                      Column(
-                        crossAxisAlignment: widget.isToday
-                            ? CrossAxisAlignment.start
-                            : CrossAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (!widget.isToday)
-                            Text(
-                              weekdayFormat.format(widget.date),
-                              style: AppFont.primaryTextStyle(
-                                context,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: appTheme.text,
-                              ),
-                            ),
-                          if (widget.isToday) ...[
+                  // Bottom part: Date and Status button (only for today's card)
+                  if (widget.isToday)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        // Date
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                             Text(
                               weekdayFormat.format(widget.date).toUpperCase(),
                               style: AppFont.secondaryTextStyle(
@@ -246,25 +249,13 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                               ],
                             ),
                           ],
-                        ],
-                      ),
-
-                      if (widget.isToday) _buildStatusButton(context, appTheme),
-                    ],
-                  ),
+                        ),
+                        _buildStatusButton(context, appTheme),
+                      ],
+                    ),
                 ],
               ),
             ),
-            // Status Button for non-today cards (overlapping or in separate row?)
-            // Requirement says: "Move the status button from bottom left to bottom right"
-            // For older cards, they are narrower (200px vs full width).
-            // Let's refine the layout for older cards.
-            if (!widget.isToday)
-              Positioned(
-                bottom: 8,
-                right: 8,
-                child: _buildStatusButton(context, appTheme, small: true),
-              ),
 
             // Unseen results indicator (green dot)
             if (widget.hasUnseenResults)
