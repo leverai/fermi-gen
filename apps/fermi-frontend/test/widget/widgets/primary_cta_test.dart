@@ -47,25 +47,6 @@ void main() {
       expect(mainButton.label, MainButtonLabel.join);
     });
 
-    testWidgets('should show spacebar glyph', (WidgetTester tester) async {
-      // ARRANGE
-      const widget = PrimaryCta(
-        isLoading: false,
-        onPressed: null,
-        isLocked: false,
-      );
-
-      // ACT
-      await pumpWithMaterialApp(tester, widget);
-      await tester.pumpAndSettle();
-
-      // ASSERT
-      final mainButton = tester.widget<MainButton>(
-        find.byType(MainButton),
-      );
-      expect(mainButton.showSpacebarGlyph, true);
-    });
-
     testWidgets('should pass isLoading state to MainButton',
         (WidgetTester tester) async {
       // ARRANGE

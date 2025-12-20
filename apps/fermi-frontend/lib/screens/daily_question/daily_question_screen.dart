@@ -482,7 +482,6 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                             buttonWidget: MainButton(
                               onPressed: inputsEnabled ? _submit : null,
                               label: MainButtonLabel.submit,
-                              showSpacebarGlyph: false,
                             ),
                           ),
 

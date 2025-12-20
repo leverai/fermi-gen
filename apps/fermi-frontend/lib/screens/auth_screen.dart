@@ -70,18 +70,13 @@ class AuthScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(appTheme.borderRadius),
-            side: BorderSide(
-              color: appTheme.border,
-              width: appTheme.borderWidth,
-            ),
+            // side: BorderSide(
+            //   color: appTheme.border,
+            //   width: appTheme.borderWidth,
+            // ),
           ),
           shadowColor: appTheme.shadowColor,
-        ).copyWith(
-            // Simulate hard shadow via translation if possible, but standard elevation is soft.
-            // For true hard shadow in Flutter standard widgets without custom painting,
-            // we rely on the flat look + border.
-            // Firebase UI widgets might be limited in how much we can structure them.
-            ),
+        ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(

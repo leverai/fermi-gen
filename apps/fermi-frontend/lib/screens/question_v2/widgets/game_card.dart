@@ -180,7 +180,6 @@ class GameCard extends StatelessWidget {
             key: submitButtonKey,
             onPressed: isCurrentQuestion ? onSubmit : null,
             label: MainButtonLabel.submit,
-            showSpacebarGlyph: true,
           ),
         );
       case QuestionPaneState.locked:
@@ -202,7 +201,6 @@ class GameCard extends StatelessWidget {
                 child: MainButton(
                   onPressed: isCurrentQuestion ? onNext : null,
                   label: MainButtonLabel.finish,
-                  showSpacebarGlyph: true,
                   controller: mainButtonController,
                 ),
               ),
@@ -241,7 +239,6 @@ class GameCard extends StatelessWidget {
               child: MainButton(
                 onPressed: (isHost && isCurrentQuestion) ? onNext : null,
                 label: MainButtonLabel.next,
-                showSpacebarGlyph: true,
                 isLoading: false,
                 controller: mainButtonController,
               ),

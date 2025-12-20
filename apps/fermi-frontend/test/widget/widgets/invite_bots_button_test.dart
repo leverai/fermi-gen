@@ -8,6 +8,7 @@ void main() {
   group('InviteBotsButton', () {
     testWidgets('should display robot icon', (WidgetTester tester) async {
       // ARRANGE
+      // ignore: unused_local_variable
       bool pressed = false;
       final widget = InviteBotsButton(
         onPressed: () => pressed = true,
