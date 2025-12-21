@@ -137,7 +137,7 @@ class StyledDialog extends StatelessWidget {
               ),
             ],
             // Buttons
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -145,33 +145,30 @@ class StyledDialog extends StatelessWidget {
                 if (secondaryButtonLabel != null && onSecondaryPressed != null)
                   SizedBox(
                     height: 48,
-                    child: OutlinedButton(
-                      onPressed: onSecondaryPressed,
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.transparent),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        splashColor: appTheme.text.withOpacity(0.2),
+                        highlightColor: Colors
+                            .transparent, // optional: avoids the grey hold highlight
+                        onTap: onSecondaryPressed,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Center(
+                            child: Text(
+                              secondaryButtonLabel!,
+                              textAlign: TextAlign.center,
+                              style: AppFont.primaryTextStyle(
+                                context,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ).copyWith(
+                                  letterSpacing: 0.2, color: appTheme.text),
+                            ),
+                          ),
                         ),
-                        foregroundColor: appTheme.text,
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                      ).copyWith(
-                        overlayColor: WidgetStateProperty.resolveWith<Color?>(
-                          (Set<WidgetState> states) {
-                            if (states.contains(WidgetState.pressed)) {
-                              // ignore: deprecated_member_use
-                              return appTheme.text.withOpacity(0.2);
-                            }
-                            return Colors.transparent;
-                          },
-                        ),
-                      ),
-                      child: Text(
-                        secondaryButtonLabel!,
-                        style: AppFont.primaryTextStyle(
-                          context,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ).copyWith(letterSpacing: 0.2),
                       ),
                     ),
                   ),

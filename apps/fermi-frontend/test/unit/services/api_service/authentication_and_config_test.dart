@@ -308,12 +308,10 @@ void main() {
           jsonEncode({
             'player_id': 'player-123',
             'stats': {
-              'player_quantiles': {
-                'by_category_and_difficulty': [],
-                'by_category': [],
-                'by_difficulty': [],
-                'overall': 0.75
-              }
+              'total_party_games': 10,
+              'total_daily_guesses': 5,
+              'average_percentile': 75,
+              'level': 1
             }
           }),
           200,
@@ -339,31 +337,10 @@ void main() {
       final json = {
         'player_id': 'player-123',
         'stats': {
-          'player_quantiles': {
-            'by_category_and_difficulty': [
-              {
-                'category': 'GEOGRAPHY',
-                'difficulty': 'EASY',
-                'avg_quantile': 0.75,
-                'avg_percentile': 75.0
-              }
-            ],
-            'by_category': [
-              {
-                'category': 'GEOGRAPHY',
-                'avg_quantile': 0.65,
-                'avg_percentile': 65.0
-              }
-            ],
-            'by_difficulty': [
-              {
-                'difficulty': 'EASY',
-                'avg_quantile': 0.70,
-                'avg_percentile': 70.0
-              }
-            ],
-            'overall': 0.60
-          }
+          'total_party_games': 42,
+          'total_daily_guesses': 15,
+          'average_percentile': 75,
+          'level': 1
         }
       };
 
@@ -372,10 +349,10 @@ void main() {
 
       // ASSERT
       expect(stats.playerId, 'player-123');
-      expect(stats.playerQuantiles.overall, 0.60);
-      expect(stats.playerQuantiles.byCategoryAndDifficulty.length, 1);
-      expect(stats.playerQuantiles.byCategory.length, 1);
-      expect(stats.playerQuantiles.byDifficulty.length, 1);
+      expect(stats.stats.totalPartyGames, 42);
+      expect(stats.stats.totalDailyGuesses, 15);
+      expect(stats.stats.averagePercentile, 75);
+      expect(stats.stats.level, 1);
     });
 
     test('should handle network errors', () async {

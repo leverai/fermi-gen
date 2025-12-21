@@ -59,48 +59,6 @@ class MainScreenController extends ChangeNotifier {
     return categories[i].slug;
   }
 
-  int get resolvedPercentile {
-    final stats = _playerStatsDto;
-    final categoryKey = currentCategoryBackendName;
-    final difficulty = selectedDifficulty;
-    if (stats == null) return 0;
-    if (categoryKey == null) {
-      if (difficulty != null) {
-        for (final e in stats.playerQuantiles.byDifficulty) {
-          if (e.difficulty.toLowerCase() == difficulty.toLowerCase()) {
-            final val = e.avgQuantile ?? e.avgPercentile;
-            if (val != null) return val.round().clamp(0, 100);
-          }
-        }
-        return 0;
-      }
-      final num? ov = stats.playerQuantiles.overall;
-      if (ov != null) return ov.round().clamp(0, 100);
-      return 0;
-    }
-    // categoryKey is guaranteed non-null here
-    if (difficulty != null) {
-      for (final e in stats.playerQuantiles.byCategoryAndDifficulty) {
-        if (e.category == categoryKey &&
-            e.difficulty.toLowerCase() == difficulty.toLowerCase()) {
-          final val = e.avgQuantile ?? e.avgPercentile;
-          if (val != null) return val.round().clamp(0, 100);
-        }
-      }
-      // Difficulty selected but no entry found → show 0
-      return 0;
-    }
-    // categoryKey is non-null, difficulty is null
-    for (final e in stats.playerQuantiles.byCategory) {
-      if (e.category == categoryKey) {
-        final val = e.avgQuantile ?? e.avgPercentile;
-        if (val != null) return val.round().clamp(0, 100);
-      }
-    }
-    // No stats for the selected scope → show 0 instead of overall
-    return 0;
-  }
-
   // Lifecycle
   Future<void> initialize({
     GameConfig? preloadedConfig,

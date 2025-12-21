@@ -383,8 +383,8 @@ class _TutorialDialog extends StatelessWidget {
               style: AppFont.primaryTextStyle(
                 context,
                 fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: appTheme.text,
+                fontWeight: FontWeight.w600,
+                color: appTheme.bgLight,
               ).copyWith(letterSpacing: 0.2),
             ),
             TextSpan(
@@ -392,8 +392,8 @@ class _TutorialDialog extends StatelessWidget {
               style: AppFont.primaryTextStyle(
                 context,
                 fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: appTheme.text,
+                fontWeight: FontWeight.w600,
+                color: appTheme.bgLight,
               ).copyWith(letterSpacing: 0.2),
             ),
           ],

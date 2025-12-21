@@ -397,31 +397,19 @@ Retrieves a player's statistics.
     {
       "player_id": "string",
       "stats": {
-        "player_quantiles": {
-          "by_category_and_difficulty": [
-            {
-              "category": "string",
-              "difficulty": "string",
-              "avg_percentile": "number"
-            }
-          ],
-          "by_category": [
-            {
-              "category": "string",
-              "avg_percentile": "number"
-            }
-          ],
-          "by_difficulty": [
-            {
-              "difficulty": "string",
-              "avg_percentile": "number"
-            }
-          ],
-          "overall": "number"
-        }
+        "total_party_games": 42,
+        "total_daily_guesses": 15,
+        "average_percentile": 75,
+        "level": 1
       }
     }
     ```
+
+Notes:
+- `total_party_games`: Number of party mode games the player has participated in
+- `total_daily_guesses`: Number of daily questions the player has answered
+- `average_percentile`: Overall average percentile across all party games (0-100)
+- `level`: Player level (always 1, not yet implemented)
 
 #### `POST /question/upvote` and `POST /question/downvote`
 Set or toggle a user's vote on a question. The backend stores per‑user votes in a `questions_votes` table. Upvote/downvote counts are computed from this table; there are no aggregate counters on `fermi_questions`. The resulting verdict is returned.

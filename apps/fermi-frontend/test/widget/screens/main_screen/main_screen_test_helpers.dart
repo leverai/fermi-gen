@@ -60,14 +60,14 @@ GameConfig createTestGameConfig() {
 }
 
 /// Helper to create test PlayerStatsResponse
-PlayerStatsResponse createTestPlayerStats({num? overall}) {
+PlayerStatsResponse createTestPlayerStats({int? averagePercentile}) {
   return PlayerStatsResponse(
     playerId: 'test-player',
-    playerQuantiles: PlayerQuantiles(
-      byCategoryAndDifficulty: [],
-      byCategory: [],
-      byDifficulty: [],
-      overall: overall ?? 75.5,
+    stats: PlayerStats(
+      totalPartyGames: 10,
+      totalDailyGuesses: 5,
+      averagePercentile: averagePercentile ?? 75,
+      level: 1,
     ),
   );
 }
