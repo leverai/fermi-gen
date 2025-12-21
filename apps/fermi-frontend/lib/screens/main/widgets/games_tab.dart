@@ -148,7 +148,7 @@ class GamesTab extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Five-question round with friends.',
+                      'Play a round with friends.',
                       style: AppFont.primaryTextStyle(
                         context,
                         fontSize: 14,

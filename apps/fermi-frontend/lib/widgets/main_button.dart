@@ -235,8 +235,8 @@ class _MainButtonState extends State<MainButton>
                                     textAlign: TextAlign.center,
                                     style: AppFont.primaryTextStyle(context,
                                             fontSize: 14,
-                                            fontWeight: FontWeight.w400,
-                                            color: appTheme.text,
+                                            fontWeight: FontWeight.w600,
+                                            color: appTheme.bgLight,
                                             decoration: TextDecoration.none)
                                         .copyWith(letterSpacing: 1.5),
                                   ),
