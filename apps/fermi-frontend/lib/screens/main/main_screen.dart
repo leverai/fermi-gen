@@ -384,6 +384,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                   isAnonymous: widget.authService.isAnonymous,
                                   onCreateAccount: _handleCreateAccount,
                                   onEditProfile: _handleEditProfile,
+                                  playerStats:
+                                      _controller.playerStatsDto?.stats,
                                 ),
                               ),
                             ],

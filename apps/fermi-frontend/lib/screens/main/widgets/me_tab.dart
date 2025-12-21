@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:fermi_frontend/models/player_stats.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/avatar_widget.dart';
+import 'package:fermi_frontend/widgets/stats_card.dart';
 
 /// Displays the "Me" tab content with user profile information.
 ///
-/// Shows the user's avatar, display name, and account actions.
+/// Shows the user's avatar, display name, stats card, and account actions.
 class MeTab extends StatelessWidget {
   const MeTab({
     super.key,
@@ -14,6 +16,8 @@ class MeTab extends StatelessWidget {
     required this.isAnonymous,
     this.onCreateAccount,
     this.onEditProfile,
+    this.playerStats,
+    this.onStatsTapped,
   });
 
   /// URL of the user's avatar image.
@@ -30,6 +34,12 @@ class MeTab extends StatelessWidget {
 
   /// Callback when "Edit Profile" (pencil) is pressed.
   final VoidCallback? onEditProfile;
+
+  /// Player statistics to display in the stats card.
+  final PlayerStats? playerStats;
+
+  /// Callback when the stats card is tapped.
+  final VoidCallback? onStatsTapped;
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +62,7 @@ class MeTab extends StatelessWidget {
               color: appTheme.borderMuted,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -88,7 +98,6 @@ class MeTab extends StatelessWidget {
                 ),
               ),
               if (onEditProfile != null) ...[
-                const SizedBox(width: 8),
                 IconButton(
                   onPressed: onEditProfile,
                   icon: Icon(Icons.edit, color: appTheme.textMuted),
@@ -115,6 +124,14 @@ class MeTab extends StatelessWidget {
                 style: TextStyle(color: appTheme.primary, fontSize: 16),
               ),
             ),
+          // Stats card with 48px space above
+          if (playerStats != null) ...[
+            const SizedBox(height: 48),
+            StatsCard(
+              stats: playerStats!,
+              onTap: onStatsTapped,
+            ),
+          ],
         ],
       ),
     );
