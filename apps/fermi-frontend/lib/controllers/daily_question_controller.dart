@@ -75,7 +75,7 @@ class DailyQuestionController extends ChangeNotifier {
         _todayDate = newTodayDate;
         _subscribeToToday();
       }
-    } catch (e, st) {
+    } catch (e) {
       // print('[DQController] Error: $e');
       // print('[DQController] Stack: $st');
       _errorMessage = e.toString();

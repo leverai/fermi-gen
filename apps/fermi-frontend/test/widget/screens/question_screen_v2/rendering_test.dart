@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fermi_frontend/screens/question_v2/widgets/game_carousel.dart';
-import 'package:fermi_frontend/screens/question_v2/widgets/quick_access_bar.dart';
 import 'package:fermi_frontend/widgets/players_row.dart';
 import 'package:fermi_frontend/widgets/leave_button.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';

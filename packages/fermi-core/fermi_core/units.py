@@ -280,3 +280,37 @@ def get_unit_info(unit_id: str) -> UnitInfo:
     if unit is None:
         raise ValueError(f'Unit {unit_id} not found')
     return unit
+
+
+def swap_unit_to_locale(unit_id: str, target_locale: Locale) -> str:
+    """Get the base unit of a target locale for the same quantity type.
+
+    For example:
+    - swap_unit_to_locale('pound', Locale.EU) -> 'kilogram'
+    - swap_unit_to_locale('meter', Locale.US) -> 'foot'
+
+    For quantity types that are the same across locales (TIME, DATA_SIZE),
+    returns the original unit.
+
+    Args:
+        unit_id: The unit ID to convert from.
+        target_locale: The target locale to get the base unit for.
+
+    Returns:
+        The base unit ID for the target locale.
+
+    Raises:
+        ValueError: If the unit is unknown.
+
+    """
+    qtype = _UNIT_QUANTITY_TYPE_MAP.get(unit_id)
+    if qtype is None:
+        raise ValueError(f'Unknown unit: {unit_id}')
+
+    # Get the units for the target locale
+    locale_units = _QUANTITY_SYSTEM_UNITS_MAP[qtype][target_locale]
+
+    # Return the middle unit as a reasonable default (e.g., kg for mass, m for length)
+    # This is typically the most commonly used unit for that quantity type
+    middle_index = len(locale_units) // 2
+    return locale_units[middle_index]['id']

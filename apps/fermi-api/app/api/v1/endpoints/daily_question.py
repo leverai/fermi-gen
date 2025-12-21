@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query
+from fermi_core.units import Locale
 from fermi_db.models.user import User
 from google.cloud.firestore_v1.async_client import AsyncClient
 
@@ -74,6 +75,7 @@ async def get_results(
     """
     return await dq_service.get_results(
         user_firebase_uid=current_user.firebase_uid,
+        user_locale=Locale(current_user.locale),
     )
 
 
@@ -96,6 +98,7 @@ async def get_results_for_date(
     return await dq_service.get_results_for_date(
         user_firebase_uid=current_user.firebase_uid,
         question_date=parsed_date,
+        user_locale=Locale(current_user.locale),
     )
 
 

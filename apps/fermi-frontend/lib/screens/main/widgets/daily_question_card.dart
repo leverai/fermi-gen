@@ -135,10 +135,10 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                         ? appTheme.primary
                         : appTheme.bgLight),
                 borderRadius: BorderRadius.circular(appTheme.borderRadius),
-                border: Border.all(
-                  color: appTheme.primary,
-                  width: appTheme.borderWidth,
-                ),
+                // border: Border.all(
+                //   color: appTheme.primary,
+                //   width: appTheme.borderWidth,
+                // ),
                 boxShadow: widget.isToday
                     ? [
                         BoxShadow(

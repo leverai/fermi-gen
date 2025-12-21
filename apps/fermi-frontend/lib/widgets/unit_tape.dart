@@ -223,9 +223,15 @@ class _UnitTapeState extends State<UnitTape>
       );
     }
     // Update internal notifier when unitOptions change (only if using internal notifier)
+    // Defer to post-frame to prevent "setState() called during build" errors
+    // when ValueListenableBuilder listeners trigger during widget tree rebuild
     if (widget.unitOptionsNotifier == null &&
         oldWidget.unitOptions != widget.unitOptions) {
-      _unitOptionsNotifier.value = widget.unitOptions;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _unitOptionsNotifier.value = widget.unitOptions;
+        }
+      });
     }
     // Close the bottom sheet if widget becomes non-editable (e.g., deadline reached)
     if (oldWidget.editable && !widget.editable) {
@@ -448,12 +454,7 @@ class _UnitTapeState extends State<UnitTape>
               opacity: effectiveOpacity,
               child: Container(
                 decoration: BoxDecoration(
-                  color: widget.backgroundColor == null ||
-                          widget.backgroundColor == Colors.transparent
-                      ? Colors.transparent
-                      : widget.backgroundColor!
-                          // ignore: deprecated_member_use
-                          .withOpacity(_indicatorFadeController.value),
+                  color: widget.backgroundColor ?? Colors.transparent,
                 ),
                 child: Stack(
                   children: [

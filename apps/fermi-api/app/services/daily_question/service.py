@@ -12,7 +12,13 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastapi import HTTPException, status
-from fermi_core.units import convert_answer_to_user_unit, get_unit_family, get_unit_info
+from fermi_core.units import (
+    Locale,
+    convert_answer_to_user_unit,
+    get_unit_family,
+    get_unit_info,
+    swap_unit_to_locale,
+)
 from fermi_core.utils import utcnow_naive
 from fermi_db.schemas import AnswerBare, DailyQuestionStatus
 
@@ -300,12 +306,16 @@ class DailyQuestionService:
         self,
         user_firebase_uid: str,
         question_date: datetime.date,
+        user_locale: Locale = Locale.US,
     ) -> DQResultsResponse:
         """Get results for a completed daily question.
 
         Args:
             user_firebase_uid: The user's Firebase UID.
             question_date: The date of the DQ to get results for.
+            user_locale: The user's preferred locale (US or EU). Used to
+                convert the correct answer to locale-appropriate units for
+                users who did not participate.
 
         Returns:
             Results response with user rank and leaderboard.
@@ -418,10 +428,34 @@ class DailyQuestionService:
                 unit=get_unit_info(correct_answer['unit']),
             )
         else:
-            correct_answer_dq = DQAnswer(
-                number=fermi.number,
-                unit=None,
-            )
+            # User did not participate - convert to their locale's base unit
+            if fermi.unit:
+                try:
+                    target_unit = swap_unit_to_locale(fermi.unit, user_locale)
+                    correct_answer = convert_answer_to_user_unit(
+                        target_unit,
+                        {'number': fermi.number, 'unit': fermi.unit},
+                    )
+                    correct_answer_dq = DQAnswer(
+                        number=correct_answer['number'],
+                        unit=get_unit_info(correct_answer['unit']),
+                    )
+                except ValueError:
+                    # If conversion fails, fall back to raw number without unit
+                    logger.warning(
+                        'Failed to convert unit %s to locale %s',
+                        fermi.unit,
+                        user_locale,
+                    )
+                    correct_answer_dq = DQAnswer(
+                        number=fermi.number,
+                        unit=None,
+                    )
+            else:
+                correct_answer_dq = DQAnswer(
+                    number=fermi.number,
+                    unit=None,
+                )
 
         # Get total participants
         total_participants = await self._db.dq_answers.count_participants(dq.id)
@@ -441,11 +475,13 @@ class DailyQuestionService:
     async def get_results(
         self,
         user_firebase_uid: str,
+        user_locale: Locale = Locale.US,
     ) -> DQResultsResponse:
         """Get results for today's daily question.
 
         Args:
             user_firebase_uid: The user's Firebase UID.
+            user_locale: The user's preferred locale (US or EU).
 
         Returns:
             Results response with user rank and leaderboard.
@@ -456,7 +492,11 @@ class DailyQuestionService:
         """
         utc_now = utcnow_naive()
         today = get_dq_date_for_utc(utc_now)
-        return await self.get_results_for_date(user_firebase_uid, today)
+        return await self.get_results_for_date(
+            user_firebase_uid,
+            today,
+            user_locale,
+        )
 
     async def get_lite_archive_week(
         self,
