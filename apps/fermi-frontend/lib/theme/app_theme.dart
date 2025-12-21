@@ -94,6 +94,9 @@ class AppTheme extends ThemeExtension<AppTheme> {
       warning: const HSLColor.fromAHSL(1.0, 49.73, 1.0, 0.7137).toColor(),
       success: const HSLColor.fromAHSL(1.0, 175.75, 0.5595, 0.5549).toColor(),
       info: const HSLColor.fromAHSL(1.0, 292, 0.2, 0.52).toColor(),
+
+      // Shadow
+      shadowColor: const HSLColor.fromAHSL(1.0, 78, 0.19, 0.14).toColor(),
     );
   }
 

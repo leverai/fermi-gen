@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/leave_button.dart';
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
