@@ -18,7 +18,6 @@ FirestoreGameRealtime createTestRealtime({
               index: 0,
               name: 'PLANET_EARTH',
               slug: 'Planet Earth',
-              theme: {'primary': '#FF0000'},
               picture: '',
             ),
           ],

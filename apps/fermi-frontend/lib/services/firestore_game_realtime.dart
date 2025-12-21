@@ -616,7 +616,6 @@ class FirestoreGameRealtime implements GameRealtime {
                           index: 0,
                           name: category,
                           slug: category,
-                          theme: const {},
                           picture: '',
                         ))
                 .slug ??
