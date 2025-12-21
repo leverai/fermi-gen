@@ -112,22 +112,12 @@ class GetPlayerStatsResponse(BaseModel):
 class GameConfigResponse(BaseModel):
     """Response model for getting the game config."""
 
-    class ThemeColors(BaseModel):
-        """Category theme colors as ARGB hex strings."""
-
-        background: str
-        foreground: str
-        foreground_negative: str
-        foreground_p30: str
-        foreground_negative_p30: str
-
     class CategoryInfo(BaseModel):
         """Category info with theme and assets."""
 
         index: int
         name: RequestCategory
         slug: str
-        theme: 'GameConfigResponse.ThemeColors'
         picture: str
 
     class DifficultyInfo(BaseModel):
