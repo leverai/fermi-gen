@@ -13,6 +13,7 @@ import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/question_answer_card.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
+import 'package:fermi_frontend/widgets/unit_tape.dart';
 import 'package:fermi_frontend/screens/daily_question/widgets/dq_results_bottom_sheet.dart';
 
 /// Unified Daily Question screen for both taking questions and viewing results.
@@ -55,6 +56,9 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
   // Results data for reveal animation
   DQResultsResponse? _resultsData;
 
+  // Unit tape controller for managing indicators
+  final UnitTapeController _unitTapeController = UnitTapeController();
+
   @override
   void initState() {
     super.initState();
@@ -80,11 +84,17 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     _isPastDate = effectiveDate != null && effectiveDate != todayDate;
 
     if (_isPastDate) {
-      // For past dates, just show the results (no question to answer)
+      // For past dates, load results to display QuestionAnswerCard with user's answer
       setState(() {
-        _isLoading = false;
         _isSubmitted = true; // Lock inputs
       });
+      // Load results data which contains question text, user answer, and correct answer
+      await _loadResults();
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     } else {
       // Today's date - check if already submitted
       final hasParticipated = controller.hasParticipatedToday;
@@ -276,6 +286,9 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         setState(() {
           _isSubmitted = true;
         });
+        // Hide unit tape indicators immediately after submission
+        _unitTapeController.setRevealed(
+            true, const Duration(milliseconds: 600));
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Answer submitted! Results will be available soon.'),
@@ -350,16 +363,40 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       final service = context.read<DailyQuestionService>();
       final results = await service.getResultsForDate(effectiveDate);
       if (mounted) {
+        // Track if this is a fresh reveal (user is still on screen when results load)
+        // vs returning to see already-revealed results
+        final isFreshReveal = !_submittedWithoutQuestion;
+
         setState(() {
           _resultsData = results;
-          // Update current answer display to user's submitted answer
+          // Update current answer display to user's submitted answer (if they participated)
+          // or to the correct answer (if they didn't participate)
           if (results.userAnswer != null) {
             _currentAnswer = results.userAnswer!;
+          } else if (results.correctAnswer.unit.isNotEmpty) {
+            // User didn't participate - show correct answer with unit
+            _currentAnswer = results.correctAnswer;
           }
+
+          // Initialize units for the unit tape display
+          // For non-participants, we only have the correct answer's unit
+          final correctUnit = results.correctAnswer.unit;
+          if (correctUnit.isNotEmpty && _unitAbbreviations.isEmpty) {
+            // Set up minimal unit state for display (read-only mode)
+            _unitAbbreviations = [correctUnit];
+            _unitOptions = {correctUnit: correctUnit}; // name:abbr mapping
+          }
+
           // Clear submittedWithoutQuestion flag so QuestionAnswerCard can display
           // with reveal animation using results.questionText
           _submittedWithoutQuestion = false;
         });
+
+        // Hide unit tape indicators, but with different behavior:
+        // - Fresh reveal: animated fade (600ms) to match reveal animation
+        // - Returning to view: instant hide (0ms) since already revealed
+        _unitTapeController.setRevealed(true,
+            isFreshReveal ? const Duration(milliseconds: 600) : Duration.zero);
       }
     } catch (e) {
       // Ignore errors - results may not be ready yet
@@ -387,9 +424,13 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       );
     }
 
-    // For past dates without a question, show results-only view
-    if (_isPastDate && _question == null) {
-      return _buildResultsOnlyView(appTheme);
+    // For past dates, we rely on _resultsData for question text.
+    // If still loading or no data available, show loading state.
+    if (_isPastDate && _question == null && _resultsData == null) {
+      return Scaffold(
+        backgroundColor: appTheme.bg,
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
 
     // User submitted but returned without question loaded - show submitted view
@@ -479,6 +520,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                             editable: inputsEnabled,
                             revealedAnswer: revealedAnswer,
                             revealedColor: revealedColor,
+                            unitTapeController: _unitTapeController,
                             buttonWidget: MainButton(
                               onPressed: inputsEnabled ? _submit : null,
                               label: MainButtonLabel.submit,
@@ -671,55 +713,6 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
             questionDate: effectiveDate,
             status: resultsStatus,
             windowEnd: controller.todayDocument?.windowEnd,
-            onResultsViewed: _onResultsViewed,
-            service: context.read<DailyQuestionService>(),
-            userDisplayName:
-                context.read<AuthService>().currentUser?.displayName,
-            userAvatarUrl: context.read<AuthService>().currentUser?.picture,
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Build a results-only view for past dates.
-  Widget _buildResultsOnlyView(AppTheme appTheme) {
-    return Scaffold(
-      backgroundColor: appTheme.bg,
-      body: Stack(
-        children: [
-          // Header
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back, color: appTheme.text),
-                    onPressed: () => Navigator.of(context).pop(),
-                    tooltip: 'Leave',
-                  ),
-                  const Spacer(),
-                  Text(
-                    'Results - ${widget.questionDate}',
-                    style: AppFont.primaryTextStyle(
-                      context,
-                      fontSize: 16,
-                      color: appTheme.text,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  const SizedBox(width: 48),
-                ],
-              ),
-            ),
-          ),
-
-          // Results sheet (expanded by default for past dates)
-          DQResultsBottomSheet(
-            questionDate: widget.questionDate ?? '',
-            status: DQResultsHandleStatus.seen,
             onResultsViewed: _onResultsViewed,
             service: context.read<DailyQuestionService>(),
             userDisplayName:
