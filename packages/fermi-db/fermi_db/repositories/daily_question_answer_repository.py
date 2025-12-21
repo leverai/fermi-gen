@@ -3,7 +3,6 @@
 import datetime
 from typing import Any, cast
 
-import pytz
 from sqlalchemy import func
 from sqlalchemy.engine import CursorResult
 from sqlmodel import select, update
@@ -207,3 +206,19 @@ class DailyQuestionAnswerRepository(BaseRepository):
 
         # No need to flush here; the UPDATE has already been sent/executed.
         return int(result.rowcount or 0)
+
+    async def count_user_answers(self, user_firebase_uid: str) -> int:
+        """Count the total number of daily questions a user has answered.
+
+        Args:
+            user_firebase_uid: The user's Firebase UID.
+
+        Returns:
+            The total count of DQ answers by this user.
+
+        """
+        statement = select(func.count(DailyQuestionAnswer.id)).where(
+            DailyQuestionAnswer.user_firebase_uid == user_firebase_uid,
+        )
+        result = await self.session.exec(statement)
+        return result.one() or 0

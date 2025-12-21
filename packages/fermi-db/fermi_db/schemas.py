@@ -83,37 +83,6 @@ class Answer(AnswerBare):
     references: list[AnswerReference]
 
 
-class PlayerPercentileByCategoryAndDifficulty(TypedDict):
-    """Player's average percentile by category and difficulty."""
-
-    category: QuestionCategory
-    difficulty: QuestionDifficulty
-    avg_percentile: int
-
-
-class PlayerPercentileByCategory(TypedDict):
-    """Player's average percentile by category."""
-
-    category: QuestionCategory
-    avg_percentile: int
-
-
-class PlayerPercentile(TypedDict):
-    """Player's average percentiles."""
-
-    by_category_and_difficulty: list[PlayerPercentileByCategoryAndDifficulty]
-    by_category: list[PlayerPercentileByCategory]
-    by_difficulty: list['PlayerPercentileByDifficulty']
-    overall: int
-
-
-class PlayerPercentileByDifficulty(TypedDict):
-    """Player's average percentile by difficulty across all categories."""
-
-    difficulty: QuestionDifficulty
-    avg_percentile: int
-
-
 class Locale(StrEnum):
     """Locale of a user."""
 

@@ -3,17 +3,9 @@
 from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 
 from fermi_db.models import AnswerEvent, AnswersQuantiles
-from fermi_db.schemas import (
-    PlayerPercentile,
-    PlayerPercentileByCategory,
-    PlayerPercentileByCategoryAndDifficulty,
-    PlayerPercentileByDifficulty,
-    QuestionCategory,
-    QuestionDifficulty,
-)
 
 from . import BaseRepository
 
@@ -75,70 +67,41 @@ class AnswerRepository(BaseRepository):
             p99=float(m['p99']) if m['p99'] is not None else 0.0,
         )
 
-    async def get_ave_quantile(self, firebase_uid: str) -> PlayerPercentile:
-        """Fetch a user's average answer quantiles."""
-        query = text(
-            """
-            SELECT
-                question_category,
-                question_difficulty,
-                AVG(score_quantile) as avg_percentile
-            FROM
-                answer_events
-            WHERE
-                user_firebase_id = :user_firebase_id
-            GROUP BY
-                GROUPING SETS (
-                    (question_category, question_difficulty),
-                    (question_category),
-                    (question_difficulty),
-                    ()
-                )
-            """,
-        )
-        result = await self.session.execute(
-            query,
-            {'user_firebase_id': firebase_uid},
-        )
+    async def count_user_party_games(self, firebase_uid: str) -> int:
+        """Count the number of distinct party games a user has played.
 
-        by_category_and_difficulty: list[PlayerPercentileByCategoryAndDifficulty] = []
-        by_category: list[PlayerPercentileByCategory] = []
-        by_difficulty: list[PlayerPercentileByDifficulty] = []
-        overall: int = 0
+        Args:
+            firebase_uid: The user's Firebase UID.
 
-        for row in result:
-            category, difficulty, avg_quantile = row
-            if category and difficulty:
-                by_category_and_difficulty.append(
-                    PlayerPercentileByCategoryAndDifficulty(
-                        category=QuestionCategory(category),
-                        difficulty=QuestionDifficulty(difficulty),
-                        avg_percentile=int(avg_quantile * 100),
-                    ),
-                )
-            elif category:
-                by_category.append(
-                    PlayerPercentileByCategory(
-                        category=QuestionCategory(category),
-                        avg_percentile=int(avg_quantile * 100),
-                    ),
-                )
-            elif difficulty:
-                by_difficulty.append(
-                    PlayerPercentileByDifficulty(
-                        difficulty=QuestionDifficulty(difficulty),
-                        avg_percentile=int(avg_quantile * 100),
-                    ),
-                )
-            else:
-                overall = int(avg_quantile * 100) if avg_quantile is not None else 0
+        Returns:
+            The count of distinct game_id values for this user.
 
-        return PlayerPercentile(
-            by_category_and_difficulty=by_category_and_difficulty,
-            by_category=by_category,
-            by_difficulty=by_difficulty,
-            overall=overall,
+        """
+        stmt = select(func.count(func.distinct(AnswerEvent.game_id))).where(
+            AnswerEvent.user_firebase_id == firebase_uid,  # pyright: ignore[reportArgumentType]
         )
+        result = await self.session.execute(stmt)
+        count = result.scalar()
+        return int(count) if count is not None else 0
+
+    async def get_overall_avg_percentile(self, firebase_uid: str) -> int:
+        """Get user's overall average percentile across all party games.
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+
+        Returns:
+            The average percentile (0-100), or 0 if no games played.
+
+        """
+        stmt = select(func.avg(AnswerEvent.score_quantile)).where(  # pyright: ignore[reportArgumentType]
+            AnswerEvent.user_firebase_id == firebase_uid,  # pyright: ignore[reportArgumentType]
+        )
+        result = await self.session.execute(stmt)
+        avg_quantile = result.scalar()
+        if avg_quantile is None:
+            return 0
+        return int(avg_quantile * 100)
 
     async def get_user_answer_events(
         self,

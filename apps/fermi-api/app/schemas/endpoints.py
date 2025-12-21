@@ -6,7 +6,6 @@ from typing import TypeAlias
 from fermi_db.schemas import (
     AnswerBare,
     Locale,
-    PlayerPercentile,
     QuestionCategory,
     QuestionDifficulty,
 )
@@ -99,7 +98,17 @@ class GetPlayerStatsRequest(BaseModel):
 class PlayerStats(BaseModel):
     """Player stats."""
 
-    player_quantiles: PlayerPercentile
+    total_party_games: int
+    """Total party mode games played."""
+
+    total_daily_guesses: int
+    """Total daily questions answered."""
+
+    average_percentile: int
+    """Average percentile (0-100)."""
+
+    level: int
+    """Player level (not yet implemented, always 1)."""
 
 
 class GetPlayerStatsResponse(BaseModel):

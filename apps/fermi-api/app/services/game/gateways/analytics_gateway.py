@@ -188,7 +188,16 @@ class GameAnalyticsGateway:
     async def get_player_stats(self, player_id: str) -> PlayerStats:
         """Get a player's stats."""
         return PlayerStats(
-            player_quantiles=await self._db_client.answers.get_ave_quantile(player_id),
+            total_party_games=await self._db_client.answers.count_user_party_games(
+                player_id,
+            ),
+            total_daily_guesses=await self._db_client.dq_answers.count_user_answers(
+                player_id,
+            ),
+            average_percentile=await self._db_client.answers.get_overall_avg_percentile(
+                player_id,
+            ),
+            level=1,  # Not implemented yet
         )
 
     async def set_user_vote(

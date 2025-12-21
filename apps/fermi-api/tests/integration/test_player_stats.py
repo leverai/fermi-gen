@@ -11,7 +11,7 @@ def test_get_player_stats_shape(
     api_client: TestClient,
     get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
 ) -> None:
-    """Stats endpoint should return player_quantiles structure per README."""
+    """Stats endpoint should return simplified stats structure."""
     headers = get_api_auth_headers(
         'dev.user+stats@example.com',
         'password123',
@@ -30,13 +30,13 @@ def test_get_player_stats_shape(
     assert 'player_id' in body
     assert body['player_id']
     assert 'stats' in body
-    assert isinstance(body['stats'], dict)
-    pq = body['stats'].get('player_quantiles')
-    assert isinstance(pq, dict)
-    assert 'overall' in pq
-    assert 'by_category' in pq
-    assert isinstance(pq['by_category'], list)
-    assert 'by_category_and_difficulty' in pq
-    assert isinstance(pq['by_category_and_difficulty'], list)
-    assert 'by_difficulty' in pq
-    assert isinstance(pq['by_difficulty'], list)
+    stats = body['stats']
+    assert isinstance(stats, dict)
+    assert 'total_party_games' in stats
+    assert isinstance(stats['total_party_games'], int)
+    assert 'total_daily_guesses' in stats
+    assert isinstance(stats['total_daily_guesses'], int)
+    assert 'average_percentile' in stats
+    assert isinstance(stats['average_percentile'], int)
+    assert 'level' in stats
+    assert stats['level'] == 1  # Level is not yet implemented
