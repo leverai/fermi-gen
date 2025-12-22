@@ -6,6 +6,7 @@ import 'package:fermi_frontend/screens/main/widgets/daily_question_archive_sheet
 import 'package:fermi_frontend/screens/daily_question/daily_question_screen.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
+import 'package:fermi_frontend/widgets/press_effect_wrapper.dart';
 
 class DailyQuestionCarousel extends StatelessWidget {
   const DailyQuestionCarousel({super.key});
@@ -172,7 +173,7 @@ class DailyQuestionCarousel extends StatelessWidget {
   }
 
   Widget _buildArchiveButton(BuildContext context, AppTheme appTheme) {
-    return InkWell(
+    return PressEffectWrapper(
       onTap: () {
         showModalBottomSheet(
           context: context,
@@ -181,18 +182,15 @@ class DailyQuestionCarousel extends StatelessWidget {
           builder: (context) => const DailyQuestionArchiveSheet(),
         );
       },
-      borderRadius: BorderRadius.circular(appTheme.borderRadius),
-      child: Container(
+      enablePushDown: false,
+      decoration: BoxDecoration(
+        color: appTheme.bgLight,
+        borderRadius: BorderRadius.circular(appTheme.borderRadius),
+      ),
+      child: SizedBox(
         width: 100,
-        height: double.infinity, // Added explicit height to match cards
-        decoration: BoxDecoration(
-          color: appTheme.bgLight,
-          borderRadius: BorderRadius.circular(appTheme.borderRadius),
-          border: Border.all(
-            color: appTheme.bgLight,
-            width: appTheme.borderWidth,
-          ),
-        ),
+        height:
+            182, // Matched height with cards (minus vertical padding of carousel)
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,

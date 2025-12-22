@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/screens/main/widgets/daily_question_carousel.dart';
+import 'package:fermi_frontend/widgets/press_effect_wrapper.dart';
 
 /// Displays the "Games" tab content with game options.
 ///
@@ -114,68 +115,65 @@ class GamesTab extends StatelessWidget {
   Widget _buildPartyCard(BuildContext context, AppTheme appTheme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: InkWell(
+      child: PressEffectWrapper(
         onTap: onPartyCardTapped,
-        borderRadius: BorderRadius.circular(appTheme.borderRadius),
-        child: Container(
-          decoration: BoxDecoration(
-            color: appTheme.secondary,
-            borderRadius: BorderRadius.circular(appTheme.borderRadius),
-            boxShadow: [
-              BoxShadow(
-                color: appTheme.shadowColor,
-                offset: appTheme.shadowOffset,
-                blurRadius: 0,
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Party',
-                      style: AppFont.primaryTextStyle(
-                        context,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: appTheme.bg,
-                      ),
+        decoration: BoxDecoration(
+          color: appTheme.secondary,
+          borderRadius: BorderRadius.circular(appTheme.borderRadius),
+          boxShadow: [
+            BoxShadow(
+              color: appTheme.shadowColor,
+              offset: appTheme.shadowOffset,
+              blurRadius: 0,
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Party',
+                    style: AppFont.primaryTextStyle(
+                      context,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: appTheme.bg,
                     ),
-                    Text(
-                      'Play a round with friends.',
-                      style: AppFont.primaryTextStyle(
-                        context,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: appTheme.bgDark,
-                      ),
+                  ),
+                  Text(
+                    'Play a round with friends.',
+                    style: AppFont.primaryTextStyle(
+                      context,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: appTheme.bgDark,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Tap to play',
-                      style: AppFont.primaryTextStyle(
-                        context,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: appTheme.secondaryMuted,
-                      ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Tap to play',
+                    style: AppFont.primaryTextStyle(
+                      context,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: appTheme.secondaryMuted,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Icon(
-                Icons.grid_view_rounded,
-                size: 48,
-                color: appTheme.bg,
-              ),
-            ],
-          ),
+            ),
+            Icon(
+              Icons.grid_view_rounded,
+              size: 48,
+              color: appTheme.bg,
+            ),
+          ],
         ),
       ),
     );
