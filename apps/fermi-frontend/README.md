@@ -120,11 +120,10 @@ The frontend follows a **controller-driven architecture** with clear separation 
 - **Services**: Backend adapters (`GameRealtime`, `ApiService`, `AuthService`)
 - **Widgets**: Reusable presentational components
     └── widgets/
-        ├── answer_widget.dart          # Unified answer input (digits + OM + unit)
-        ├── answer_accuracy_scale.dart  # Logarithmic scale for answer display and reveal
-        ├── percentile_widget.dart      # Compact "Top X%" display with animations
-        ├── digit_wheels.dart           # Three-digit scrollable wheels with numpad
-        ├── om_label.dart               # Order of magnitude selector
+        ├── answer_accuracy_scale.dart  # Logarithmic scale for answer input and reveal
+        ├── answer_controller.dart      # Minimal controller for reveal animations
+        ├── slider_text_mirror.dart     # Real-time value display (e.g., \"124 Million\")
+        ├── percentile_widget.dart      # Compact \"Top X%\" display with animations
         ├── unit_tape.dart              # Unit selector with locale toggle
         ├── styled_dialog.dart          # Reusable dialog with gradient borders
         ├── settings_menu.dart          # Settings menu (sign out, delete account)

@@ -14,8 +14,6 @@ import 'package:fermi_frontend/screens/question_v2/helpers/leave.dart'
 import 'package:fermi_frontend/screens/question_v2/helpers/snack.dart' as snack;
 
 import 'package:fermi_frontend/models/answer_value.dart';
-import 'package:fermi_frontend/widgets/keyboard_height_provider.dart';
-import 'package:fermi_frontend/widgets/bottom_sheet_height_provider.dart';
 import 'package:fermi_frontend/utils/logger.dart';
 import 'package:fermi_frontend/widgets/rank_confetti_overlay.dart';
 
@@ -64,8 +62,6 @@ class QuestionScreenV2 extends StatefulWidget {
 
 class _QuestionScreenV2State extends State<QuestionScreenV2> {
   late final QuestionScreenV2Controller _controller;
-  final ValueNotifier<double> _bottomSheetHeightNotifier =
-      ValueNotifier<double>(0.0);
 
   @override
   void initState() {
@@ -91,7 +87,6 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
   void dispose() {
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
-    _bottomSheetHeightNotifier.dispose();
     super.dispose();
   }
 
@@ -162,7 +157,6 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
   Widget build(BuildContext context) {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
-    final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     // Height is now fixed based on GameCard's intrinsic content height.
     // See game_card.dart for the breakdown of this value.
     const double carouselHeight = kGameCardTotalHeight;
@@ -180,77 +174,49 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
             Container(
               color: appTheme.bgDark,
             ),
-            BottomSheetHeightProvider(
-              heightNotifier: _bottomSheetHeightNotifier,
-              child: KeyboardHeightProvider(
-                keyboardHeight: keyboardHeight,
-                child: ValueListenableBuilder<double>(
-                  valueListenable: _bottomSheetHeightNotifier,
-                  builder: (context, bottomSheetHeight, child) {
-                    // Calculate the height of the active input (keyboard OR bottom sheet)
-                    final double activeInputHeight =
-                        keyboardHeight > 0 ? keyboardHeight : bottomSheetHeight;
-                    // Slide up when input is active
-                    final double adjustedOffset =
-                        activeInputHeight.clamp(0.0, double.infinity);
-                    return MediaQuery(
-                      data: MediaQuery.of(context)
-                          .copyWith(viewInsets: EdgeInsets.zero),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 100),
-                        curve: Curves.linear,
-                        transform:
-                            Matrix4.translationValues(0, -adjustedOffset, 0),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                        top: 0, bottom: 72, left: 12, right: 12),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Players row
-                        SafeArea(
-                          bottom: false,
-                          child: PlayersRow(
-                            players: _controller
-                                .getPlayersForIndex(_controller.currentIndex),
-                            controllerById: _controller.playerControllers,
-                            showScoreOverlay: true,
-                            animateScoreOverlay: true,
-                            showNameChip: true,
-                            showRankIcons: _controller.isReviewMode,
-                            currentPlayerId: widget.realtime.currentPlayerId,
-                            questionIndex: _controller.currentIndex,
-                            deadlineProgressTracker:
-                                _controller.deadlineProgressTracker,
-                            finalRanks: _controller.finalRanks,
-                          ),
-                        ),
-                        // Spacer to center carousel vertically in remaining space
-                        const Spacer(),
-                        // Game carousel (fixed height, not expanded)
-                        GameCarousel(
-                          itemCount: widget.questionCount,
-                          currentIndex: _controller.currentIndex,
-                          pageController: _controller.pageController,
-                          itemBuilder: (context, index, realIndex) {
-                            return _buildGameCard(realIndex);
-                          },
-                          onPageChanged: (index) {
-                            _controller.onCarouselPageChanged(index);
-                          },
-                          height: carouselHeight,
-                          enableUserSwipe: _controller.isReviewMode,
-                        ),
-                        // Bottom spacer to balance layout
-                        const Spacer(),
-                      ],
+            Padding(
+              padding: const EdgeInsets.only(
+                  top: 0, bottom: 72, left: 12, right: 12),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Players row
+                  SafeArea(
+                    bottom: false,
+                    child: PlayersRow(
+                      players: _controller
+                          .getPlayersForIndex(_controller.currentIndex),
+                      controllerById: _controller.playerControllers,
+                      showScoreOverlay: true,
+                      animateScoreOverlay: true,
+                      showNameChip: true,
+                      showRankIcons: _controller.isReviewMode,
+                      currentPlayerId: widget.realtime.currentPlayerId,
+                      questionIndex: _controller.currentIndex,
+                      deadlineProgressTracker:
+                          _controller.deadlineProgressTracker,
+                      finalRanks: _controller.finalRanks,
                     ),
                   ),
-                ),
+                  // Spacer to center carousel vertically in remaining space
+                  const Spacer(),
+                  // Game carousel (fixed height, not expanded)
+                  GameCarousel(
+                    itemCount: widget.questionCount,
+                    currentIndex: _controller.currentIndex,
+                    pageController: _controller.pageController,
+                    itemBuilder: (context, index, realIndex) {
+                      return _buildGameCard(realIndex);
+                    },
+                    onPageChanged: (index) {
+                      _controller.onCarouselPageChanged(index);
+                    },
+                    height: carouselHeight,
+                    enableUserSwipe: _controller.isReviewMode,
+                  ),
+                  // Bottom spacer to balance layout
+                  const Spacer(),
+                ],
               ),
             ),
             if (widget.showLeaveButton)

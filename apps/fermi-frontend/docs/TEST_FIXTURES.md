@@ -52,7 +52,7 @@ Whenever you add or modify fixtures, **update this file** as part of your featur
   - Static constants: `sampleQuestion1-5`, `geographyTags`, `physicsTags`, etc.
   - Unit mappings: `usUnitOptions`, `euUnitOptions`, `usUnitAbbreviationToId`, etc.
 - **Dependencies**: `RevealedQuestion`, `AnswerValue`, `RevealPayload` from `game_realtime.dart` and `answer_value.dart`
-- **Used by**: `AnswerWidget`, `GameCard`, `QuestionWidget`, `QuestionScreenV2Controller`, integration flows.
+- **Used by**: `AnswerAccuracyScale`, `GameCard`, `QuestionWidget`, `QuestionScreenV2Controller`, integration flows.
 - **Introduced by**: TEST_FEATURE_001
 
 ---

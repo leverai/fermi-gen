@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:fermi_frontend/services/game_realtime.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
-import 'package:fermi_frontend/widgets/answer_widget.dart';
+import 'package:fermi_frontend/widgets/answer_controller.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
 import 'package:fermi_frontend/widgets/player_widget_controller.dart';
 import 'package:fermi_frontend/widgets/animated_like_dislike.dart';
