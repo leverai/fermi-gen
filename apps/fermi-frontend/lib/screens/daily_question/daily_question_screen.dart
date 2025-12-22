@@ -290,12 +290,6 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         // Hide unit tape indicators immediately after submission
         _unitTapeController.setRevealed(
             true, const Duration(milliseconds: 600));
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Answer submitted! Results will be available soon.'),
-            duration: Duration(seconds: 2),
-          ),
-        );
       }
     } catch (e) {
       // print('[DQ] Error submitting answer: $e');
@@ -469,16 +463,11 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       );
     }
 
-    // User submitted but returned without question loaded - show submitted view
-    // UNLESS we have results data with question text for reveal animation
-    if (_submittedWithoutQuestion &&
-        _question == null &&
-        _resultsData == null) {
-      return _buildSubmittedView(appTheme, controller);
-    }
+    // Determine if we have question data to show QuestionAnswerCard
+    final bool hasQuestionData = _questionText != null;
 
-    // No question loaded and no results data - can't display anything
-    if (_question == null && _resultsData == null) {
+    // No question loaded and no results data and not submitted - can't display anything
+    if (!hasQuestionData && !_submittedWithoutQuestion) {
       return Scaffold(
         backgroundColor: appTheme.bg,
         body: Stack(
@@ -526,7 +515,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                 // Header with back button and timer
                 _buildHeader(appTheme, inputsEnabled),
 
-                // Question and input area
+                // Question and input area (or waiting placeholder)
                 Expanded(
                   child: Center(
                     child: SingleChildScrollView(
@@ -536,32 +525,36 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Question-Answer Card
-                          QuestionAnswerCard(
-                            questionText: _questionText ?? '',
-                            tags: const [], // No tags for daily question
-                            currentAnswer: _currentAnswer,
-                            submittedAnswer: submittedAnswer,
-                            unitOptions: _unitOptions,
-                            units: _unitAbbreviations,
-                            currentLocale: _currentLocale,
-                            onAnswerChanged: inputsEnabled
-                                ? (val) {
-                                    setState(() {
-                                      _currentAnswer = val;
-                                    });
-                                  }
-                                : (_) {},
-                            onLocaleChanged: _onLocaleChanged,
-                            editable: inputsEnabled,
-                            revealedAnswer: revealedAnswer,
-                            revealedColor: revealedColor,
-                            unitTapeController: _unitTapeController,
-                            buttonWidget: MainButton(
-                              onPressed: inputsEnabled ? _submit : null,
-                              label: MainButtonLabel.submit,
-                            ),
-                          ),
+                          // Show QuestionAnswerCard if we have question data,
+                          // otherwise show waiting placeholder
+                          if (hasQuestionData)
+                            QuestionAnswerCard(
+                              questionText: _questionText ?? '',
+                              tags: const [], // No tags for daily question
+                              currentAnswer: _currentAnswer,
+                              submittedAnswer: submittedAnswer,
+                              unitOptions: _unitOptions,
+                              units: _unitAbbreviations,
+                              currentLocale: _currentLocale,
+                              onAnswerChanged: inputsEnabled
+                                  ? (val) {
+                                      setState(() {
+                                        _currentAnswer = val;
+                                      });
+                                    }
+                                  : (_) {},
+                              onLocaleChanged: _onLocaleChanged,
+                              editable: inputsEnabled,
+                              revealedAnswer: revealedAnswer,
+                              revealedColor: revealedColor,
+                              unitTapeController: _unitTapeController,
+                              buttonWidget: MainButton(
+                                onPressed: inputsEnabled ? _submit : null,
+                                label: MainButtonLabel.submit,
+                              ),
+                            )
+                          else
+                            _buildWaitingPlaceholder(appTheme),
 
                           // Spacer for bottom sheet (always present to maintain centering)
                           const SizedBox(height: 120),
@@ -587,6 +580,38 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
             ),
         ],
       ),
+    );
+  }
+
+  /// Placeholder shown when user submitted but we don't have question data yet
+  Widget _buildWaitingPlaceholder(AppTheme appTheme) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.check_circle_outline,
+          size: 64,
+          color: appTheme.success,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Answer Submitted',
+          style: AppFont.primaryTextStyle(
+            context,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: appTheme.text,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Waiting for results...',
+          style: AppFont.secondaryTextStyle(
+            context,
+            color: appTheme.textMuted,
+          ),
+        ),
+      ],
     );
   }
 
@@ -618,28 +643,43 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
             ),
 
           // Submitted indicator
-          if (_isSubmitted && !_isPastDate)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: appTheme.success.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                'Submitted',
-                style: AppFont.secondaryTextStyle(
-                  context,
-                  fontSize: 14,
-                  color: appTheme.success,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+          if (_isSubmitted && !_isPastDate) _buildSubmittedChip(appTheme),
 
           const Spacer(),
 
           // Placeholder for symmetry
           const SizedBox(width: 48),
+        ],
+      ),
+    );
+  }
+
+  /// Build the "Submitted" chip indicator
+  Widget _buildSubmittedChip(AppTheme appTheme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: appTheme.success.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Submitted',
+            style: AppFont.secondaryTextStyle(
+              context,
+              fontSize: 14,
+              color: appTheme.success,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Icon(
+            Icons.check,
+            size: 16,
+            color: appTheme.success,
+          ),
         ],
       ),
     );
@@ -654,108 +694,6 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
           onPressed: _handleLeave,
           tooltip: 'Leave',
         ),
-      ),
-    );
-  }
-
-  /// Build a submitted view when user returns after submission (no question data).
-  Widget _buildSubmittedView(
-      AppTheme appTheme, DailyQuestionController controller) {
-    final resultsStatus = _getResultsStatus();
-    final effectiveDate = _effectiveDate ?? '';
-
-    return Scaffold(
-      backgroundColor: appTheme.bg,
-      body: Stack(
-        children: [
-          SafeArea(
-            child: Column(
-              children: [
-                // Header
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.arrow_back, color: appTheme.text),
-                        onPressed: _handleLeave,
-                        tooltip: 'Leave',
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: appTheme.success.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          'Submitted',
-                          style: AppFont.secondaryTextStyle(
-                            context,
-                            fontSize: 14,
-                            color: appTheme.success,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      const SizedBox(width: 48),
-                    ],
-                  ),
-                ),
-
-                // Submitted message
-                Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 64,
-                          color: appTheme.success,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Answer Submitted',
-                          style: AppFont.primaryTextStyle(
-                            context,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: appTheme.text,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Waiting for results...',
-                          style: AppFont.secondaryTextStyle(
-                            context,
-                            color: appTheme.textMuted,
-                          ),
-                        ),
-                        const SizedBox(height: 120), // Space for bottom sheet
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Results bottom sheet
-          DQResultsBottomSheet(
-            questionDate: effectiveDate,
-            status: resultsStatus,
-            windowEnd: controller.todayDocument?.windowEnd,
-            onResultsViewed: _onResultsViewed,
-            service: context.read<DailyQuestionService>(),
-            userDisplayName:
-                context.read<AuthService>().currentUser?.displayName,
-            userAvatarUrl: context.read<AuthService>().currentUser?.picture,
-          ),
-        ],
       ),
     );
   }

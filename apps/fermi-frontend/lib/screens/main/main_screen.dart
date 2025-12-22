@@ -8,7 +8,7 @@ import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/config/app_config.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
-import 'package:fermi_frontend/widgets/settings_menu.dart';
+import 'package:fermi_frontend/screens/main/widgets/settings_sheet.dart';
 import 'package:fermi_frontend/widgets/styled_dialog.dart';
 import 'package:fermi_frontend/widgets/avatar_widget.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -43,7 +43,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late final MainScreenController _controller;
 
   DateTime? _lastResumeTime;
-  bool _isSettingsOpen = false;
   int _currentIndex = 0; // 0 = Games, 1 = Me
   late final PageController _pageController;
 
@@ -215,27 +214,32 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   // --------------------------------------------------------------------------
 
   void _toggleSettings() {
-    setState(() {
-      _isSettingsOpen = !_isSettingsOpen;
-    });
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SettingsSheet(
+        onSignOut: _handleSignOut,
+        onDeleteAccount: _handleDeleteAccount,
+        isAnonymous: widget.authService.isAnonymous,
+        onCreateAccount: _handleCreateAccount,
+      ),
+    );
   }
 
   Future<void> _handleSignOut() async {
-    _toggleSettings();
     await widget.authService.signOut();
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed('/sign-in');
   }
 
   void _handleCreateAccount() {
-    _toggleSettings();
     Navigator.of(context).pushNamed('/upgrade-account');
   }
 
   Future<void> _handleDeleteAccount() async {
     if (widget.authService.isAnonymous) return;
 
-    _toggleSettings();
     final AppTheme appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
     final bool? confirm = await showDialog<bool>(
@@ -430,17 +434,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
-                  // Settings menu overlay
-                  if (_isSettingsOpen)
-                    Positioned.fill(
-                      child: SettingsMenu(
-                        onSignOut: _handleSignOut,
-                        onDeleteAccount: _handleDeleteAccount,
-                        onClose: _toggleSettings,
-                        isAnonymous: widget.authService.isAnonymous,
-                        onCreateAccount: _handleCreateAccount,
-                      ),
-                    ),
                 ],
               ),
               bottomNavigationBar: BottomNavigationBar(
