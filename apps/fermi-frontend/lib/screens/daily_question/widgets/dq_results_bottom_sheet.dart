@@ -277,7 +277,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
     if (widget.status == DQResultsHandleStatus.pending) {
       final remaining = _formatRemainingTime(_timeUntilResults);
       handleContent = Text(
-        'Results in $remaining',
+        'Results in: $remaining',
         style: AppFont.secondaryTextStyle(
           context,
           fontSize: 14,
