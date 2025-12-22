@@ -82,7 +82,7 @@ class GamesTab extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
-            'Hello, ${displayName ?? "Guest"}.',
+            'Hello, ${displayName ?? "Guest"}!',
             textAlign: TextAlign.center,
             style: AppFont.primaryTextStyle(
               context,

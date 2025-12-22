@@ -14,6 +14,7 @@ import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/question_answer_card.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
 import 'package:fermi_frontend/widgets/unit_tape.dart';
+import 'package:fermi_frontend/widgets/styled_dialog.dart';
 import 'package:fermi_frontend/screens/daily_question/widgets/dq_results_bottom_sheet.dart';
 
 /// Unified Daily Question screen for both taking questions and viewing results.
@@ -353,6 +354,41 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     }
   }
 
+  /// Handle leave button press - show confirmation if not submitted
+  Future<void> _handleLeave() async {
+    // If already submitted, just navigate back
+    if (_isSubmitted) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    // Show confirmation dialog
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StyledDialog(
+          message: 'Your answer will be submitted.',
+          primaryButtonLabel: 'Leave',
+          primaryButtonColor: appTheme.danger,
+          onPrimaryPressed: () => Navigator.of(context).pop(true),
+          secondaryButtonLabel: 'Cancel',
+          onSecondaryPressed: () => Navigator.of(context).pop(false),
+          showAsDialog: true,
+        );
+      },
+    );
+
+    // If user confirmed, submit answer then navigate back
+    if (confirmed == true) {
+      await _submit();
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
   /// Load results when they become ready
   Future<void> _loadResults() async {
     if (_resultsData != null) return;
@@ -562,7 +598,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
           // Back button
           IconButton(
             icon: Icon(Icons.arrow_back, color: appTheme.text),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: _handleLeave,
             tooltip: 'Leave',
           ),
 
@@ -615,7 +651,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         padding: const EdgeInsets.all(8.0),
         child: IconButton(
           icon: Icon(Icons.arrow_back, color: appTheme.text),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: _handleLeave,
           tooltip: 'Leave',
         ),
       ),
@@ -643,7 +679,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                     children: [
                       IconButton(
                         icon: Icon(Icons.arrow_back, color: appTheme.text),
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: _handleLeave,
                         tooltip: 'Leave',
                       ),
                       const Spacer(),
