@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';

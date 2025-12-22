@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
@@ -193,7 +195,6 @@ class StyledDialog extends StatelessWidget {
                       overlayColor: WidgetStateProperty.resolveWith<Color?>(
                         (Set<WidgetState> states) {
                           if (states.contains(WidgetState.pressed)) {
-                            // ignore: deprecated_member_use
                             return appTheme.text.withOpacity(0.2);
                           }
                           return Colors.transparent;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
-import 'package:fermi_frontend/widgets/answer_widget.dart';
+import 'package:fermi_frontend/widgets/answer_controller.dart';
 import 'package:fermi_frontend/screens/question_v2/controllers/question_state_manager.dart';
 import 'package:fermi_frontend/screens/question_v2/controllers/answer_submission_handler.dart';
 import 'package:fermi_frontend/screens/question_v2/controllers/game_timer_manager.dart';

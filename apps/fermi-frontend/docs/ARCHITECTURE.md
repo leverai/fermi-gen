@@ -449,7 +449,8 @@ Question Screen V2 orchestrates one round (or a sequence of rounds) of the Fermi
 **Related services and state**:
 - `services/game_realtime.dart`: Backend-agnostic realtime interface.
 - `services/firestore_game_realtime.dart`: Firestore implementation.
-- `widgets/answer_widget.dart`: Unified answer input component.
+- `widgets/answer_accuracy_scale.dart`: Logarithmic scale answer input.
+- `widgets/answer_controller.dart`: Minimal controller for reveal animations.
 - `widgets/players_row.dart`: Player chips row widget.
 - `widgets/submit_bar.dart`: Submit/Next/Finish action button.
 
@@ -607,8 +608,9 @@ All timer logic is encapsulated in `GameTimerManager`, which exposes methods to 
 Each `GameCard` contains:
 - **Question-Answer Card** (with border):
   - Question widget (text + tags, no border)
-  - Answer mirror text
-  - Answer widget (digits + OM + unit)
+  - Answer accuracy scale (logarithmic slider for answer input)
+  - Slider text mirror (displays current value)
+  - Unit tape (unit selector with locale toggle)
 - **Feedback Row** (appears after reveal, same styling as card):
   - Like/dislike widget (right-aligned)
 
@@ -753,7 +755,7 @@ The Question screen orchestrates one round (or a sequence of rounds) of the Ferm
 ### State Machine (Pane)
 
 - `started`
-  - Editable `AnswerWidget`, timer active once duration > 0.
+  - Editable `AnswerAccuracyScale`, timer active once duration > 0.
   - Transitions:
     - On submit: `locked`
     - On deadline: `locked` (auto-submit current value)
@@ -823,7 +825,7 @@ WatchGame updates never overwrite an already revealed answer state (prevents fli
 - User swipe enabled on the carousel; page index is local.
 - Submit/Next disabled; Finish button persists across panes and exits to Main.
 - Deadlines and auto-next suppressed.
-- Pane immediately reveals the correct value and applies the per-question score color to `AnswerWidget`.
+- Pane immediately reveals the correct value and applies the per-question score color to the answer display.
 - Player UI mirrors the viewed question:
   - `SubmittedAnswerChip` background uses the per-question round score color.
   - Transient score text shows the per-question round score (no +/-), colored identically.
@@ -836,7 +838,7 @@ WatchGame updates never overwrite an already revealed answer state (prevents fli
 - No category-based theming; unified theme system ensures visual consistency.
 
 **Answer reveal colors**:
-- On reveal, the `AnswerWidget` animates digits, order-of-magnitude, and unit to the correct answer and tints all three to a shade from the RdYlGn scale computed from the player's per-question score.
+- On reveal, the `AnswerAccuracyScale` animates the correct answer indicator to its position on the logarithmic scale. The unit tape hides its tap and scroll indicators.
 - Player chips' submitted answer capsules use the same RdYlGn shade for background.
 
 ### Error Handling & Logging
@@ -1099,7 +1101,7 @@ The reserved feedback area animates between feedback (post-reveal) and locale to
 
 ### Answer Reveal
 
-`AnswerWidget` animates digits, order-of-magnitude, and unit to the correct value and tints all three using a RdYlGn color derived from the local player's per-question score.
+At reveal time, the `AnswerAccuracyScale` shows the correct answer indicator at its position on the logarithmic scale. The color is derived from the local player's per-question score using the RdYlGn color map.
 
 ### Confetti
 

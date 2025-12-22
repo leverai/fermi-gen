@@ -12,9 +12,8 @@ import '../../helpers/test_helpers.dart';
 /// - That correct values are passed to the callback
 /// - That the slider widget itself behaves correctly
 ///
-/// For full integration tests that verify the complete state flow
-/// (slider → state update → AnswerWidget → DigitWheels/OmLabel updates),
-/// see `answer_widget_slider_sync_test.dart`.
+/// The AnswerAccuracyScale is the primary answer input widget
+/// that displays a logarithmic scale for entering numeric answers.
 
 void main() {
   group('AnswerAccuracyScale - Interactive Input', () {

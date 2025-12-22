@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
-import 'package:fermi_frontend/widgets/bottom_sheet_height_provider.dart';
 import 'string_wheel.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/tap_indicator.dart';
@@ -265,33 +264,6 @@ class _UnitTapeState extends State<UnitTape>
     // Capture initial values but allow updates through callbacks
     String currentLocale = widget.currentLocale;
     final GlobalKey sheetKey = GlobalKey();
-    final heightNotifier = BottomSheetHeightProvider.maybeOf(context);
-
-    // Height management during selector sequence transitions:
-    // When opening during a transition from OM selector, we need to:
-    // 1. Preserve the current height to prevent screen from snapping back
-    // 2. Signal ownership by updating the height (so OM selector's delayed check doesn't reset it)
-    // 3. Update to actual measured height once the sheet is built
-    // The OM selector waits 500ms and checks if height changed; if not, it resets to 0.
-    // By updating the height by >5.0px, we ensure the OM selector sees a change.
-    final double? transitionHeight = heightNotifier?.value;
-
-    if (transitionHeight != null &&
-        transitionHeight > 0 &&
-        heightNotifier != null) {
-      // Schedule height update after build phase completes (prevents setState during build error)
-      final notifier = heightNotifier; // Capture for postFrameCallback
-      final height = transitionHeight; // Capture for postFrameCallback
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        // Preserve the height first to prevent visual snap-back
-        notifier.value = height;
-        // Then signal ownership by updating slightly (exceeds 5.0px threshold used by OM selector)
-        // This prevents the OM selector's delayed check from resetting the height
-        Future.microtask(() {
-          notifier.value = height + 10.0;
-        });
-      });
-    }
 
     showModalBottomSheet(
       context: context,
@@ -305,17 +277,6 @@ class _UnitTapeState extends State<UnitTape>
 
         return StatefulBuilder(
           builder: (context, setModalState) {
-            // Measure height after build and notify provider
-            // This runs after the first frame, ensuring accurate measurement
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              final RenderBox? box =
-                  sheetKey.currentContext?.findRenderObject() as RenderBox?;
-              if (box != null && heightNotifier != null) {
-                // Update height with actual measured value
-                heightNotifier.value = box.size.height;
-              }
-            });
-
             return ValueListenableBuilder<Map<String, String>>(
               valueListenable: _effectiveNotifier,
               builder: (context, unitOptionsMap, child) {
@@ -402,13 +363,6 @@ class _UnitTapeState extends State<UnitTape>
         // Only update local state - no focus management needed as this uses a modal
         // bottom sheet, not keyboard input.
       }
-      // Reset height after modal dismiss animation completes
-      // This is the final selector in the sequence, so we always reset here
-      Future.delayed(const Duration(milliseconds: 50), () {
-        if (mounted && heightNotifier != null) {
-          heightNotifier.value = 0.0;
-        }
-      });
     });
 
     // No focus management needed - this uses a modal bottom sheet, not keyboard input.
