@@ -162,6 +162,7 @@ class DailyQuestionCarousel extends StatelessWidget {
                     showTitle: isToday,
                     onTap: onTapCallback,
                     windowStart: isToday ? todayDocument?.windowStart : null,
+                    windowEnd: isToday ? todayDocument?.windowEnd : null,
                   ),
                 ),
               );

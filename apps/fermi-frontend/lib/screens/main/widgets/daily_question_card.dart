@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
@@ -18,6 +19,7 @@ class DailyQuestionCard extends StatefulWidget {
   final bool showTitle;
   final VoidCallback? onTap; // Nullable to support disabled state
   final DateTime? windowStart; // When DQ becomes ACTIVE (for countdown)
+  final DateTime? windowEnd; // When DQ ends (for "Ends in" countdown)
 
   const DailyQuestionCard({
     super.key,
@@ -29,6 +31,7 @@ class DailyQuestionCard extends StatefulWidget {
     this.showTitle = false,
     this.onTap,
     this.windowStart,
+    this.windowEnd,
   });
 
   @override
@@ -38,28 +41,38 @@ class DailyQuestionCard extends StatefulWidget {
 class _DailyQuestionCardState extends State<DailyQuestionCard> {
   Timer? _countdownTimer;
   Duration _timeUntilActive = Duration.zero;
+  Duration _timeUntilEnd = Duration.zero;
 
   @override
   void initState() {
     super.initState();
-    if (widget.status == 'NOT_STARTED' && widget.windowStart != null) {
-      _startCountdownTimer();
-    }
+    _startCountdownTimerIfNeeded();
   }
 
   @override
   void didUpdateWidget(DailyQuestionCard oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Handle status change or windowStart change
+    // Handle status change, windowStart change, or windowEnd change
     if (widget.status != oldWidget.status ||
-        widget.windowStart != oldWidget.windowStart) {
-      if (widget.status == 'NOT_STARTED' && widget.windowStart != null) {
-        _startCountdownTimer();
-      } else {
-        _countdownTimer?.cancel();
-        _countdownTimer = null;
-      }
+        widget.windowStart != oldWidget.windowStart ||
+        widget.windowEnd != oldWidget.windowEnd) {
+      _startCountdownTimerIfNeeded();
+    }
+  }
+
+  void _startCountdownTimerIfNeeded() {
+    // Start timer if NOT_STARTED with windowStart OR ACTIVE/SUBMITTED with windowEnd
+    final needsTimer =
+        (widget.status == 'NOT_STARTED' && widget.windowStart != null) ||
+            ((widget.status == 'ACTIVE' || widget.status == 'SUBMITTED') &&
+                widget.windowEnd != null);
+
+    if (needsTimer) {
+      _startCountdownTimer();
+    } else {
+      _countdownTimer?.cancel();
+      _countdownTimer = null;
     }
   }
 
@@ -71,24 +84,33 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
 
   void _startCountdownTimer() {
     _countdownTimer?.cancel();
-    _updateTimeUntilActive();
+    _updateCountdowns();
 
     // Update every minute to avoid excessive rebuilds
     _countdownTimer = Timer.periodic(const Duration(minutes: 1), (_) {
-      _updateTimeUntilActive();
+      _updateCountdowns();
     });
   }
 
-  void _updateTimeUntilActive() {
-    if (widget.windowStart == null) return;
-
+  void _updateCountdowns() {
     final now = DateTime.now().toUtc();
-    final remaining = widget.windowStart!.difference(now);
 
-    if (mounted) {
-      setState(() {
-        _timeUntilActive = remaining.isNegative ? Duration.zero : remaining;
-      });
+    if (widget.windowStart != null) {
+      final remaining = widget.windowStart!.difference(now);
+      if (mounted) {
+        setState(() {
+          _timeUntilActive = remaining.isNegative ? Duration.zero : remaining;
+        });
+      }
+    }
+
+    if (widget.windowEnd != null) {
+      final remaining = widget.windowEnd!.difference(now);
+      if (mounted) {
+        setState(() {
+          _timeUntilEnd = remaining.isNegative ? Duration.zero : remaining;
+        });
+      }
     }
   }
 
@@ -198,7 +220,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
 
                   const Spacer(),
 
-                  // Bottom part: Date and Status button (only for today's card)
+                  // Bottom part: Date and timer/status (only for today's card)
                   if (widget.isToday)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -247,12 +269,20 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                             ),
                           ],
                         ),
-                        _buildStatusButton(context, appTheme),
+                        // Bottom right: "Ends in" timer for ACTIVE/SUBMITTED, or submission status indicator
+                        _buildBottomRightContent(context, appTheme),
                       ],
                     ),
                 ],
               ),
             ),
+            // Status button positioned at top right (only for today's card)
+            if (widget.isToday)
+              Positioned(
+                top: 16,
+                right: 16,
+                child: _buildStatusButton(context, appTheme),
+              ),
 
             // Unseen results indicator (green dot)
             if (widget.hasUnseenResults)
@@ -279,72 +309,121 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
     );
   }
 
-  Widget _buildStatusButton(BuildContext context, AppTheme appTheme,
-      {bool small = false}) {
+  /// Builds the bottom right content for today's card:
+  /// - For ACTIVE/SUBMITTED: shows "Tap to play" or "Submitted ✓"
+  /// - For NOT_STARTED: shows "Starts in: X"
+  /// - For other states: nothing (status button handles it)
+  Widget _buildBottomRightContent(BuildContext context, AppTheme appTheme) {
+    // For ACTIVE or SUBMITTED, show submission status indicator
+    if (widget.status == 'ACTIVE' || widget.status == 'SUBMITTED') {
+      final isSubmitted = widget.status == 'SUBMITTED';
+      return Text(
+        isSubmitted ? 'Submitted ✓' : 'Tap to play',
+        style: AppFont.primaryTextStyle(
+          context,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: appTheme.primaryMuted,
+        ),
+      );
+    }
+
+    // For NOT_STARTED, show countdown to start
+    if (widget.status == 'NOT_STARTED') {
+      if (widget.windowStart != null) {
+        final remaining = _formatRemainingTime(_timeUntilActive);
+        return Text(
+          'Starts in: $remaining',
+          style: AppFont.secondaryTextStyle(
+            context,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: appTheme.bgDark,
+          ),
+        );
+      }
+      return const SizedBox.shrink();
+    }
+
+    // For other states (RESULTS_READY, PENDING), show nothing at bottom right
+    // as the status button at top right handles it
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildStatusButton(BuildContext context, AppTheme appTheme) {
     String buttonText;
     Color bgColor;
     Color textColor;
 
-    switch (widget.status) {
-      case 'ACTIVE':
-        buttonText = 'PLAY';
-        bgColor = widget.isToday ? appTheme.bg : appTheme.primary;
-        textColor = widget.isToday ? appTheme.primary : appTheme.bg;
-        break;
-      case 'SUBMITTED':
-        buttonText = 'Submitted ✓';
-        bgColor = widget.isToday
-            ? appTheme.bg.withOpacity(0.8)
-            : appTheme.success.withOpacity(0.2);
-        textColor = widget.isToday ? appTheme.success : appTheme.success;
-        break;
-      case 'PENDING':
-        buttonText = 'Pending...';
-        bgColor = widget.isToday
-            ? appTheme.bg.withOpacity(0.6)
-            : appTheme.borderMuted.withOpacity(0.3);
-        textColor = widget.isToday ? appTheme.textMuted : appTheme.textMuted;
-        break;
-      case 'NOT_STARTED':
-        // Show countdown timer if windowStart is available
-        if (widget.windowStart != null) {
-          final remaining = _formatRemainingTime(_timeUntilActive);
-          buttonText = 'Starts in: $remaining';
-        } else {
-          buttonText = 'Coming Soon';
-        }
-        bgColor = widget.isToday
-            ? appTheme.bg.withOpacity(0.5)
-            : appTheme.borderMuted.withOpacity(0.3);
-        textColor = widget.isToday ? appTheme.textMuted : appTheme.textMuted;
-        break;
-      case 'RESULTS_READY':
-        buttonText = widget.participated ? 'View Results' : 'See Results';
-        bgColor =
-            widget.isToday ? appTheme.bg : appTheme.primary.withOpacity(0.1);
-        textColor = widget.isToday ? appTheme.primary : appTheme.primary;
-        break;
-      default:
-        buttonText = widget.status;
-        bgColor = appTheme.borderMuted;
-        textColor = appTheme.textMuted;
+    // For ACTIVE/SUBMITTED, show "Ends in: X" timer
+    if ((widget.status == 'ACTIVE' || widget.status == 'SUBMITTED') &&
+        widget.windowEnd != null &&
+        widget.isToday) {
+      final remaining = _formatRemainingTime(_timeUntilEnd);
+      buttonText = remaining;
+      bgColor = appTheme.bgLight.withOpacity(0.8);
+      textColor = appTheme.primary;
+    } else {
+      switch (widget.status) {
+        case 'PENDING':
+          buttonText = 'PENDING';
+          bgColor = widget.isToday
+              ? appTheme.bg.withOpacity(0.6)
+              : appTheme.borderMuted.withOpacity(0.3);
+          textColor = widget.isToday ? appTheme.textMuted : appTheme.textMuted;
+          break;
+        case 'NOT_STARTED':
+          buttonText = 'SOON';
+          bgColor = widget.isToday
+              ? appTheme.bg.withOpacity(0.5)
+              : appTheme.borderMuted.withOpacity(0.3);
+          textColor = widget.isToday ? appTheme.textMuted : appTheme.textMuted;
+          break;
+        case 'RESULTS_READY':
+          buttonText = 'RESULTS';
+          bgColor =
+              widget.isToday ? appTheme.bg : appTheme.primary.withOpacity(0.1);
+          textColor = widget.isToday ? appTheme.primary : appTheme.primary;
+          break;
+        default:
+          buttonText = widget.status;
+          bgColor = appTheme.borderMuted;
+          textColor = appTheme.textMuted;
+      }
     }
 
+    final showTimerIcon = widget.status != 'RESULTS_READY';
+
     return Container(
+      height: 28,
       decoration: BoxDecoration(
-        color: bgColor,
+        color: bgColor.withOpacity(0.7),
         borderRadius: BorderRadius.circular(appTheme.borderRadius / 2),
       ),
-      padding: EdgeInsets.symmetric(
-          horizontal: small ? 8 : 12, vertical: small ? 4 : 8),
-      child: Text(
-        buttonText,
-        style: AppFont.secondaryTextStyle(
-          context,
-          fontSize: small ? 12 : 14,
-          fontWeight: FontWeight.w700,
-          color: textColor,
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      alignment: Alignment.center,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showTimerIcon) ...[
+            SvgPicture.asset(
+              'assets/icons/timer.svg',
+              width: 12,
+              height: 12,
+              colorFilter: ColorFilter.mode(appTheme.primary, BlendMode.srcIn),
+            ),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            buttonText,
+            style: AppFont.secondaryTextStyle(
+              context,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: textColor,
+            ).copyWith(letterSpacing: 0.3),
+          ),
+        ],
       ),
     );
   }
