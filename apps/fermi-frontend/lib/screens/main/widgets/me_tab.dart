@@ -121,7 +121,7 @@ class MeTab extends StatelessWidget {
               onPressed: onCreateAccount,
               child: Text(
                 'Create Account',
-                style: TextStyle(color: appTheme.primary, fontSize: 16),
+                style: TextStyle(color: appTheme.secondary, fontSize: 16),
               ),
             ),
           // Stats card with 48px space above
