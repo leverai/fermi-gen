@@ -662,25 +662,14 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         color: appTheme.success.withOpacity(0.2),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Submitted',
-            style: AppFont.secondaryTextStyle(
-              context,
-              fontSize: 14,
-              color: appTheme.success,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Icon(
-            Icons.check,
-            size: 16,
-            color: appTheme.success,
-          ),
-        ],
+      child: Text(
+        'Submitted ✓',
+        style: AppFont.secondaryTextStyle(
+          context,
+          fontSize: 14,
+          color: appTheme.success,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
