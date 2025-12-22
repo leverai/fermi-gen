@@ -290,6 +290,8 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         // Hide unit tape indicators immediately after submission
         _unitTapeController.setRevealed(
             true, const Duration(milliseconds: 600));
+        // Signal MainScreen to refresh stats when we navigate back
+        context.read<AuthService>().shouldRefreshStats = true;
       }
     } catch (e) {
       // print('[DQ] Error submitting answer: $e');

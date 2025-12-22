@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
+import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/screens/main/widgets/daily_question_card.dart';
 import 'package:fermi_frontend/screens/main/widgets/daily_question_archive_sheet.dart';
 import 'package:fermi_frontend/screens/daily_question/daily_question_screen.dart';
@@ -81,12 +82,21 @@ class DailyQuestionCarousel extends StatelessWidget {
                     // User can play
                     displayStatus = 'ACTIVE';
                     onTapCallback = () {
+                      // Capture controller before async gap to avoid lint warning
+                      final mainController =
+                          context.read<MainScreenController>();
                       // print('[DQCarousel] Navigating to DailyQuestionScreen');
-                      Navigator.of(context).push(
+                      Navigator.of(context)
+                          .push(
                         MaterialPageRoute(
                           builder: (context) => const DailyQuestionScreen(),
                         ),
-                      );
+                      )
+                          .then((_) {
+                        // Refresh stats when returning from DQ screen
+                        // in case player submitted an answer
+                        mainController.refreshInBackground();
+                      });
                     };
                   } else {
                     // User already submitted - go to screen to view submission

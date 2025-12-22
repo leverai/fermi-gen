@@ -126,7 +126,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
     if (duration.inMinutes > 0) {
       return '${duration.inMinutes}m';
     }
-    return 'soon';
+    return 'SOON';
   }
 
   @override
@@ -370,25 +370,25 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
           bgColor = widget.isToday
               ? appTheme.bg.withOpacity(0.6)
               : appTheme.borderMuted.withOpacity(0.3);
-          textColor = widget.isToday ? appTheme.textMuted : appTheme.textMuted;
+          textColor = appTheme.primary;
           break;
         case 'NOT_STARTED':
           buttonText = 'SOON';
           bgColor = widget.isToday
               ? appTheme.bg.withOpacity(0.5)
               : appTheme.borderMuted.withOpacity(0.3);
-          textColor = widget.isToday ? appTheme.textMuted : appTheme.textMuted;
+          textColor = appTheme.primary;
           break;
         case 'RESULTS_READY':
           buttonText = 'RESULTS';
           bgColor =
               widget.isToday ? appTheme.bg : appTheme.primary.withOpacity(0.1);
-          textColor = widget.isToday ? appTheme.primary : appTheme.primary;
+          textColor = appTheme.primary;
           break;
         default:
           buttonText = widget.status;
           bgColor = appTheme.borderMuted;
-          textColor = appTheme.textMuted;
+          textColor = appTheme.primary;
       }
     }
 
