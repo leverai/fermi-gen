@@ -246,7 +246,7 @@ class _PlayerScoreState extends State<PlayerScore> {
         boxShadow: [
           BoxShadow(
             color: appTheme.shadowColor,
-            offset: appTheme.shadowOffset,
+            offset: const Offset(2, 2),
             blurRadius: 0,
           ),
         ],
@@ -267,7 +267,7 @@ class _PlayerScoreState extends State<PlayerScore> {
       ',',
       style: AppFont.secondaryTextStyle(
         context,
-        fontWeight: FontWeight.w400,
+        fontWeight: FontWeight.w600,
         fontSize: 12.0,
         color: textColor,
       ),
@@ -292,7 +292,7 @@ class _AnimatedDigitState extends State<_AnimatedDigit> {
   late FixedExtentScrollController _scrollController;
   // Increased from 18.0 to 20.0 to accommodate text rendering variations
   // across different devices and prevent bottom clipping
-  static const double _itemHeight = 20.0;
+  static const double _itemHeight = 16.0;
   static const int _middleIndex = 1000;
 
   @override
@@ -346,7 +346,7 @@ class _AnimatedDigitState extends State<_AnimatedDigit> {
 
     return SizedBox(
       height: _itemHeight,
-      width: 8,
+      width: 7,
       child: ListWheelScrollView.useDelegate(
         controller: _scrollController,
         itemExtent: _itemHeight,
