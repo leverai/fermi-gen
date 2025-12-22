@@ -19,6 +19,6 @@
 <line x1="800" y1="312" x2="800" y2="392" stroke="#262A1D" stroke-width="20" stroke-linecap="round"/>
 <line x1="995" y1="312" x2="995" y2="392" stroke="#262A1D" stroke-width="20" stroke-linecap="round"/>
 <line x1="1190" y1="312" x2="1190" y2="392" stroke="#262A1D" stroke-width="20" stroke-linecap="round"/>
-<circle cx="443" cy="350" r="340" fill="#C98787" fill-opacity="0.8" stroke="#262A1D" stroke-width="20"/>
-<circle cx="785" cy="350" r="340" fill="#4CCDC3" fill-opacity="0.8" stroke="#262A1D" stroke-width="20"/>
+<circle cx="443" cy="350" r="350" fill="#C98787" fill-opacity="0.8"/>
+<circle cx="785" cy="350" r="350" fill="#4CCDC3" fill-opacity="0.8"/>
 </svg>
