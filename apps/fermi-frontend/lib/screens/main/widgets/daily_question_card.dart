@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
+import 'package:fermi_frontend/widgets/press_effect_wrapper.dart';
 
 class DailyQuestionCard extends StatefulWidget {
   final DateTime date;
@@ -118,37 +119,31 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
 
     final isDisabled = widget.onTap == null;
 
-    return InkWell(
-      onTap: widget.onTap,
-      borderRadius: BorderRadius.circular(appTheme.borderRadius),
-      child: Opacity(
-        opacity: isDisabled ? 0.6 : 1.0,
+    return Opacity(
+      opacity: isDisabled ? 0.6 : 1.0,
+      child: PressEffectWrapper(
+        onTap: widget.onTap,
+        enablePushDown: widget.isToday,
+        decoration: BoxDecoration(
+          color: widget.isToday
+              ? appTheme.primary
+              : (widget.participated ? appTheme.primary : appTheme.bgLight),
+          borderRadius: BorderRadius.circular(appTheme.borderRadius),
+          boxShadow: widget.isToday
+              ? [
+                  BoxShadow(
+                    color: appTheme.shadowColor,
+                    offset: appTheme.shadowOffset,
+                    blurRadius: 0,
+                  ),
+                ]
+              : [],
+        ),
         child: Stack(
           children: [
             Container(
               width: double.infinity,
               height: double.infinity,
-              decoration: BoxDecoration(
-                color: widget.isToday
-                    ? appTheme.primary
-                    : (widget.participated
-                        ? appTheme.primary
-                        : appTheme.bgLight),
-                borderRadius: BorderRadius.circular(appTheme.borderRadius),
-                // border: Border.all(
-                //   color: appTheme.primary,
-                //   width: appTheme.borderWidth,
-                // ),
-                boxShadow: widget.isToday
-                    ? [
-                        BoxShadow(
-                          color: appTheme.shadowColor,
-                          offset: appTheme.shadowOffset,
-                          blurRadius: 0,
-                        ),
-                      ]
-                    : [],
-              ),
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: widget.isToday
