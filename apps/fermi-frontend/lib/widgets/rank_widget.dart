@@ -38,9 +38,9 @@ class RankWidget extends StatelessWidget {
     switch (rank) {
       case Rank.first:
       case Rank.second:
-        return 38;
+        return 34;
       case Rank.third:
-        return 28; // 30% smaller than gold/silver
+        return 25; // ~30% smaller than gold/silver
     }
   }
 

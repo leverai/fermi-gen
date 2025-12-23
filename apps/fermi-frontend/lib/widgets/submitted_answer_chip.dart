@@ -14,7 +14,8 @@ class SubmittedAnswerChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).extension<AppTheme>();
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
     // When used post-reveal, parent should pass the per-question score's scale color in
     // via an inherited wrapper; keep this component simple and let parent color the bg.
     // Map the submitted answer's numeric magnitude to a score scale proxy if available
@@ -27,10 +28,6 @@ class SubmittedAnswerChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: theme!.border),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 3, offset: Offset(0, 1)),
-        ],
       ),
       child: _buildAnswerText(context, textColor),
     );

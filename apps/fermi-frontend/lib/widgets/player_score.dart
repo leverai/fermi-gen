@@ -242,14 +242,14 @@ class _PlayerScoreState extends State<PlayerScore> {
       decoration: BoxDecoration(
         color: widget.backgroundColor ?? appTheme.bgLight,
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: appTheme.border, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.shadowColor,
-            offset: const Offset(2, 2),
-            blurRadius: 0,
-          ),
-        ],
+        // border: Border.all(color: appTheme.border, width: 2),
+        // boxShadow: [
+        //   BoxShadow(
+        //     color: appTheme.shadowColor,
+        //     offset: appTheme.shadowOffset,
+        //     blurRadius: 0,
+        //   ),
+        // ],
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4.0),
