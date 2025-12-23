@@ -88,24 +88,39 @@ def get_request_categories(
 
 
 def get_request_difficulties(
-    request: Request,
+    request: Request | None = None,
 ) -> list[GameConfigResponse.DifficultyInfo]:
     """Return ordered difficulties exposed to clients."""
-    base = str(request.base_url).rstrip('/')
+    base = str(request.base_url).rstrip('/') if request else None
+    snail = (
+        f'{base}/static/difficulties/snail.svg'
+        if base
+        else '/static/difficulties/snail.svg'
+    )
+    rocket = (
+        f'{base}/static/difficulties/rocket.svg'
+        if base
+        else '/static/difficulties/rocket.svg'
+    )
+    thunder = (
+        f'{base}/static/difficulties/thunder.svg'
+        if base
+        else '/static/difficulties/thunder.svg'
+    )
     return [
         GameConfigResponse.DifficultyInfo(
             name=QuestionDifficulty.EASY,
             slug='Easy',
-            picture=f'{base}/static/difficulties/snail.svg',
+            picture=snail,
         ),
         GameConfigResponse.DifficultyInfo(
             name=QuestionDifficulty.MEDIUM,
             slug='Pro',
-            picture=f'{base}/static/difficulties/rocket.svg',
+            picture=rocket,
         ),
         GameConfigResponse.DifficultyInfo(
             name=QuestionDifficulty.HARD,
             slug='Expert',
-            picture=f'{base}/static/difficulties/thunder.svg',
+            picture=thunder,
         ),
     ]

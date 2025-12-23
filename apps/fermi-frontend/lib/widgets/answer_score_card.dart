@@ -49,7 +49,7 @@ class AnswerScoreCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Ans',
+                'Ans.',
                 style: AppFont.secondaryTextStyle(
                   context,
                   fontSize: 10,
@@ -60,7 +60,7 @@ class AnswerScoreCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '  |  ',
+                ' |  ',
                 style: AppFont.secondaryTextStyle(
                   context,
                   fontSize: 10,
@@ -102,7 +102,7 @@ class AnswerScoreCard extends StatelessWidget {
                   context,
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
-                  color: textColor,
+                  color: appTheme.textMuted,
                 ),
               ),
             ],

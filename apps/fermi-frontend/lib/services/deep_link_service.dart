@@ -6,44 +6,65 @@ class DeepLinkService {
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
 
-  // Store a pending game ID if the user needs to sign in first
+  // Store pending IDs if the user needs to sign in first
   String? _pendingGameId;
+  String? _pendingDQDate;
 
   String? get pendingGameId => _pendingGameId;
+  String? get pendingDQDate => _pendingDQDate;
 
   void clearPendingGameId() {
     _pendingGameId = null;
   }
 
-  // Initialize and listen for deep links
-  void init({required Function(String gameId) onJoinGame}) {
+  void clearPendingDQDate() {
+    _pendingDQDate = null;
+  }
+
+  /// Initialize and listen for deep links.
+  ///
+  /// - [onJoinGame]: Called when a game invite link is received (numberroyale://invite/{game_id})
+  /// - [onJoinDQ]: Called when a DQ invite link is received (numberroyale://dq/{date})
+  void init({
+    required Function(String gameId) onJoinGame,
+    required Function(String questionDate) onJoinDQ,
+  }) {
     // Check initial link (if app was launched via link)
-    _checkInitialLink(onJoinGame);
+    _checkInitialLink(onJoinGame, onJoinDQ);
 
     // Listen for subsequent links (while app is running)
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
-      _handleLink(uri, onJoinGame);
+      _handleLink(uri, onJoinGame, onJoinDQ);
     }, onError: (err) {
       debugPrint('DeepLinkService: Error processing link: $err');
     });
   }
 
-  Future<void> _checkInitialLink(Function(String gameId) onJoinGame) async {
+  Future<void> _checkInitialLink(
+    Function(String gameId) onJoinGame,
+    Function(String questionDate) onJoinDQ,
+  ) async {
     try {
       final uri = await _appLinks.getInitialLink();
       if (uri != null) {
-        _handleLink(uri, onJoinGame);
+        _handleLink(uri, onJoinGame, onJoinDQ);
       }
     } catch (e) {
       debugPrint('DeepLinkService: Error getting initial link: $e');
     }
   }
 
-  void _handleLink(Uri uri, Function(String gameId) onJoinGame) {
+  void _handleLink(
+    Uri uri,
+    Function(String gameId) onJoinGame,
+    Function(String questionDate) onJoinDQ,
+  ) {
     debugPrint('DeepLinkService: Received link: $uri');
 
-    // Expected format: numberroyale://invite/<game_id>
-    if (uri.scheme == 'numberroyale' && uri.host == 'invite') {
+    if (uri.scheme != 'numberroyale') return;
+
+    // Game invite: numberroyale://invite/<game_id>
+    if (uri.host == 'invite') {
       final pathSegments = uri.pathSegments;
       if (pathSegments.isNotEmpty) {
         final gameId = pathSegments.first;
@@ -54,6 +75,21 @@ class DeepLinkService {
 
         // Trigger the callback
         onJoinGame(gameId);
+      }
+    }
+
+    // DQ invite: numberroyale://dq/<date>
+    if (uri.host == 'dq') {
+      final pathSegments = uri.pathSegments;
+      if (pathSegments.isNotEmpty) {
+        final questionDate = pathSegments.first;
+        debugPrint('DeepLinkService: Extracted DQ date: $questionDate');
+
+        // Store it just in case we need it later (e.g. after auth)
+        _pendingDQDate = questionDate;
+
+        // Trigger the callback
+        onJoinDQ(questionDate);
       }
     }
   }

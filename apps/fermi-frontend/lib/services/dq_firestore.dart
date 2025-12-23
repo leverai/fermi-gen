@@ -10,6 +10,7 @@ class DQDocument {
   final DateTime windowStart;
   final DateTime windowEnd;
   final bool resultsReady;
+  final String? inviteUrl;
 
   DQDocument({
     required this.questionUid,
@@ -17,6 +18,7 @@ class DQDocument {
     required this.windowStart,
     required this.windowEnd,
     required this.resultsReady,
+    this.inviteUrl,
   });
 
   factory DQDocument.fromFirestore(Map<String, dynamic> data) {
@@ -28,6 +30,7 @@ class DQDocument {
       windowEnd: (data['window_end'] as Timestamp?)?.toDate() ??
           DateTime.now().toUtc(),
       resultsReady: data['results_ready'] as bool? ?? false,
+      inviteUrl: data['invite_url'] as String?,
     );
   }
 

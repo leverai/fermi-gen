@@ -3,7 +3,8 @@
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Body, Depends, Path, Query
+from fastapi.responses import HTMLResponse
 from fermi_core.units import Locale
 from fermi_db.models.user import User
 from google.cloud.firestore_v1.async_client import AsyncClient
@@ -94,7 +95,7 @@ async def get_results_for_date(
     Use this to view results for past daily questions.
     Only available for CLOSED DQs.
     """
-    parsed_date = datetime.strptime(question_date, '%Y-%m-%d').date()
+    parsed_date = datetime.strptime(question_date, '%Y-%m-%d').date()  # noqa: DTZ007
     return await dq_service.get_results_for_date(
         user_firebase_uid=current_user.firebase_uid,
         question_date=parsed_date,
@@ -140,6 +141,11 @@ async def get_archive_month(
 async def close_and_schedule_dq(
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
+    base_url: str = Body(
+        ...,
+        embed=True,
+        description='Base URL for constructing invite links',
+    ),
 ) -> DQEndResponse:
     """End the active DQ and schedule the next one.
 
@@ -152,9 +158,17 @@ async def close_and_schedule_dq(
 
     This endpoint has no user authentication as it's called by Cloud Scheduler.
     In production, Cloud Run ingress rules and IAM protect this endpoint.
+
+    Args:
+        firestore_client: Firestore client (injected).
+        dq_service: Daily Question service (injected).
+        base_url: The base URL for the API (e.g., 'https://api.fermi.app').
+            Cloud Scheduler should provide this as a body parameter.
+
     """
     return await dq_service.close_active_and_schedule_new_dq(
         firestore_client=firestore_client,
+        base_url=base_url,
     )
 
 
@@ -162,8 +176,76 @@ async def close_and_schedule_dq(
 async def activate_dq(
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
+    base_url: str = Body(
+        ...,
+        embed=True,
+        description='Base URL for constructing invite links',
+    ),
 ) -> None:
-    """Activate the scheduled DQ for this date. This is invoked by a scheduled job at
-    12PM UTC.
+    """Activate the scheduled DQ for this date.
+
+    Invoked by a scheduled job at 12PM UTC.
+
+    Args:
+        firestore_client: Firestore client (injected).
+        dq_service: Daily Question service (injected).
+        base_url: The base URL for the API (e.g., 'https://api.fermi.app').
+            Cloud Scheduler should provide this as a body parameter.
+
     """
-    await dq_service.activate_scheduled_dq(firestore_client=firestore_client)
+    await dq_service.activate_scheduled_dq(
+        firestore_client=firestore_client,
+        base_url=base_url,
+    )
+
+
+@router.get('/invite/{question_date}', response_class=HTMLResponse)
+async def invite_to_dq(
+    question_date: str = Path(
+        ...,
+        pattern=r'^\d{4}-\d{2}-\d{2}$',
+        description='Date in YYYY-MM-DD format',
+    ),
+) -> HTMLResponse:
+    """Deep link trampoline for DQ invites.
+
+    Returns HTML that attempts to open the app with a deep link,
+    with fallback to app stores if the app is not installed.
+    """
+    # TODO: Make these configurable
+    play_store_url = 'https://play.google.com/store/apps/details?id=com.fermi.app'
+    app_store_url = 'https://apps.apple.com/app/idYOUR_APP_ID'  # TODO: Update
+    deep_link = f'numberroyale://dq/{question_date}'
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Daily Question</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+    <body>
+        <p>Opening Daily Question...</p>
+        <script>
+            var deepLink = "{deep_link}";
+            var playStoreUrl = "{play_store_url}";
+            var appStoreUrl = "{app_store_url}";
+
+            // Try to open the app
+            window.location.href = deepLink;
+
+            // Fallback to Store after a timeout
+            setTimeout(function() {{
+                var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+                if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {{
+                    window.location.href = appStoreUrl;
+                }} else {{
+                    window.location.href = playStoreUrl;
+                }}
+            }}, 2000);
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content, status_code=200)

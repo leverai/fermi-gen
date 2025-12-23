@@ -91,11 +91,12 @@ async def get_firestore_writer():
 async def close_and_schedule() -> None:
     """Close the active DQ and schedule a new one."""
     api_url = 'http://localhost:8000/api/v1/daily_question/close_and_schedule'
+    payload = {'base_url': 'http://localhost:8000'}
     print(f'📤 Calling API: POST {api_url}')
 
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(api_url, timeout=30.0)
+            resp = await client.post(api_url, json=payload, timeout=30.0)
             resp.raise_for_status()
             data = resp.json()
 
@@ -119,11 +120,12 @@ async def close_and_schedule() -> None:
 async def activate_dq() -> None:
     """Activate today's DQ."""
     api_url = 'http://localhost:8000/api/v1/daily_question/activate'
+    payload = {'base_url': 'http://localhost:8000'}
     print(f'📤 Calling API: POST {api_url}')
 
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(api_url, timeout=30.0)
+            resp = await client.post(api_url, json=payload, timeout=30.0)
             resp.raise_for_status()
             data = resp.json()
         print('✅ DQ Activated')

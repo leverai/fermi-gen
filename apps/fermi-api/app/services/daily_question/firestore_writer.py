@@ -71,23 +71,28 @@ class DQFirestoreWriter:
             ),
         )
 
-    async def activate_dq_document(self, date: datetime.date) -> None:
+    async def activate_dq_document(
+        self,
+        date: datetime.date,
+        invite_url: str | None = None,
+    ) -> None:
         """Update the daily question document status to ACTIVE.
 
         This is called when the DQ window opens (at 12PM UTC).
 
         Args:
             date: The date for this DQ.
+            invite_url: Optional invite URL for sharing.
 
         """
         doc_id = self._date_to_doc_id(date)
         doc_ref = self._fs.collection(self.COLLECTION).document(doc_id)
 
-        await doc_ref.update(
-            {
-                'status': DQWindowStatus.ACTIVE,
-            },
-        )
+        update_data: dict[str, str] = {'status': DQWindowStatus.ACTIVE}
+        if invite_url:
+            update_data['invite_url'] = invite_url
+
+        await doc_ref.update(update_data)
 
     async def close_dq_document(self, date: datetime.date) -> None:
         """Close the daily question document.
