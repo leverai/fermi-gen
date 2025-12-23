@@ -213,9 +213,11 @@ async def invite_to_dq(
     with fallback to app stores if the app is not installed.
     """
     # TODO: Make these configurable
-    play_store_url = 'https://play.google.com/store/apps/details?id=com.fermi.app'
-    app_store_url = 'https://apps.apple.com/app/idYOUR_APP_ID'  # TODO: Update
-    deep_link = f'numberroyale://dq/{question_date}'
+    play_store_url = (
+        'https://play.google.com/store/apps/details?id=tech.leverai.guesstimate'
+    )
+    app_store_url = 'https://apps.apple.com/app/id6756033242'
+    deep_link = f'guesstimate://dq/{question_date}'
 
     html_content = f"""
     <!DOCTYPE html>

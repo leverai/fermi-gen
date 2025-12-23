@@ -48,7 +48,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBTxXAA5eNP0n9vUFn5zoUzSsyCRGj8nZI',
-    appId: '1:811437731406:android:e03532744d4fde293c1d1f',
+    appId: '1:811437731406:android:5c7f388e6269748b3c1d1f',
     messagingSenderId: '811437731406',
     projectId: 'guesstimate-dev-478820',
     storageBucket: 'guesstimate-dev-478820.firebasestorage.app',
@@ -66,7 +66,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBEuwflWzwOzaGeDUgtLfrptKD6uDJgRqA',
-    appId: '1:811437731406:ios:e0a4c8e38ba8db523c1d1f',
+    appId: '1:811437731406:ios:e1f3f9e84a3e12123c1d1f',
     messagingSenderId: '811437731406',
     projectId: 'guesstimate-dev-478820',
     storageBucket: 'guesstimate-dev-478820.firebasestorage.app',
@@ -74,6 +74,6 @@ class DefaultFirebaseOptions {
         '811437731406-a2shalhol9694hb8pm3859gb50n1tmm0.apps.googleusercontent.com',
     iosClientId:
         '811437731406-t4fflfp570e92mh5nsrsgh6kpplpq31a.apps.googleusercontent.com',
-    iosBundleId: 'tech.leverai.numberroyale',
+    iosBundleId: 'tech.leverai.guesstimate',
   );
 }

@@ -209,9 +209,11 @@ async def get_game_config(
 async def invite_player(game_id: str) -> HTMLResponse:
     """Deep link trampoline for game invites."""
     # TODO: Make this configurable
-    play_store_url = 'https://play.google.com/store/apps/details?id=com.fermi.app'
-    app_store_url = 'https://apps.apple.com/app/idYOUR_APP_ID'  # TODO: Replace with actual App Store URL
-    deep_link = f'numberroyale://invite/{game_id}'
+    play_store_url = (
+        'https://play.google.com/store/apps/details?id=tech.leverai.guesstimate'
+    )
+    app_store_url = 'https://apps.apple.com/app/id6756033242'
+    deep_link = f'guesstimate://invite/{game_id}'
 
     html_content = f"""
     <!DOCTYPE html>
