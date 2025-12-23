@@ -142,7 +142,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
     final isDisabled = widget.onTap == null;
 
     return Opacity(
-      opacity: isDisabled ? 0.6 : 1.0,
+      opacity: isDisabled ? 0.65 : 1.0,
       child: PressEffectWrapper(
         onTap: widget.onTap,
         enablePushDown: widget.isToday,
@@ -168,16 +168,12 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
               height: double.infinity,
               padding: const EdgeInsets.all(16.0),
               child: Column(
-                crossAxisAlignment: widget.isToday
-                    ? CrossAxisAlignment.start
-                    : CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Content
                   Column(
-                    crossAxisAlignment: widget.isToday
-                        ? CrossAxisAlignment.start
-                        : CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (widget.showTitle) ...[
                         Text(
@@ -284,22 +280,20 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                 child: _buildStatusButton(context, appTheme),
               ),
 
-            // Unseen results indicator (green dot)
-            if (widget.hasUnseenResults)
+            // "Seen" indicator for past cards where user has seen results
+            if (!widget.isToday &&
+                widget.participated &&
+                !widget.hasUnseenResults)
               Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: appTheme.success,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color:
-                          widget.isToday ? appTheme.primary : appTheme.bgLight,
-                      width: 2,
-                    ),
+                bottom: 16,
+                right: 16,
+                child: Text(
+                  'Seen ✓',
+                  style: AppFont.primaryTextStyle(
+                    context,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: appTheme.primaryMuted,
                   ),
                 ),
               ),
@@ -331,7 +325,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
     // For NOT_STARTED, show "SOON"
     if (widget.status == 'NOT_STARTED') {
       return Text(
-        'SOON',
+        'Soon',
         style: AppFont.primaryTextStyle(
           context,
           fontSize: 14,
@@ -364,7 +358,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
         case 'PENDING':
           buttonText = 'PENDING';
           bgColor = widget.isToday
-              ? appTheme.bg.withOpacity(0.6)
+              ? appTheme.bg.withOpacity(0.7)
               : appTheme.borderMuted.withOpacity(0.3);
           textColor = appTheme.primary;
           break;
@@ -377,7 +371,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
             buttonText = 'SOON';
           }
           bgColor = widget.isToday
-              ? appTheme.bg.withOpacity(0.5)
+              ? appTheme.bg.withOpacity(0.7)
               : appTheme.borderMuted.withOpacity(0.3);
           textColor = appTheme.primary;
           break;
