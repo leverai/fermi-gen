@@ -8,7 +8,7 @@ import 'player_score.dart';
 import 'player_score_controller.dart';
 import 'player_widget_controller.dart';
 import 'rank_widget.dart';
-import 'submitted_answer_chip.dart';
+import 'answer_score_card.dart';
 import 'player_confetti_overlay.dart';
 import 'player_ring_progress.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
@@ -256,7 +256,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final isIncrementVisible = _lastIncrement != null;
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
@@ -280,13 +279,12 @@ class _PlayerWidgetState extends State<PlayerWidget> {
           });
         },
         child: SizedBox(
-          width: 100,
-          height: 160,
+          width: 90,
+          height: 192,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              const double avatarSize = 70.0;
-              // Overflow distance for name chip (top) and transient score chip (bottom)
-              // These elements overflow the widget bounds to avoid reserving space
+              const double avatarSize = 63.0;
+              // Overflow distance for name chip (top)
               const double overflowDistance = 20;
               final double totalH = constraints.maxHeight;
               final double avatarTop = (totalH - avatarSize) / 2;
@@ -299,18 +297,28 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                       clipBehavior: Clip.none,
                       children: [
                         _buildAvatar(),
-                        Positioned(
-                          top: avatarTop - 22.0,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _buildStatusIndicator(),
-                            ],
+                        // Running score at top of avatar
+                        if (widget.showScoreOverlay &&
+                            widget.playerState.score != null)
+                          Positioned(
+                            top: avatarTop - 24.0,
+                            left: 0,
+                            right: 0,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                PlayerScore(
+                                  key: const ValueKey('running_score_overlay'),
+                                  initialScore: _currentScore,
+                                  controller: _scoreOverlayController,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        // Rank icon on left side of avatar
                         Positioned(
-                          bottom: totalH - (avatarTop + avatarSize) + 18.0,
-                          left: 4,
+                          bottom: totalH - (avatarTop + avatarSize) + 16.0,
+                          left: 2,
                           child: AnimatedOpacity(
                             duration: const Duration(milliseconds: 260),
                             curve: Curves.easeInOut,
@@ -329,75 +337,18 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                                       animationStyle: widget.rankAnimationStyle,
                                       show: widget.showRankIcons,
                                     )
-                                  : const SizedBox(width: 38, height: 38),
+                                  : const SizedBox(width: 34, height: 34),
                             ),
                           ),
                         ),
-                        if (widget.showScoreOverlay &&
-                            widget.playerState.score != null)
-                          Positioned(
-                            top: avatarTop + avatarSize - 8.0,
-                            left: 0,
-                            right: 0,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                PlayerScore(
-                                  key: const ValueKey('running_score_overlay'),
-                                  initialScore: _currentScore,
-                                  controller: _scoreOverlayController,
-                                ),
-                              ],
-                            ),
-                          ),
+                        // Status indicator (AnswerScoreCard) at bottom
                         Positioned(
-                          bottom: -overflowDistance - 8,
-                          left: 0,
-                          right: 0,
-                          child: Center(
-                            child: IgnorePointer(
-                              ignoring: !isIncrementVisible,
-                              child: AnimatedOpacity(
-                                duration: const Duration(milliseconds: 280),
-                                curve: Curves.easeInQuad,
-                                opacity: isIncrementVisible ? 1.0 : 0.0,
-                                child: AnimatedSlide(
-                                  duration: const Duration(milliseconds: 320),
-                                  curve: Curves.easeInQuad,
-                                  offset: isIncrementVisible
-                                      ? const Offset(0, 0.0)
-                                      : const Offset(0, -0.4),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _lastIncrement = null;
-                                      });
-                                    },
-                                    child: Builder(builder: (context) {
-                                      // Transient shows per-question score only
-                                      // Use per-question round score color (same as answer chip)
-                                      int visibleRound =
-                                          widget.playerState.roundScore ??
-                                              _currentRoundScore;
-                                      if (visibleRound < 0) visibleRound = 0;
-                                      final Color fg =
-                                          scoreToColor(visibleRound);
-                                      final text =
-                                          '+${_formatWithCommas(visibleRound)}';
-                                      return Text(
-                                        text,
-                                        style: AppFont.secondaryTextStyle(
-                                          context,
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 12.0,
-                                          color: fg,
-                                        ),
-                                      );
-                                    }),
-                                  ),
-                                ),
-                              ),
-                            ),
+                          top: avatarTop + avatarSize + 24.0,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _buildStatusIndicator(),
+                            ],
                           ),
                         ),
                       ],
@@ -619,23 +570,19 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         // Ring handles this feedback now
         return const SizedBox.shrink();
       case PlayerStatus.number:
-        // Prefer per-question round score from state when available (e.g., review)
-        int visibleRound = widget.playerState.roundScore ?? _currentRoundScore;
-        if (visibleRound < 0) visibleRound = 0; // clamp
-        final Color bg = scoreToColor(visibleRound);
-        return PlayerScore(
-          initialScore: _currentRoundScore,
-          controller: _statusScoreController,
-          backgroundColor: bg,
-        );
       case PlayerStatus.answer:
+        // Both number and answer status now show AnswerScoreCard
         final ans = widget.playerState.submittedAnswer;
         if (ans == null) return const SizedBox.shrink();
         // Prefer per-question round score from state when available (e.g., review)
         int visibleRound = widget.playerState.roundScore ?? _currentRoundScore;
         if (visibleRound < 0) visibleRound = 0; // clamp
         final Color bg = scoreToColor(visibleRound);
-        return SubmittedAnswerChip(answer: ans, backgroundColor: bg);
+        return AnswerScoreCard(
+          answer: ans,
+          score: visibleRound,
+          backgroundColor: bg.withAlpha((0.3 * 255).toInt()),
+        );
       case PlayerStatus.none:
         return const SizedBox.shrink();
     }
