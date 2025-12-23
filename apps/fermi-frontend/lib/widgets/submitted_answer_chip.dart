@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/utils/color_contrast.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
-import 'package:fermi_frontend/theme/app_theme.dart';
 
 /// Small capsule showing a submitted answer like "234 M km".
 class SubmittedAnswerChip extends StatelessWidget {
@@ -14,8 +13,6 @@ class SubmittedAnswerChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme =
-        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
     // When used post-reveal, parent should pass the per-question score's scale color in
     // via an inherited wrapper; keep this component simple and let parent color the bg.
     // Map the submitted answer's numeric magnitude to a score scale proxy if available

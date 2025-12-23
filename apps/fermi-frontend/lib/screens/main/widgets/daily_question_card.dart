@@ -328,21 +328,17 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
       );
     }
 
-    // For NOT_STARTED, show countdown to start
+    // For NOT_STARTED, show "SOON"
     if (widget.status == 'NOT_STARTED') {
-      if (widget.windowStart != null) {
-        final remaining = _formatRemainingTime(_timeUntilActive);
-        return Text(
-          'Starts in: $remaining',
-          style: AppFont.secondaryTextStyle(
-            context,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: appTheme.bgDark,
-          ),
-        );
-      }
-      return const SizedBox.shrink();
+      return Text(
+        'SOON',
+        style: AppFont.primaryTextStyle(
+          context,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: appTheme.primaryMuted,
+        ),
+      );
     }
 
     // For other states (RESULTS_READY, PENDING), show nothing at bottom right
@@ -373,7 +369,13 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
           textColor = appTheme.primary;
           break;
         case 'NOT_STARTED':
-          buttonText = 'SOON';
+          // Show "Starts in: X" timer if windowStart is available
+          if (widget.windowStart != null && widget.isToday) {
+            final remaining = _formatRemainingTime(_timeUntilActive);
+            buttonText = remaining;
+          } else {
+            buttonText = 'SOON';
+          }
           bgColor = widget.isToday
               ? appTheme.bg.withOpacity(0.5)
               : appTheme.borderMuted.withOpacity(0.3);
