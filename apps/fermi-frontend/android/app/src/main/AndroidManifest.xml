@@ -9,7 +9,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
-            android:name="tech.leverai.numberroyale.MainActivity"
+            android:name="tech.leverai.guesstimate.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -35,7 +35,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="numberroyale" android:host="invite" />
+                <data android:scheme="guesstimate" android:host="invite" />
             </intent-filter>
 
             <!-- Deep linking intent filter for Daily Question invites -->
@@ -43,7 +43,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="numberroyale" android:host="dq" />
+                <data android:scheme="guesstimate" android:host="dq" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
@@ -54,7 +54,7 @@
 
         <provider
             android:name="com.google.firebase.provider.FirebaseInitProvider"
-            android:authorities="tech.leverai.numberroyale.firebaseinitprovider"
+            android:authorities="tech.leverai.guesstimate.firebaseinitprovider"
             tools:node="remove" />
     </application>
 

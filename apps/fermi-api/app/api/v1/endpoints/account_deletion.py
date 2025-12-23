@@ -11,7 +11,7 @@ html = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Deletion - Number Royale</title>
+    <title>Account Deletion - Guesstimate: Not Trivia!</title>
     <style>
         * {
             margin: 0;
@@ -215,21 +215,21 @@ html = """
 <body>
     <div class="container">
         <h1>Account Deletion Request</h1>
-        <p class="subtitle">Number Royale by LEVER AI LLC</p>
+        <p class="subtitle">Guesstimate: Not Trivia! by LEVER AI LLC</p>
 
         <div class="intro">
             <h2>We're sad to see you go!</h2>
-            <p>Follow the steps below to delete your account and ALL of your data from <strong>Number Royale</strong>.</p>
+            <p>Follow the steps below to delete your account and ALL of your data from <strong>Guesstimate: Not Trivia!</strong>.</p>
         </div>
 
         <div class="steps-section">
             <h2 class="steps-title">Steps to Delete Your Account</h2>
             <div class="screenshot-container">
-                <img src="/static/account-deletion-guide.png" alt="Account deletion guide screenshot showing the steps to delete your account in Number Royale">
-                <p class="screenshot-caption">Visual guide showing where to find the account deletion option in the Number Royale app</p>
+                <img src="/static/account-deletion-guide.png" alt="Account deletion guide screenshot showing the steps to delete your account in Guesstimate: Not Trivia!">
+                <p class="screenshot-caption">Visual guide showing where to find the account deletion option in the Guesstimate: Not Trivia! app</p>
             </div>
             <ol class="steps-list">
-                <li>Open the <strong>Number Royale</strong> app on your device</li>
+                <li>Open the <strong>Guesstimate: Not Trivia!</strong> app on your device</li>
                 <li><strong>Open the settings menu</strong> by clicking on the gear icon in the bottom right corner.</li>
                 <li><strong>Click "Delete account"</strong> at the bottom of the menu.</li>
                 <li>Confirm that you want to permanently delete your account.</li>

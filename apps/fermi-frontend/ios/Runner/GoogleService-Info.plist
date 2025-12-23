@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>811437731406-d9rcp1i8q4k4v0ski941k0cotflibepu.apps.googleusercontent.com</string>
+	<string>811437731406-0gandehbbt01f1scd03mv6no81p8kvgi.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.811437731406-d9rcp1i8q4k4v0ski941k0cotflibepu</string>
+	<string>com.googleusercontent.apps.811437731406-0gandehbbt01f1scd03mv6no81p8kvgi</string>
 	<key>ANDROID_CLIENT_ID</key>
-	<string>811437731406-a2shalhol9694hb8pm3859gb50n1tmm0.apps.googleusercontent.com</string>
+	<string>811437731406-3k216i2d0ehue56uumvu7f6l9p8tuqsg.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
 	<string>AIzaSyBEuwflWzwOzaGeDUgtLfrptKD6uDJgRqA</string>
 	<key>GCM_SENDER_ID</key>
@@ -15,7 +15,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>tech.leverai.numberroyale</string>
+	<string>tech.leverai.guesstimate</string>
 	<key>PROJECT_ID</key>
 	<string>guesstimate-dev-478820</string>
 	<key>STORAGE_BUCKET</key>
@@ -31,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:811437731406:ios:e0a4c8e38ba8db523c1d1f</string>
+	<string>1:811437731406:ios:e1f3f9e84a3e12123c1d1f</string>
 </dict>
 </plist>

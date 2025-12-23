@@ -23,8 +23,8 @@ class DeepLinkService {
 
   /// Initialize and listen for deep links.
   ///
-  /// - [onJoinGame]: Called when a game invite link is received (numberroyale://invite/{game_id})
-  /// - [onJoinDQ]: Called when a DQ invite link is received (numberroyale://dq/{date})
+  /// - [onJoinGame]: Called when a game invite link is received (guesstimate://invite/{game_id})
+  /// - [onJoinDQ]: Called when a DQ invite link is received (guesstimate://dq/{date})
   void init({
     required Function(String gameId) onJoinGame,
     required Function(String questionDate) onJoinDQ,
@@ -61,9 +61,9 @@ class DeepLinkService {
   ) {
     debugPrint('DeepLinkService: Received link: $uri');
 
-    if (uri.scheme != 'numberroyale') return;
+    if (uri.scheme != 'guesstimate') return;
 
-    // Game invite: numberroyale://invite/<game_id>
+    // Game invite: guesstimate://invite/<game_id>
     if (uri.host == 'invite') {
       final pathSegments = uri.pathSegments;
       if (pathSegments.isNotEmpty) {
@@ -78,7 +78,7 @@ class DeepLinkService {
       }
     }
 
-    // DQ invite: numberroyale://dq/<date>
+    // DQ invite: guesstimate://dq/<date>
     if (uri.host == 'dq') {
       final pathSegments = uri.pathSegments;
       if (pathSegments.isNotEmpty) {
