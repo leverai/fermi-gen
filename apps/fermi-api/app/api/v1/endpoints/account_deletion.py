@@ -81,9 +81,8 @@ html = """
         }
 
         .screenshot-container {
-            float: right;
-            width: 318px;
-            margin: 0 0 20px 30px;
+            width: 100%;
+            margin: 20px 0;
             text-align: center;
             background: #f9f9f9;
             padding: 0;
@@ -92,10 +91,8 @@ html = """
         }
 
         .screenshot-container img {
-            max-height: 100%;
-            width: auto;
-            height: 100%;
-            max-width: 318px;
+            width: 100%;
+            height: auto;
             object-fit: contain;
             border-radius: 0;
             box-shadow: none;
@@ -211,12 +208,6 @@ html = """
 
             .steps-title {
                 font-size: 20px;
-            }
-
-            .screenshot-container {
-                float: none;
-                width: 100%;
-                margin: 20px 0;
             }
         }
     </style>
