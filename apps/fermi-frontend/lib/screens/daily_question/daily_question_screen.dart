@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +17,8 @@ import 'package:fermi_frontend/widgets/main_button.dart';
 import 'package:fermi_frontend/widgets/unit_tape.dart';
 import 'package:fermi_frontend/widgets/styled_dialog.dart';
 import 'package:fermi_frontend/screens/daily_question/widgets/dq_results_bottom_sheet.dart';
+import 'package:fermi_frontend/widgets/share_button.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// Unified Daily Question screen for both taking questions and viewing results.
 ///
@@ -587,6 +590,12 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
 
   /// Placeholder shown when user submitted but we don't have question data yet
   Widget _buildWaitingPlaceholder(AppTheme appTheme) {
+    final controller = context.watch<DailyQuestionController>();
+    final todayDoc = controller.todayDocument;
+    // Show invite button only before DQ closes, and when we have an invite URL
+    final bool canInvite = !_isPastDate && (todayDoc?.isActive ?? false);
+    final String? inviteUrl = todayDoc?.inviteUrl;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -612,6 +621,17 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
             context,
             color: appTheme.textMuted,
           ),
+        ),
+        const SizedBox(height: 48),
+        // Share button (after submission, before DQ closes)
+        Visibility(
+          visible: canInvite,
+          maintainSize: true,
+          maintainAnimation: true,
+          maintainState: true,
+          child: inviteUrl != null
+              ? ShareButton(onPressed: () => _shareInvite(inviteUrl))
+              : const SizedBox.shrink(),
         ),
       ],
     );
@@ -649,11 +669,31 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
 
           const Spacer(),
 
-          // Placeholder for symmetry
+          // Invite button (REMOVED - now in _buildWaitingPlaceholder)
           const SizedBox(width: 48),
         ],
       ),
     );
+  }
+
+  /// Share the DQ invite link using the OS share sheet.
+  Future<void> _shareInvite(String inviteUrl) async {
+    // Transform localhost to 10.0.2.2 for Android emulators
+    final effectiveUrl = Platform.isAndroid
+        ? inviteUrl.replaceFirst('http://localhost', 'http://10.0.2.2')
+        : inviteUrl;
+    try {
+      await Share.share(
+        effectiveUrl,
+        subject: 'Take the Daily Question with me!',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to share: $e')),
+        );
+      }
+    }
   }
 
   /// Build the "Submitted" chip indicator

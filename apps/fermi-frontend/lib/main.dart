@@ -21,6 +21,7 @@ import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/screens/onboarding_screen.dart';
 import 'package:fermi_frontend/screens/auth_screen.dart';
 import 'package:fermi_frontend/screens/startup_auth_screen.dart';
+import 'package:fermi_frontend/screens/daily_question/daily_question_screen.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/state/theme_config_service.dart';
@@ -153,7 +154,10 @@ class _MyAppState extends State<MyApp> {
     );
     _preloadService = PreloadService(api: _apiService, auth: _authService);
     _deepLinkService = DeepLinkService();
-    _deepLinkService.init(onJoinGame: _handleJoinGame);
+    _deepLinkService.init(
+      onJoinGame: _handleJoinGame,
+      onJoinDQ: _handleJoinDQ,
+    );
 
     // Sign in anonymously early if no user exists
     _ensureAuthenticated();
@@ -273,6 +277,46 @@ class _MyAppState extends State<MyApp> {
       debugPrint('MyApp: Found pending game join: $pendingId');
       await _handleJoinGame(pendingId);
     }
+
+    // Also check for pending DQ join
+    final pendingDQDate = _deepLinkService.pendingDQDate;
+    if (pendingDQDate != null) {
+      debugPrint('MyApp: Found pending DQ join: $pendingDQDate');
+      await _handleJoinDQ(pendingDQDate);
+    }
+  }
+
+  /// Handle DQ invite deep links.
+  /// Navigates to the DailyQuestionScreen with the specified date.
+  Future<void> _handleJoinDQ(String questionDate) async {
+    debugPrint('MyApp: Handling join DQ request for $questionDate');
+
+    // If not authenticated, we can't navigate yet.
+    // The DeepLinkService stores the pending date for after auth.
+    if (_authService.currentUser == null) {
+      debugPrint('MyApp: User not authenticated, redirecting to sign-in');
+      _navigatorKey.currentState
+          ?.pushNamedAndRemoveUntil('/sign-in', (route) => false);
+      return;
+    }
+
+    // Ensure we have a valid token first
+    if (_authService.accessToken == null) {
+      await _authService.exchangeToken();
+    }
+
+    // Clear pending DQ date since we're handling it
+    _deepLinkService.clearPendingDQDate();
+
+    // Navigate to DailyQuestionScreen with the date
+    // The screen itself handles edge cases (expired, not started, already participated)
+    if (!mounted) return;
+
+    _navigatorKey.currentState?.push(
+      MaterialPageRoute(
+        builder: (_) => DailyQuestionScreen(questionDate: questionDate),
+      ),
+    );
   }
 
   void _onThemeChanged() {

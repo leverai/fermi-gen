@@ -22,6 +22,7 @@ from fermi_core.units import (
 from fermi_core.utils import utcnow_naive
 from fermi_db.schemas import AnswerBare, DailyQuestionStatus
 
+from app.core.config import settings
 from app.services.daily_question.firestore_writer import DQFirestoreWriter
 from app.services.daily_question.schemas import (
     DQAnswer,
@@ -564,11 +565,17 @@ class DailyQuestionService:
     async def close_active_and_schedule_new_dq(
         self,
         firestore_client: 'AsyncClient',
+        base_url: str,
     ) -> DQEndResponse:
         """Close the active DQ (if any) and schedule the next one.
 
         This is designed to handle the first run gracefully - if no active DQ exists,
         the close step is skipped and only scheduling happens.
+
+        Args:
+            firestore_client: Firestore client.
+            base_url: Base URL for constructing invite links.
+
         """
         now_utc = utcnow_naive()
         today = get_dq_date_for_utc(now_utc)
@@ -592,6 +599,7 @@ class DailyQuestionService:
         next_date_str, next_question_uid = await self._schedule_new_dq_for_date(
             next_date,
             fs_writer,
+            base_url,
         )
 
         return DQEndResponse(
@@ -664,6 +672,7 @@ class DailyQuestionService:
         self,
         next_date: datetime.date,
         fs_writer: DQFirestoreWriter,
+        base_url: str,
     ) -> tuple[str | None, str | None]:
         """Schedule a new DQ for the given date.
 
@@ -674,6 +683,7 @@ class DailyQuestionService:
         Args:
             next_date: The date to schedule the DQ for.
             fs_writer: Firestore writer instance.
+            base_url: Base URL for constructing invite links.
 
         Returns:
             Tuple of (next_date as string, next_question_uid).
@@ -728,11 +738,19 @@ class DailyQuestionService:
         self,
         question_date: datetime.date,
         firestore_client: 'AsyncClient',
+        base_url: str,
     ) -> None:
         """Activate the scheduled DQ for a given date.
+
         1. Call `update_dq_status` @daily_question_repository.py#L124-142  to activate
         the scheduled DQ.
         2. Updates the DQ doc status to ACTIVE.
+
+        Args:
+            question_date: The date of the DQ to activate.
+            firestore_client: Firestore client.
+            base_url: Base URL for constructing invite links.
+
         """
         # Get the DQ for the given date to activate it.
         dq = await self._db.daily_questions.get_dq_for_date(question_date)
@@ -757,10 +775,18 @@ class DailyQuestionService:
         )
         await self._db.session.commit()
 
+        # Construct invite URL
+        date_str = question_date.strftime('%Y-%m-%d')
+        invite_url = f'{base_url}{settings.api_v1_str}/daily_question/invite/{date_str}'
+
         fs_writer = DQFirestoreWriter(firestore_client)
         try:
-            await fs_writer.activate_dq_document(question_date)
-            logger.info('Set active for %s', question_date)
+            await fs_writer.activate_dq_document(question_date, invite_url=invite_url)
+            logger.info(
+                'Set active for %s with invite_url=%s',
+                question_date,
+                invite_url,
+            )
         except Exception as exc:
             logger.exception('Failed to set active for %s', question_date)
             raise HTTPException(
@@ -768,10 +794,19 @@ class DailyQuestionService:
                 detail='Failed to set active for %s',
             ) from exc
 
-    async def activate_scheduled_dq(self, firestore_client: 'AsyncClient') -> None:
+    async def activate_scheduled_dq(
+        self,
+        firestore_client: 'AsyncClient',
+        base_url: str,
+    ) -> None:
         """Activate the scheduled DQ for this date. This is invoked by a scheduled job
         at 12PM UTC.
+
+        Args:
+            firestore_client: Firestore client.
+            base_url: Base URL for constructing invite links.
+
         """
         now_utc = utcnow_naive()
         today = get_dq_date_for_utc(now_utc)
-        await self._activate_scheduled_dq_for_date(today, firestore_client)
+        await self._activate_scheduled_dq_for_date(today, firestore_client, base_url)

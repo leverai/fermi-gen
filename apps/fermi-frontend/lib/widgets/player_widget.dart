@@ -432,12 +432,12 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     );
   }
 
-  String _formatWithCommas(int number) {
-    return number.toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-  }
+  // String _formatWithCommas(int number) {
+  //   return number.toString().replaceAllMapped(
+  //         RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+  //         (Match m) => '${m[1]},',
+  //       );
+  // }
 
   Widget _buildAvatar() {
     const avatarSize = 70.0;
