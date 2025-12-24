@@ -95,9 +95,11 @@ class GameService:
 
         # 3. Set misc fields
         version_uid = str(uuid.uuid4())
-        base_url = str(request.base_url).rstrip('/')
+        # Use web_base_url for invite links (cross-platform deep links)
+        # Fallback to API base_url for backwards compatibility
+        web_base = settings.web_base_url.rstrip('/')
         misc = {
-            'join_url': f'{base_url}{settings.api_v1_str}/game/invite/{game_ref.id}',
+            'join_url': f'{web_base}/invite/game/{game_ref.id}',
             'private': payload.is_private,
             'version_uid': version_uid,
         }

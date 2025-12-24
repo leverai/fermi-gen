@@ -45,7 +45,7 @@ class StartupAuthScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                'Welcome to Number Royale',
+                'Welcome to Guesstimate!',
                 style: AppFont.primaryTextStyle(
                   context,
                   fontSize: 28,

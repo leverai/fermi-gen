@@ -103,6 +103,7 @@ DATABASE_URL: <from Secret Manager: database-url-dev>
 JWT_SECRET_KEY: <from Secret Manager: fermi-api-jwt>
 GOOGLE_CLOUD_PROJECT: guesstimate-5483f
 USE_EMULATORS: false
+WEB_BASE_URL: https://guesstimate.leverai.tech
 # DO NOT SET: FIRESTORE_EMULATOR_HOST, FIREBASE_AUTH_EMULATOR_HOST
 ```
 
@@ -117,8 +118,19 @@ DATABASE_URL: <from Secret Manager: database-url-prod>
 JWT_SECRET_KEY: <from Secret Manager: fermi-api-jwt>
 GOOGLE_CLOUD_PROJECT: guesstimate-5483f
 USE_EMULATORS: false
+WEB_BASE_URL: https://guesstimate.leverai.tech
 # DO NOT SET: FIRESTORE_EMULATOR_HOST, FIREBASE_AUTH_EMULATOR_HOST
 ```
+
+### Web Base URL Configuration
+
+The `WEB_BASE_URL` environment variable controls where invite links point. This should be set to your Firebase Hosting domain (e.g., `https://guesstimate.leverai.tech`) to enable cross-platform deep links.
+
+**Invite URL Format:**
+- Game invites: `{WEB_BASE_URL}/invite/game/{game_id}`
+- Daily Question: `{WEB_BASE_URL}/dq/{YYYY-MM-DD}`
+
+These URLs work across all platforms (web, Android, iOS) and automatically route to the appropriate app or web interface.
 
 ### Firebase Configuration
 

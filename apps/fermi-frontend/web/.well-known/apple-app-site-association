@@ -1,0 +1,9 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [{
+      "appID": "TD4KSC38RJ.tech.leverai.guesstimate",
+      "paths": ["/invite/*", "/dq/*"]
+    }]
+  }
+}

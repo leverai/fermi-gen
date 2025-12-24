@@ -775,9 +775,17 @@ class DailyQuestionService:
         )
         await self._db.session.commit()
 
-        # Construct invite URL
+        # Construct invite URL based on environment
         date_str = question_date.strftime('%Y-%m-%d')
-        invite_url = f'{base_url}{settings.api_v1_str}/daily_question/invite/{date_str}'
+        if settings.use_emulators:
+            # Local testing: use API trampoline endpoint
+            # (10.0.2.2 is localhost from Android emulator)
+            base = settings.base_url.rstrip('/')
+            invite_url = f'{base}/api/v1/daily_question/invite/{date_str}'
+        else:
+            # Production: use web app URL for cross-platform deep links
+            web_base = settings.web_base_url.rstrip('/')
+            invite_url = f'{web_base}/dq/{date_str}'
 
         fs_writer = DQFirestoreWriter(firestore_client)
         try:
