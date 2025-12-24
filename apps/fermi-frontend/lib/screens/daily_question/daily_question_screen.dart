@@ -2,7 +2,10 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
@@ -157,7 +160,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error: $e')));
-        Navigator.of(context).pop();
+        context.go('/main');
       }
     }
   }
@@ -355,9 +358,9 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
 
   /// Handle leave button press - show confirmation if not submitted
   Future<void> _handleLeave() async {
-    // If already submitted, just navigate back
+    // If already submitted, just navigate back to main
     if (_isSubmitted) {
-      Navigator.of(context).pop();
+      if (mounted) context.go('/main');
       return;
     }
 
@@ -379,11 +382,11 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       },
     );
 
-    // If user confirmed, submit answer then navigate back
+    // If user confirmed, submit answer then navigate back to main
     if (confirmed == true) {
       await _submit();
       if (mounted) {
-        Navigator.of(context).pop();
+        context.go('/main');
       }
     }
   }
@@ -688,15 +691,26 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     );
   }
 
-  /// Share the DQ invite link using the OS share sheet.
+  /// Share the DQ invite link using the OS share sheet or clipboard on web.
   Future<void> _shareInvite(String inviteUrl) async {
     // Backend now generates HTTPS URLs (e.g., https://guesstimate.leverai.tech/dq/...)
     // No localhost->10.0.2.2 mapping needed
     try {
-      await Share.share(
-        inviteUrl,
-        subject: 'Take the Daily Question with me!',
-      );
+      if (kIsWeb) {
+        // Web: Copy to clipboard and show feedback
+        await Clipboard.setData(ClipboardData(text: inviteUrl));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Invite link copied.')),
+          );
+        }
+      } else {
+        // Mobile: Use native share sheet
+        await Share.share(
+          inviteUrl,
+          subject: 'Take the Daily Question with me!',
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
