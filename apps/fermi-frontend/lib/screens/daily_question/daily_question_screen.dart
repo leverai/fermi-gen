@@ -1,7 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -678,13 +677,11 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
 
   /// Share the DQ invite link using the OS share sheet.
   Future<void> _shareInvite(String inviteUrl) async {
-    // Transform localhost to 10.0.2.2 for Android emulators
-    final effectiveUrl = Platform.isAndroid
-        ? inviteUrl.replaceFirst('http://localhost', 'http://10.0.2.2')
-        : inviteUrl;
+    // Backend now generates HTTPS URLs (e.g., https://guesstimate.leverai.tech/dq/...)
+    // No localhost->10.0.2.2 mapping needed
     try {
       await Share.share(
-        effectiveUrl,
+        inviteUrl,
         subject: 'Take the Daily Question with me!',
       );
     } catch (e) {

@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart'
     hide EmailAuthProvider, AuthProvider;
@@ -61,7 +62,8 @@ Future<void> main() async {
         throw StateError(
             'Missing required dart-defines: FIREBASE_AUTH_EMULATOR_HOST and/or FIRESTORE_EMULATOR_HOST');
       }
-      final String emulatorHost = Platform.isAndroid ? '10.0.2.2' : 'localhost';
+      // On web, Platform.isAndroid is not available, so check kIsWeb first
+      final String emulatorHost = (!kIsWeb && Platform.isAndroid) ? '10.0.2.2' : 'localhost';
       final int fsPort = int.tryParse(configuredFsHost.split(':').last) ?? 8080;
       final int authPort =
           int.tryParse(configuredAuthHost.split(':').last) ?? 9099;

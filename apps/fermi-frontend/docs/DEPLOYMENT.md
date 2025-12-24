@@ -20,7 +20,7 @@ The Fermi Game frontend is a Flutter application that can be built for multiple 
 
 - **Android**: APK and App Bundle (AAB)
 - **iOS**: IPA (requires macOS and Xcode)
-- **Web**: Progressive Web App (future)
+- **Web**: Progressive Web App deployed to Firebase Hosting
 
 ### Build Targets
 
@@ -170,6 +170,46 @@ During development, Flutter supports hot reload:
 - With emulators enabled, Firebase initializes using projectId `fermi-local`
 - Connects to emulator hosts provided in `--dart-define`
 
+### Local Web Development
+
+To run the web app locally with the full stack:
+
+```bash
+# From workspace root
+make run-frontend-web
+```
+
+This command:
+1. Starts PostgreSQL database
+2. Starts Firebase emulators (Auth + Firestore)
+3. Runs database migrations
+4. Seeds test data
+5. Starts the backend API
+6. Launches the Flutter web app in Chrome
+
+**Manual Web Development:**
+
+```bash
+# Start backend services
+make up-api
+
+# Wait for API to be ready, then run web app
+cd apps/fermi-frontend
+fvm flutter run -d chrome \
+  --dart-define=USE_EMULATORS=true \
+  --dart-define=FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
+  --dart-define=FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
+  --dart-define=API_BASE_URL=http://localhost:8000/api/v1
+```
+
+**Testing Deep Links Locally:**
+
+The web app handles deep links via URL paths. To test:
+- Navigate to `http://localhost:<port>/dq/2025-12-23` for Daily Question
+- Navigate to `http://localhost:<port>/invite/game/<game_id>` for game invites
+
+The `DeepLinkService` recognizes `localhost` URLs and routes appropriately.
+
 ---
 
 ## Building for Production
@@ -227,7 +267,7 @@ fvm flutter build ios --release \
 - Apple Developer account for signing
 - iOS provisioning profiles configured
 
-### Web (Future Support)
+### Web
 
 ```bash
 cd apps/fermi-frontend
@@ -237,6 +277,34 @@ fvm flutter build web --release \
 ```
 
 Output: `build/web/`
+
+**Deploying to Firebase Hosting:**
+
+1. Build the web app (see above)
+2. Deploy to Firebase Hosting:
+   ```bash
+   firebase deploy --only hosting
+   ```
+
+**Custom Domain Setup:**
+
+The app is configured to use `guesstimate.leverai.tech` as the web domain for cross-platform deep links:
+
+1. In Firebase Console → Hosting → Add custom domain
+2. Add `guesstimate.leverai.tech`
+3. Follow DNS setup instructions (add CNAME record)
+4. Wait for SSL certificate provisioning
+
+**Deep Links:**
+
+The web app supports cross-platform invite URLs:
+- Game invites: `https://guesstimate.leverai.tech/invite/game/{game_id}`
+- Daily Question: `https://guesstimate.leverai.tech/dq/{YYYY-MM-DD}`
+
+These URLs work across all platforms:
+- **Web**: Opens directly in browser
+- **Android/iOS with app**: Opens native app via App Links/Universal Links
+- **Mobile without app**: Opens web app with optional app store prompt
 
 ---
 
@@ -286,12 +354,29 @@ android {
 - `ios/Runner/GoogleService-Info.plist`: Firebase configuration
 - `ios/Podfile`: CocoaPods dependencies
 
-### Web (Future)
+### Web
 
 **Configuration Files**:
 - `web/index.html`: Entry point
 - `web/manifest.json`: PWA manifest
-- Firebase SDK initialization in `web/index.html`
+- `web/.well-known/apple-app-site-association`: iOS Universal Links verification
+- `web/.well-known/assetlinks.json`: Android App Links verification
+- `firebase.json`: Firebase Hosting configuration
+
+**Deep Links Configuration:**
+
+The app uses cross-platform deep links via HTTPS URLs. Native apps intercept these links using:
+
+- **Android App Links**: Configured in `AndroidManifest.xml` with `android:autoVerify="true"`
+- **iOS Universal Links**: Configured via `Runner.entitlements` with Associated Domains
+
+**Verification Files:**
+
+The `.well-known` files must be served correctly for native apps to intercept links:
+- `/.well-known/apple-app-site-association` - Must be served with `Content-Type: application/json` (no file extension)
+- `/.well-known/assetlinks.json` - Must be served with `Content-Type: application/json`
+
+These are configured in `firebase.json` with proper headers.
 
 ---
 
