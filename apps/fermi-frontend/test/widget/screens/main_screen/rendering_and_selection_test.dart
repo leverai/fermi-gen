@@ -8,12 +8,14 @@ import 'main_screen_test_helpers.dart';
 void main() {
   late MockApiService mockApi;
   late MockAuthService mockAuth;
+  late MockDailyQuestionService mockDailyQuestionService;
 
   setupMainScreenTests();
 
   setUp(() {
     mockApi = MockApiService();
     mockAuth = MockAuthService();
+    mockDailyQuestionService = MockDailyQuestionService();
   });
 
   group('Rendering', () {
@@ -30,7 +32,11 @@ void main() {
       // ACT
       await pumpWithMaterialApp(
         tester,
-        MainScreen(apiService: mockApi, authService: mockAuth),
+        MainScreen(
+          apiService: mockApi,
+          authService: mockAuth,
+          dailyQuestionService: mockDailyQuestionService,
+        ),
       );
       await tester.pumpAndSettle();
 

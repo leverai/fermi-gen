@@ -74,7 +74,10 @@ class StyledDialog extends StatelessWidget {
       return Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-        child: content,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 540),
+          child: content,
+        ),
       );
     }
 

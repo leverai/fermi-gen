@@ -22,6 +22,8 @@ import 'package:fermi_frontend/screens/main/widgets/games_tab.dart';
 import 'package:fermi_frontend/screens/main/widgets/party_bottom_sheet.dart';
 import 'package:fermi_frontend/screens/main/widgets/profile_sheet.dart';
 
+import 'package:fermi_frontend/widgets/responsive_container.dart';
+
 class MainScreen extends StatefulWidget {
   const MainScreen({
     super.key,
@@ -356,105 +358,109 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             data: themed,
             duration: const Duration(milliseconds: 600),
             curve: Curves.easeInOutCubic,
-            child: Scaffold(
-              body: Stack(
-                children: [
-                  Column(
-                    children: [
-                      Expanded(
-                        child: SafeArea(
-                          bottom: false,
-                          child: PageView(
-                            controller: _pageController,
-                            onPageChanged: _onPageChanged,
-                            physics: const NeverScrollableScrollPhysics(),
-                            children: [
-                              ClipRect(
-                                child: GamesTab(
-                                  displayName: widget
-                                      .authService.currentUser?.displayName,
-                                  onPartyCardTapped: () => showPartyBottomSheet(
-                                    context: context,
-                                    controller: _controller,
-                                    onPrimaryAction: _onPrimaryAction,
+            child: ResponsiveContainer(
+              backgroundColor: appTheme.bgDark,
+              child: Scaffold(
+                body: Stack(
+                  children: [
+                    Column(
+                      children: [
+                        Expanded(
+                          child: SafeArea(
+                            bottom: false,
+                            child: PageView(
+                              controller: _pageController,
+                              onPageChanged: _onPageChanged,
+                              physics: const NeverScrollableScrollPhysics(),
+                              children: [
+                                ClipRect(
+                                  child: GamesTab(
+                                    displayName: widget
+                                        .authService.currentUser?.displayName,
+                                    onPartyCardTapped: () =>
+                                        showPartyBottomSheet(
+                                      context: context,
+                                      controller: _controller,
+                                      onPrimaryAction: _onPrimaryAction,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              ClipRect(
-                                child: MeTab(
-                                  avatarUrl:
-                                      widget.authService.currentUser?.picture,
-                                  displayName: widget
-                                      .authService.currentUser?.displayName,
-                                  isAnonymous: widget.authService.isAnonymous,
-                                  onCreateAccount: _handleCreateAccount,
-                                  onEditProfile: _handleEditProfile,
-                                  playerStats:
-                                      _controller.playerStatsDto?.stats,
+                                ClipRect(
+                                  child: MeTab(
+                                    avatarUrl:
+                                        widget.authService.currentUser?.picture,
+                                    displayName: widget
+                                        .authService.currentUser?.displayName,
+                                    isAnonymous: widget.authService.isAnonymous,
+                                    onCreateAccount: _handleCreateAccount,
+                                    onEditProfile: _handleEditProfile,
+                                    playerStats:
+                                        _controller.playerStatsDto?.stats,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Settings FAB
+                    Positioned(
+                      bottom: 12,
+                      right: 12,
+                      child: FloatingActionButton(
+                        onPressed: _toggleSettings,
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        shape: const CircleBorder(),
+                        child: SvgPicture.asset(
+                          'assets/icons/gear.svg',
+                          colorFilter:
+                              ColorFilter.mode(appTheme.text, BlendMode.srcIn),
+                          width: 36,
+                          height: 36,
+                        ),
+                      ),
+                    ),
+                    // Tutorial button
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: SafeArea(
+                        child: Opacity(
+                          opacity: 0.5,
+                          child: IconButton(
+                            icon: Icon(Icons.help_outline,
+                                color: appTheme.borderMuted),
+                            tooltip: 'Launch Onboarding Tutorial',
+                            onPressed: () {
+                              context.push('/onboarding');
+                            },
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  // Settings FAB
-                  Positioned(
-                    bottom: 12,
-                    right: 12,
-                    child: FloatingActionButton(
-                      onPressed: _toggleSettings,
-                      backgroundColor: Colors.transparent,
-                      elevation: 0,
-                      shape: const CircleBorder(),
-                      child: SvgPicture.asset(
-                        'assets/icons/gear.svg',
-                        colorFilter:
-                            ColorFilter.mode(appTheme.text, BlendMode.srcIn),
-                        width: 36,
-                        height: 36,
-                      ),
                     ),
-                  ),
-                  // Tutorial button
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: SafeArea(
-                      child: Opacity(
-                        opacity: 0.5,
-                        child: IconButton(
-                          icon: Icon(Icons.help_outline,
-                              color: appTheme.borderMuted),
-                          tooltip: 'Launch Onboarding Tutorial',
-                          onPressed: () {
-                            context.push('/onboarding');
-                          },
-                        ),
-                      ),
+                  ],
+                ),
+                bottomNavigationBar: BottomNavigationBar(
+                  currentIndex: _currentIndex,
+                  onTap: _onBottomNavTapped,
+                  backgroundColor: appTheme.bg,
+                  selectedItemColor: appTheme.text,
+                  unselectedItemColor: appTheme.borderMuted,
+                  showSelectedLabels: true,
+                  showUnselectedLabels: true,
+                  items: [
+                    const BottomNavigationBarItem(
+                      icon: Icon(Icons.home_filled),
+                      label: 'Games',
                     ),
-                  ),
-                ],
-              ),
-              bottomNavigationBar: BottomNavigationBar(
-                currentIndex: _currentIndex,
-                onTap: _onBottomNavTapped,
-                backgroundColor: appTheme.bg,
-                selectedItemColor: appTheme.text,
-                unselectedItemColor: appTheme.borderMuted,
-                showSelectedLabels: true,
-                showUnselectedLabels: true,
-                items: [
-                  const BottomNavigationBarItem(
-                    icon: Icon(Icons.home_filled),
-                    label: 'Games',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: _buildMeIcon(appTheme),
-                    label: 'Me',
-                  ),
-                ],
+                    BottomNavigationBarItem(
+                      icon: _buildMeIcon(appTheme),
+                      label: 'Me',
+                    ),
+                  ],
+                ),
               ),
             ),
           );

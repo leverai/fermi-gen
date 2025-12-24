@@ -1,3 +1,4 @@
+import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/screens/question_v2/question_screen_v2_controller.dart';
 import 'package:fermi_frontend/screens/question_v2/widgets/game_carousel.dart';
@@ -167,78 +168,81 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
         if (didPop) return;
         _handleLeave();
       },
-      child: Builder(builder: (context) {
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            Container(
-              color: appTheme.bgDark,
-            ),
-            Padding(
-              padding: const EdgeInsets.only(
-                  top: 0, bottom: 72, left: 12, right: 12),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Players row
-                  SafeArea(
-                    bottom: false,
-                    child: PlayersRow(
-                      players: _controller
-                          .getPlayersForIndex(_controller.currentIndex),
-                      controllerById: _controller.playerControllers,
-                      showScoreOverlay: true,
-                      animateScoreOverlay: true,
-                      showNameChip: true,
-                      showRankIcons: _controller.isReviewMode,
-                      currentPlayerId: widget.realtime.currentPlayerId,
-                      questionIndex: _controller.currentIndex,
-                      deadlineProgressTracker:
-                          _controller.deadlineProgressTracker,
-                      finalRanks: _controller.finalRanks,
+      child: ResponsiveContainer(
+        backgroundColor: appTheme.bgDark,
+        child: Builder(builder: (context) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(
+                color: appTheme.bgDark,
+              ),
+              Padding(
+                padding: const EdgeInsets.only(
+                    top: 0, bottom: 72, left: 12, right: 12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Players row
+                    SafeArea(
+                      bottom: false,
+                      child: PlayersRow(
+                        players: _controller
+                            .getPlayersForIndex(_controller.currentIndex),
+                        controllerById: _controller.playerControllers,
+                        showScoreOverlay: true,
+                        animateScoreOverlay: true,
+                        showNameChip: true,
+                        showRankIcons: _controller.isReviewMode,
+                        currentPlayerId: widget.realtime.currentPlayerId,
+                        questionIndex: _controller.currentIndex,
+                        deadlineProgressTracker:
+                            _controller.deadlineProgressTracker,
+                        finalRanks: _controller.finalRanks,
+                      ),
                     ),
-                  ),
-                  // Spacer to center carousel vertically in remaining space
-                  const Spacer(),
-                  // Game carousel (fixed height, not expanded)
-                  GameCarousel(
-                    itemCount: widget.questionCount,
-                    currentIndex: _controller.currentIndex,
-                    pageController: _controller.pageController,
-                    itemBuilder: (context, index, realIndex) {
-                      return _buildGameCard(realIndex);
-                    },
-                    onPageChanged: (index) {
-                      _controller.onCarouselPageChanged(index);
-                    },
-                    height: carouselHeight,
-                    enableUserSwipe: _controller.isReviewMode,
-                  ),
-                  // Bottom spacer to balance layout
-                  const Spacer(),
-                ],
-              ),
-            ),
-            if (widget.showLeaveButton)
-              LeaveButtonOverlay(
-                iconColor: appTheme.border,
-                splashColor: appTheme.borderMuted,
-                onPressed: _handleLeave,
-              ),
-            // Rank confetti overlay for top 3 players at game end
-            if (_controller.confettiRank != null && _controller.isReviewMode)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: RankConfettiOverlay(
-                    rank: _controller.confettiRank!,
-                    // Don't clear confetti in review mode - it should persist
-                    onComplete: null,
-                  ),
+                    // Spacer to center carousel vertically in remaining space
+                    const Spacer(),
+                    // Game carousel (fixed height, not expanded)
+                    GameCarousel(
+                      itemCount: widget.questionCount,
+                      currentIndex: _controller.currentIndex,
+                      pageController: _controller.pageController,
+                      itemBuilder: (context, index, realIndex) {
+                        return _buildGameCard(realIndex);
+                      },
+                      onPageChanged: (index) {
+                        _controller.onCarouselPageChanged(index);
+                      },
+                      height: carouselHeight,
+                      enableUserSwipe: _controller.isReviewMode,
+                    ),
+                    // Bottom spacer to balance layout
+                    const Spacer(),
+                  ],
                 ),
               ),
-          ],
-        );
-      }),
+              if (widget.showLeaveButton)
+                LeaveButtonOverlay(
+                  iconColor: appTheme.border,
+                  splashColor: appTheme.borderMuted,
+                  onPressed: _handleLeave,
+                ),
+              // Rank confetti overlay for top 3 players at game end
+              if (_controller.confettiRank != null && _controller.isReviewMode)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: RankConfettiOverlay(
+                      rank: _controller.confettiRank!,
+                      // Don't clear confetti in review mode - it should persist
+                      onComplete: null,
+                    ),
+                  ),
+                ),
+            ],
+          );
+        }),
+      ),
     );
   }
 
