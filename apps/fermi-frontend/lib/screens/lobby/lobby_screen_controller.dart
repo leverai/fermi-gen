@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
+
 import 'package:fermi_frontend/screens/lobby/lobby_screen.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/game_realtime.dart';
@@ -177,7 +180,17 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
       return;
     }
     try {
-      await Share.share(url, subject: 'Join my Fermi game');
+      if (kIsWeb) {
+        // Web: Copy to clipboard and show feedback
+        await Clipboard.setData(ClipboardData(text: url));
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invite link copied.')),
+        );
+      } else {
+        // Mobile: Use native share sheet
+        await Share.share(url, subject: 'Join my Fermi game');
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

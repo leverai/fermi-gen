@@ -74,9 +74,11 @@ class StyledDialog extends StatelessWidget {
       return Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 540),
-          child: content,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 540),
+            child: content,
+          ),
         ),
       );
     }
@@ -223,11 +225,16 @@ class StyledDialog extends StatelessWidget {
       ),
     );
 
-    // When not showing as dialog, add 4px horizontal margin and fill parent width
+    // When not showing as dialog, add 4px horizontal margin and constrain width
     if (!showAsDialog) {
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        child: container,
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 540),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            child: container,
+          ),
+        ),
       );
     }
 
