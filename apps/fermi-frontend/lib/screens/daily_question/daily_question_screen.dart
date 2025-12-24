@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
@@ -452,18 +453,24 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     final controller = context.watch<DailyQuestionController>();
 
     if (_isLoading) {
-      return Scaffold(
+      return ResponsiveContainer(
         backgroundColor: appTheme.bg,
-        body: const Center(child: CircularProgressIndicator()),
+        child: Scaffold(
+          backgroundColor: appTheme.bg,
+          body: const Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
     // For past dates, we rely on _resultsData for question text.
     // If still loading or no data available, show loading state.
     if (_isPastDate && _question == null && _resultsData == null) {
-      return Scaffold(
+      return ResponsiveContainer(
         backgroundColor: appTheme.bg,
-        body: const Center(child: CircularProgressIndicator()),
+        child: Scaffold(
+          backgroundColor: appTheme.bg,
+          body: const Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
@@ -472,21 +479,24 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
 
     // No question loaded and no results data and not submitted - can't display anything
     if (!hasQuestionData && !_submittedWithoutQuestion) {
-      return Scaffold(
+      return ResponsiveContainer(
         backgroundColor: appTheme.bg,
-        body: Stack(
-          children: [
-            _buildBackButton(appTheme),
-            Center(
-              child: Text(
-                'No question available',
-                style: AppFont.secondaryTextStyle(
-                  context,
-                  color: appTheme.textMuted,
+        child: Scaffold(
+          backgroundColor: appTheme.bg,
+          body: Stack(
+            children: [
+              _buildBackButton(appTheme),
+              Center(
+                child: Text(
+                  'No question available',
+                  style: AppFont.secondaryTextStyle(
+                    context,
+                    color: appTheme.textMuted,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
@@ -508,81 +518,84 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     final submittedAnswer = showReveal ? _resultsData!.userAnswer : null;
     final authService = context.read<AuthService>();
 
-    return Scaffold(
+    return ResponsiveContainer(
       backgroundColor: appTheme.bg,
-      body: Stack(
-        children: [
-          // Main content
-          SafeArea(
-            child: Column(
-              children: [
-                // Header with back button and timer
-                _buildHeader(appTheme, inputsEnabled),
+      child: Scaffold(
+        backgroundColor: appTheme.bg,
+        body: Stack(
+          children: [
+            // Main content
+            SafeArea(
+              child: Column(
+                children: [
+                  // Header with back button and timer
+                  _buildHeader(appTheme, inputsEnabled),
 
-                // Question and input area (or waiting placeholder)
-                Expanded(
-                  child: Center(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Show QuestionAnswerCard if we have question data,
-                          // otherwise show waiting placeholder
-                          if (hasQuestionData)
-                            QuestionAnswerCard(
-                              questionText: _questionText ?? '',
-                              tags: const [], // No tags for daily question
-                              currentAnswer: _currentAnswer,
-                              submittedAnswer: submittedAnswer,
-                              unitOptions: _unitOptions,
-                              units: _unitAbbreviations,
-                              currentLocale: _currentLocale,
-                              onAnswerChanged: inputsEnabled
-                                  ? (val) {
-                                      setState(() {
-                                        _currentAnswer = val;
-                                      });
-                                    }
-                                  : (_) {},
-                              onLocaleChanged: _onLocaleChanged,
-                              editable: inputsEnabled,
-                              revealedAnswer: revealedAnswer,
-                              revealedColor: revealedColor,
-                              unitTapeController: _unitTapeController,
-                              buttonWidget: MainButton(
-                                onPressed: inputsEnabled ? _submit : null,
-                                label: MainButtonLabel.submit,
-                              ),
-                            )
-                          else
-                            _buildWaitingPlaceholder(appTheme),
+                  // Question and input area (or waiting placeholder)
+                  Expanded(
+                    child: Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Show QuestionAnswerCard if we have question data,
+                            // otherwise show waiting placeholder
+                            if (hasQuestionData)
+                              QuestionAnswerCard(
+                                questionText: _questionText ?? '',
+                                tags: const [], // No tags for daily question
+                                currentAnswer: _currentAnswer,
+                                submittedAnswer: submittedAnswer,
+                                unitOptions: _unitOptions,
+                                units: _unitAbbreviations,
+                                currentLocale: _currentLocale,
+                                onAnswerChanged: inputsEnabled
+                                    ? (val) {
+                                        setState(() {
+                                          _currentAnswer = val;
+                                        });
+                                      }
+                                    : (_) {},
+                                onLocaleChanged: _onLocaleChanged,
+                                editable: inputsEnabled,
+                                revealedAnswer: revealedAnswer,
+                                revealedColor: revealedColor,
+                                unitTapeController: _unitTapeController,
+                                buttonWidget: MainButton(
+                                  onPressed: inputsEnabled ? _submit : null,
+                                  label: MainButtonLabel.submit,
+                                ),
+                              )
+                            else
+                              _buildWaitingPlaceholder(appTheme),
 
-                          // Spacer for bottom sheet (always present to maintain centering)
-                          const SizedBox(height: 120),
-                        ],
+                            // Spacer for bottom sheet (always present to maintain centering)
+                            const SizedBox(height: 120),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          // Results bottom sheet
-          if (showResultsSheet)
-            DQResultsBottomSheet(
-              questionDate: _effectiveDate ?? '',
-              status: resultsStatus,
-              windowEnd: controller.todayDocument?.windowEnd,
-              onResultsViewed: _onResultsViewed,
-              service: context.read<DailyQuestionService>(),
-              userDisplayName: authService.currentUser?.displayName,
-              userAvatarUrl: authService.currentUser?.picture,
-            ),
-        ],
+            // Results bottom sheet
+            if (showResultsSheet)
+              DQResultsBottomSheet(
+                questionDate: _effectiveDate ?? '',
+                status: resultsStatus,
+                windowEnd: controller.todayDocument?.windowEnd,
+                onResultsViewed: _onResultsViewed,
+                service: context.read<DailyQuestionService>(),
+                userDisplayName: authService.currentUser?.displayName,
+                userAvatarUrl: authService.currentUser?.picture,
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -77,6 +77,7 @@ Future<void> setupInitializedMainScreen(
   WidgetTester tester,
   MockApiService mockApi,
   MockAuthService mockAuth, {
+  MockDailyQuestionService? mockDailyQuestionService,
   bool withStats = false,
 }) async {
   final config = createTestGameConfig();
@@ -93,7 +94,12 @@ Future<void> setupInitializedMainScreen(
 
   await pumpWithMaterialApp(
     tester,
-    MainScreen(apiService: mockApi, authService: mockAuth),
+    MainScreen(
+      apiService: mockApi,
+      authService: mockAuth,
+      dailyQuestionService:
+          mockDailyQuestionService ?? MockDailyQuestionService(),
+    ),
   );
   await tester.pumpAndSettle();
 }

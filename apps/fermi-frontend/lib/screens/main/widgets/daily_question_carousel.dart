@@ -42,142 +42,151 @@ class DailyQuestionCarousel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          height: 190, // Increased height to accommodate shadows
-          child: ListView.separated(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-            clipBehavior:
-                Clip.none, // Allow shadows to exceed carousel bounds if needed
-            scrollDirection: Axis.horizontal,
-            itemCount: dates.length + 1, // Dates + Archive Button
-            separatorBuilder: (context, index) => const SizedBox(width: 16),
-            itemBuilder: (context, index) {
-              // Archive Button (Last item)
-              if (index == dates.length) {
-                return Align(
-                  alignment: Alignment.bottomCenter,
-                  child: _buildArchiveButton(context, appTheme),
-                );
-              }
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Get available width from parent (constrained by ResponsiveContainer)
+            final availableWidth = constraints.maxWidth.isFinite
+                ? constraints.maxWidth
+                : MediaQuery.of(context).size.width;
 
-              final date = dates[index];
-              final participated = controller.weeklyItems[date] ?? false;
-              final isToday = date == todayDate;
-              final hasUnseen = controller.hasUnseenResults(date);
+            final double todayCardWidth =
+                ((availableWidth - 32) * 0.8).clamp(280.0, 500.0);
 
-              // Determine display status and navigation behavior
-              String displayStatus;
-              VoidCallback? onTapCallback;
-
-              if (isToday) {
-                // Today's card: use real-time Firestore status
-                final status = todayDocument?.status ?? 'NOT_STARTED';
-                // print(
-                //     '[DQCarousel] isToday=true, date=$date, todayDate=$todayDate, '
-                //     'todayDocument=${todayDocument != null}, status=$status, participated=$participated');
-
-                if (status == 'ACTIVE') {
-                  if (!participated) {
-                    // User can play
-                    displayStatus = 'ACTIVE';
-                    onTapCallback = () {
-                      // Capture controller before async gap to avoid lint warning
-                      final mainController =
-                          context.read<MainScreenController>();
-                      // print('[DQCarousel] Navigating to DailyQuestionScreen');
-                      Navigator.of(context)
-                          .push(
-                        MaterialPageRoute(
-                          builder: (context) => const DailyQuestionScreen(),
-                        ),
-                      )
-                          .then((_) {
-                        // Refresh stats when returning from DQ screen
-                        // in case player submitted an answer
-                        mainController.refreshInBackground();
-                      });
-                    };
-                  } else {
-                    // User already submitted - go to screen to view submission
-                    displayStatus = 'SUBMITTED';
-                    onTapCallback = () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          // Don't pass questionDate - screen will use controller.todayDate
-                          builder: (context) => const DailyQuestionScreen(),
-                        ),
-                      );
-                    };
+            return SizedBox(
+              height: 190, // Increased height to accommodate shadows
+              child: ListView.separated(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                clipBehavior:
+                    Clip.none, // Allow shadows to exceed carousel bounds
+                scrollDirection: Axis.horizontal,
+                itemCount: dates.length + 1, // Dates + Archive Button
+                separatorBuilder: (context, index) => const SizedBox(width: 16),
+                itemBuilder: (context, index) {
+                  // Archive Button (Last item)
+                  if (index == dates.length) {
+                    return Align(
+                      alignment: Alignment.bottomCenter,
+                      child: _buildArchiveButton(context, appTheme),
+                    );
                   }
-                } else if (status == 'CLOSED') {
-                  final resultsReady = todayDocument?.resultsReady ?? false;
-                  if (resultsReady) {
-                    // Results are ready - navigate to unified screen
+
+                  final date = dates[index];
+                  final participated = controller.weeklyItems[date] ?? false;
+                  final isToday = date == todayDate;
+                  final hasUnseen = controller.hasUnseenResults(date);
+
+                  // Determine display status and navigation behavior
+                  String displayStatus;
+                  VoidCallback? onTapCallback;
+
+                  if (isToday) {
+                    // Today's card: use real-time Firestore status
+                    final status = todayDocument?.status ?? 'NOT_STARTED';
+
+                    if (status == 'ACTIVE') {
+                      if (!participated) {
+                        // User can play
+                        displayStatus = 'ACTIVE';
+                        onTapCallback = () {
+                          // Capture controller before async gap to avoid lint warning
+                          final mainController =
+                              context.read<MainScreenController>();
+                          Navigator.of(context)
+                              .push(
+                            MaterialPageRoute(
+                              builder: (context) => const DailyQuestionScreen(),
+                            ),
+                          )
+                              .then((_) {
+                            // Refresh stats when returning from DQ screen
+                            // in case player submitted an answer
+                            mainController.refreshInBackground();
+                          });
+                        };
+                      } else {
+                        // User already submitted - go to screen to view submission
+                        displayStatus = 'SUBMITTED';
+                        onTapCallback = () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              // Don't pass questionDate - screen will use controller.todayDate
+                              builder: (context) => const DailyQuestionScreen(),
+                            ),
+                          );
+                        };
+                      }
+                    } else if (status == 'CLOSED') {
+                      final resultsReady = todayDocument?.resultsReady ?? false;
+                      if (resultsReady) {
+                        // Results are ready - navigate to unified screen
+                        displayStatus = 'RESULTS_READY';
+                        onTapCallback = () {
+                          controller.markResultsSeen(date);
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => DailyQuestionScreen(
+                                questionDate: date,
+                              ),
+                            ),
+                          );
+                        };
+                      } else {
+                        // Results pending - disable navigation
+                        displayStatus = 'PENDING';
+                        onTapCallback = () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Results are pending. Please check back later.'),
+                            ),
+                          );
+                        };
+                      }
+                    } else {
+                      // NOT_STARTED - disable tap interaction
+                      displayStatus = 'NOT_STARTED';
+                      onTapCallback = null;
+                    }
+                  } else {
+                    // Past dates: always RESULTS_READY (all past DQs are closed)
                     displayStatus = 'RESULTS_READY';
                     onTapCallback = () {
                       controller.markResultsSeen(date);
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => DailyQuestionScreen(
+                          builder: (_) => DailyQuestionScreen(
                             questionDate: date,
                           ),
                         ),
                       );
                     };
-                  } else {
-                    // Results pending - disable navigation
-                    displayStatus = 'PENDING';
-                    onTapCallback = () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              'Results are pending. Please check back later.'),
-                        ),
-                      );
-                    };
                   }
-                } else {
-                  // NOT_STARTED - disable tap interaction
-                  displayStatus = 'NOT_STARTED';
-                  onTapCallback = null;
-                }
-              } else {
-                // Past dates: always RESULTS_READY (all past DQs are closed)
-                displayStatus = 'RESULTS_READY';
-                onTapCallback = () {
-                  controller.markResultsSeen(date);
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => DailyQuestionScreen(
-                        questionDate: date,
+
+                  return Align(
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(
+                      width: isToday
+                          ? todayCardWidth
+                          : 120, // Keep other cards standard width
+                      child: DailyQuestionCard(
+                        date: DateTime.parse(date),
+                        status: displayStatus,
+                        isToday: isToday,
+                        participated: participated,
+                        hasUnseenResults: hasUnseen,
+                        showTitle: isToday,
+                        onTap: onTapCallback,
+                        windowStart:
+                            isToday ? todayDocument?.windowStart : null,
+                        windowEnd: isToday ? todayDocument?.windowEnd : null,
                       ),
                     ),
                   );
-                };
-              }
-
-              return Align(
-                alignment: Alignment.topCenter,
-                child: SizedBox(
-                  width: isToday
-                      ? MediaQuery.of(context).size.width - 112
-                      : 120, // Today is much wider
-                  child: DailyQuestionCard(
-                    date: DateTime.parse(date),
-                    status: displayStatus,
-                    isToday: isToday,
-                    participated: participated,
-                    hasUnseenResults: hasUnseen,
-                    showTitle: isToday,
-                    onTap: onTapCallback,
-                    windowStart: isToday ? todayDocument?.windowStart : null,
-                    windowEnd: isToday ? todayDocument?.windowEnd : null,
-                  ),
-                ),
-              );
-            },
-          ),
+                },
+              ),
+            );
+          },
         ),
       ],
     );
