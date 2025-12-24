@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/screens/lobby/lobby_screen_controller.dart';
@@ -230,11 +231,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   Future<void> _handleSignOut() async {
     await widget.authService.signOut();
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed('/sign-in');
+    context.go('/sign-in');
   }
 
   void _handleCreateAccount() {
-    Navigator.of(context).pushNamed('/upgrade-account');
+    context.push('/upgrade-account');
   }
 
   Future<void> _handleDeleteAccount() async {
@@ -260,7 +261,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       try {
         await widget.authService.deleteAccount();
         if (!mounted) return;
-        Navigator.of(context).pushReplacementNamed('/sign-in');
+        context.go('/sign-in');
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -428,7 +429,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                               color: appTheme.borderMuted),
                           tooltip: 'Launch Onboarding Tutorial',
                           onPressed: () {
-                            Navigator.of(context).pushNamed('/onboarding');
+                            context.push('/onboarding');
                           },
                         ),
                       ),

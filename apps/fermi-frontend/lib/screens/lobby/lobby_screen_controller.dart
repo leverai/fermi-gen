@@ -262,8 +262,8 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
                 return;
               }
               if (!mounted || !context.mounted) return;
-              Navigator.of(context)
-                  .pushNamedAndRemoveUntil('/main', (route) => false);
+              // Pop all screens back to router's root to avoid mixed navigation conflicts
+              Navigator.of(context).popUntil((route) => route.isFirst);
             },
           );
         },

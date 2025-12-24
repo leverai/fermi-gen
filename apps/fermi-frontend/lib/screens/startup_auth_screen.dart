@@ -2,6 +2,7 @@ import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -14,12 +15,14 @@ class StartupAuthScreen extends StatelessWidget {
     await prefs.setBool('onboarding_seen', true);
 
     if (context.mounted) {
-      Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+      // Refresh router to clear cached onboarding state before navigating
+      GoRouter.of(context).refresh();
+      context.go('/main');
     }
   }
 
   void _signIn(BuildContext context) {
-    Navigator.pushNamed(context, '/sign-in');
+    context.push('/sign-in');
   }
 
   @override

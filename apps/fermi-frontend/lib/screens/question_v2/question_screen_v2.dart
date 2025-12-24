@@ -93,8 +93,8 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
   Future<void> _handleLeave() async {
     if (_controller.isReviewMode) {
       if (mounted) {
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/main', (route) => false);
+        // Pop all screens back to router's root to avoid mixed navigation conflicts
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
       return;
     }
@@ -120,8 +120,8 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
           return;
         }
         if (mounted) {
-          Navigator.of(context)
-              .pushNamedAndRemoveUntil('/main', (route) => false);
+          // Pop all screens back to router's root to avoid mixed navigation conflicts
+          Navigator.of(context).popUntil((route) => route.isFirst);
         }
       },
     );
@@ -145,8 +145,8 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
 
     if (_controller.isReviewMode) {
       if (mounted) {
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/main', (route) => false);
+        // Pop all screens back to router's root to avoid mixed navigation conflicts
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
       return;
     }
