@@ -484,6 +484,7 @@ class _UnitSelectorSheet extends StatelessWidget {
         constraints: const BoxConstraints(minWidth: 400),
         decoration: BoxDecoration(
           color: appTheme.bg,
+          borderRadius: BorderRadius.circular(appTheme.borderRadius),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: SafeArea(

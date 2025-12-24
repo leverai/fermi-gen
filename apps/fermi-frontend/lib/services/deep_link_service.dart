@@ -39,6 +39,22 @@ class DeepLinkService {
 
     // Listen for subsequent links (while app is running)
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      // On web, filter out internal app routes from hash-based routing
+      if (kIsWeb) {
+        final pathToCheck = uri.fragment.isNotEmpty ? uri.fragment : uri.path;
+        if (!pathToCheck.contains('/dq/') &&
+            !pathToCheck.contains('/invite/')) {
+          debugPrint(
+              'DeepLinkService: Ignoring non-deep-link stream URL: $uri');
+          return;
+        }
+        // If using hash routing, parse the fragment as a path
+        if (uri.fragment.isNotEmpty && uri.fragment.startsWith('/')) {
+          final fragmentUri = Uri.parse('http://${uri.host}${uri.fragment}');
+          _handleLink(fragmentUri, onJoinGame, onJoinDQ);
+          return;
+        }
+      }
       _handleLink(uri, onJoinGame, onJoinDQ);
     }, onError: (err) {
       debugPrint('DeepLinkService: Error processing link: $err');
@@ -74,7 +90,24 @@ class DeepLinkService {
       if (uri.host == 'guesstimate.leverai.tech' ||
           uri.host == 'localhost' ||
           uri.host.isEmpty) {
-        _handleLink(uri, onJoinGame, onJoinDQ);
+        // Check if the URL contains deep link patterns before processing
+        // For web, the path could be in the fragment (hash routing: /#/dq/2025-01-01)
+        // or in the actual path (/dq/2025-01-01)
+        final pathToCheck = uri.fragment.isNotEmpty ? uri.fragment : uri.path;
+
+        // Only process if it looks like a deep link (contains /dq/ or /invite/)
+        // This prevents treating internal app routes like #/main as deep links
+        if (pathToCheck.contains('/dq/') || pathToCheck.contains('/invite/')) {
+          // If using hash routing, parse the fragment as a path
+          if (uri.fragment.isNotEmpty && uri.fragment.startsWith('/')) {
+            final fragmentUri = Uri.parse('http://${uri.host}${uri.fragment}');
+            _handleLink(fragmentUri, onJoinGame, onJoinDQ);
+          } else {
+            _handleLink(uri, onJoinGame, onJoinDQ);
+          }
+        } else {
+          debugPrint('DeepLinkService: Ignoring non-deep-link URL: $uri');
+        }
       }
     } catch (e) {
       debugPrint('DeepLinkService: Error checking web initial URL: $e');
@@ -146,7 +179,8 @@ class DeepLinkService {
       // DQ invite: /dq/<date>
       if (pathSegments.length >= 2 && pathSegments[0] == 'dq') {
         final questionDate = pathSegments[1];
-        debugPrint('DeepLinkService: Extracted DQ date from HTTPS: $questionDate');
+        debugPrint(
+            'DeepLinkService: Extracted DQ date from HTTPS: $questionDate');
 
         // Store it just in case we need it later (e.g. after auth)
         _pendingDQDate = questionDate;
@@ -169,7 +203,8 @@ class DeepLinkService {
           pathSegments[1] == 'game') {
         if (pathSegments.length >= 3) {
           final gameId = pathSegments[2];
-          debugPrint('DeepLinkService: Extracted game ID from localhost: $gameId');
+          debugPrint(
+              'DeepLinkService: Extracted game ID from localhost: $gameId');
 
           // Store it just in case we need it later (e.g. after auth)
           _pendingGameId = gameId;
@@ -180,10 +215,11 @@ class DeepLinkService {
       }
 
       // DQ invite: /dq/<date>
-      if (pathSegments.length >= 1 && pathSegments[0] == 'dq') {
+      if (pathSegments.isNotEmpty && pathSegments[0] == 'dq') {
         if (pathSegments.length >= 2) {
           final questionDate = pathSegments[1];
-          debugPrint('DeepLinkService: Extracted DQ date from localhost: $questionDate');
+          debugPrint(
+              'DeepLinkService: Extracted DQ date from localhost: $questionDate');
 
           // Store it just in case we need it later (e.g. after auth)
           _pendingDQDate = questionDate;

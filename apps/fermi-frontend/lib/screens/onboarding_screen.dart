@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 import 'package:fermi_frontend/screens/question_v2/question_screen_v2.dart';
@@ -255,7 +256,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _exitOnboarding() async {
     // Navigate to startup auth screen choice
     // User is already authenticated anonymously, so we just move to the choice screen
-    Navigator.pushReplacementNamed(context, '/startup-auth');
+    context.go('/startup-auth');
   }
 
   @override
