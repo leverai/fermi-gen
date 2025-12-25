@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -693,12 +694,17 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
 
   /// Share the DQ invite link using the OS share sheet or clipboard on web.
   Future<void> _shareInvite(String inviteUrl) async {
-    // Backend now generates HTTPS URLs (e.g., https://guesstimate.leverai.tech/dq/...)
-    // No localhost->10.0.2.2 mapping needed
+    // Transform localhost to 10.0.2.2 for Android emulator testing
+    String urlToShare = inviteUrl;
+    if (!kIsWeb && Platform.isAndroid) {
+      urlToShare =
+          inviteUrl.replaceFirst('http://localhost', 'http://10.0.2.2');
+    }
+
     try {
       if (kIsWeb) {
         // Web: Copy to clipboard and show feedback
-        await Clipboard.setData(ClipboardData(text: inviteUrl));
+        await Clipboard.setData(ClipboardData(text: urlToShare));
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Invite link copied.')),
@@ -707,7 +713,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       } else {
         // Mobile: Use native share sheet
         await Share.share(
-          inviteUrl,
+          urlToShare,
           subject: 'Take the Daily Question with me!',
         );
       }

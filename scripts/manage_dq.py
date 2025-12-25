@@ -49,6 +49,8 @@ from fermi_db.schemas import QuestionStatus
 from fermi_db.session import get_session
 from sqlmodel import select
 
+from app.services.daily_question.firestore_writer import DQFirestoreWriter
+
 # Actually need to export these.
 os.environ['DATABASE_URL'] = (
     'postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/fermi-db'
@@ -58,7 +60,7 @@ os.environ['FIREBASE_AUTH_EMULATOR_HOST'] = '127.0.0.1:9099'
 os.environ['GOOGLE_CLOUD_PROJECT'] = 'fermi-local'
 
 
-async def get_firestore_writer():
+async def get_firestore_writer() -> DQFirestoreWriter | None:
     """Get Firestore writer configured for emulator if env vars are set.
 
     Returns:
@@ -76,8 +78,6 @@ async def get_firestore_writer():
     try:
         from google.cloud.firestore import AsyncClient
 
-        from app.services.daily_question.firestore_writer import DQFirestoreWriter
-
         # AsyncClient will automatically use FIRESTORE_EMULATOR_HOST if set
         client = AsyncClient(project=project_id)
         print(f'✓ Connected to Firestore emulator at {emulator_host}')
@@ -91,12 +91,11 @@ async def get_firestore_writer():
 async def close_and_schedule() -> None:
     """Close the active DQ and schedule a new one."""
     api_url = 'http://localhost:8000/api/v1/daily_question/close_and_schedule'
-    payload = {'base_url': 'http://localhost:8000'}
     print(f'📤 Calling API: POST {api_url}')
 
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(api_url, json=payload, timeout=30.0)
+            resp = await client.post(api_url, timeout=30.0)
             resp.raise_for_status()
             data = resp.json()
 
@@ -120,14 +119,13 @@ async def close_and_schedule() -> None:
 async def activate_dq() -> None:
     """Activate today's DQ."""
     api_url = 'http://localhost:8000/api/v1/daily_question/activate'
-    payload = {'base_url': 'http://localhost:8000'}
     print(f'📤 Calling API: POST {api_url}')
 
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(api_url, json=payload, timeout=30.0)
+            resp = await client.post(api_url, timeout=30.0)
             resp.raise_for_status()
-            data = resp.json()
+            _ = resp.json()
         print('✅ DQ Activated')
 
     except httpx.HTTPStatusError as e:
@@ -191,7 +189,7 @@ async def seed_dq_questions(count: int = 10) -> None:
 
 
 def main() -> None:
-    """Main entry point for the script."""
+    """Run the script."""
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
