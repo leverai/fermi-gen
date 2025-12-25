@@ -17,10 +17,7 @@ class Settings(BaseSettings):
 
     project_name: str = 'fermi-api'
     api_v1_str: str = '/api/v1'
-    base_url: str = 'https://api.fermi.app'  # Base URL for constructing invite links
-    web_base_url: str = (
-        'https://guesstimate.leverai.tech'  # Base URL for web app invite links
-    )
+    base_url: str = 'https://api.fermi.app'  # Fallback base URL for API
 
     # Database
     database_url: str = 'postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/fermi-db'

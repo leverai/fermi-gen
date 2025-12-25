@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, Request
 from fastapi.responses import HTMLResponse
 from fermi_core.units import Locale
 from fermi_db.models.user import User
@@ -141,11 +141,6 @@ async def get_archive_month(
 async def close_and_schedule_dq(
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
-    base_url: str = Body(
-        ...,
-        embed=True,
-        description='Base URL for constructing invite links',
-    ),
 ) -> DQEndResponse:
     """End the active DQ and schedule the next one.
 
@@ -162,40 +157,32 @@ async def close_and_schedule_dq(
     Args:
         firestore_client: Firestore client (injected).
         dq_service: Daily Question service (injected).
-        base_url: The base URL for the API (e.g., 'https://api.fermi.app').
-            Cloud Scheduler should provide this as a body parameter.
 
     """
     return await dq_service.close_active_and_schedule_new_dq(
         firestore_client=firestore_client,
-        base_url=base_url,
     )
 
 
 @router.post('/activate')
 async def activate_dq(
+    request: Request,
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
-    base_url: str = Body(
-        ...,
-        embed=True,
-        description='Base URL for constructing invite links',
-    ),
 ) -> None:
     """Activate the scheduled DQ for this date.
 
     Invoked by a scheduled job at 12PM UTC.
 
     Args:
+        request: FastAPI request object.
         firestore_client: Firestore client (injected).
         dq_service: Daily Question service (injected).
-        base_url: The base URL for the API (e.g., 'https://api.fermi.app').
-            Cloud Scheduler should provide this as a body parameter.
 
     """
     await dq_service.activate_scheduled_dq(
+        request=request,
         firestore_client=firestore_client,
-        base_url=base_url,
     )
 
 
@@ -217,7 +204,18 @@ async def invite_to_dq(
         'https://play.google.com/store/apps/details?id=tech.leverai.guesstimate'
     )
     app_store_url = 'https://apps.apple.com/app/id6756033242'
+    app_package = 'tech.leverai.guesstimate'
     deep_link = f'guesstimate://dq/{question_date}'
+
+    # Android intent URI - more reliable than custom scheme for Chrome/WebView
+    # Format: intent://HOST/PATH#Intent;scheme=SCHEME;package=PACKAGE;end
+    intent_uri = (
+        f'intent://dq/{question_date}#Intent;'
+        f'scheme=guesstimate;'
+        f'package={app_package};'
+        f'S.browser_fallback_url={play_store_url};'
+        'end'
+    )
 
     html_content = f"""
     <!DOCTYPE html>
@@ -231,21 +229,31 @@ async def invite_to_dq(
         <p>Opening Daily Question...</p>
         <script>
             var deepLink = "{deep_link}";
+            var intentUri = "{intent_uri}";
             var playStoreUrl = "{play_store_url}";
             var appStoreUrl = "{app_store_url}";
 
-            // Try to open the app
-            window.location.href = deepLink;
+            var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            var isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+            var isAndroid = /android/i.test(userAgent);
 
-            // Fallback to Store after a timeout
-            setTimeout(function() {{
-                var userAgent = navigator.userAgent || navigator.vendor || window.opera;
-                if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {{
+            if (isIOS) {{
+                // iOS: Try custom scheme, fallback to App Store
+                window.location.href = deepLink;
+                setTimeout(function() {{
                     window.location.href = appStoreUrl;
-                }} else {{
+                }}, 2000);
+            }} else if (isAndroid) {{
+                // Android: Use intent URI for reliable app launch
+                // Intent URI handles fallback automatically via S.browser_fallback_url
+                window.location.href = intentUri;
+            }} else {{
+                // Other platforms: Try custom scheme, fallback to Play Store
+                window.location.href = deepLink;
+                setTimeout(function() {{
                     window.location.href = playStoreUrl;
-                }}
-            }}, 2000);
+                }}, 2000);
+            }}
         </script>
     </body>
     </html>

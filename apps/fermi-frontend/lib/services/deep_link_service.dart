@@ -39,6 +39,7 @@ class DeepLinkService {
 
     // Listen for subsequent links (while app is running)
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      debugPrint('DeepLinkService: Stream received URI: $uri');
       // On web, filter out internal app routes from hash-based routing
       if (kIsWeb) {
         final pathToCheck = uri.fragment.isNotEmpty ? uri.fragment : uri.path;

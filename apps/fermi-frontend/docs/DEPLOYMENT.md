@@ -288,23 +288,23 @@ Output: `build/web/`
 
 **Custom Domain Setup:**
 
-The app is configured to use `guesstimate.leverai.tech` as the web domain for cross-platform deep links:
+The app can optionally use a custom domain (e.g., `guesstimate.leverai.tech`) for web hosting:
 
 1. In Firebase Console → Hosting → Add custom domain
-2. Add `guesstimate.leverai.tech`
+2. Add your domain
 3. Follow DNS setup instructions (add CNAME record)
 4. Wait for SSL certificate provisioning
 
 **Deep Links:**
 
-The web app supports cross-platform invite URLs:
-- Game invites: `https://guesstimate.leverai.tech/invite/game/{game_id}`
-- Daily Question: `https://guesstimate.leverai.tech/dq/{YYYY-MM-DD}`
+Invite URLs use API trampoline endpoints that work across all environments:
+- Game invites: `{API_BASE_URL}/api/v1/game/invite/{game_id}`
+- Daily Question: `{API_BASE_URL}/api/v1/daily_question/invite/{YYYY-MM-DD}`
 
-These URLs work across all platforms:
-- **Web**: Opens directly in browser
-- **Android/iOS with app**: Opens native app via App Links/Universal Links
-- **Mobile without app**: Opens web app with optional app store prompt
+The trampoline pages detect the user's platform:
+- **Android**: Uses intent URIs for reliable app launching
+- **iOS**: Uses custom scheme with App Store fallback
+- **Other**: Uses custom scheme with Play Store fallback
 
 ---
 
@@ -365,16 +365,18 @@ android {
 
 **Deep Links Configuration:**
 
-The app uses cross-platform deep links via HTTPS URLs. Native apps intercept these links using:
+The app uses API trampoline endpoints that redirect to custom scheme URLs. Native apps register to handle these schemes:
 
-- **Android App Links**: Configured in `AndroidManifest.xml` with `android:autoVerify="true"`
-- **iOS Universal Links**: Configured via `Runner.entitlements` with Associated Domains
+- **Android**: `AndroidManifest.xml` includes intent filters for `guesstimate://` scheme
+- **iOS**: `Info.plist` includes URL scheme configuration for `guesstimate://`
 
-**Verification Files:**
+The trampoline pages use Android intent URIs for reliable app launching on Chrome/WebView.
 
-The `.well-known` files must be served correctly for native apps to intercept links:
-- `/.well-known/apple-app-site-association` - Must be served with `Content-Type: application/json` (no file extension)
-- `/.well-known/assetlinks.json` - Must be served with `Content-Type: application/json`
+**Verification Files (Optional for future App Links):**
+
+For future HTTPS-based App Links/Universal Links, the `.well-known` files can be configured:
+- `/.well-known/apple-app-site-association` - iOS Universal Links verification
+- `/.well-known/assetlinks.json` - Android App Links verification
 
 These are configured in `firebase.json` with proper headers.
 

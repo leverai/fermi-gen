@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Optional, cast
 from fastapi import BackgroundTasks, HTTPException, Request, status
 from google.cloud import firestore
 
-from app.core.config import settings
 from app.schemas.endpoints import (
     GameAnswerRequest,
     GameConfigResponse,
@@ -95,11 +94,10 @@ class GameService:
 
         # 3. Set misc fields
         version_uid = str(uuid.uuid4())
-        # Use web_base_url for invite links (cross-platform deep links)
-        # Fallback to API base_url for backwards compatibility
-        web_base = settings.web_base_url.rstrip('/')
+        # Use API trampoline endpoint - works across all environments
+        base = str(request.base_url).rstrip('/')
         misc = {
-            'join_url': f'{web_base}/invite/game/{game_ref.id}',
+            'join_url': f'{base}/api/v1/game/invite/{game_ref.id}',
             'private': payload.is_private,
             'version_uid': version_uid,
         }

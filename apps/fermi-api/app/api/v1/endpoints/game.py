@@ -213,7 +213,18 @@ async def invite_player(game_id: str) -> HTMLResponse:
         'https://play.google.com/store/apps/details?id=tech.leverai.guesstimate'
     )
     app_store_url = 'https://apps.apple.com/app/id6756033242'
+    app_package = 'tech.leverai.guesstimate'
     deep_link = f'guesstimate://invite/{game_id}'
+
+    # Android intent URI - more reliable than custom scheme for Chrome/WebView
+    # Format: intent://HOST/PATH#Intent;scheme=SCHEME;package=PACKAGE;end
+    intent_uri = (
+        f'intent://invite/{game_id}#Intent;'
+        f'scheme=guesstimate;'
+        f'package={app_package};'
+        f'S.browser_fallback_url={play_store_url};'
+        'end'
+    )
 
     html_content = f"""
     <!DOCTYPE html>
@@ -227,21 +238,31 @@ async def invite_player(game_id: str) -> HTMLResponse:
         <p>Opening game...</p>
         <script>
             var deepLink = "{deep_link}";
+            var intentUri = "{intent_uri}";
             var playStoreUrl = "{play_store_url}";
             var appStoreUrl = "{app_store_url}";
 
-            // Try to open the app
-            window.location.href = deepLink;
+            var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            var isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+            var isAndroid = /android/i.test(userAgent);
 
-            // Fallback to Store after a timeout
-            setTimeout(function() {{
-                var userAgent = navigator.userAgent || navigator.vendor || window.opera;
-                if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {{
+            if (isIOS) {{
+                // iOS: Try custom scheme, fallback to App Store
+                window.location.href = deepLink;
+                setTimeout(function() {{
                     window.location.href = appStoreUrl;
-                }} else {{
+                }}, 2000);
+            }} else if (isAndroid) {{
+                // Android: Use intent URI for reliable app launch
+                // Intent URI handles fallback automatically via S.browser_fallback_url
+                window.location.href = intentUri;
+            }} else {{
+                // Other platforms: Try custom scheme, fallback to Play Store
+                window.location.href = deepLink;
+                setTimeout(function() {{
                     window.location.href = playStoreUrl;
-                }}
-            }}, 2000);
+                }}, 2000);
+            }}
         </script>
     </body>
     </html>
