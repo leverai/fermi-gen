@@ -11,6 +11,7 @@ import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:fermi_frontend/screens/question_v2/question_screen_v2.dart';
 import 'package:fermi_frontend/screens/question_v2/helpers/leave.dart';
@@ -275,8 +276,12 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
                 return;
               }
               if (!mounted || !context.mounted) return;
-              // Pop all screens back to router's root to avoid mixed navigation conflicts
+              // First pop Navigator stack to clear any routes pushed via Navigator.push()
+              // This handles the case where lobby was opened from main_screen.dart
               Navigator.of(context).popUntil((route) => route.isFirst);
+              // Then use go_router to ensure we land on main screen
+              // This handles any go_router state and deep link entry
+              context.go('/main');
             },
           );
         },
