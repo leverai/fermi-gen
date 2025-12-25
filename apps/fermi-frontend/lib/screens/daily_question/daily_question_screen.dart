@@ -361,7 +361,12 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
   Future<void> _handleLeave() async {
     // If already submitted, just navigate back to main
     if (_isSubmitted) {
-      if (mounted) context.go('/main');
+      if (mounted) {
+        // Pop Navigator stack first (handles in-app push navigation)
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        // Then use go_router (handles deep link entry)
+        context.go('/main');
+      }
       return;
     }
 
@@ -387,6 +392,9 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     if (confirmed == true) {
       await _submit();
       if (mounted) {
+        // Pop Navigator stack first (handles in-app push navigation)
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        // Then use go_router (handles deep link entry)
         context.go('/main');
       }
     }
@@ -524,81 +532,88 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
 
     return ResponsiveContainer(
       backgroundColor: appTheme.bg,
-      child: Scaffold(
-        backgroundColor: appTheme.bg,
-        body: Stack(
-          children: [
-            // Main content
-            SafeArea(
-              child: Column(
-                children: [
-                  // Header with back button and timer
-                  _buildHeader(appTheme, inputsEnabled),
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (bool didPop, dynamic result) {
+          if (didPop) return;
+          _handleLeave();
+        },
+        child: Scaffold(
+          backgroundColor: appTheme.bg,
+          body: Stack(
+            children: [
+              // Main content
+              SafeArea(
+                child: Column(
+                  children: [
+                    // Header with back button and timer
+                    _buildHeader(appTheme, inputsEnabled),
 
-                  // Question and input area (or waiting placeholder)
-                  Expanded(
-                    child: Center(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Show QuestionAnswerCard if we have question data,
-                            // otherwise show waiting placeholder
-                            if (hasQuestionData)
-                              QuestionAnswerCard(
-                                questionText: _questionText ?? '',
-                                tags: const [], // No tags for daily question
-                                currentAnswer: _currentAnswer,
-                                submittedAnswer: submittedAnswer,
-                                unitOptions: _unitOptions,
-                                units: _unitAbbreviations,
-                                currentLocale: _currentLocale,
-                                onAnswerChanged: inputsEnabled
-                                    ? (val) {
-                                        setState(() {
-                                          _currentAnswer = val;
-                                        });
-                                      }
-                                    : (_) {},
-                                onLocaleChanged: _onLocaleChanged,
-                                editable: inputsEnabled,
-                                revealedAnswer: revealedAnswer,
-                                revealedColor: revealedColor,
-                                unitTapeController: _unitTapeController,
-                                buttonWidget: MainButton(
-                                  onPressed: inputsEnabled ? _submit : null,
-                                  label: MainButtonLabel.submit,
-                                ),
-                              )
-                            else
-                              _buildWaitingPlaceholder(appTheme),
+                    // Question and input area (or waiting placeholder)
+                    Expanded(
+                      child: Center(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Show QuestionAnswerCard if we have question data,
+                              // otherwise show waiting placeholder
+                              if (hasQuestionData)
+                                QuestionAnswerCard(
+                                  questionText: _questionText ?? '',
+                                  tags: const [], // No tags for daily question
+                                  currentAnswer: _currentAnswer,
+                                  submittedAnswer: submittedAnswer,
+                                  unitOptions: _unitOptions,
+                                  units: _unitAbbreviations,
+                                  currentLocale: _currentLocale,
+                                  onAnswerChanged: inputsEnabled
+                                      ? (val) {
+                                          setState(() {
+                                            _currentAnswer = val;
+                                          });
+                                        }
+                                      : (_) {},
+                                  onLocaleChanged: _onLocaleChanged,
+                                  editable: inputsEnabled,
+                                  revealedAnswer: revealedAnswer,
+                                  revealedColor: revealedColor,
+                                  unitTapeController: _unitTapeController,
+                                  buttonWidget: MainButton(
+                                    onPressed: inputsEnabled ? _submit : null,
+                                    label: MainButtonLabel.submit,
+                                  ),
+                                )
+                              else
+                                _buildWaitingPlaceholder(appTheme),
 
-                            // Spacer for bottom sheet (always present to maintain centering)
-                            const SizedBox(height: 120),
-                          ],
+                              // Spacer for bottom sheet (always present to maintain centering)
+                              const SizedBox(height: 120),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
-            // Results bottom sheet
-            if (showResultsSheet)
-              DQResultsBottomSheet(
-                questionDate: _effectiveDate ?? '',
-                status: resultsStatus,
-                windowEnd: controller.todayDocument?.windowEnd,
-                onResultsViewed: _onResultsViewed,
-                service: context.read<DailyQuestionService>(),
-                userDisplayName: authService.currentUser?.displayName,
-                userAvatarUrl: authService.currentUser?.picture,
-              ),
-          ],
+              // Results bottom sheet
+              if (showResultsSheet)
+                DQResultsBottomSheet(
+                  questionDate: _effectiveDate ?? '',
+                  status: resultsStatus,
+                  windowEnd: controller.todayDocument?.windowEnd,
+                  onResultsViewed: _onResultsViewed,
+                  service: context.read<DailyQuestionService>(),
+                  userDisplayName: authService.currentUser?.displayName,
+                  userAvatarUrl: authService.currentUser?.picture,
+                ),
+            ],
+          ),
         ),
       ),
     );
