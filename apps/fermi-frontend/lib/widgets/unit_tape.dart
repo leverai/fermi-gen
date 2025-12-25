@@ -484,9 +484,16 @@ class _UnitSelectorSheet extends StatelessWidget {
         constraints: const BoxConstraints(minWidth: 400),
         decoration: BoxDecoration(
           color: appTheme.bg,
-          borderRadius: BorderRadius.circular(appTheme.borderRadius),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          boxShadow: [
+            BoxShadow(
+              color: appTheme.shadowColor,
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: SafeArea(
           top: false,
           child: Column(
@@ -496,9 +503,19 @@ class _UnitSelectorSheet extends StatelessWidget {
               Container(
                 width: 40,
                 height: 4,
-                margin: const EdgeInsets.only(bottom: 22),
+                margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: appTheme.border,
+                  color: appTheme.borderMuted,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header with Arrow
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  icon: Icon(Icons.keyboard_arrow_down,
+                      color: appTheme.text, size: 32),
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
               ),
 

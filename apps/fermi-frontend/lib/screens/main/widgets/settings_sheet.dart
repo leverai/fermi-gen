@@ -27,10 +27,27 @@ class SettingsSheet extends StatelessWidget {
       decoration: BoxDecoration(
         color: appTheme.bgLight,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        boxShadow: [
+          BoxShadow(
+            color: appTheme.shadowColor,
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          const SizedBox(height: 12),
+          // Drag Handle
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: appTheme.borderMuted,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
           // Header
           Padding(
             padding:
@@ -38,11 +55,7 @@ class SettingsSheet extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  icon: Icon(Icons.keyboard_arrow_down,
-                      color: appTheme.text, size: 32),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
+                const SizedBox(width: 48), // Spacer to balance the close button
                 Text(
                   'Settings',
                   style: AppFont.primaryTextStyle(
@@ -52,7 +65,11 @@ class SettingsSheet extends StatelessWidget {
                     color: appTheme.text,
                   ),
                 ),
-                const SizedBox(width: 48), // Spacer to balance the close button
+                IconButton(
+                  icon: Icon(Icons.keyboard_arrow_down,
+                      color: appTheme.text, size: 32),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ],
             ),
           ),

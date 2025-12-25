@@ -73,6 +73,16 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
   Timer? _countdownTimer;
   Duration _timeUntilResults = Duration.zero;
 
+  // Scroll controller for the draggable sheet
+  final DraggableScrollableController _sheetController =
+      DraggableScrollableController();
+
+  static const double _minSize = 0.12;
+  static const double _maxSize = 0.75;
+  // Threshold to determine if sheet is expanded or collapsed for icon purpose
+  // Midpoint between min and max
+  static const double _expansionThreshold = (_minSize + _maxSize) / 2;
+
   @override
   void initState() {
     super.initState();
@@ -87,6 +97,44 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
     if (widget.status != DQResultsHandleStatus.pending && _results == null) {
       _loadResults();
     }
+
+    // Listen to sheet controller to update icon
+    _sheetController.addListener(_onSheetChanged);
+  }
+
+  void _onSheetChanged() {
+    if (!_sheetController.isAttached) return;
+
+    // Check if we need to update the expanded state based on size
+    // We only update if crossing the threshold to avoid excessive rebuilds
+    final currentSize = _sheetController.size;
+    final isNowExpanded = currentSize > _expansionThreshold;
+
+    // Only setState if the logical state has changed to prevent loop
+    if (_isExpanded != isNowExpanded) {
+      setState(() {
+        _isExpanded = isNowExpanded;
+      });
+      // If expanded and not previously tracked, trigger callback
+      if (isNowExpanded) {
+        widget.onResultsViewed?.call();
+      }
+    }
+  }
+
+  void _toggleSheet() {
+    if (!_sheetController.isAttached) return;
+
+    // Toggle between min and max size
+    // If currently closer to max, go to min. Else go to max.
+    final targetSize =
+        _sheetController.size > _expansionThreshold ? _minSize : _maxSize;
+
+    _sheetController.animateTo(
+      targetSize,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOutCubic,
+    );
   }
 
   @override
@@ -98,7 +146,10 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
       // Clear old data and reset state
       _results = null;
       _error = null;
-      _isExpanded = false;
+      // Reset sheet if needed? (optional, but good UX to collapse)
+      if (_sheetController.isAttached) {
+        _onSheetChanged(); // Re-evaluate expansion state
+      }
 
       if (widget.status == DQResultsHandleStatus.pending &&
           widget.windowEnd != null) {
@@ -131,6 +182,8 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _sheetController.removeListener(_onSheetChanged);
+    _sheetController.dispose();
     super.dispose();
   }
 
@@ -214,34 +267,21 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
     return '${duration.inMinutes}m';
   }
 
-  void _onSheetExpanded() {
-    if (!_isExpanded) {
-      _isExpanded = true;
-      widget.onResultsViewed?.call();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.12,
-      minChildSize: 0.12,
-      maxChildSize: 0.75,
-      snap: true,
-      snapSizes: const [0.12, 0.75],
-      builder: (context, scrollController) {
-        return NotificationListener<DraggableScrollableNotification>(
-          onNotification: (notification) {
-            if (notification.extent > 0.5 &&
-                widget.status == DQResultsHandleStatus.ready) {
-              _onSheetExpanded();
-            }
-            return false;
-          },
-          child: Container(
+    return DraggableScrollableActuator(
+      child: DraggableScrollableSheet(
+        controller: _sheetController,
+        initialChildSize: _minSize,
+        minChildSize: _minSize,
+        maxChildSize: _maxSize,
+        snap: true,
+        snapSizes: const [_minSize, _maxSize],
+        builder: (context, scrollController) {
+          return Container(
             decoration: BoxDecoration(
               color: appTheme.bgLight,
               borderRadius: const BorderRadius.vertical(
@@ -259,14 +299,20 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
               controller: scrollController,
               padding: EdgeInsets.zero,
               children: [
-                _buildHandle(appTheme),
+                // Make handle tap-able to toggle sheet
+                GestureDetector(
+                  onTap: _toggleSheet,
+                  behavior: HitTestBehavior
+                      .translucent, // Allow tap on empty space in header
+                  child: _buildHandle(appTheme),
+                ),
                 if (widget.status != DQResultsHandleStatus.pending)
                   _buildContent(appTheme),
               ],
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -313,10 +359,11 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          const SizedBox(height: 12),
           // Drag handle bar
           Container(
             width: 40,
@@ -326,9 +373,28 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           // Status text/header
-          handleContent,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const SizedBox(width: 48), // Spacer
+                handleContent,
+                IconButton(
+                  icon: Icon(
+                    _isExpanded
+                        ? Icons.keyboard_arrow_down
+                        : Icons.keyboard_arrow_up,
+                    color: appTheme.text,
+                    size: 32,
+                  ),
+                  onPressed: _toggleSheet,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

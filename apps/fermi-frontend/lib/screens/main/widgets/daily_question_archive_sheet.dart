@@ -82,11 +82,18 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: BoxDecoration(
         color: appTheme.bg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        boxShadow: [
+          BoxShadow(
+            color: appTheme.shadowColor,
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           // Handle
           Container(
             width: 40,
@@ -96,9 +103,25 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 24),
-          // Month/Year selector
-          _buildMonthSelector(appTheme),
+          const SizedBox(height: 12),
+          // Month/Year selector with Arrow
+          SizedBox(
+            height: 48,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                _buildMonthSelector(appTheme),
+                Positioned(
+                  right: 16,
+                  child: IconButton(
+                    icon: Icon(Icons.keyboard_arrow_down,
+                        color: appTheme.text, size: 32),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
           // Content
           Expanded(

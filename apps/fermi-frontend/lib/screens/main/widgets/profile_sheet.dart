@@ -133,9 +133,26 @@ class _ProfileSheetState extends State<ProfileSheet> {
       decoration: BoxDecoration(
         color: appTheme.bgLight,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        boxShadow: [
+          BoxShadow(
+            color: appTheme.shadowColor,
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
       ),
       child: Column(
         children: [
+          const SizedBox(height: 12),
+          // Drag Handle
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: appTheme.borderMuted,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
           // Header
           Padding(
             padding:
@@ -143,20 +160,6 @@ class _ProfileSheetState extends State<ProfileSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  icon: Icon(Icons.keyboard_arrow_down,
-                      color: appTheme.text, size: 32),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                Text(
-                  'Edit profile',
-                  style: AppFont.primaryTextStyle(
-                    context,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: appTheme.text,
-                  ),
-                ),
                 _isSaving
                     ? const SizedBox(
                         width: 48,
@@ -176,6 +179,20 @@ class _ProfileSheetState extends State<ProfileSheet> {
                           ),
                         ),
                       ),
+                Text(
+                  'Edit profile',
+                  style: AppFont.primaryTextStyle(
+                    context,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: appTheme.text,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.keyboard_arrow_down,
+                      color: appTheme.text, size: 32),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ],
             ),
           ),
