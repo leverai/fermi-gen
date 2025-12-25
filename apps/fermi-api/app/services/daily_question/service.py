@@ -22,6 +22,7 @@ from fermi_core.units import (
 from fermi_core.utils import utcnow_naive
 from fermi_db.schemas import AnswerBare, DailyQuestionStatus
 
+from app.core.config import settings
 from app.services.daily_question.firestore_writer import DQFirestoreWriter
 from app.services.daily_question.schemas import (
     DQAnswer,
@@ -769,11 +770,16 @@ class DailyQuestionService:
         )
         await self._db.session.commit()
 
-        # Construct invite URL using API trampoline endpoint
-        # Use request.base_url so it works across all environments
+        # Construct invite URL using ChottuLink if configured, otherwise
+        # use API trampoline. Use request.base_url for local dev.
+
         date_str = question_date.strftime('%Y-%m-%d')
-        base = str(request.base_url).rstrip('/')
-        invite_url = f'{base}/api/v1/daily_question/invite/{date_str}'
+        if settings.invite_url_base:
+            invite_url = f'{settings.invite_url_base}/dq?date={date_str}'
+        else:
+            # Local dev: use API trampoline endpoint
+            base = str(request.base_url).rstrip('/')
+            invite_url = f'{base}/api/v1/daily_question/invite/{date_str}'
 
         fs_writer = DQFirestoreWriter(firestore_client)
         try:

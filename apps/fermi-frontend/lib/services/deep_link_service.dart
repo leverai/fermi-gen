@@ -192,6 +192,36 @@ class DeepLinkService {
       return;
     }
 
+    // Handle ChottuLink URLs: https://guesstimate.chottu.link/party?id=<game_id>
+    // or https://guesstimate.chottu.link/dq?date=<date>
+    if (uri.scheme == 'https' && uri.host == 'guesstimate.chottu.link') {
+      final pathSegments = uri.pathSegments;
+      final queryParams = uri.queryParameters;
+
+      // Party invite: /party?id=<game_id>
+      if (pathSegments.isNotEmpty && pathSegments[0] == 'party') {
+        final gameId = queryParams['id'];
+        if (gameId != null && gameId.isNotEmpty) {
+          debugPrint(
+              'DeepLinkService: Extracted game ID from ChottuLink: $gameId');
+          _pendingGameId = gameId;
+          onJoinGame(gameId);
+        }
+      }
+
+      // DQ invite: /dq?date=<date>
+      if (pathSegments.isNotEmpty && pathSegments[0] == 'dq') {
+        final questionDate = queryParams['date'];
+        if (questionDate != null && questionDate.isNotEmpty) {
+          debugPrint(
+              'DeepLinkService: Extracted DQ date from ChottuLink: $questionDate');
+          _pendingDQDate = questionDate;
+          onJoinDQ(questionDate);
+        }
+      }
+      return;
+    }
+
     // Handle HTTP URLs for local development: http://localhost/invite/game/<game_id>
     // or http://localhost/dq/<date>
     if ((uri.scheme == 'http' || uri.scheme == 'https') &&

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Optional, cast
 from fastapi import BackgroundTasks, HTTPException, Request, status
 from google.cloud import firestore
 
+from app.core.config import settings
 from app.schemas.endpoints import (
     GameAnswerRequest,
     GameConfigResponse,
@@ -94,10 +95,16 @@ class GameService:
 
         # 3. Set misc fields
         version_uid = str(uuid.uuid4())
-        # Use API trampoline endpoint - works across all environments
-        base = str(request.base_url).rstrip('/')
+        # Use ChottuLink URL if configured, otherwise fall back to API trampoline
+
+        if settings.invite_url_base:
+            join_url = f'{settings.invite_url_base}/party?id={game_ref.id}'
+        else:
+            # Local dev: use API trampoline endpoint
+            base = str(request.base_url).rstrip('/')
+            join_url = f'{base}/api/v1/game/invite/{game_ref.id}'
         misc = {
-            'join_url': f'{base}/api/v1/game/invite/{game_ref.id}',
+            'join_url': join_url,
             'private': payload.is_private,
             'version_uid': version_uid,
         }

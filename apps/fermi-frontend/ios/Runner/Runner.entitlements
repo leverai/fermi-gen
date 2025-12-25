@@ -5,6 +5,7 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:guesstimate.leverai.tech</string>
+		<string>applinks:guesstimate.chottu.link</string>
 	</array>
 </dict>
 </plist>
