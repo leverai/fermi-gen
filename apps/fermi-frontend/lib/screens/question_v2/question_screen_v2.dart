@@ -1,6 +1,8 @@
 import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/screens/question_v2/question_screen_v2_controller.dart';
 import 'package:fermi_frontend/screens/question_v2/widgets/game_carousel.dart';
 import 'package:fermi_frontend/screens/question_v2/widgets/game_card.dart';
@@ -95,6 +97,8 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
   Future<void> _handleLeave() async {
     if (_controller.isReviewMode) {
       if (mounted) {
+        // Signal MainScreen to refresh stats when we navigate back
+        context.read<AuthService>().shouldRefreshStats = true;
         // Pop Navigator stack first, then use go_router
         Navigator.of(context).popUntil((route) => route.isFirst);
         context.go('/main');
@@ -149,6 +153,8 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
 
     if (_controller.isReviewMode) {
       if (mounted) {
+        // Signal MainScreen to refresh stats when we navigate back
+        context.read<AuthService>().shouldRefreshStats = true;
         // Pop Navigator stack first, then use go_router
         Navigator.of(context).popUntil((route) => route.isFirst);
         context.go('/main');
