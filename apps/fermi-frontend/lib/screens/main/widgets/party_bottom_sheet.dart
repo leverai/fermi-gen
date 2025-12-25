@@ -20,7 +20,7 @@ void showPartyBottomSheet({
 
   showModalBottomSheet(
     context: context,
-    backgroundColor: appTheme.bgLight,
+    backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (context) {
       return StatefulBuilder(
@@ -34,22 +34,61 @@ void showPartyBottomSheet({
                   bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
                 child: Container(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+                  decoration: BoxDecoration(
+                    color: appTheme.bgLight,
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(16)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: appTheme.shadowColor,
+                        blurRadius: 10,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        'Party Settings',
-                        style: AppFont.primaryTextStyle(
-                          context,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: appTheme.text,
+                      const SizedBox(height: 12),
+                      // Drag Handle
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: appTheme.borderMuted,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 16),
+                      // Header
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const SizedBox(
+                                width:
+                                    48), // Spacer to balance the close button
+                            Text(
+                              'Party Settings',
+                              style: AppFont.primaryTextStyle(
+                                context,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: appTheme.text,
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.keyboard_arrow_down,
+                                  color: appTheme.text, size: 32),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                      ),
                       Text(
                         'Select Category:',
                         style: AppFont.primaryTextStyle(
