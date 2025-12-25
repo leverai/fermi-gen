@@ -17,7 +17,6 @@ class Settings(BaseSettings):
 
     project_name: str = 'fermi-api'
     api_v1_str: str = '/api/v1'
-    base_url: str = 'https://api.fermi.app'  # Fallback base URL for API
 
     # Database
     database_url: str = 'postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/fermi-db'
@@ -34,6 +33,11 @@ class Settings(BaseSettings):
 
     # App mode
     use_emulators: bool = True
+
+    # ChottuLink - Invite URL base for deep links
+    # For local dev, leave as None to use trampoline endpoints
+    # For dev/prod, set to 'https://guesstimate.chottu.link'
+    invite_url_base: str | None = None
 
 
 settings = Settings()

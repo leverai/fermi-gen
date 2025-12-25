@@ -297,14 +297,28 @@ The app can optionally use a custom domain (e.g., `guesstimate.leverai.tech`) fo
 
 **Deep Links:**
 
-Invite URLs use API trampoline endpoints that work across all environments:
+The app uses ChottuLink for cross-platform deep links in dev/prod environments, with API trampoline endpoints as fallback for local development.
+
+**ChottuLink URLs (Dev/Prod):**
+- Game invites: `https://guesstimate.chottu.link/party?id={game_id}`
+- Daily Question: `https://guesstimate.chottu.link/dq?date={YYYY-MM-DD}`
+
+ChottuLink handles:
+- **Android**: App Links with automatic App Store fallback
+- **iOS**: Universal Links with App Store fallback
+- **Web**: Redirects to the Destination URL (e.g., `https://leverai.tech`)
+
+**Local Development:**
+
+When `INVITE_URL_BASE` is not set, the backend uses API trampoline endpoints:
 - Game invites: `{API_BASE_URL}/api/v1/game/invite/{game_id}`
 - Daily Question: `{API_BASE_URL}/api/v1/daily_question/invite/{YYYY-MM-DD}`
 
-The trampoline pages detect the user's platform:
-- **Android**: Uses intent URIs for reliable app launching
-- **iOS**: Uses custom scheme with App Store fallback
-- **Other**: Uses custom scheme with Play Store fallback
+**Environment Configuration:**
+
+Set `INVITE_URL_BASE` in your `.env` file:
+- **Local**: Leave unset (uses trampoline)
+- **Dev/Prod**: `INVITE_URL_BASE=https://guesstimate.chottu.link`
 
 ---
 
@@ -365,18 +379,25 @@ android {
 
 **Deep Links Configuration:**
 
-The app uses API trampoline endpoints that redirect to custom scheme URLs. Native apps register to handle these schemes:
+The app uses ChottuLink for cross-platform deep links. Native apps register to handle:
 
-- **Android**: `AndroidManifest.xml` includes intent filters for `guesstimate://` scheme
-- **iOS**: `Info.plist` includes URL scheme configuration for `guesstimate://`
+- **ChottuLink domain**: `guesstimate.chottu.link` (App Links/Universal Links)
+- **Custom scheme**: `guesstimate://` (fallback for local development)
 
-The trampoline pages use Android intent URIs for reliable app launching on Chrome/WebView.
+**Android** (`AndroidManifest.xml`):
+- Intent filters for `guesstimate://` scheme (invite/dq hosts)
+- App Links for `https://guesstimate.chottu.link`
 
-**Verification Files (Optional for future App Links):**
+**iOS** (`Runner.entitlements`):
+- Associated domains: `applinks:guesstimate.chottu.link`
+- URL scheme: `guesstimate://` in `Info.plist`
 
-For future HTTPS-based App Links/Universal Links, the `.well-known` files can be configured:
-- `/.well-known/apple-app-site-association` - iOS Universal Links verification
-- `/.well-known/assetlinks.json` - Android App Links verification
+**ChottuLink Dashboard Configuration:**
+- Ensure SHA256 fingerprints are added for Android App Links verification
+- Ensure Team ID, Bundle ID, and App Store ID are configured for iOS
+
+**Verification Files (Hosted by ChottuLink):**
+- ChottuLink automatically hosts `/.well-known/apple-app-site-association` and `/.well-known/assetlinks.json` on their domain
 
 These are configured in `firebase.json` with proper headers.
 
