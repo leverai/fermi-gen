@@ -204,7 +204,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                           weekdayFormat.format(widget.date),
                           style: AppFont.primaryTextStyle(
                             context,
-                            fontSize: 18,
+                            fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: widget.participated
                                 ? appTheme.bg

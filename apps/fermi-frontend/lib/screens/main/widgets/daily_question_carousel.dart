@@ -204,7 +204,7 @@ class DailyQuestionCarousel extends StatelessWidget {
       },
       enablePushDown: false,
       decoration: BoxDecoration(
-        color: appTheme.bgLight,
+        color: appTheme.bgDark,
         borderRadius: BorderRadius.circular(appTheme.borderRadius),
       ),
       child: SizedBox(

@@ -63,9 +63,16 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     );
     _pageController = PageController(initialPage: _currentIndex);
 
-    // Trigger DQ load after first frame
+    // Check if we need to refresh stats (set by DQ or Party game screens)
+    // This must be in a post-frame callback so the controller is fully initialized
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      if (mounted && widget.authService.shouldRefreshStats) {
+        widget.authService.shouldRefreshStats = false;
+        _controller.refreshInBackground();
+        // Also refresh DQ data
+        context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
+      } else if (mounted) {
+        // Trigger DQ load after first frame if not refreshing
         context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
       }
     });
@@ -81,15 +88,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         _lastResumeTime = now;
         _controller.refreshInBackground();
       }
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (widget.authService.shouldRefreshStats) {
-      widget.authService.shouldRefreshStats = false;
-      _controller.refreshInBackground();
     }
   }
 
