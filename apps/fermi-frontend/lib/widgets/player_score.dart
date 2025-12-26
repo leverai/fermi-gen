@@ -12,11 +12,15 @@ class PlayerScore extends StatefulWidget {
     required this.initialScore,
     this.controller,
     this.backgroundColor,
+    this.incrementAmount,
+    this.showIncrement = false,
   });
 
   final int initialScore;
   final PlayerScoreController? controller;
   final Color? backgroundColor;
+  final int? incrementAmount;
+  final bool showIncrement;
 
   @override
   State<PlayerScore> createState() => _PlayerScoreState();
@@ -238,25 +242,54 @@ class _PlayerScoreState extends State<PlayerScore> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(5.0),
+      // padding: const EdgeInsets.all(5.0),
       decoration: BoxDecoration(
         color: widget.backgroundColor ?? appTheme.bgLight,
-        borderRadius: BorderRadius.circular(100),
+        borderRadius: BorderRadius.circular(6),
         // border: Border.all(color: appTheme.border, width: 2),
-        // boxShadow: [
-        //   BoxShadow(
-        //     color: appTheme.shadowColor,
-        //     offset: appTheme.shadowOffset,
-        //     blurRadius: 0,
-        //   ),
-        // ],
+        boxShadow: [
+          BoxShadow(
+            color: appTheme.shadowColor,
+            offset: const Offset(2, 2),
+            blurRadius: 0,
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4),
         child: AnimatedSize(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          child: Row(mainAxisSize: MainAxisSize.min, children: digitWidgets),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ...digitWidgets,
+              if (widget.showIncrement && widget.incrementAmount != null)
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  opacity: widget.showIncrement ? 1.0 : 0.0,
+                  child: AnimatedSlide(
+                    duration: const Duration(milliseconds: 300),
+                    offset: widget.showIncrement
+                        ? const Offset(0, 0)
+                        : const Offset(-0.5, 0),
+                    curve: Curves.easeOut,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 4.0),
+                      child: Text(
+                        '+${_formatWithCommas(widget.incrementAmount!)}',
+                        style: AppFont.secondaryTextStyle(
+                          context,
+                          fontWeight: FontWeight.w400,
+                          fontSize: 10.0,
+                          color: appTheme.textMuted,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -272,6 +305,13 @@ class _PlayerScoreState extends State<PlayerScore> {
         color: textColor,
       ),
     );
+  }
+
+  String _formatWithCommas(int number) {
+    return number.toString().replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
   }
 }
 

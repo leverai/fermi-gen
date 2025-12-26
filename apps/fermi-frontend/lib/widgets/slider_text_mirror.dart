@@ -67,7 +67,7 @@ class SliderTextMirror extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
       decoration: BoxDecoration(
-        color: appTheme.bgDark,
+        color: appTheme.bgDark.withAlpha(100),
         borderRadius: BorderRadius.circular(60),
       ),
       child: Text(

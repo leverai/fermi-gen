@@ -8,7 +8,7 @@ import 'player_score.dart';
 import 'player_score_controller.dart';
 import 'player_widget_controller.dart';
 import 'rank_widget.dart';
-import 'answer_score_card.dart';
+import 'answer_chip.dart';
 import 'player_confetti_overlay.dart';
 import 'player_ring_progress.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
@@ -301,7 +301,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                         if (widget.showScoreOverlay &&
                             widget.playerState.score != null)
                           Positioned(
-                            top: avatarTop - 24.0,
+                            top: 16,
                             left: 0,
                             right: 0,
                             child: Row(
@@ -311,6 +311,9 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                                   key: const ValueKey('running_score_overlay'),
                                   initialScore: _currentScore,
                                   controller: _scoreOverlayController,
+                                  incrementAmount: _lastIncrement,
+                                  showIncrement: _lastIncrement != null &&
+                                      _lastIncrement! > 0,
                                 ),
                               ],
                             ),
@@ -341,9 +344,10 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                             ),
                           ),
                         ),
-                        // Status indicator (AnswerScoreCard) at bottom
+                        // Status indicator (AnswerChip) at bottom
                         Positioned(
-                          top: avatarTop + avatarSize + 24.0,
+                          top: avatarTop + avatarSize - 12,
+                          left: (90 + 20) / 2,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -571,17 +575,17 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         return const SizedBox.shrink();
       case PlayerStatus.number:
       case PlayerStatus.answer:
-        // Both number and answer status now show AnswerScoreCard
+        // Both number and answer status now show AnswerChip
         final ans = widget.playerState.submittedAnswer;
         if (ans == null) return const SizedBox.shrink();
         // Prefer per-question round score from state when available (e.g., review)
         int visibleRound = widget.playerState.roundScore ?? _currentRoundScore;
         if (visibleRound < 0) visibleRound = 0; // clamp
         final Color bg = scoreToColor(visibleRound);
-        return AnswerScoreCard(
+        return AnswerChip(
           answer: ans,
           score: visibleRound,
-          backgroundColor: bg.withAlpha((0.3 * 255).toInt()),
+          backgroundColor: bg,
         );
       case PlayerStatus.none:
         return const SizedBox.shrink();
