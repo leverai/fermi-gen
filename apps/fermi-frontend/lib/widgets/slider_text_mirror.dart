@@ -14,11 +14,13 @@ class SliderTextMirror extends StatelessWidget {
   const SliderTextMirror({
     super.key,
     required this.value,
+    this.unitOptions = const {},
     this.fontSize = 14.0,
     this.fontWeight = FontWeight.w500,
   });
 
   final AnswerValue value;
+  final Map<String, String> unitOptions; // Full name -> abbreviation map
   final double fontSize;
   final FontWeight fontWeight;
 
@@ -43,7 +45,15 @@ class SliderTextMirror extends StatelessWidget {
     }
 
     if (answer.unit.isNotEmpty) {
-      parts.add(answer.unit);
+      // Find the full name from unitOptions map (abbreviation -> full name)
+      // unitOptions is full name -> abbreviation, so we need to reverse lookup
+      final fullName = unitOptions.entries
+          .firstWhere(
+            (entry) => entry.value == answer.unit,
+            orElse: () => MapEntry(answer.unit, answer.unit),
+          )
+          .key;
+      parts.add(fullName);
     }
 
     return parts.join(' ');
