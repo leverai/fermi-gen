@@ -49,7 +49,7 @@ class StatsCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _StatItem(
-                    label: 'Party Games',
+                    label: 'Parties',
                     value: stats.totalPartyGames.toString(),
                   ),
                   _StatItem(
