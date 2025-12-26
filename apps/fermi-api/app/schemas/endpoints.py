@@ -98,6 +98,18 @@ class GetPlayerStatsRequest(BaseModel):
 class PlayerStats(BaseModel):
     """Player stats."""
 
+    class RankInfo(BaseModel):
+        """Player rank info."""
+
+        id: int
+        """Rank tier ID (1-5)."""
+
+        name: str
+        """Rank name (e.g., 'Fermi Master')."""
+
+        picture: str
+        """URL to the rank image."""
+
     total_party_games: int
     """Total party mode games played."""
 
@@ -106,6 +118,9 @@ class PlayerStats(BaseModel):
 
     average_percentile: int
     """Average percentile (0-100)."""
+
+    rank: RankInfo
+    """Player rank based on average percentile."""
 
     level: int
     """Player level (not yet implemented, always 1)."""

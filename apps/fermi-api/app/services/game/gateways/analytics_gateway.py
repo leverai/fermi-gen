@@ -15,7 +15,6 @@ from fermi_db.models import AnswerEvent
 from fermi_db.models.game import VoteVerdict
 from fermi_db.schemas import QuestionCategory
 
-from app.schemas.endpoints import PlayerStats
 from app.schemas.game import (
     AnswerDoc,
     PlayersResultsDoc,
@@ -185,20 +184,26 @@ class GameAnalyticsGateway:
                     question_uids=(uuid.UUID(players_results_doc['question_uid']),),
                 )
 
-    async def get_player_stats(self, player_id: str) -> PlayerStats:
-        """Get a player's stats."""
-        return PlayerStats(
-            total_party_games=await self._db_client.answers.count_user_party_games(
-                player_id,
-            ),
-            total_daily_guesses=await self._db_client.dq_answers.count_user_answers(
-                player_id,
-            ),
-            average_percentile=await self._db_client.answers.get_overall_avg_percentile(
-                player_id,
-            ),
-            level=1,  # Not implemented yet
+    async def get_player_stats(self, player_id: str) -> dict:
+        """Get a player's raw stats.
+
+        Returns a dict containing:
+            - total_party_games: int
+            - total_daily_guesses: int
+            - average_percentile: int
+        """
+        avg_pct = await self._db_client.answers.get_overall_avg_percentile(
+            player_id,
         )
+        return {
+            'total_party_games': await self._db_client.answers.count_user_party_games(
+                player_id,
+            ),
+            'total_daily_guesses': await self._db_client.dq_answers.count_user_answers(
+                player_id,
+            ),
+            'average_percentile': avg_pct,
+        }
 
     async def set_user_vote(
         self,

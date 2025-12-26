@@ -185,6 +185,7 @@ async def remove_player(
 
 @router.post('/get_player_stats', response_model=GetPlayerStatsResponse)
 async def get_player_stats(
+    request: Request,
     payload: GetPlayerStatsRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     game_service: Annotated[GameService, Depends(get_game_service)],
@@ -192,6 +193,7 @@ async def get_player_stats(
     """Get a player's stats."""
     return await game_service.get_player_stats(
         payload=payload,
+        request=request,
     )
 
 

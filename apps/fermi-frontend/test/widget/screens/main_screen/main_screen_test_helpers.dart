@@ -68,6 +68,11 @@ PlayerStatsResponse createTestPlayerStats({int? averagePercentile}) {
       totalDailyGuesses: 5,
       averagePercentile: averagePercentile ?? 75,
       level: 1,
+      rank: const RankInfo(
+        id: 1,
+        name: 'Observer',
+        picture: '',
+      ),
     ),
   );
 }
