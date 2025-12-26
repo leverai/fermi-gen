@@ -85,23 +85,46 @@ class AnswerRepository(BaseRepository):
         return int(count) if count is not None else 0
 
     async def get_overall_avg_percentile(self, firebase_uid: str) -> int:
-        """Get user's overall average percentile across all party games.
+        """Get user's overall percentile across all party games.
+
+        Computes the player's global percentile by comparing their average score
+        against all other players' average scores using percent_rank().
 
         Args:
             firebase_uid: The user's Firebase UID.
 
         Returns:
-            The average percentile (0-100), or 0 if no games played.
+            The percentile (0-100), or 0 if no games played.
 
         """
-        stmt = select(func.avg(AnswerEvent.score_quantile)).where(  # pyright: ignore[reportArgumentType]
-            AnswerEvent.user_firebase_id == firebase_uid,  # pyright: ignore[reportArgumentType]
+        # Subquery: compute average score per player
+        player_avgs = (
+            select(
+                AnswerEvent.user_firebase_id,
+                func.avg(AnswerEvent.score_number).label('avg_score'),
+            )
+            .group_by(AnswerEvent.user_firebase_id)
+            .subquery()
+        )
+
+        # Use percent_rank() window function to compute percentile in one query
+        ranked = (
+            select(
+                player_avgs.c.user_firebase_id,
+                (
+                    func.percent_rank().over(order_by=player_avgs.c.avg_score) * 100
+                ).label('percentile'),
+            )
+            .select_from(player_avgs)
+            .subquery()
+        )
+
+        stmt = select(ranked.c.percentile).where(
+            ranked.c.user_firebase_id == firebase_uid,  # pyright: ignore[reportArgumentType]
         )
         result = await self.session.execute(stmt)
-        avg_quantile = result.scalar()
-        if avg_quantile is None:
-            return 0
-        return int(avg_quantile * 100)
+        percentile = result.scalar()
+        return int(percentile) if percentile is not None else 0
 
     async def get_user_answer_events(
         self,
