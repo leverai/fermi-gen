@@ -384,11 +384,11 @@ class _UnitTapeState extends State<UnitTape>
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    // Determine colors based on focus and reveal state
-    final Color textColor =
-        _isFocused ? appTheme.secondary : (widget.revealColor ?? appTheme.text);
-    final Color borderColor =
-        _isFocused ? appTheme.secondary : Colors.transparent;
+    // Determine colors based on focus and dragging state
+    final Color textColor = (_isFocused || _isDragging)
+        ? appTheme.secondary
+        : (widget.revealColor ?? appTheme.text);
+    const Color borderColor = Colors.transparent;
 
     return Container(
       decoration: const BoxDecoration(
@@ -421,7 +421,7 @@ class _UnitTapeState extends State<UnitTape>
                       itemExtent: 72,
                       width: 60,
                       borderColor: borderColor,
-                      draggingBorderColor: appTheme.secondary,
+                      draggingBorderColor: Colors.transparent,
                       borderWidth: 1.5,
                       textStyle: AppFont.primaryTextStyle(
                         context,
