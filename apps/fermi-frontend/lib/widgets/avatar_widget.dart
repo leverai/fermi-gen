@@ -15,6 +15,7 @@ class AvatarWidget extends StatelessWidget {
     this.borderWidth = 2.0,
     this.backgroundColor,
     this.padding = EdgeInsets.zero,
+    this.boxShadow,
   });
 
   /// URL of the avatar image. Can be an SVG or raster image.
@@ -38,6 +39,9 @@ class AvatarWidget extends StatelessWidget {
   /// Internal padding between the border and the image (useful for SVGs).
   final EdgeInsets padding;
 
+  /// Optional shadow effect.
+  final List<BoxShadow>? boxShadow;
+
   bool get _isSvg =>
       imageUrl != null && imageUrl!.toLowerCase().endsWith('.svg');
 
@@ -56,6 +60,10 @@ class AvatarWidget extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: backgroundColor,
+        border: borderColor != null
+            ? Border.all(color: borderColor!, width: borderWidth)
+            : null,
+        boxShadow: boxShadow,
       ),
       child: Padding(
         padding: padding,
