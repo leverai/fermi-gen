@@ -16,9 +16,11 @@ from app.schemas.endpoints import (
     GetPlayerStatsRequest,
     GetPlayerStatsResponse,
     IdModel,
+    PlayerStats,
 )
 from app.services.game.errors import ValidationError
 from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
+from app.services.game.ranks import get_rank_for_percentile
 from app.services.game.repositories.game_repo import GameRepository
 from app.services.game.tasks.archive_game_results import archive_game_results
 from app.services.game.tasks.fetch_and_set_questions import fetch_and_set_questions
@@ -485,12 +487,24 @@ class GameService:
     async def get_player_stats(
         self,
         payload: GetPlayerStatsRequest,
+        request: Request | None = None,
     ) -> GetPlayerStatsResponse:
         """Get a player's stats."""
+        raw_stats = await self._db_gateway.get_player_stats(
+            player_id=payload.player_id,
+        )
+        rank = get_rank_for_percentile(
+            avg_percentile=raw_stats['average_percentile'],
+            request=request,
+        )
         return GetPlayerStatsResponse(
             player_id=payload.player_id,
-            stats=await self._db_gateway.get_player_stats(
-                player_id=payload.player_id,
+            stats=PlayerStats(
+                total_party_games=raw_stats['total_party_games'],
+                total_daily_guesses=raw_stats['total_daily_guesses'],
+                average_percentile=raw_stats['average_percentile'],
+                rank=rank,
+                level=1,  # Not implemented yet
             ),
         )
 

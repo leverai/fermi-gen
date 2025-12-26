@@ -137,7 +137,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       final String gameId = await _controller.createGame(
           nQuestions: AppConfig.defaultQuestionCount);
       if (!mounted) return;
-      Navigator.of(context).push(
+      Navigator.of(context)
+          .push(
         PageRouteBuilder(
           pageBuilder: (_, __, ___) => LobbyScreenController(
             gameId: gameId,
@@ -167,7 +168,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             );
           },
         ),
-      );
+      )
+          .then((_) {
+        // Refresh stats when returning from Party game
+        if (mounted) {
+          _controller.refreshInBackground();
+          context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
+        }
+      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
@@ -180,7 +188,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       final String gameId = await _controller.joinRandomGame(
           nQuestions: AppConfig.defaultQuestionCount);
       if (!mounted) return;
-      Navigator.of(context).push(
+      Navigator.of(context)
+          .push(
         PageRouteBuilder(
           pageBuilder: (_, __, ___) => LobbyScreenController(
             gameId: gameId,
@@ -202,7 +211,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             );
           },
         ),
-      );
+      )
+          .then((_) {
+        // Refresh stats when returning from Party game
+        if (mounted) {
+          _controller.refreshInBackground();
+          context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
+        }
+      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),

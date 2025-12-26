@@ -77,6 +77,11 @@ void main() {
           totalDailyGuesses: 5,
           averagePercentile: 75,
           level: 1,
+          rank: RankInfo(
+            id: 1,
+            name: 'Observer',
+            picture: '',
+          ),
         ),
       );
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);

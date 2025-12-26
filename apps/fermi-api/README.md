@@ -400,6 +400,11 @@ Retrieves a player's statistics.
         "total_party_games": 42,
         "total_daily_guesses": 15,
         "average_percentile": 75,
+        "rank": {
+          "id": 3,
+          "name": "Analyst",
+          "picture": "https://<host>/static/ranks/3.svg"
+        },
         "level": 1
       }
     }
@@ -409,7 +414,20 @@ Notes:
 - `total_party_games`: Number of party mode games the player has participated in
 - `total_daily_guesses`: Number of daily questions the player has answered
 - `average_percentile`: Overall average percentile across all party games (0-100)
+- `rank`: Player rank based on average percentile, includes:
+  - `id`: Tier ID (1-5)
+  - `name`: Tier name (Observer, Guesstimator, Analyst, Strategist, Fermi Master)
+  - `picture`: URL to the rank image
 - `level`: Player level (always 1, not yet implemented)
+
+**Rank Tiers:**
+| Tier | Percentile Range | Name |
+|------|------------------|------|
+| 1 | 0-39% | Observer |
+| 2 | 40-74% | Guesstimator |
+| 3 | 75-89% | Analyst |
+| 4 | 90-97% | Strategist |
+| 5 | 98-100% | Fermi Master |
 
 #### `POST /question/upvote` and `POST /question/downvote`
 Set or toggle a user's vote on a question. The backend stores per‑user votes in a `questions_votes` table. Upvote/downvote counts are computed from this table; there are no aggregate counters on `fermi_questions`. The resulting verdict is returned.

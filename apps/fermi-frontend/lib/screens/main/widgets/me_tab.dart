@@ -54,12 +54,10 @@ class MeTab extends StatelessWidget {
             imageUrl: avatarUrl,
             size: 120,
             backgroundColor: appTheme.bgLight,
-            borderColor: appTheme.border,
-            borderWidth: 2,
             padding: const EdgeInsets.all(12.0),
             boxShadow: [
               BoxShadow(
-                color: appTheme.shadowColor,
+                color: appTheme.primary,
                 offset: appTheme.shadowOffset,
               ),
             ],
