@@ -44,6 +44,14 @@ class AnswerChip extends StatelessWidget {
           bottomLeft: Radius.circular(20),
           bottomRight: Radius.circular(20),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: appTheme.shadowColor,
+            // spreadRadius: 2,
+            // blurRadius: 0,
+            offset: const Offset(2, 2),
+          ),
+        ],
       ),
       child: _buildAnswerText(context, textColor),
     );
