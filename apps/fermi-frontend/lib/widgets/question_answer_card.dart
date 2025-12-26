@@ -150,12 +150,13 @@ class QuestionAnswerCard extends StatelessWidget {
                 SizedBox(
                   height: kQuestionAnswerCardAnswerRowHeight,
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // SliderTextMirror on the left
                       SliderTextMirror(
                         value: currentAnswer,
+                        unitOptions: unitOptions,
                       ),
                       // UnitTape on the right (if units available)
                       if (units.isNotEmpty)
