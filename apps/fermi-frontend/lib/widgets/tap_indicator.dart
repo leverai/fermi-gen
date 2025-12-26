@@ -45,9 +45,7 @@ class TapIndicator extends StatelessWidget {
       right: horizontalPadding,
       child: Container(
         height: height,
-        color:
-            // ignore: deprecated_member_use
-            appTheme.border.withOpacity(opacity),
+        color: appTheme.borderMuted.withAlpha((opacity * 255).toInt()),
       ),
     );
   }

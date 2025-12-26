@@ -85,6 +85,42 @@ class _StringTapeState extends State<StringTape> {
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(covariant StringTape oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Rebind controller if it changed
+    if (oldWidget.controller != widget.controller) {
+      widget.controller?._bind(
+        jumpTo: _jumpTo,
+        animateTo: _animateTo,
+      );
+    }
+
+    // When values list changes (e.g., locale toggle), reset position
+    // to match the new initialValue
+    if (!_listEquals(oldWidget.values, widget.values)) {
+      final int newIndex = _indexOf(widget.initialValue);
+      if (newIndex != _selectedIndex) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _controller.jumpToItem(newIndex);
+            setState(() => _selectedIndex = newIndex);
+          }
+        });
+      }
+    }
+  }
+
+  // Helper to compare lists
+  bool _listEquals(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
   int _indexOf(String? value) {
     if (value == null || widget.values.isEmpty) return 0;
     final int idx = widget.values.indexOf(value);
