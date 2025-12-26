@@ -493,80 +493,97 @@ class _UnitSelectorSheet extends StatelessWidget {
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: SafeArea(
           top: false,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const SizedBox(height: 12),
               // Drag handle
               Container(
                 width: 40,
                 height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
                   color: appTheme.borderMuted,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              // Header with Arrow
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  icon: Icon(Icons.keyboard_arrow_down,
-                      color: appTheme.text, size: 32),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-
-              // Unit system switch: Imperial / Metric
-              GestureDetector(
-                onTap: () {
-                  final newLocale = isUS ? 'EU' : 'US';
-                  onLocaleChanged(newLocale);
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Imperial label - fixed width to prevent toggle shifting
-                    SizedBox(
-                      width: 80,
-                      child: Text(
-                        'Imperial',
-                        textAlign: TextAlign.left,
-                        style: AppFont.primaryTextStyle(
-                          context,
-                          fontSize: 16,
-                          fontWeight: isUS ? FontWeight.w600 : FontWeight.w400,
-                          color: isUS ? appTheme.secondary : appTheme.textMuted,
+              const SizedBox(height: 12),
+              // Unit system toggle with Arrow (matches archive sheet layout)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  height: 48,
+                  width: double.infinity,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Unit system switch: Imperial / Metric (centered)
+                      GestureDetector(
+                        onTap: () {
+                          final newLocale = isUS ? 'EU' : 'US';
+                          onLocaleChanged(newLocale);
+                        },
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Imperial label - fixed width to prevent toggle shifting
+                            SizedBox(
+                              width: 80,
+                              child: Text(
+                                'Imperial',
+                                textAlign: TextAlign.left,
+                                style: AppFont.primaryTextStyle(
+                                  context,
+                                  fontSize: 16,
+                                  fontWeight:
+                                      isUS ? FontWeight.w600 : FontWeight.w400,
+                                  color: isUS
+                                      ? appTheme.secondary
+                                      : appTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                            // Switch container
+                            UnitSystemSwitch(
+                              isUS: isUS,
+                              appTheme: appTheme,
+                            ),
+                            const SizedBox(width: 12),
+                            // Metric label - fixed width to prevent toggle shifting
+                            SizedBox(
+                              width: 80,
+                              child: Text(
+                                'Metric',
+                                textAlign: TextAlign.left,
+                                style: AppFont.primaryTextStyle(
+                                  context,
+                                  fontSize: 16,
+                                  fontWeight:
+                                      !isUS ? FontWeight.w600 : FontWeight.w400,
+                                  color: !isUS
+                                      ? appTheme.secondary
+                                      : appTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    // Switch container
-                    UnitSystemSwitch(
-                      isUS: isUS,
-                      appTheme: appTheme,
-                    ),
-                    const SizedBox(width: 12),
-                    // Metric label - fixed width to prevent toggle shifting
-                    SizedBox(
-                      width: 80,
-                      child: Text(
-                        'Metric',
-                        textAlign: TextAlign.left,
-                        style: AppFont.primaryTextStyle(
-                          context,
-                          fontSize: 16,
-                          fontWeight: !isUS ? FontWeight.w600 : FontWeight.w400,
-                          color:
-                              !isUS ? appTheme.secondary : appTheme.textMuted,
+                      // Arrow button (positioned right)
+                      Positioned(
+                        right: 0,
+                        child: IconButton(
+                          icon: Icon(Icons.keyboard_arrow_down,
+                              color: appTheme.text, size: 32),
+                          onPressed: () => Navigator.of(context).pop(),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               // Unit selector - rebuilds with fresh options on each locale change
               StringTape(
                 values: options.map((opt) => opt.value).toList(),

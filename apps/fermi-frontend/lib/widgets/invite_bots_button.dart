@@ -32,11 +32,9 @@ class _InviteBotsButtonState extends State<InviteBotsButton> {
     final isEnabled = widget.enabled && !_hasInvitedBots;
 
     // Use secondary color as requested
-    final backgroundColor =
-        // ignore: deprecated_member_use
-        isEnabled ? appTheme.bgLight : appTheme.borderMuted.withOpacity(0.2);
+    final backgroundColor = appTheme.bg;
     // Use a contrasting text color. Since secondary is vibrant/dark, white or bgLight usually works well.
-    final foregroundColor = isEnabled ? appTheme.text : appTheme.bgLight;
+    final foregroundColor = isEnabled ? appTheme.text : appTheme.borderMuted;
 
     const buttonLabel = 'Invite bots';
 
@@ -63,13 +61,13 @@ class _InviteBotsButtonState extends State<InviteBotsButton> {
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            if (!_isPressed && isEnabled)
-              BoxShadow(
-                color: appTheme.shadowColor,
-                offset: appTheme.shadowOffset,
-              ),
-          ],
+          // boxShadow: [
+          //   if (!_isPressed && isEnabled)
+          //     BoxShadow(
+          //       color: appTheme.shadowColor,
+          //       offset: appTheme.shadowOffset,
+          //     ),
+          // ],
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         child: Row(
