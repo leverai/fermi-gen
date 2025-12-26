@@ -121,8 +121,10 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   late int _currentScore;
   late int _currentRoundScore;
   int? _lastIncrement;
-  bool _nameVisible = false;
   bool _showConfetti = false;
+
+  /// Incremented on tap to trigger a new scroll animation via key change
+  int _scrollTriggerCount = 0;
 
   @override
   void initState() {
@@ -191,11 +193,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     // If the controller wants to clear the transient chip, it calls setRoundScore(0).
     // This prevents race conditions where widget rebuilds with stale PlayerState.roundScore
     // clear the transient chip before the next rebuild with correct roundScore arrives.
-    if (!widget.showNameChip ||
-        widget.playerState.displayName == null ||
-        widget.playerState.displayName!.isEmpty) {
-      _nameVisible = false;
-    }
   }
 
   void _handleSetRoundScore(int newRoundScore) {
@@ -269,23 +266,22 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         highlightColor: Colors.transparent,
         hoverColor: Colors.transparent,
         onTap: () {
-          if (!widget.showNameChip ||
-              (widget.playerState.displayName == null ||
-                  widget.playerState.displayName!.isEmpty)) {
-            return;
+          // Trigger scroll animation on tap if name is present
+          if (widget.showNameChip &&
+              widget.playerState.displayName != null &&
+              widget.playerState.displayName!.isNotEmpty) {
+            setState(() {
+              _scrollTriggerCount++;
+            });
           }
-          setState(() {
-            _nameVisible = !_nameVisible;
-          });
         },
         child: SizedBox(
           width: 90,
-          height: 192,
+          height: 112,
           child: LayoutBuilder(
             builder: (context, constraints) {
               const double avatarSize = 63.0;
               // Overflow distance for name chip (top)
-              const double overflowDistance = 20;
               final double totalH = constraints.maxHeight;
               final double avatarTop = (totalH - avatarSize) / 2;
               return Stack(
@@ -301,7 +297,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                         if (widget.showScoreOverlay &&
                             widget.playerState.score != null)
                           Positioned(
-                            top: 16,
+                            top: 4,
                             left: 0,
                             right: 0,
                             child: Row(
@@ -358,62 +354,34 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                       ],
                     ),
                   ),
+                  // Player name at bottom of widget (below the ring)
                   if (widget.showNameChip &&
                       (widget.playerState.displayName?.isNotEmpty ?? false))
                     Positioned(
-                      top: _isStatusIndicatorVisible()
-                          ? -overflowDistance
-                          : avatarTop -
-                              36.0, // 24px above avatar (avatarTop - 24.0 was at edge, need another 24px)
+                      bottom: 0,
                       left: 0,
                       right: 0,
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 120),
-                        curve: Curves.easeInOut,
-                        opacity: _nameVisible ? 1.0 : 0.0,
-                        child: AnimatedSlide(
-                          duration: const Duration(milliseconds: 120),
-                          curve: Curves.easeInOut,
-                          offset: _nameVisible
-                              ? const Offset(0, 0.0)
-                              : const Offset(0, 0.4),
-                          child: Center(
-                            child: SizedBox(
-                              width: 92.0,
-                              child: _nameVisible
-                                  ? TextScroll(
-                                      key: ValueKey(
-                                          widget.playerState.displayName),
-                                      widget.playerState.displayName!,
-                                      delayBefore: const Duration(seconds: 1),
-                                      pauseBetween: const Duration(seconds: 1),
-                                      pauseOnBounce: const Duration(seconds: 1),
-                                      mode: TextScrollMode.bouncing,
-                                      style: AppFont.primaryTextStyle(
-                                        context,
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 14.0,
-                                        color: nameColor,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      selectable: false,
-                                    )
-                                  : Text(
-                                      key: ValueKey(
-                                          widget.playerState.displayName),
-                                      widget.playerState.displayName!,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      softWrap: false,
-                                      textAlign: TextAlign.center,
-                                      style: AppFont.primaryTextStyle(
-                                        context,
-                                        fontWeight: FontWeight.w300,
-                                        fontSize: 14.0,
-                                        color: nameColor,
-                                      ),
-                                    ),
+                      child: Center(
+                        child: SizedBox(
+                          width: 92.0,
+                          child: TextScroll(
+                            // Key includes scrollTriggerCount to restart animation on tap
+                            key: ValueKey(
+                                '${widget.playerState.displayName}_$_scrollTriggerCount'),
+                            widget.playerState.displayName!,
+                            delayBefore: const Duration(milliseconds: 500),
+                            pauseBetween: Duration.zero,
+                            pauseOnBounce: const Duration(milliseconds: 500),
+                            mode: TextScrollMode.bouncing,
+                            numberOfReps: 1,
+                            style: AppFont.primaryTextStyle(
+                              context,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12.0,
+                              color: nameColor,
                             ),
+                            textAlign: TextAlign.center,
+                            selectable: false,
                           ),
                         ),
                       ),
@@ -551,19 +519,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
       },
       child: avatarContent,
     );
-  }
-
-  bool _isStatusIndicatorVisible() {
-    switch (widget.playerState.status) {
-      case PlayerStatus.waiting:
-      case PlayerStatus.ready:
-      case PlayerStatus.none:
-        return false;
-      case PlayerStatus.number:
-        return true;
-      case PlayerStatus.answer:
-        return widget.playerState.submittedAnswer != null;
-    }
   }
 
   Widget _buildStatusIndicator() {
