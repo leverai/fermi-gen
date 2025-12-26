@@ -293,6 +293,8 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         _timer?.cancel();
         setState(() {
           _isSubmitted = true;
+          _submittedWithoutQuestion = true;
+          _question = null; // Clear to trigger waiting placeholder UI
         });
         // Hide unit tape indicators immediately after submission
         _unitTapeController.setRevealed(
@@ -559,36 +561,55 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Show QuestionAnswerCard if we have question data,
-                              // otherwise show waiting placeholder
-                              if (hasQuestionData)
-                                QuestionAnswerCard(
-                                  questionText: _questionText ?? '',
-                                  tags: const [], // No tags for daily question
-                                  currentAnswer: _currentAnswer,
-                                  submittedAnswer: submittedAnswer,
-                                  unitOptions: _unitOptions,
-                                  units: _unitAbbreviations,
-                                  currentLocale: _currentLocale,
-                                  onAnswerChanged: inputsEnabled
-                                      ? (val) {
-                                          setState(() {
-                                            _currentAnswer = val;
-                                          });
-                                        }
-                                      : (_) {},
-                                  onLocaleChanged: _onLocaleChanged,
-                                  editable: inputsEnabled,
-                                  revealedAnswer: revealedAnswer,
-                                  revealedColor: revealedColor,
-                                  unitTapeController: _unitTapeController,
-                                  buttonWidget: MainButton(
-                                    onPressed: inputsEnabled ? _submit : null,
-                                    label: MainButtonLabel.submit,
-                                  ),
-                                )
-                              else
-                                _buildWaitingPlaceholder(appTheme),
+                              // Animated transition between question card and waiting placeholder
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 600),
+                                switchInCurve: Curves.easeOutBack,
+                                transitionBuilder: (Widget child,
+                                    Animation<double> animation) {
+                                  return ScaleTransition(
+                                    scale: animation,
+                                    child: FadeTransition(
+                                      opacity: animation,
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: hasQuestionData
+                                    ? QuestionAnswerCard(
+                                        key: const ValueKey('question_card'),
+                                        questionText: _questionText ?? '',
+                                        tags: const [], // No tags for daily question
+                                        currentAnswer: _currentAnswer,
+                                        submittedAnswer: submittedAnswer,
+                                        unitOptions: _unitOptions,
+                                        units: _unitAbbreviations,
+                                        currentLocale: _currentLocale,
+                                        onAnswerChanged: inputsEnabled
+                                            ? (val) {
+                                                setState(() {
+                                                  _currentAnswer = val;
+                                                });
+                                              }
+                                            : (_) {},
+                                        onLocaleChanged: _onLocaleChanged,
+                                        editable: inputsEnabled,
+                                        revealedAnswer: revealedAnswer,
+                                        revealedColor: revealedColor,
+                                        unitTapeController: _unitTapeController,
+                                        buttonWidget: MainButton(
+                                          onPressed:
+                                              inputsEnabled ? _submit : null,
+                                          label: MainButtonLabel.submit,
+                                        ),
+                                      )
+                                    : KeyedSubtree(
+                                        key: const ValueKey(
+                                            'waiting_placeholder'),
+                                        child:
+                                            _buildWaitingPlaceholder(appTheme),
+                                      ),
+                              ),
 
                               // Spacer for bottom sheet (always present to maintain centering)
                               const SizedBox(height: 120),
