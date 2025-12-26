@@ -145,13 +145,13 @@ class QuestionAnswerCard extends StatelessWidget {
                       // ignore: deprecated_member_use
                       appTheme.border.withOpacity(0.3),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 // Answer display row: SliderTextMirror (left) + UnitTape (right)
                 SizedBox(
                   height: kQuestionAnswerCardAnswerRowHeight,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // SliderTextMirror on the left
                       SliderTextMirror(
