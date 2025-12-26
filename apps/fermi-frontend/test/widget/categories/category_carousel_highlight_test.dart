@@ -26,7 +26,7 @@ void main() {
     );
 
     // Act
-    await tester.tap(find.byType(CategoryCardM3).first);
+    await tester.tap(find.byType(CategoryCardM3).first, warnIfMissed: false);
     await tester.pumpAndSettle();
 
     // Assert

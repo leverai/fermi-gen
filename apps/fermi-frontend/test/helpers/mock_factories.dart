@@ -5,6 +5,7 @@ import 'package:fermi_frontend/services/game_realtime.dart';
 import 'package:fermi_frontend/services/firestore_game_realtime.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
+import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 
 /// Mock implementation of [ApiService] for unit and widget tests.
 ///
@@ -49,6 +50,10 @@ class MockFirestoreGameRealtime extends Mock implements FirestoreGameRealtime {}
 
 /// Mock implementation of [DailyQuestionService] for unit and widget tests.
 class MockDailyQuestionService extends Mock implements DailyQuestionService {}
+
+/// Mock implementation of [DailyQuestionController] for unit and widget tests.
+class MockDailyQuestionController extends Mock
+    implements DailyQuestionController {}
 
 /// Fallback value registrations for mocktail.
 ///
