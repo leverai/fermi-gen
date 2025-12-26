@@ -21,6 +21,7 @@ import 'package:fermi_frontend/screens/main/widgets/me_tab.dart';
 import 'package:fermi_frontend/screens/main/widgets/games_tab.dart';
 import 'package:fermi_frontend/screens/main/widgets/party_bottom_sheet.dart';
 import 'package:fermi_frontend/screens/main/widgets/profile_sheet.dart';
+import 'package:fermi_frontend/screens/main/ranks/ranks_screen.dart';
 
 import 'package:fermi_frontend/widgets/responsive_container.dart';
 
@@ -410,6 +411,19 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                     onEditProfile: _handleEditProfile,
                                     playerStats:
                                         _controller.playerStatsDto?.stats,
+                                    onStatsTapped: () {
+                                      final stats =
+                                          _controller.playerStatsDto?.stats;
+                                      if (stats != null) {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => RanksScreen(
+                                              playerStats: stats,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
                                   ),
                                 ),
                               ],
