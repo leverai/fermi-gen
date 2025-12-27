@@ -436,17 +436,19 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     Positioned(
                       bottom: 12,
                       right: 12,
-                      child: FloatingActionButton(
-                        onPressed: _toggleSettings,
-                        backgroundColor: Colors.transparent,
-                        elevation: 0,
-                        shape: const CircleBorder(),
-                        child: SvgPicture.asset(
-                          'assets/icons/gear.svg',
-                          colorFilter:
-                              ColorFilter.mode(appTheme.text, BlendMode.srcIn),
-                          width: 36,
-                          height: 36,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: IconButton(
+                          onPressed: _toggleSettings,
+                          splashColor: Colors.transparent,
+                          highlightColor: appTheme.text.withOpacity(0.1),
+                          icon: SvgPicture.asset(
+                            'assets/icons/gear.svg',
+                            colorFilter: ColorFilter.mode(
+                                appTheme.text, BlendMode.srcIn),
+                            width: 36,
+                            height: 36,
+                          ),
                         ),
                       ),
                     ),

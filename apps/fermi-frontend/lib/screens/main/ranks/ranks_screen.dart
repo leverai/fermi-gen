@@ -185,7 +185,14 @@ class _RankPage extends StatelessWidget {
           decoration: BoxDecoration(
             color: appTheme.bgLight,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: appTheme.borderMuted),
+            boxShadow: [
+              BoxShadow(
+                color: appTheme.shadowColor,
+                offset: appTheme.shadowOffset,
+                blurRadius: 0,
+                spreadRadius: 0,
+              ),
+            ],
           ),
           child: Text(
             'Top ${100 - rank.minPercentile}%',
@@ -198,13 +205,20 @@ class _RankPage extends StatelessWidget {
           ),
         ),
         if (playerStats.rank.id == rank.id) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: appTheme.primary.withOpacity(0.1),
+              color: appTheme.primary,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: appTheme.primary.withOpacity(0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: appTheme.shadowColor,
+                  offset: appTheme.shadowOffset,
+                  blurRadius: 0,
+                  spreadRadius: 0,
+                ),
+              ],
             ),
             child: Text(
               'Your Current Rank',
@@ -212,7 +226,7 @@ class _RankPage extends StatelessWidget {
                 context,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: appTheme.primary,
+                color: appTheme.bgLight,
               ),
             ),
           ),

@@ -123,6 +123,7 @@ class QuestionAnswerCard extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(kQuestionAnswerCardSpacing),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Question widget (without border, just text + tags)
@@ -179,7 +180,7 @@ class QuestionAnswerCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 48),
                 // Answer Accuracy Scale
                 AnswerAccuracyScale(
                   key: answerScaleKey,
