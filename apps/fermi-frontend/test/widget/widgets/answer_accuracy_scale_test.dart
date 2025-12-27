@@ -7,7 +7,8 @@ import '../../helpers/test_helpers.dart';
 
 void main() {
   group('AnswerAccuracyScale', () {
-    testWidgets('should render correctly with current answer',
+    testWidgets(
+        'should render correctly with hidden answer text box by default',
         (WidgetTester tester) async {
       // Arrange
       const currentAnswer =
@@ -28,7 +29,70 @@ void main() {
               of: find.byType(AnswerAccuracyScale),
               matching: find.byType(CustomPaint)),
           findsOneWidget);
-      expect(find.text('1 K'), findsOneWidget); // User answer text box
+
+      // The text box should be hidden by default (opacity 0)
+      final opacityWidget = tester.widget<AnimatedOpacity>(
+        find
+            .descendant(
+              of: find.byType(AnswerAccuracyScale),
+              matching: find.byType(AnimatedOpacity),
+            )
+            .first,
+      );
+      expect(opacityWidget.opacity, 0.0);
+    });
+
+    testWidgets('should show answer text box during drag',
+        (WidgetTester tester) async {
+      // Arrange
+      const currentAnswer =
+          AnswerValue(number: 1, orderOfMagnitude: 'K', unit: 'm');
+
+      await pumpWithMaterialApp(
+        tester,
+        AnswerAccuracyScale(
+          currentAnswer: currentAnswer,
+          editable: true,
+          onAnswerChanged: (_) {},
+        ),
+      );
+
+      // Act: Start drag
+      final scaleFinder = find.byType(AnswerAccuracyScale);
+      final center = tester.getCenter(scaleFinder);
+      final gesture = await tester.startGesture(center);
+
+      // Move significantly to exceed touch slop
+      await gesture.moveBy(const Offset(50, 0));
+      await tester.pump(); // Handle move
+      await tester.pump(); // Handle build after setState
+
+      // Assert: Text box should be visible (opacity 1.0)
+      final opacityWidget = tester.widget<AnimatedOpacity>(
+        find
+            .descendant(
+              of: find.byType(AnswerAccuracyScale),
+              matching: find.byType(AnimatedOpacity),
+            )
+            .first,
+      );
+      expect(opacityWidget.opacity, 1.0);
+
+      // Act: End drag
+      await gesture.up();
+      await tester.pump(); // Handle up
+      await tester.pump(); // Handle build after setState
+
+      // Assert: Opacity should be back to 0.0
+      final opacityWidgetAfter = tester.widget<AnimatedOpacity>(
+        find
+            .descendant(
+              of: find.byType(AnswerAccuracyScale),
+              matching: find.byType(AnimatedOpacity),
+            )
+            .first,
+      );
+      expect(opacityWidgetAfter.opacity, 0.0);
     });
 
     testWidgets('should show submitted answer when revealed',

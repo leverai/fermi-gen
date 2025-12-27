@@ -112,7 +112,9 @@ class GameCard extends StatelessWidget {
     // Other players' converted answers
     this.otherPlayersAnswers,
     this.otherPlayersAvatars,
+    this.otherPlayersScores,
     this.currentPlayerAvatarUrl,
+    this.currentPlayerId,
   });
 
   final String questionText;
@@ -158,7 +160,9 @@ class GameCard extends StatelessWidget {
   // Other players' converted answers
   final Map<String, AnswerValue>? otherPlayersAnswers;
   final Map<String, String?>? otherPlayersAvatars;
+  final Map<String, double>? otherPlayersScores;
   final String? currentPlayerAvatarUrl;
+  final String? currentPlayerId;
 
   Widget _buildMainButton(BuildContext context) {
     if (paneState == null) {
@@ -304,7 +308,9 @@ class GameCard extends StatelessWidget {
               allowCopy: allowCopy,
               otherPlayersAnswers: otherPlayersAnswers,
               otherPlayersAvatars: otherPlayersAvatars,
+              otherPlayersScores: otherPlayersScores,
               currentPlayerAvatarUrl: currentPlayerAvatarUrl,
+              currentPlayerId: currentPlayerId,
             ),
 
             // Feedback row (right-aligned like widget)

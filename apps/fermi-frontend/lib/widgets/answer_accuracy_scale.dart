@@ -21,7 +21,6 @@ class AnswerAccuracyScale extends StatefulWidget {
     this.revealedColor,
     this.editable = true,
     this.otherPlayersAnswers,
-    this.otherPlayersAvatars,
     this.currentPlayerAvatarUrl,
     this.onAnswerChanged,
   });
@@ -32,7 +31,6 @@ class AnswerAccuracyScale extends StatefulWidget {
   final Color? revealedColor;
   final bool editable;
   final Map<String, AnswerValue>? otherPlayersAnswers;
-  final Map<String, String?>? otherPlayersAvatars;
   final String? currentPlayerAvatarUrl;
   final ValueChanged<AnswerValue>? onAnswerChanged;
 
@@ -350,100 +348,55 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                       // Removed otherPlayersAvatars from painter as it's no longer used there
                     ),
                   ),
-                  // Other Players' Text Boxes (Non-interactive, Always Visible)
-                  if (widget.otherPlayersAnswers != null)
-                    ...widget.otherPlayersAnswers!.entries.map((entry) {
-                      final playerId = entry.key;
-                      final answer = entry.value;
-                      final logValue = _getSliderValue(answer);
-                      final clampedLogValue = logValue.clamp(0.0, 15.0);
-                      final x = padding + (clampedLogValue / 15.0) * drawWidth;
-                      final avatarUrl = widget.otherPlayersAvatars?[playerId];
-
-                      return Positioned(
-                        left: x,
-                        bottom: 60, // Position 12px above the scale (48 + 12)
-                        child: FractionalTranslation(
-                          translation: const Offset(-0.5, 0),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: appTheme.bgLight,
-                              border:
-                                  Border.all(color: appTheme.bgLight, width: 1),
-                              borderRadius: BorderRadius.circular(4),
-                              boxShadow: [
-                                BoxShadow(
-                                  // ignore: deprecated_member_use
-                                  color: appTheme.shadowColor.withOpacity(0.1),
-                                  blurRadius: 2,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (avatarUrl != null &&
-                                    avatarUrl.isNotEmpty) ...[
-                                  _buildAvatar(avatarUrl, appTheme),
-                                  const SizedBox(width: 4),
-                                ],
-                                Text(
-                                  _formatAnswerText(answer),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: appTheme.text,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
+                  // Other players' text boxes moved to carousel in QuestionAnswerCard
                   // User Answer Text Box
                   Positioned(
                     left: padding + (userLogValue / 15.0) * drawWidth,
                     bottom: 60, // Position 12px above the scale (48 + 12 = 60)
                     child: FractionalTranslation(
                       translation: const Offset(-0.5, 0),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: appTheme.bgLight,
-                          border: Border.all(color: appTheme.bgLight, width: 1),
-                          borderRadius: BorderRadius.circular(4),
-                          boxShadow: [
-                            BoxShadow(
-                              // ignore: deprecated_member_use
-                              color: appTheme.shadowColor.withOpacity(0.1),
-                              blurRadius: 2,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (widget.currentPlayerAvatarUrl != null &&
-                                widget.currentPlayerAvatarUrl!.isNotEmpty) ...[
-                              _buildAvatar(
-                                  widget.currentPlayerAvatarUrl!, appTheme),
-                              const SizedBox(width: 4),
-                            ],
-                            Text(
-                              _formatAnswerText(userAnswer),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: appTheme.text,
+                      child: AnimatedOpacity(
+                        duration: _isDragging
+                            ? Duration.zero
+                            : const Duration(milliseconds: 200),
+                        opacity: _isDragging ? 1.0 : 0.0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: appTheme.bgLight,
+                            border:
+                                Border.all(color: appTheme.bgLight, width: 1),
+                            borderRadius: BorderRadius.circular(4),
+                            boxShadow: [
+                              BoxShadow(
+                                // ignore: deprecated_member_use
+                                color: appTheme.secondary,
+                                blurRadius: 0,
+                                offset: const Offset(2, 2),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (widget.currentPlayerAvatarUrl != null &&
+                                  widget
+                                      .currentPlayerAvatarUrl!.isNotEmpty) ...[
+                                _buildAvatar(
+                                    widget.currentPlayerAvatarUrl!, appTheme),
+                                const SizedBox(width: 4),
+                              ],
+                              Text(
+                                _formatAnswerText(userAnswer),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: appTheme.text,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -487,7 +440,6 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                     ),
                 ],
               );
-
               // Add gesture detection if editable and callback provided
               if (widget.editable &&
                   widget.onAnswerChanged != null &&
@@ -510,6 +462,11 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                     _handlePositionUpdate(localX, w);
                   },
                   onHorizontalDragEnd: (details) {
+                    setState(() {
+                      _isDragging = false;
+                    });
+                  },
+                  onHorizontalDragCancel: () {
                     setState(() {
                       _isDragging = false;
                     });
