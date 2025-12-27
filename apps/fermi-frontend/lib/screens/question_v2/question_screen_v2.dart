@@ -306,10 +306,13 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
     // Get converted answers for the current player (if revealed)
     final Map<String, AnswerValue>? otherPlayersAnswers;
     final Map<String, String?>? otherPlayersAvatars;
+    final Map<String, double>? otherPlayersScores;
     String? currentPlayerAvatarUrl;
 
     if (showFeedback && state.convertedAnswers.isNotEmpty) {
       otherPlayersAnswers = state.convertedAnswers[myId];
+      // Pass per-question scores for carousel ordering
+      otherPlayersScores = state.scores;
 
       // Extract avatar URLs for other players (excluding current player)
       otherPlayersAvatars = {};
@@ -327,6 +330,7 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
     } else {
       otherPlayersAnswers = null;
       otherPlayersAvatars = null;
+      otherPlayersScores = null;
       currentPlayerAvatarUrl = null;
     }
 
@@ -377,7 +381,9 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
       // Other players' converted answers
       otherPlayersAnswers: otherPlayersAnswers,
       otherPlayersAvatars: otherPlayersAvatars,
+      otherPlayersScores: otherPlayersScores,
       currentPlayerAvatarUrl: currentPlayerAvatarUrl,
+      currentPlayerId: myId,
     );
   }
 
