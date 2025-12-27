@@ -221,8 +221,6 @@ class _UnitTapeState extends State<UnitTape>
   @override
   void didUpdateWidget(covariant UnitTape oldWidget) {
     super.didUpdateWidget(oldWidget);
-    AppLogger.debug(
-        'UnitTape.didUpdateWidget: units changed=${oldWidget.units != widget.units}, editable changed=${oldWidget.editable != widget.editable}, editable=${widget.editable}, _current=$_current, initialValue=${widget.initialValue}, oldInitialValue=${oldWidget.initialValue}, pageController.page=${_pageController?.hasClients == true ? _pageController?.page : "no-clients"}');
 
     // Recreate PageController if units list CONTENT changed (not just reference)
     // Using ListEquality for deep comparison to avoid spurious recreation during
@@ -232,13 +230,9 @@ class _UnitTapeState extends State<UnitTape>
     if (unitsContentChanged) {
       // Check if current value exists in new units list
       int currentIndex = _safeIndexOf(_current);
-      AppLogger.debug(
-          'UnitTape.didUpdateWidget: recreating PageController, _current=$_current, currentIndex=$currentIndex, new units=${widget.units}');
       if (currentIndex < 0 && widget.units.isNotEmpty) {
         // Current value not in new units - update to first unit
         // This happens when locale changes and units are refreshed
-        AppLogger.debug(
-            'UnitTape.didUpdateWidget: _current not found in new units, setting to ${widget.units[0]}');
         _current = widget.units[0];
         currentIndex = 0;
       } else if (currentIndex < 0) {
@@ -246,8 +240,6 @@ class _UnitTapeState extends State<UnitTape>
       }
       _pageController?.dispose();
       _pageController = PageController(initialPage: currentIndex);
-      AppLogger.debug(
-          'UnitTape.didUpdateWidget: new PageController created with initialPage=$currentIndex');
     }
 
     if (oldWidget.controller != widget.controller) {
@@ -298,22 +290,12 @@ class _UnitTapeState extends State<UnitTape>
     // Close the bottom sheet if widget becomes non-editable (e.g., deadline reached)
     if (oldWidget.editable && !widget.editable) {
       _closeUnitSelector();
-      // Explicitly ensure PageView is at correct position when transitioning to non-editable
-      // This fixes a bug where the visual PageView would show the wrong page despite
-      // the PageController being at the correct position
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _pageController != null && _pageController!.hasClients) {
-          final targetIndex = _indexOf(_current);
-          final currentPage = _pageController!.page?.round() ?? 0;
-          AppLogger.debug(
-              'UnitTape.didUpdateWidget: editable->false, ensuring page sync. targetIndex=$targetIndex, currentPage=$currentPage, _current=$_current');
-          if (currentPage != targetIndex) {
-            AppLogger.debug(
-                'UnitTape.didUpdateWidget: jumping to page $targetIndex');
-            _pageController!.jumpToPage(targetIndex);
-          }
-        }
-      });
+      // Recreate PageController with correct initialPage when locking in the answer.
+      // This ensures the PageView (which rebuilds due to the key change when editable changes)
+      // starts at the correct position without any visible "flip" animation.
+      final targetIndex = _indexOf(_current);
+      _pageController?.dispose();
+      _pageController = PageController(initialPage: targetIndex);
     }
   }
 
@@ -455,19 +437,11 @@ class _UnitTapeState extends State<UnitTape>
   }
 
   void _onPageChanged(int index) {
-    AppLogger.debug(
-        'UnitTape._onPageChanged: index=$index, editable=${widget.editable}, _current=$_current, units=${widget.units}');
     // Ignore page changes when widget is not editable (e.g., during reveal)
     // This prevents spurious onUnitChanged callbacks from PageController recreation
-    // or any other PageView behavior that might trigger this callback
-    if (!widget.editable) {
-      AppLogger.debug('UnitTape._onPageChanged: BLOCKED - widget not editable');
-      return;
-    }
+    if (!widget.editable) return;
 
     if (index >= 0 && index < widget.units.length) {
-      AppLogger.debug(
-          'UnitTape._onPageChanged: UPDATING to ${widget.units[index]}');
       setState(() => _current = widget.units[index]);
       widget.onUnitChanged(widget.units[index]);
     }
@@ -491,11 +465,6 @@ class _UnitTapeState extends State<UnitTape>
 
   @override
   Widget build(BuildContext context) {
-    final pageControllerPage = _pageController?.hasClients == true
-        ? _pageController?.page?.toString()
-        : 'no-clients';
-    AppLogger.debug(
-        'UnitTape.build: _current=$_current, initialValue=${widget.initialValue}, units=${widget.units}, editable=${widget.editable}, pageController.page=$pageControllerPage');
     // Ensure _current matches what's displayed
     _current ??= widget.initialValue.isNotEmpty
         ? widget.initialValue
@@ -563,6 +532,12 @@ class _UnitTapeState extends State<UnitTape>
                       return false;
                     },
                     child: PageView.builder(
+                      // Key includes editable state and target index when locked
+                      // This forces the PageView to rebuild fresh with correct position
+                      // when transitioning from editable to non-editable (reveal time)
+                      key: widget.editable
+                          ? null
+                          : ValueKey('locked_${_indexOf(_current)}'),
                       controller: _pageController,
                       physics: widget.editable && !_isFocused
                           ? const PageScrollPhysics()
