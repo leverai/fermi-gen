@@ -1,11 +1,9 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
-import 'string_wheel.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
-import 'package:fermi_frontend/widgets/tap_indicator.dart';
 import 'package:fermi_frontend/widgets/string_tape.dart';
 import 'package:fermi_frontend/widgets/selector_widget.dart';
-import 'package:fermi_frontend/widgets/scroll_hint.dart';
 import 'package:fermi_frontend/widgets/unit_system_switch.dart';
 import 'package:fermi_frontend/utils/logger.dart';
 
@@ -96,14 +94,14 @@ class UnitTape extends StatefulWidget {
 
 class _UnitTapeState extends State<UnitTape>
     with SingleTickerProviderStateMixin {
-  final StringWheelController _wheel = StringWheelController();
+  PageController? _pageController;
   String? _current;
   bool _isFocused = false;
   bool _bottomSheetOpen = false;
   final ValueNotifier<Map<String, String>> _unitOptionsNotifier =
       ValueNotifier<Map<String, String>>({});
   late final AnimationController _indicatorFadeController;
-  bool _isDragging = false; // Track StringWheel dragging state
+  bool _isDragging = false; // Track PageView dragging state
 
   ValueNotifier<Map<String, String>> get _effectiveNotifier =>
       widget.unitOptionsNotifier ?? _unitOptionsNotifier;
@@ -124,6 +122,11 @@ class _UnitTapeState extends State<UnitTape>
     _current = widget.initialValue.isNotEmpty
         ? widget.initialValue
         : (widget.units.isNotEmpty ? widget.units[0] : '');
+
+    // Initialize PageController with initial index
+    final initialIndex = _indexOf(_current);
+    _pageController = PageController(initialPage: initialIndex);
+
     // Only use internal notifier if no external one provided
     if (widget.unitOptionsNotifier == null) {
       _unitOptionsNotifier.value = widget.unitOptions;
@@ -132,7 +135,7 @@ class _UnitTapeState extends State<UnitTape>
     widget.controller?._bind(
       jumpTo: (v) {
         setState(() => _current = v);
-        _wheel.jumpTo(v);
+        _jumpToPage(v);
         // Defer onUnitChanged callback to after current build phase to prevent
         // "setState() called during build" errors when jumpTo is called from didUpdateWidget
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -145,8 +148,8 @@ class _UnitTapeState extends State<UnitTape>
         AppLogger.debug(
             'UnitTape.animateTo: value=$v, duration=${d.inMilliseconds}ms, current=$_current');
         setState(() => _current = v);
-        await _wheel.animateTo(v, d);
-        AppLogger.debug('UnitTape.animateTo: _wheel.animateTo returned');
+        await _animateToPage(v, d);
+        AppLogger.debug('UnitTape.animateTo: _animateToPage returned');
       },
       requestFocus: _requestFocus,
       setRevealed: (r, duration) {
@@ -164,19 +167,50 @@ class _UnitTapeState extends State<UnitTape>
       },
       close: _closeUnitSelector,
     );
+  }
 
-    // Notify parent of initial unit value to sync state on first render
-    // This handles the case where UnitTape is conditionally rendered after units load
-    if (_current != null && _current!.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onUnitChanged(_current!);
-      });
+  int _indexOf(String? value) {
+    if (value == null || widget.units.isEmpty) return 0;
+    final int idx = widget.units.indexOf(value);
+    return idx >= 0 ? idx : 0;
+  }
+
+  /// Returns the index of value in units, or -1 if not found.
+  /// Use this when you need to know if the value actually exists.
+  int _safeIndexOf(String? value) {
+    if (value == null || widget.units.isEmpty) return -1;
+    return widget.units.indexOf(value);
+  }
+
+  void _jumpToPage(String value) {
+    if (widget.units.isEmpty || _pageController == null) return;
+    // Only jump if value is actually in the units list
+    // This prevents triggering onPageChanged with wrong index when value not found
+    final int idx = _safeIndexOf(value);
+    if (idx < 0) return; // Value not found, don't jump
+    if (_pageController!.hasClients) {
+      _pageController!.jumpToPage(idx);
+    }
+  }
+
+  Future<void> _animateToPage(String value, Duration duration) async {
+    if (widget.units.isEmpty || _pageController == null) return;
+    // Only animate if value is actually in the units list
+    final int idx = _safeIndexOf(value);
+    if (idx < 0) return; // Value not found, don't animate
+    if (_pageController!.hasClients) {
+      await _pageController!.animateToPage(
+        idx,
+        duration: duration,
+        curve: Curves.easeInOutCubic,
+      );
     }
   }
 
   @override
   void dispose() {
     _indicatorFadeController.dispose();
+    _pageController?.dispose();
     // Only dispose internal notifier
     if (widget.unitOptionsNotifier == null) {
       _unitOptionsNotifier.dispose();
@@ -187,11 +221,40 @@ class _UnitTapeState extends State<UnitTape>
   @override
   void didUpdateWidget(covariant UnitTape oldWidget) {
     super.didUpdateWidget(oldWidget);
+    AppLogger.debug(
+        'UnitTape.didUpdateWidget: units changed=${oldWidget.units != widget.units}, editable changed=${oldWidget.editable != widget.editable}, editable=${widget.editable}, _current=$_current, initialValue=${widget.initialValue}, oldInitialValue=${oldWidget.initialValue}, pageController.page=${_pageController?.hasClients == true ? _pageController?.page : "no-clients"}');
+
+    // Recreate PageController if units list CONTENT changed (not just reference)
+    // Using ListEquality for deep comparison to avoid spurious recreation during
+    // rebuilds that pass new list instances with identical content
+    final bool unitsContentChanged =
+        !const ListEquality<String>().equals(oldWidget.units, widget.units);
+    if (unitsContentChanged) {
+      // Check if current value exists in new units list
+      int currentIndex = _safeIndexOf(_current);
+      AppLogger.debug(
+          'UnitTape.didUpdateWidget: recreating PageController, _current=$_current, currentIndex=$currentIndex, new units=${widget.units}');
+      if (currentIndex < 0 && widget.units.isNotEmpty) {
+        // Current value not in new units - update to first unit
+        // This happens when locale changes and units are refreshed
+        AppLogger.debug(
+            'UnitTape.didUpdateWidget: _current not found in new units, setting to ${widget.units[0]}');
+        _current = widget.units[0];
+        currentIndex = 0;
+      } else if (currentIndex < 0) {
+        currentIndex = 0;
+      }
+      _pageController?.dispose();
+      _pageController = PageController(initialPage: currentIndex);
+      AppLogger.debug(
+          'UnitTape.didUpdateWidget: new PageController created with initialPage=$currentIndex');
+    }
+
     if (oldWidget.controller != widget.controller) {
       widget.controller?._bind(
         jumpTo: (v) {
           setState(() => _current = v);
-          _wheel.jumpTo(v);
+          _jumpToPage(v);
           // Defer onUnitChanged callback to after current build phase to prevent
           // "setState() called during build" errors when jumpTo is called from didUpdateWidget
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -202,7 +265,7 @@ class _UnitTapeState extends State<UnitTape>
         },
         animateTo: (v, d) async {
           setState(() => _current = v);
-          await _wheel.animateTo(v, d);
+          await _animateToPage(v, d);
         },
         requestFocus: _requestFocus,
         setRevealed: (r, duration) {
@@ -235,6 +298,22 @@ class _UnitTapeState extends State<UnitTape>
     // Close the bottom sheet if widget becomes non-editable (e.g., deadline reached)
     if (oldWidget.editable && !widget.editable) {
       _closeUnitSelector();
+      // Explicitly ensure PageView is at correct position when transitioning to non-editable
+      // This fixes a bug where the visual PageView would show the wrong page despite
+      // the PageController being at the correct position
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pageController != null && _pageController!.hasClients) {
+          final targetIndex = _indexOf(_current);
+          final currentPage = _pageController!.page?.round() ?? 0;
+          AppLogger.debug(
+              'UnitTape.didUpdateWidget: editable->false, ensuring page sync. targetIndex=$targetIndex, currentPage=$currentPage, _current=$_current');
+          if (currentPage != targetIndex) {
+            AppLogger.debug(
+                'UnitTape.didUpdateWidget: jumping to page $targetIndex');
+            _pageController!.jumpToPage(targetIndex);
+          }
+        }
+      });
     }
   }
 
@@ -251,7 +330,7 @@ class _UnitTapeState extends State<UnitTape>
     widget.onBeforeOpen?.call();
 
     // Ensure _current matches what's actually displayed
-    // If empty, use first unit in list (matching StringWheel behavior)
+    // If empty, use first unit in list
     if (_current == null || _current!.isEmpty) {
       _current = widget.units.isNotEmpty ? widget.units[0] : '';
     }
@@ -301,7 +380,7 @@ class _UnitTapeState extends State<UnitTape>
                       setModalState(() {
                         _current = currentValue;
                       });
-                      _wheel.jumpTo(currentValue!);
+                      _jumpToPage(currentValue!);
                       widget.onUnitChanged(currentValue);
                     });
                   }
@@ -327,7 +406,7 @@ class _UnitTapeState extends State<UnitTape>
                       setModalState(() {
                         _current = value;
                       });
-                      _wheel.jumpTo(value);
+                      _jumpToPage(value);
                       widget.onUnitChanged(value);
                     }
                   },
@@ -337,7 +416,7 @@ class _UnitTapeState extends State<UnitTape>
                       setModalState(() {
                         _current = value;
                       });
-                      _wheel.jumpTo(value);
+                      _jumpToPage(value);
                       widget.onUnitChanged(value);
                       // Delay closing to allow visual feedback
                       Future.delayed(const Duration(milliseconds: 200), () {
@@ -375,9 +454,49 @@ class _UnitTapeState extends State<UnitTape>
     }
   }
 
+  void _onPageChanged(int index) {
+    AppLogger.debug(
+        'UnitTape._onPageChanged: index=$index, editable=${widget.editable}, _current=$_current, units=${widget.units}');
+    // Ignore page changes when widget is not editable (e.g., during reveal)
+    // This prevents spurious onUnitChanged callbacks from PageController recreation
+    // or any other PageView behavior that might trigger this callback
+    if (!widget.editable) {
+      AppLogger.debug('UnitTape._onPageChanged: BLOCKED - widget not editable');
+      return;
+    }
+
+    if (index >= 0 && index < widget.units.length) {
+      AppLogger.debug(
+          'UnitTape._onPageChanged: UPDATING to ${widget.units[index]}');
+      setState(() => _current = widget.units[index]);
+      widget.onUnitChanged(widget.units[index]);
+    }
+  }
+
+  void _navigatePage(int direction) {
+    if (_pageController == null || !_pageController!.hasClients) return;
+    // Use safe index lookup with fallback to current page position
+    final int fallbackIndex = _safeIndexOf(_current);
+    final currentPage = _pageController!.page?.round() ??
+        (fallbackIndex >= 0 ? fallbackIndex : 0);
+    final newPage = (currentPage + direction).clamp(0, widget.units.length - 1);
+    if (newPage != currentPage) {
+      _pageController!.animateToPage(
+        newPage,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Ensure _current matches what StringWheel displays
+    final pageControllerPage = _pageController?.hasClients == true
+        ? _pageController?.page?.toString()
+        : 'no-clients';
+    AppLogger.debug(
+        'UnitTape.build: _current=$_current, initialValue=${widget.initialValue}, units=${widget.units}, editable=${widget.editable}, pageController.page=$pageControllerPage');
+    // Ensure _current matches what's displayed
     _current ??= widget.initialValue.isNotEmpty
         ? widget.initialValue
         : (widget.units.isNotEmpty ? widget.units[0] : '');
@@ -388,68 +507,102 @@ class _UnitTapeState extends State<UnitTape>
     final Color textColor = (_isFocused || _isDragging)
         ? appTheme.secondary
         : (widget.revealColor ?? appTheme.text);
-    const Color borderColor = Colors.transparent;
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.transparent,
-      ),
-      child: GestureDetector(
-        onTap: widget.editable ? _showUnitSelector : null,
-        child: AnimatedBuilder(
-          animation: _indicatorFadeController,
-          builder: (context, child) {
-            // Hide indicators when focused or dragging
-            final double effectiveOpacity = (_isFocused || _isDragging)
-                ? 0.0
-                : _indicatorFadeController.value;
+    if (widget.units.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
-            return ScrollHint(
-              opacity: effectiveOpacity,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: widget.backgroundColor ?? Colors.transparent,
-                ),
-                child: Stack(
-                  children: [
-                    StringWheel(
-                      values: widget.units,
-                      initialValue: _current,
-                      controller: _wheel,
-                      enabled: widget.editable && !_isFocused,
-                      height: 72,
-                      itemExtent: 72,
-                      width: 60,
-                      borderColor: borderColor,
-                      draggingBorderColor: Colors.transparent,
-                      borderWidth: 1.5,
-                      textStyle: AppFont.primaryTextStyle(
-                        context,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w400,
-                        color: textColor,
-                        decoration: TextDecoration.none,
+    final currentIndex = _indexOf(_current);
+    final canGoLeft = currentIndex > 0;
+    final canGoRight = currentIndex < widget.units.length - 1;
+
+    return GestureDetector(
+      onTap: widget.editable ? _showUnitSelector : null,
+      child: AnimatedBuilder(
+        animation: _indicatorFadeController,
+        builder: (context, child) {
+          // Hide indicators when focused or dragging
+          final double effectiveOpacity = (_isFocused || _isDragging)
+              ? 0.0
+              : _indicatorFadeController.value;
+
+          return Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+            decoration: BoxDecoration(
+              color: appTheme.bgDark.withAlpha(100),
+              borderRadius: BorderRadius.circular(60),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Left arrow
+                if (widget.editable && canGoLeft)
+                  Opacity(
+                    opacity: effectiveOpacity,
+                    child: GestureDetector(
+                      onTap: () => _navigatePage(-1),
+                      child: Icon(
+                        Icons.keyboard_arrow_left,
+                        size: 16.0,
+                        color: appTheme.borderMuted.withOpacity(0.5),
                       ),
-                      onChanged: (v) {
-                        setState(() => _current = v);
-                        widget.onUnitChanged(v);
-                      },
-                      onDraggingChanged: (dragging) {
-                        setState(() {
-                          _isDragging = dragging;
-                        });
+                    ),
+                  ),
+                // PageView for units
+                SizedBox(
+                  width: 80, // Fixed width to accommodate "m. ton"
+                  height: 32,
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (notification) {
+                      if (notification is ScrollStartNotification) {
+                        setState(() => _isDragging = true);
+                      } else if (notification is ScrollEndNotification) {
+                        setState(() => _isDragging = false);
+                      }
+                      return false;
+                    },
+                    child: PageView.builder(
+                      controller: _pageController,
+                      physics: widget.editable && !_isFocused
+                          ? const PageScrollPhysics()
+                          : const NeverScrollableScrollPhysics(),
+                      onPageChanged: _onPageChanged,
+                      itemCount: widget.units.length,
+                      itemBuilder: (context, index) {
+                        return Center(
+                          child: Text(
+                            widget.units[index],
+                            style: AppFont.primaryTextStyle(
+                              context,
+                              fontSize: 12.0,
+                              fontWeight: FontWeight.w500,
+                              color: textColor,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        );
                       },
                     ),
-                    // Tap indicator line at bottom
-                    TapIndicator(
-                      opacity: effectiveOpacity,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            );
-          },
-        ),
+                // Right arrow
+                if (widget.editable && canGoRight)
+                  Opacity(
+                    opacity: effectiveOpacity,
+                    child: GestureDetector(
+                      onTap: () => _navigatePage(1),
+                      child: Icon(
+                        Icons.keyboard_arrow_right,
+                        size: 16.0,
+                        color: appTheme.borderMuted.withOpacity(0.5),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
