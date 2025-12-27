@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:fermi_frontend/models/rank_data.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -52,7 +54,7 @@ class _ScalePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Configuration
-    final double barHeight = 6.0;
+    const double barHeight = 6.0;
     final double barY = size.height / 2;
     final Paint activePaint = Paint()
       ..color = appTheme.primary

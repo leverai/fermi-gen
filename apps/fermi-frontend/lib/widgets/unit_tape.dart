@@ -5,7 +5,6 @@ import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/string_tape.dart';
 import 'package:fermi_frontend/widgets/selector_widget.dart';
 import 'package:fermi_frontend/widgets/unit_system_switch.dart';
-import 'package:fermi_frontend/utils/logger.dart';
 
 class UnitTapeController {
   void Function(String value)? _jumpTo;
@@ -102,6 +101,7 @@ class _UnitTapeState extends State<UnitTape>
       ValueNotifier<Map<String, String>>({});
   late final AnimationController _indicatorFadeController;
   bool _isDragging = false; // Track PageView dragging state
+  bool _isRevealed = false; // Track reveal state
 
   ValueNotifier<Map<String, String>> get _effectiveNotifier =>
       widget.unitOptionsNotifier ?? _unitOptionsNotifier;
@@ -145,14 +145,16 @@ class _UnitTapeState extends State<UnitTape>
         });
       },
       animateTo: (v, d) async {
-        AppLogger.debug(
-            'UnitTape.animateTo: value=$v, duration=${d.inMilliseconds}ms, current=$_current');
         setState(() => _current = v);
         await _animateToPage(v, d);
-        AppLogger.debug('UnitTape.animateTo: _animateToPage returned');
       },
       requestFocus: _requestFocus,
       setRevealed: (r, duration) {
+        if (mounted) {
+          setState(() {
+            _isRevealed = r;
+          });
+        }
         if (r) {
           // Fade out indicator when revealing - use provided duration or default to 600ms
           _indicatorFadeController.animateTo(0.0,
@@ -261,6 +263,11 @@ class _UnitTapeState extends State<UnitTape>
         },
         requestFocus: _requestFocus,
         setRevealed: (r, duration) {
+          if (mounted) {
+            setState(() {
+              _isRevealed = r;
+            });
+          }
           if (r) {
             // Fade out indicator when revealing - use provided duration or default to 600ms
             _indicatorFadeController.animateTo(0.0,
@@ -473,9 +480,7 @@ class _UnitTapeState extends State<UnitTape>
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
     // Determine colors based on focus and dragging state
-    final Color textColor = (_isFocused || _isDragging)
-        ? appTheme.secondary
-        : (widget.revealColor ?? appTheme.text);
+    final Color textColor = appTheme.secondary;
 
     if (widget.units.isEmpty) {
       return const SizedBox.shrink();
@@ -485,43 +490,52 @@ class _UnitTapeState extends State<UnitTape>
     final canGoLeft = currentIndex > 0;
     final canGoRight = currentIndex < widget.units.length - 1;
 
-    return GestureDetector(
-      onTap: widget.editable ? _showUnitSelector : null,
-      child: AnimatedBuilder(
-        animation: _indicatorFadeController,
-        builder: (context, child) {
-          // Hide indicators when focused or dragging
-          final double effectiveOpacity = (_isFocused || _isDragging)
-              ? 0.0
-              : _indicatorFadeController.value;
+    // Arrows are "active" (full opacity/color) only when editable and not at limits
+    // and not during reveal/focus/drag events.
+    final bool leftArrowActive = widget.editable &&
+        canGoLeft &&
+        !_isRevealed &&
+        !_isFocused &&
+        !_isDragging;
+    final bool rightArrowActive = widget.editable &&
+        canGoRight &&
+        !_isRevealed &&
+        !_isFocused &&
+        !_isDragging;
 
-          return Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-            decoration: BoxDecoration(
-              color: appTheme.bgDark.withAlpha(100),
-              borderRadius: BorderRadius.circular(60),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Left arrow
-                if (widget.editable && canGoLeft)
-                  Opacity(
-                    opacity: effectiveOpacity,
-                    child: GestureDetector(
-                      onTap: () => _navigatePage(-1),
-                      child: Icon(
-                        Icons.keyboard_arrow_left,
-                        size: 16.0,
-                        color: appTheme.borderMuted.withOpacity(0.5),
-                      ),
-                    ),
+    return AnimatedBuilder(
+      animation: _indicatorFadeController,
+      builder: (context, child) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+          decoration: BoxDecoration(
+            color: appTheme.secondaryMuted.withAlpha(40),
+            borderRadius: BorderRadius.circular(60),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Left arrow
+              if (widget.units.length > 1)
+                GestureDetector(
+                  onTap: widget.editable && canGoLeft
+                      ? () => _navigatePage(-1)
+                      : null,
+                  child: Icon(
+                    Icons.keyboard_arrow_left,
+                    size: 16.0,
+                    color: leftArrowActive
+                        ? appTheme.secondary
+                        : appTheme.secondaryMuted,
                   ),
-                // PageView for units
-                SizedBox(
-                  width: 80, // Fixed width to accommodate "m. ton"
-                  height: 32,
+                ),
+              // PageView for units
+              GestureDetector(
+                onTap: widget.editable ? _showUnitSelector : null,
+                behavior: HitTestBehavior.opaque,
+                child: SizedBox(
+                  width: 68, // Fixed width to accommodate "m. ton"
+                  height: 24,
                   child: NotificationListener<ScrollNotification>(
                     onNotification: (notification) {
                       if (notification is ScrollStartNotification) {
@@ -552,7 +566,8 @@ class _UnitTapeState extends State<UnitTape>
                               context,
                               fontSize: 12.0,
                               fontWeight: FontWeight.w500,
-                              color: textColor,
+                              color:
+                                  textColor, // Use the pre-calculated textColor
                               decoration: TextDecoration.none,
                             ),
                           ),
@@ -561,24 +576,25 @@ class _UnitTapeState extends State<UnitTape>
                     ),
                   ),
                 ),
-                // Right arrow
-                if (widget.editable && canGoRight)
-                  Opacity(
-                    opacity: effectiveOpacity,
-                    child: GestureDetector(
-                      onTap: () => _navigatePage(1),
-                      child: Icon(
-                        Icons.keyboard_arrow_right,
-                        size: 16.0,
-                        color: appTheme.borderMuted.withOpacity(0.5),
-                      ),
-                    ),
+              ),
+              // Right arrow
+              if (widget.units.length > 1)
+                GestureDetector(
+                  onTap: widget.editable && canGoRight
+                      ? () => _navigatePage(1)
+                      : null,
+                  child: Icon(
+                    Icons.keyboard_arrow_right,
+                    size: 16.0,
+                    color: rightArrowActive
+                        ? appTheme.secondary
+                        : appTheme.secondaryMuted,
                   ),
-              ],
-            ),
-          );
-        },
-      ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
