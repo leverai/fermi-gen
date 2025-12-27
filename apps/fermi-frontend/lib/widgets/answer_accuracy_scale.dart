@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
+import 'package:fermi_frontend/utils/answer_format.dart';
 import 'package:fermi_frontend/utils/om_constants.dart';
 import 'package:fermi_frontend/widgets/answer_accuracy_scale_painter.dart';
 
@@ -132,9 +133,8 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
       // Check if out of bounds (same logic as decomposeNumber)
       const double maxDisplayable = 999e12;
       if (raw < 1 || raw > maxDisplayable) {
-        // Use scientific notation
-        // Remove trailing zeros and + sign if preferred, but standard is fine
-        return raw.toStringAsExponential(2);
+        // Use human-readable scientific notation (e.g., "6.2 × 10³⁰")
+        return formatScientificNotation(raw);
       }
     }
     // Fallback to decomposed format (without unit since both answers have the same unit)

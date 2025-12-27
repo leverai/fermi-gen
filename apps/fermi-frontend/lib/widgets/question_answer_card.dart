@@ -7,6 +7,7 @@ import 'package:fermi_frontend/widgets/slider_text_mirror.dart';
 import 'package:fermi_frontend/widgets/unit_tape.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
+import 'package:fermi_frontend/utils/answer_format.dart';
 
 const double kQuestionAnswerCardQuestionHeight = 24.0 * 5;
 const double kQuestionAnswerCardAnswerRowHeight = 36.0;
@@ -146,7 +147,8 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
       final double raw = value.rawValue!;
       const double maxDisplayable = 999e12;
       if (raw < 1 || raw > maxDisplayable) {
-        return raw.toStringAsExponential(2);
+        // Use human-readable scientific notation (e.g., "6.2 × 10³⁰")
+        return formatScientificNotation(raw);
       }
     }
     return '${value.number} ${value.orderOfMagnitude}'.trim();
@@ -189,58 +191,51 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
     bool isCurrentPlayer = false,
     int? order,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: isCurrentPlayer
-            ? appTheme.bgLight
-            // ignore: deprecated_member_use
-            : appTheme.bgDark,
-        borderRadius: BorderRadius.circular(4),
-        boxShadow: [
-          BoxShadow(
-            // Use secondary shadow for current player
-            color: isCurrentPlayer
-                ? appTheme.secondary
-                // ignore: deprecated_member_use
-                : appTheme.shadowColor.withAlpha(25),
-            blurRadius: 0,
-            offset: const Offset(2, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (order != null) ...[
+    return Opacity(
+      opacity: isCurrentPlayer ? 1.0 : 0.5,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: appTheme.bgLight,
+          borderRadius: BorderRadius.circular(4),
+          boxShadow: [
+            BoxShadow(
+              color:
+                  isCurrentPlayer ? appTheme.secondary : appTheme.borderMuted,
+              blurRadius: 0,
+              offset: const Offset(2, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (order != null) ...[
+              Text(
+                '$order. ',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: appTheme.text,
+                ),
+              ),
+              const SizedBox(width: 4),
+            ],
+            if (avatarUrl != null && avatarUrl.isNotEmpty) ...[
+              _buildAvatar(avatarUrl, appTheme),
+              const SizedBox(width: 4),
+            ],
             Text(
-              '$order. ',
+              _formatAnswerText(answer),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: isCurrentPlayer
-                    ? appTheme.text
-                    : appTheme.text.withAlpha(100),
+                color: appTheme.text,
+                letterSpacing: 0.5,
               ),
             ),
-            const SizedBox(width: 4),
           ],
-          if (avatarUrl != null && avatarUrl.isNotEmpty) ...[
-            _buildAvatar(avatarUrl, appTheme),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            _formatAnswerText(answer),
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isCurrentPlayer ? FontWeight.bold : FontWeight.normal,
-              color: isCurrentPlayer
-                  ? appTheme.text
-                  : appTheme.text.withAlpha(100),
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -289,39 +284,51 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
     return AnimatedBuilder(
       animation: _carouselAnimationController,
       builder: (context, child) {
-        return SizedBox(
-          height: 30, // Increased height to accommodate shadows
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-            scrollDirection: Axis.horizontal,
-            itemCount: entries.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final entry = entries[index];
+        final progress =
+            Curves.easeOutBack.transform(_carouselAnimationController.value);
 
-              // Staggered animation: each item starts slightly later
-              final itemDelay = index * 0.1; // 100ms stagger
-              final itemProgress = Curves.easeOutBack.transform(
-                ((_carouselAnimationController.value - itemDelay) /
-                        (1.0 - itemDelay))
-                    .clamp(0.0, 1.0),
-              );
-
-              return Transform.translate(
-                offset: Offset(0, 20 * (1 - itemProgress)),
-                child: Opacity(
-                  opacity: itemProgress.clamp(0.0, 1.0),
-                  child: _buildResultChip(
-                    playerId: entry.playerId,
-                    answer: entry.answer,
-                    appTheme: appTheme,
-                    avatarUrl: entry.avatarUrl,
-                    isCurrentPlayer: entry.isCurrentPlayer,
-                    order: index + 1,
+        return Opacity(
+          opacity: progress.clamp(0.0, 1.0),
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - progress)),
+            child: Row(
+              children: [
+                Text(
+                  'Leaderboard: ',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.normal,
+                    color: appTheme.textMuted,
+                    letterSpacing: 0.5,
                   ),
                 ),
-              );
-            },
+                Expanded(
+                  child: SizedBox(
+                    height: 30, // Increased height to accommodate shadows
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 3),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: entries.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final entry = entries[index];
+
+                        return _buildResultChip(
+                          playerId: entry.playerId,
+                          answer: entry.answer,
+                          appTheme: appTheme,
+                          avatarUrl: entry.avatarUrl,
+                          isCurrentPlayer: entry.isCurrentPlayer,
+                          order: index + 1,
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -399,9 +406,22 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // SliderTextMirror
-                      SliderTextMirror(
-                        value: widget.currentAnswer,
-                        unitOptions: widget.unitOptions,
+                      Row(
+                        children: [
+                          Text(
+                            'You: ',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.normal,
+                              color: appTheme.textMuted,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          SliderTextMirror(
+                            value: widget.currentAnswer,
+                            unitOptions: widget.unitOptions,
+                          )
+                        ],
                       ),
                       // Spacing between widgets
                       if (widget.units.isNotEmpty) const SizedBox(width: 8),
