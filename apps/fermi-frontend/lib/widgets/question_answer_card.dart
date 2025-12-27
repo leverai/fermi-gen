@@ -8,7 +8,7 @@ import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 
 const double kQuestionAnswerCardQuestionHeight = 24.0 * 5;
-const double kQuestionAnswerCardAnswerRowHeight = 60.0;
+const double kQuestionAnswerCardAnswerRowHeight = 36.0;
 const double kQuestionAnswerCardAccuracyScaleHeight = 48.0;
 const double kQuestionAnswerCardSpacing = 24.0;
 const double kQuestionAnswerCardQuestionToDividerSpacing = 0.0;
@@ -150,7 +150,7 @@ class QuestionAnswerCard extends StatelessWidget {
                 SizedBox(
                   height: kQuestionAnswerCardAnswerRowHeight,
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // SliderTextMirror

@@ -29,8 +29,8 @@ void main() {
           tester,
           _StatefulTestHarness(
             key: const Key('harness'),
-            initialUnits: ['L', 'm³', 'km³'],
-            unitOptions: {
+            initialUnits: const ['L', 'm³', 'km³'],
+            unitOptions: const {
               'Liter': 'L',
               'Meter³': 'm³',
               'Kilometer³': 'km³',
@@ -79,8 +79,8 @@ void main() {
           tester,
           _StatefulTestHarness(
             key: const Key('harness'),
-            initialUnits: ['qt', 'gal', 'foot³', 'meter³'],
-            unitOptions: {
+            initialUnits: const ['qt', 'gal', 'foot³', 'meter³'],
+            unitOptions: const {
               'Quart': 'qt',
               'Gallon': 'gal',
               'Foot³': 'foot³',
@@ -122,8 +122,8 @@ void main() {
           tester,
           _StatefulTestHarness(
             key: const Key('harness'),
-            initialUnits: ['A', 'B', 'C', 'D'],
-            unitOptions: {'A': 'A', 'B': 'B', 'C': 'C', 'D': 'D'},
+            initialUnits: const ['A', 'B', 'C', 'D'],
+            unitOptions: const {'A': 'A', 'B': 'B', 'C': 'C', 'D': 'D'},
             initialValue: 'C', // Index 2 - middle of list
             controller: controller,
             onUnitChanged: (unit) {

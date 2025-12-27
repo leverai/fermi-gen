@@ -18,7 +18,6 @@ import 'package:fermi_frontend/screens/question_v2/helpers/leave.dart'
 import 'package:fermi_frontend/screens/question_v2/helpers/snack.dart' as snack;
 
 import 'package:fermi_frontend/models/answer_value.dart';
-import 'package:fermi_frontend/utils/logger.dart';
 import 'package:fermi_frontend/widgets/rank_confetti_overlay.dart';
 
 class QuestionScreenV2 extends StatefulWidget {
@@ -273,9 +272,6 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
         showFeedback ? _controller.getRevealedAnswer(index) : null;
     final revealedColor =
         showFeedback ? _controller.getRevealedColor(index) : null;
-
-    AppLogger.debug(
-        '_buildGameCard[$index]: isCurrentQuestion=$isCurrentQuestion, showFeedback=$showFeedback, displayAnswer=$displayAnswer, revealedAnswer=$revealedAnswer, revealedColor=$revealedColor');
 
     // Get player's percentile for this question
     final percentile = _controller.getMyPercentileForIndex(index);
