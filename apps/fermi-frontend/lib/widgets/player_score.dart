@@ -54,7 +54,7 @@ class _PlayerScoreState extends State<PlayerScore>
 
     _shineController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600),
     );
 
     if (widget.rank != null) {
