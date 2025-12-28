@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
-import 'package:fermi_frontend/widgets/rank_widget.dart';
 import 'package:fermi_frontend/widgets/player_widget_controller.dart';
+import 'package:fermi_frontend/models/rank.dart';
 import 'package:fermi_frontend/widgets/question_deadline_progress_tracker.dart';
 
 /// Displays a horizontal row of players with no spacing between widgets.
@@ -16,7 +16,6 @@ class PlayersRow extends StatefulWidget {
     this.controllerById,
     this.showNameChip = false,
     this.showRankIcons = false,
-    this.rankAnimationStyle = RankAnimationStyle.none,
     this.reorderDuration = const Duration(milliseconds: 500),
     this.reorderCurve = Curves.easeInOut,
     this.currentPlayerId,
@@ -38,7 +37,6 @@ class PlayersRow extends StatefulWidget {
   /// In review mode, uses finalRanks to show static final game ranks.
   /// In live mode, calculates from sorted position.
   final bool showRankIcons; // when true, PlayerWidget shows rank medals
-  final RankAnimationStyle rankAnimationStyle; // animation style for medals
   final Duration reorderDuration;
   final Curve reorderCurve;
 
@@ -248,7 +246,6 @@ class _PlayersRowState extends State<PlayersRow> {
                 controller: controller,
                 showNameChip: widget.showNameChip,
                 showRankIcons: widget.showRankIcons,
-                rankAnimationStyle: widget.rankAnimationStyle,
                 rankOverride: rankOverride,
                 isSelf: isSelf,
                 deadlineProgressTracker: widget.deadlineProgressTracker,
@@ -319,7 +316,6 @@ class _PlayersRowState extends State<PlayersRow> {
               controller: controller,
               showNameChip: widget.showNameChip,
               showRankIcons: widget.showRankIcons,
-              rankAnimationStyle: widget.rankAnimationStyle,
               rankOverride: rankOverride,
               isSelf: isSelf,
               deadlineProgressTracker: widget.deadlineProgressTracker,

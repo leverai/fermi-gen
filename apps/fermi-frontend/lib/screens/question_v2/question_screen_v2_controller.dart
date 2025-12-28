@@ -10,7 +10,7 @@ import 'package:fermi_frontend/widgets/animated_like_dislike.dart';
 import 'package:fermi_frontend/screens/question_v2/widgets/pane_bindings.dart';
 import 'package:fermi_frontend/theme/colormap.dart';
 import 'package:fermi_frontend/widgets/question_deadline_progress_tracker.dart';
-import 'package:fermi_frontend/widgets/rank_widget.dart';
+import 'package:fermi_frontend/models/rank.dart';
 import 'package:fermi_frontend/widgets/unit_tape.dart';
 import 'package:fermi_frontend/utils/logger.dart';
 import 'package:fermi_frontend/screens/question_v2/controllers/game_timer_manager.dart';
