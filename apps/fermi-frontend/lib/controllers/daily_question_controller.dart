@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
 import 'package:fermi_frontend/services/dq_firestore.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
@@ -19,7 +20,11 @@ class DailyQuestionController extends ChangeNotifier {
   DQDocument? _todayDocument;
   StreamSubscription<DQDocument?>? _firestoreSubscription;
 
-  // Unseen results tracking (dates where user hasn't viewed results yet)
+  // Persisted set of dates user has viewed results for
+  static const String _seenResultsKey = 'dq_seen_results';
+  Set<String> _seenResults = {};
+
+  // Computed set: participated dates not in _seenResults (excluding today)
   final Set<String> _unseenResults = {};
 
   // Loading/error states
@@ -51,6 +56,20 @@ class DailyQuestionController extends ChangeNotifier {
     return dates;
   }
 
+  /// Initialize controller with persisted data.
+  /// Call this after creating the controller.
+  Future<void> initialize() async {
+    final prefs = await SharedPreferences.getInstance();
+    final seenList = prefs.getStringList(_seenResultsKey) ?? [];
+    _seenResults = seenList.toSet();
+  }
+
+  /// Persist seen results to SharedPreferences.
+  Future<void> _persistSeenResults() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_seenResultsKey, _seenResults.toList());
+  }
+
   /// Main entry point: fetch archive and subscribe to today's DQ.
   /// Call this on app launch and after submission/results_ready.
   Future<void> refreshArchiveAndSubscribe() async {
@@ -59,25 +78,31 @@ class DailyQuestionController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // print('[DQController] Fetching weekly archive...');
       final archive = await _service.getWeeklyArchive();
 
       _weeklyItems = archive.items;
       final newTodayDate = archive.today;
 
-      // print(
-      //     '[DQController] Got ${_weeklyItems.length} items, today=$newTodayDate');
+      // Compute unseen results: participated dates not in seen set (excluding today)
+      _unseenResults.clear();
+      for (final entry in _weeklyItems.entries) {
+        final date = entry.key;
+        final participated = entry.value;
+        // If participated and not seen, mark as unseen (exclude today - it's handled separately)
+        if (participated &&
+            !_seenResults.contains(date) &&
+            date != newTodayDate) {
+          _unseenResults.add(date);
+        }
+      }
 
       // If today changed, update subscription
       if (newTodayDate != _todayDate) {
-        // print('[DQController] Today changed: $_todayDate -> $newTodayDate');
         await _cancelCurrentSubscription();
         _todayDate = newTodayDate;
         _subscribeToToday();
       }
     } catch (e) {
-      // print('[DQController] Error: $e');
-      // print('[DQController] Stack: $st');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
@@ -105,15 +130,11 @@ class DailyQuestionController extends ChangeNotifier {
     final previousDoc = _todayDocument;
     _todayDocument = doc;
 
-    // print('[DQController] Firestore update: status=${doc?.status}, '
-    //     'results_ready=${doc?.resultsReady}');
-
     // Check if results just became ready
     if (doc != null &&
         doc.resultsReady &&
         previousDoc != null &&
         !previousDoc.resultsReady) {
-      // print('[DQController] Results just became ready!');
       _handleResultsReady();
     }
 
@@ -124,7 +145,6 @@ class DailyQuestionController extends ChangeNotifier {
   void _handleResultsReady() {
     // Add old today to unseen results if user participated
     if (_todayDate != null && (_weeklyItems[_todayDate] ?? false)) {
-      // print('[DQController] Adding $_todayDate to unseen results');
       _unseenResults.add(_todayDate!);
     }
 
@@ -142,10 +162,11 @@ class DailyQuestionController extends ChangeNotifier {
     _todayDocument = null;
   }
 
-  /// Mark results as seen for a date (removes unseen indicator).
+  /// Mark results as seen for a date (removes unseen indicator and persists).
   void markResultsSeen(String date) {
     if (_unseenResults.remove(date)) {
-      // print('[DQController] Marked $date as seen');
+      _seenResults.add(date);
+      _persistSeenResults();
       notifyListeners();
     }
   }
