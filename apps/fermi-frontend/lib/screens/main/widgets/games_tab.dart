@@ -3,7 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/screens/main/widgets/daily_question_carousel.dart';
-import 'package:fermi_frontend/widgets/press_effect_wrapper.dart';
+import 'package:fermi_frontend/widgets/bounce_effect_wrapper.dart';
 
 /// Displays the "Games" tab content with game options.
 ///
@@ -115,18 +115,12 @@ class GamesTab extends StatelessWidget {
   Widget _buildPartyCard(BuildContext context, AppTheme appTheme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: PressEffectWrapper(
+      child: BounceEffectWrapper(
         onTap: onPartyCardTapped,
         decoration: BoxDecoration(
           color: appTheme.secondary,
           borderRadius: BorderRadius.circular(appTheme.borderRadius),
-          boxShadow: [
-            BoxShadow(
-              color: appTheme.shadowColor,
-              offset: appTheme.shadowOffset,
-              blurRadius: 0,
-            ),
-          ],
+          boxShadow: const [], // No shadow for Party card
         ),
         padding: const EdgeInsets.all(16.0),
         child: Row(
