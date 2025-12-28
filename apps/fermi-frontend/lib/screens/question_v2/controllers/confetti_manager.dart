@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fermi_frontend/widgets/rank_widget.dart';
+import 'package:fermi_frontend/models/rank.dart';
 import 'package:fermi_frontend/screens/question_v2/controllers/question_state_manager.dart';
 import 'package:fermi_frontend/screens/question_v2/controllers/player_state_manager.dart';
 

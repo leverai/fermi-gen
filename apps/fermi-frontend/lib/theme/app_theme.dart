@@ -34,6 +34,11 @@ class AppTheme extends ThemeExtension<AppTheme> {
   final Color success;
   final Color info;
 
+  // Rank colors
+  final Color gold;
+  final Color silver;
+  final Color bronze;
+
   // Neubrutalism specific properties
   final double borderWidth;
   final double borderRadius;
@@ -57,6 +62,9 @@ class AppTheme extends ThemeExtension<AppTheme> {
     required this.warning,
     required this.success,
     required this.info,
+    required this.gold,
+    required this.silver,
+    required this.bronze,
     this.borderWidth = 3.0,
     this.borderRadius = 12.0,
     this.shadowOffset = const Offset(4, 4),
@@ -94,6 +102,11 @@ class AppTheme extends ThemeExtension<AppTheme> {
       warning: const HSLColor.fromAHSL(1.0, 49.73, 1.0, 0.7137).toColor(),
       success: const HSLColor.fromAHSL(1.0, 175.75, 0.5595, 0.5549).toColor(),
       info: const HSLColor.fromAHSL(1.0, 292, 0.2, 0.52).toColor(),
+
+      // Rank Colors
+      gold: const HSLColor.fromAHSL(1.0, 48, 1.0, 0.50).toColor(),
+      silver: const HSLColor.fromAHSL(1.0, 210, 0.1, 0.75).toColor(),
+      bronze: const HSLColor.fromAHSL(1.0, 30, 0.7, 0.50).toColor(),
 
       // Shadow
       shadowColor: const HSLColor.fromAHSL(1.0, 78, 0.19, 0.14).toColor(),
@@ -146,8 +159,14 @@ class AppTheme extends ThemeExtension<AppTheme> {
     required double borderMutedH,
     required double borderMutedS,
     required double borderMutedL,
+    // Rank colors are usually standard but can be overridden if needed
+    // For now, we'll use defaults or add params if strictly required.
+    // To keep signature size manageable and since these are "special",
+    // we will rely on defaults or derived values if not passed.
+    // For this implementation, we'll just use the default rank colors
+    // in fromConfig unless we want to explode the parameter list.
   }) {
-    // Keep warning and info from default theme
+    // Keep rank colors from default theme for now
     final defaultTheme = AppTheme.defaultTheme();
     final warning = defaultTheme.warning;
     final info = defaultTheme.info;
@@ -191,6 +210,9 @@ class AppTheme extends ThemeExtension<AppTheme> {
           HSLColor.fromAHSL(1.0, successH, successS, successL.clamp(0.0, 1.0))
               .toColor(),
       info: info,
+      gold: defaultTheme.gold,
+      silver: defaultTheme.silver,
+      bronze: defaultTheme.bronze,
     );
   }
 
@@ -212,6 +234,9 @@ class AppTheme extends ThemeExtension<AppTheme> {
     Color? warning,
     Color? success,
     Color? info,
+    Color? gold,
+    Color? silver,
+    Color? bronze,
     double? borderWidth,
     double? borderRadius,
     Offset? shadowOffset,
@@ -234,6 +259,9 @@ class AppTheme extends ThemeExtension<AppTheme> {
       warning: warning ?? this.warning,
       success: success ?? this.success,
       info: info ?? this.info,
+      gold: gold ?? this.gold,
+      silver: silver ?? this.silver,
+      bronze: bronze ?? this.bronze,
       borderWidth: borderWidth ?? this.borderWidth,
       borderRadius: borderRadius ?? this.borderRadius,
       shadowOffset: shadowOffset ?? this.shadowOffset,
@@ -263,6 +291,9 @@ class AppTheme extends ThemeExtension<AppTheme> {
       warning: Color.lerp(warning, other.warning, t)!,
       success: Color.lerp(success, other.success, t)!,
       info: Color.lerp(info, other.info, t)!,
+      gold: Color.lerp(gold, other.gold, t)!,
+      silver: Color.lerp(silver, other.silver, t)!,
+      bronze: Color.lerp(bronze, other.bronze, t)!,
       borderWidth: lerpDouble(borderWidth, other.borderWidth, t)!,
       borderRadius: lerpDouble(borderRadius, other.borderRadius, t)!,
       shadowOffset: Offset.lerp(shadowOffset, other.shadowOffset, t)!,

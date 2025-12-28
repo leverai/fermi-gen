@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:fermi_frontend/widgets/player_score_controller.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
+import 'package:fermi_frontend/models/rank.dart';
 
 class PlayerScore extends StatefulWidget {
   const PlayerScore({
@@ -14,6 +15,7 @@ class PlayerScore extends StatefulWidget {
     this.backgroundColor,
     this.incrementAmount,
     this.showIncrement = false,
+    this.rank,
   });
 
   final int initialScore;
@@ -21,18 +23,22 @@ class PlayerScore extends StatefulWidget {
   final Color? backgroundColor;
   final int? incrementAmount;
   final bool showIncrement;
+  final Rank? rank;
 
   @override
   State<PlayerScore> createState() => _PlayerScoreState();
 }
 
-class _PlayerScoreState extends State<PlayerScore> {
+class _PlayerScoreState extends State<PlayerScore>
+    with TickerProviderStateMixin {
   late List<int> _digits;
   final List<GlobalKey<_AnimatedDigitState>> _digitKeys = [];
   bool _isDisposed = false;
   late int _currentValue;
   late int _targetValue;
   bool _isAnimating = false;
+
+  late final AnimationController _shineController;
 
   @override
   void initState() {
@@ -45,6 +51,27 @@ class _PlayerScoreState extends State<PlayerScore> {
       widget.controller!.increment = _enqueueDelta;
       widget.controller!.setScore = _enqueueSet;
     }
+
+    _shineController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    if (widget.rank != null) {
+      _startShineLoop();
+    }
+  }
+
+  void _startShineLoop() {
+    if (!mounted || _isDisposed) return;
+    _shineController.forward(from: 0.0).then((_) {
+      if (!mounted || _isDisposed) return;
+      Future.delayed(const Duration(milliseconds: 4200), () {
+        if (mounted && !_isDisposed && widget.rank != null) {
+          _startShineLoop();
+        }
+      });
+    });
   }
 
   void _updateDigitKeys(int count) {
@@ -211,13 +238,44 @@ class _PlayerScoreState extends State<PlayerScore> {
   }
 
   @override
+  void didUpdateWidget(covariant PlayerScore oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.rank != oldWidget.rank) {
+      if (widget.rank != null) {
+        if (!_shineController.isAnimating) {
+          _shineController.reset();
+          _startShineLoop();
+        }
+      } else {
+        _shineController.stop();
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _isDisposed = true;
+    _shineController.dispose();
     if (widget.controller != null) {
       widget.controller!.increment = null;
       widget.controller!.setScore = null;
     }
     super.dispose();
+  }
+
+  Color _getBackgroundColor(AppTheme appTheme) {
+    if (widget.backgroundColor != null) return widget.backgroundColor!;
+
+    switch (widget.rank) {
+      case Rank.first:
+        return appTheme.gold;
+      case Rank.second:
+        return appTheme.silver;
+      case Rank.third:
+        return appTheme.bronze;
+      case null:
+        return appTheme.bgLight;
+    }
   }
 
   @override
@@ -242,11 +300,9 @@ class _PlayerScoreState extends State<PlayerScore> {
     }
 
     return Container(
-      // padding: const EdgeInsets.all(5.0),
       decoration: BoxDecoration(
-        color: widget.backgroundColor ?? appTheme.bgLight,
+        color: _getBackgroundColor(appTheme),
         borderRadius: BorderRadius.circular(6),
-        // border: Border.all(color: appTheme.border, width: 2),
         boxShadow: [
           BoxShadow(
             color: appTheme.shadowColor,
@@ -255,41 +311,93 @@ class _PlayerScoreState extends State<PlayerScore> {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4),
-        child: AnimatedSize(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ...digitWidgets,
-              if (widget.showIncrement && widget.incrementAmount != null)
-                AnimatedOpacity(
-                  duration: const Duration(milliseconds: 300),
-                  opacity: widget.showIncrement ? 1.0 : 0.0,
-                  child: AnimatedSlide(
-                    duration: const Duration(milliseconds: 300),
-                    offset: widget.showIncrement
-                        ? const Offset(0, 0)
-                        : const Offset(-0.5, 0),
-                    curve: Curves.easeOut,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 4.0),
-                      child: Text(
-                        '+${_formatWithCommas(widget.incrementAmount!)}',
-                        style: AppFont.secondaryTextStyle(
-                          context,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 10.0,
-                          color: appTheme.textMuted,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4),
+              child: AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ...digitWidgets,
+                    if (widget.showIncrement && widget.incrementAmount != null)
+                      AnimatedOpacity(
+                        duration: const Duration(milliseconds: 300),
+                        opacity: widget.showIncrement ? 1.0 : 0.0,
+                        child: AnimatedSlide(
+                          duration: const Duration(milliseconds: 300),
+                          offset: widget.showIncrement
+                              ? const Offset(0, 0)
+                              : const Offset(-0.5, 0),
+                          curve: Curves.easeOut,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 4.0),
+                            child: Text(
+                              '+${_formatWithCommas(widget.incrementAmount!)}',
+                              style: AppFont.secondaryTextStyle(
+                                context,
+                                fontWeight: FontWeight.w400,
+                                fontSize: 10.0,
+                                color: appTheme.textMuted,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                  ],
                 ),
-            ],
-          ),
+              ),
+            ),
+            if (widget.rank != null)
+              Positioned.fill(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return AnimatedBuilder(
+                      animation: _shineController,
+                      builder: (context, _) {
+                        final double progress = _shineController.value;
+                        const double beamWidth = 24.0;
+                        // Calculate total distance to travel (including beam width and some padding)
+                        final double totalX =
+                            constraints.maxWidth + beamWidth + 40;
+                        final double totalY =
+                            constraints.maxHeight + beamWidth + 40;
+
+                        return Transform.translate(
+                          offset: Offset(
+                            constraints.maxWidth - (totalX * progress) + 20,
+                            constraints.maxHeight - (totalY * progress) + 20,
+                          ),
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: Transform.rotate(
+                              angle: -0.785398, // -45 degrees
+                              child: Container(
+                                width: beamWidth,
+                                height: constraints.maxHeight * 4,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.white.withOpacity(0.0),
+                                      Colors.white.withOpacity(0.35),
+                                      Colors.white.withOpacity(0.0),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+          ],
         ),
       ),
     );

@@ -4,10 +4,10 @@ import 'package:fermi_frontend/theme/colormap.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:text_scroll/text_scroll.dart';
+import 'package:fermi_frontend/models/rank.dart';
 import 'player_score.dart';
 import 'player_score_controller.dart';
 import 'player_widget_controller.dart';
-import 'rank_widget.dart';
 import 'answer_chip.dart';
 import 'player_confetti_overlay.dart';
 import 'player_ring_progress.dart';
@@ -81,7 +81,6 @@ class PlayerWidget extends StatefulWidget {
     this.showNameChip = false,
     this.showRankIcons = false,
     this.rankOverride,
-    this.rankAnimationStyle = RankAnimationStyle.none,
     this.isSelf = false,
     this.deadlineProgressTracker,
   });
@@ -99,9 +98,6 @@ class PlayerWidget extends StatefulWidget {
   /// Overrides medal selection for this widget. Convention: by display order
   /// (0=gold, 1=silver, 2=bronze). Ignored when [showRankIcons] is false.
   final Rank? rankOverride;
-
-  /// Selects the animation style used by the rank icon when shown.
-  final RankAnimationStyle rankAnimationStyle;
 
   /// When true, shows a ring around the avatar using the theme's info color.
   /// When false, shows a ring using the theme's border color.
@@ -310,36 +306,15 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                                   incrementAmount: _lastIncrement,
                                   showIncrement: _lastIncrement != null &&
                                       _lastIncrement! > 0,
+                                  rank: (widget.showRankIcons &&
+                                          widget.rankOverride != null)
+                                      ? widget.rankOverride
+                                      : null,
                                 ),
                               ],
                             ),
                           ),
-                        // Rank icon on left side of avatar
-                        Positioned(
-                          bottom: totalH - (avatarTop + avatarSize) + 16.0,
-                          left: 2,
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 260),
-                            curve: Curves.easeInOut,
-                            opacity: (widget.showRankIcons &&
-                                    widget.rankOverride != null)
-                                ? 1.0
-                                : 0.0,
-                            child: IgnorePointer(
-                              ignoring: !(widget.showRankIcons &&
-                                  widget.rankOverride != null),
-                              child: widget.rankOverride != null
-                                  ? RankWidget(
-                                      key: ValueKey<String>(
-                                          'rank_${widget.playerState.playerId}_${widget.rankOverride}'),
-                                      rank: widget.rankOverride!,
-                                      animationStyle: widget.rankAnimationStyle,
-                                      show: widget.showRankIcons,
-                                    )
-                                  : const SizedBox(width: 34, height: 34),
-                            ),
-                          ),
-                        ),
+                        // Rank icon removed - now integrated into PlayerScore
                         // Status indicator (AnswerChip) at bottom
                         Positioned(
                           top: avatarTop + avatarSize - 12,

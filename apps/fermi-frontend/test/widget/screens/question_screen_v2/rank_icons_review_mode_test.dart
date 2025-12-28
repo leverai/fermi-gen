@@ -4,7 +4,7 @@ import 'package:fermi_frontend/screens/question_v2/question_screen_v2.dart';
 import 'package:fermi_frontend/screens/question_v2/question_screen_v2_controller.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/services/game_realtime.dart';
-import 'package:fermi_frontend/widgets/rank_widget.dart';
+import 'package:fermi_frontend/models/rank.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'question_screen_v2_test_helpers.dart';

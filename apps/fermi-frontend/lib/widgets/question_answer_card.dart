@@ -194,7 +194,7 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
     return Opacity(
       opacity: isCurrentPlayer ? 1.0 : 0.5,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
         decoration: BoxDecoration(
           color: isCurrentPlayer ? appTheme.secondaryMuted : appTheme.bgDark,
           borderRadius: BorderRadius.circular(100),
