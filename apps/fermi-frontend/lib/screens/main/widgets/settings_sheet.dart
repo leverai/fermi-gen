@@ -11,12 +11,14 @@ class SettingsSheet extends StatelessWidget {
     required this.onDeleteAccount,
     required this.isAnonymous,
     this.onCreateAccount,
+    this.email,
   });
 
   final VoidCallback onSignOut;
   final VoidCallback onDeleteAccount;
   final bool isAnonymous;
   final VoidCallback? onCreateAccount;
+  final String? email;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +81,7 @@ class SettingsSheet extends StatelessWidget {
               shrinkWrap: true,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               children: [
-                _buildSectionHeader(context, "Account", appTheme),
+                _buildSectionHeader(context, "Account", appTheme, email: email),
                 const SizedBox(height: 8),
                 if (isAnonymous)
                   _buildMenuItem(
@@ -131,17 +133,35 @@ class SettingsSheet extends StatelessWidget {
   }
 
   Widget _buildSectionHeader(
-      BuildContext context, String title, AppTheme appTheme) {
+      BuildContext context, String title, AppTheme appTheme,
+      {String? email}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(
-        title.toUpperCase(),
-        style: AppFont.primaryTextStyle(
-          context,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: appTheme.textMuted,
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: AppFont.primaryTextStyle(
+              context,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: appTheme.textMuted,
+            ),
+          ),
+          if (email != null)
+            Text(
+              email,
+              style: AppFont.primaryTextStyle(
+                context,
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: appTheme.borderMuted,
+              ).copyWith(
+                letterSpacing: 0.5,
+              ),
+            ),
+        ],
       ),
     );
   }

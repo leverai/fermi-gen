@@ -241,6 +241,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         onDeleteAccount: _handleDeleteAccount,
         isAnonymous: widget.authService.isAnonymous,
         onCreateAccount: _handleCreateAccount,
+        email: widget.authService.currentUser?.email,
       ),
     );
   }
