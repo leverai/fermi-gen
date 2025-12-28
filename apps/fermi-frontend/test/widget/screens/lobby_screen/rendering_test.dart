@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
@@ -70,6 +71,11 @@ void main() {
       // LoadingAnimationWidget.fourRotatingDots is used, but we can't
       // easily test that without a key. Just verify no share button is shown.
       expect(find.byType(ShareButton), findsNothing);
+
+      // Clean up TextScroll timers before test ends
+      await tester.pumpWidget(const SizedBox());
+      await tester.binding.delayed(const Duration(seconds: 1));
+      await tester.pump();
     });
 
     testWidgets('should display start button for host when ready',

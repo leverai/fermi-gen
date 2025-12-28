@@ -272,6 +272,11 @@ void main() {
         lcScore,
         reason: 'LC score should be preserved',
       );
+
+      // Clean up TextScroll timers
+      await tester.pumpWidget(const SizedBox());
+      await tester.binding.delayed(const Duration(seconds: 1));
+      await tester.pump();
     });
   });
 }
