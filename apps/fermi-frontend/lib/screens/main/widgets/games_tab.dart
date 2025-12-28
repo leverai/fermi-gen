@@ -39,7 +39,7 @@ class GamesTab extends StatelessWidget {
                 _buildWelcomeMessage(context, appTheme),
                 const SizedBox(height: 32),
                 const DailyQuestionCarousel(),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
                 _buildPartyCard(context, appTheme),
               ],
             ),
