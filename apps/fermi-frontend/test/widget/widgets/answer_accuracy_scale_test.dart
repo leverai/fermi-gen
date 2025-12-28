@@ -206,8 +206,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Assert
-      // 0.0005 -> 5.00e-4
-      expect(find.text('5.00e-4'), findsOneWidget);
+      // 0.0005 -> 5.0 × 10⁻⁴ (human-readable scientific notation)
+      expect(find.text('5.0 × 10⁻⁴'), findsOneWidget);
     });
   });
 }
