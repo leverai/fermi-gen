@@ -35,7 +35,7 @@ class StatsCard extends StatelessWidget {
           ],
         ),
         child: Material(
-          color: appTheme.bgLight,
+          color: appTheme.primaryMuted,
           borderRadius: BorderRadius.circular(24),
           child: InkWell(
             onTap: onTap,
@@ -136,15 +136,16 @@ class _RankItem extends StatelessWidget {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
         SizedBox(
-          width: 36,
-          height: 36,
+          width: 24,
+          height: 40,
           child: SvgPicture.network(
             rank.picture,
             placeholderBuilder: (context) => Icon(
               Icons.military_tech,
-              size: 28,
+              size: 24,
               // ignore: deprecated_member_use
               color: appTheme.textMuted,
             ),

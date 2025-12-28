@@ -49,7 +49,7 @@ class PlayerRingProgress extends StatelessWidget {
         : 1.0; // Completed/Review: show full
 
     // Get gap color: host uses primary, others use transparent
-    final Color ringGapColor = isHost ? appTheme.secondary : Colors.transparent;
+    final Color ringGapColor = isHost ? appTheme.primary : Colors.transparent;
     // ignore: deprecated_member_use
     final Color trackColor = ringColor.withOpacity(0.2);
 
@@ -89,15 +89,15 @@ class PlayerRingProgress extends StatelessWidget {
     switch (ringState) {
       case RingState.countdown:
         // Ring color: self uses info, others use border
-        return isSelf ? appTheme.primary : appTheme.borderMuted;
+        return isSelf ? appTheme.secondary : appTheme.borderMuted;
 
       case RingState.completed:
         // Completed: self uses info, others use success (green)
-        return isSelf ? appTheme.primary : appTheme.primaryMuted;
+        return isSelf ? appTheme.secondary : appTheme.primaryMuted;
 
       case RingState.review:
         // Ring color: self uses info, others use border
-        return isSelf ? appTheme.primary : appTheme.borderMuted;
+        return isSelf ? appTheme.secondary : appTheme.borderMuted;
     }
   }
 }
