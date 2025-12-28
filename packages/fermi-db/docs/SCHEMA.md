@@ -371,6 +371,49 @@ CREATE INDEX idx_daily_question_answers_score ON daily_question_answers(score);
 
 ---
 
+### User Table
+
+#### `user`
+
+Stores registered users, profiles, and leveling data.
+
+```sql
+CREATE TABLE user (
+    id SERIAL PRIMARY KEY,
+    firebase_uid TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE,
+    display_name TEXT,
+    picture TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    locale TEXT DEFAULT 'US',
+    login_streak INTEGER DEFAULT 0,
+    last_login_at TIMESTAMP DEFAULT NOW(),
+    xp BIGINT DEFAULT 0
+);
+
+CREATE INDEX idx_user_firebase_uid ON user(firebase_uid);
+CREATE INDEX idx_user_email ON user(email);
+```
+
+**Fields:**
+- `id`: Internal user ID
+- `firebase_uid`: Firebase Authentication UID (unique identifier)
+- `email`: User's email address
+- `display_name`: User's display name
+- `picture`: URL to user's avatar/profile picture
+- `locale`: User's locale preference ('US' or 'EU')
+- `login_streak`: Consecutive days logged in
+- `last_login_at`: Last login timestamp
+- `xp`: Experience points for leveling system (BigInteger for overflow protection)
+
+**XP and Leveling:**
+- XP is incremented when players score in games: `xp_increment = score // 100`
+- Level is computed on-the-fly: `level = (xp // 100) + 1`
+- New users start at Level 1 with 0 XP
+
+---
+
 ### Game Tables
 
 See Legacy Tables section for `user_question_history`, `answer_events`, and `questions_votes`.

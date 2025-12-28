@@ -275,6 +275,11 @@ class DailyQuestionService:
         }
         score = self._scoring.calculate_score(answer, correct_answer)
 
+        # Increment XP based on score (xp_increment = score // 100)
+        xp_increment = int(score // 100)
+        if xp_increment > 0:
+            await self._db.users.increment_xp(user_firebase_uid, xp_increment)
+
         # Store answer in database
         await self._db.dq_answers.submit_answer(
             daily_question_id=dq.id,

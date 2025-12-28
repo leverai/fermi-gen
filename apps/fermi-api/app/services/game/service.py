@@ -504,7 +504,8 @@ class GameService:
                 total_daily_guesses=raw_stats['total_daily_guesses'],
                 average_percentile=raw_stats['average_percentile'],
                 rank=rank,
-                level=1,  # Not implemented yet
+                xp=raw_stats['xp'],
+                level=raw_stats['level'],
             ),
         )
 
