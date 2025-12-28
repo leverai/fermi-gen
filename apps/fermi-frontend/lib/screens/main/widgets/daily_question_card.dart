@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/press_effect_wrapper.dart';
+import 'package:fermi_frontend/widgets/bounce_effect_wrapper.dart';
 
 class DailyQuestionCard extends StatefulWidget {
   final DateTime date;
@@ -141,165 +142,166 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
 
     final isDisabled = widget.onTap == null;
 
-    return Opacity(
-      opacity: isDisabled ? 0.65 : 1.0,
-      child: PressEffectWrapper(
-        onTap: widget.onTap,
-        enablePushDown: widget.isToday,
-        decoration: BoxDecoration(
-          color: widget.isToday
-              ? appTheme.primary
-              : (widget.participated ? appTheme.primary : appTheme.bgLight),
-          borderRadius: BorderRadius.circular(appTheme.borderRadius),
-          boxShadow: widget.isToday
-              ? [
-                  BoxShadow(
-                    color: appTheme.shadowColor,
-                    offset: appTheme.shadowOffset,
-                    blurRadius: 0,
-                  ),
-                ]
-              : [],
-        ),
-        child: Stack(
-          children: [
-            Container(
-              width: double.infinity,
-              height: double.infinity,
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
+    final decoration = BoxDecoration(
+      color: widget.isToday
+          ? appTheme.primary
+          : (widget.participated ? appTheme.primary : appTheme.bgLight),
+      borderRadius: BorderRadius.circular(appTheme.borderRadius),
+      boxShadow: widget.isToday
+          ? [] // No shadow for today's card
+          : [],
+    );
+
+    final cardContent = Stack(
+      children: [
+        Container(
+          width: double.infinity,
+          height: double.infinity,
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Content
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Content
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (widget.showTitle) ...[
-                        Text(
-                          'Daily Guess',
-                          style: AppFont.primaryTextStyle(
-                            context,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            color: widget.isToday ? appTheme.bg : appTheme.text,
-                          ),
-                        ),
-                        Text(
-                          'Challenge the World!',
-                          style: AppFont.primaryTextStyle(
-                            context,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            color: widget.isToday
-                                ? appTheme.bgDark
-                                : appTheme.borderMuted,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      // For non-today cards, show weekday at the top
-                      if (!widget.isToday)
-                        Text(
-                          weekdayFormat.format(widget.date),
-                          style: AppFont.primaryTextStyle(
-                            context,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: widget.participated
-                                ? appTheme.bg
-                                : appTheme.text,
-                          ),
-                        ),
-                    ],
-                  ),
-
-                  const Spacer(),
-
-                  // Bottom part: Date and timer/status (only for today's card)
-                  if (widget.isToday)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        // Date
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              weekdayFormat.format(widget.date).toUpperCase(),
-                              style: AppFont.secondaryTextStyle(
-                                context,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: appTheme.bg,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
-                              children: [
-                                Text(
-                                  dayFormat.format(widget.date),
-                                  style: AppFont.primaryTextStyle(
-                                    context,
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w700,
-                                    color: appTheme.bg,
-                                    height: 1.0,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  monthFormat.format(widget.date).toUpperCase(),
-                                  style: AppFont.secondaryTextStyle(
-                                    context,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: appTheme.bg,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        // Bottom right: "Ends in" timer for ACTIVE/SUBMITTED, or submission status indicator
-                        _buildBottomRightContent(context, appTheme),
-                      ],
+                  if (widget.showTitle) ...[
+                    Text(
+                      'Daily Guess',
+                      style: AppFont.primaryTextStyle(
+                        context,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: widget.isToday ? appTheme.bg : appTheme.text,
+                      ),
+                    ),
+                    Text(
+                      'Challenge the World!',
+                      style: AppFont.primaryTextStyle(
+                        context,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: widget.isToday
+                            ? appTheme.bgDark
+                            : appTheme.borderMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  // For non-today cards, show weekday at the top
+                  if (!widget.isToday)
+                    Text(
+                      weekdayFormat.format(widget.date),
+                      style: AppFont.primaryTextStyle(
+                        context,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color:
+                            widget.participated ? appTheme.bg : appTheme.text,
+                      ),
                     ),
                 ],
               ),
-            ),
-            // Status button positioned at top right (only for today's card)
-            if (widget.isToday)
-              Positioned(
-                top: 16,
-                right: 16,
-                child: _buildStatusButton(context, appTheme),
-              ),
 
-            // "Seen" indicator for past cards where user has seen results
-            if (!widget.isToday &&
-                widget.participated &&
-                !widget.hasUnseenResults)
-              Positioned(
-                bottom: 16,
-                right: 16,
-                child: Text(
-                  'Seen ✓',
-                  style: AppFont.primaryTextStyle(
-                    context,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: appTheme.primaryMuted,
-                  ),
+              const Spacer(),
+
+              // Bottom part: Date and timer/status (only for today's card)
+              if (widget.isToday)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Date
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          weekdayFormat.format(widget.date).toUpperCase(),
+                          style: AppFont.secondaryTextStyle(
+                            context,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: appTheme.bg,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              dayFormat.format(widget.date),
+                              style: AppFont.primaryTextStyle(
+                                context,
+                                fontSize: 32,
+                                fontWeight: FontWeight.w700,
+                                color: appTheme.bg,
+                                height: 1.0,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              monthFormat.format(widget.date).toUpperCase(),
+                              style: AppFont.secondaryTextStyle(
+                                context,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: appTheme.bg,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    // Bottom right: "Ends in" timer for ACTIVE/SUBMITTED, or submission status indicator
+                    _buildBottomRightContent(context, appTheme),
+                  ],
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
-      ),
+        // Status button positioned at top right (only for today's card)
+        if (widget.isToday)
+          Positioned(
+            top: 16,
+            right: 16,
+            child: _buildStatusButton(context, appTheme),
+          ),
+
+        // "Seen" indicator for past cards where user has seen results
+        if (!widget.isToday && widget.participated && !widget.hasUnseenResults)
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: Text(
+              'Seen ✓',
+              style: AppFont.primaryTextStyle(
+                context,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: appTheme.primaryMuted,
+              ),
+            ),
+          ),
+      ],
+    );
+
+    return Opacity(
+      opacity: isDisabled ? 0.65 : 1.0,
+      child: widget.isToday
+          ? BounceEffectWrapper(
+              onTap: widget.onTap,
+              decoration: decoration,
+              child: cardContent,
+            )
+          : PressEffectWrapper(
+              onTap: widget.onTap,
+              enablePushDown: false,
+              decoration: decoration,
+              child: cardContent,
+            ),
     );
   }
 
