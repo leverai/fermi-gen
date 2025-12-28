@@ -151,7 +151,7 @@ class _ScalePainter extends CustomPainter {
     double playerX = getX(playerPercentile);
 
     // Draw "You" bubble above
-    final Paint bubblePaint = Paint()..color = appTheme.primary;
+    final Paint bubblePaint = Paint()..color = appTheme.secondary;
 
     // Triangle pointing down
     Path trianglePath = Path();
