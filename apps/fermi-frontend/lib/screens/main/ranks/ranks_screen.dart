@@ -52,7 +52,7 @@ class _RanksScreenState extends State<RanksScreen> {
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
     return Scaffold(
-      backgroundColor: appTheme.bg,
+      backgroundColor: appTheme.bgDark,
       body: Stack(
         children: [
           // Main Content
@@ -184,7 +184,7 @@ class _RankPage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: appTheme.bgLight,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
                 color: appTheme.shadowColor,
@@ -208,25 +208,13 @@ class _RankPage extends StatelessWidget {
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: appTheme.primary,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: appTheme.shadowColor,
-                  offset: appTheme.shadowOffset,
-                  blurRadius: 0,
-                  spreadRadius: 0,
-                ),
-              ],
-            ),
             child: Text(
-              'Your Current Rank',
+              'Your Current Rank ✓',
               style: AppFont.primaryTextStyle(
                 context,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: appTheme.bgLight,
+                color: appTheme.secondary,
               ),
             ),
           ),
