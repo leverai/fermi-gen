@@ -186,3 +186,36 @@ class UserRepository(BaseRepository):
         # 4. Delete user record
         await self.session.delete(user)
         await self.session.commit()
+
+    async def increment_xp(self, firebase_uid: str, amount: int) -> None:
+        """Atomically increment a user's XP.
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+            amount: Amount of XP to add (must be non-negative).
+
+        """
+        if amount < 0:
+            raise ValueError('XP increment must be non-negative')
+        if amount == 0:
+            return
+
+        user = await self.get_by_firebase_uid(firebase_uid)
+        assert user is not None
+        user.xp = user.xp + amount
+        self.session.add(user)
+        # Note: caller should commit
+
+    async def get_xp(self, firebase_uid: str) -> int:
+        """Get a user's current XP.
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+
+        Returns:
+            The user's XP value.
+
+        """
+        user = await self.get_by_firebase_uid(firebase_uid)
+        assert user is not None
+        return user.xp

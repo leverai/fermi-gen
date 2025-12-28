@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from fermi_core import utcnow_naive
+from sqlalchemy import BigInteger
 from sqlmodel import Field, SQLModel
 
 from fermi_db.schemas import Locale
@@ -22,3 +23,5 @@ class User(SQLModel, table=True):
     # Login streak fields
     login_streak: int = Field(default=0)
     last_login_at: datetime = Field(default_factory=utcnow_naive)
+    # XP for leveling system - stored as BigInteger for overflow protection
+    xp: int = Field(default=0, ge=0, sa_type=BigInteger())

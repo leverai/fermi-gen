@@ -122,8 +122,11 @@ class PlayerStats(BaseModel):
     rank: RankInfo
     """Player rank based on average percentile."""
 
+    xp: int
+    """Player's total experience points."""
+
     level: int
-    """Player level (not yet implemented, always 1)."""
+    """Player level (computed from xp)."""
 
 
 class GetPlayerStatsResponse(BaseModel):

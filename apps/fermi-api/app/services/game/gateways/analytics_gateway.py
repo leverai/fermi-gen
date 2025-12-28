@@ -171,7 +171,22 @@ class GameAnalyticsGateway:
         )
         await self._db_client.answers.add_answers(answer_events)
 
-        # 2) Add questions to users' histories (skip bots)
+        # 2) Increment XP for each player based on their total score
+        # Aggregate total score per player
+        player_total_scores: dict[str, float] = {}
+        for event in answer_events:
+            player_id = event.user_firebase_id
+            if player_id not in player_total_scores:
+                player_total_scores[player_id] = 0.0
+            player_total_scores[player_id] += event.score_number
+
+        # Increment XP for each player
+        for player_id, total_score in player_total_scores.items():
+            xp_increment = int(total_score // 100)
+            if xp_increment > 0:
+                await self._db_client.users.increment_xp(player_id, xp_increment)
+
+        # 3) Add questions to users' histories (skip bots)
         for players_results_doc in players_results_docs:
             user_ids = [
                 pid
@@ -191,10 +206,14 @@ class GameAnalyticsGateway:
             - total_party_games: int
             - total_daily_guesses: int
             - average_percentile: int
+            - xp: int
+            - level: int (computed from xp)
         """
         avg_pct = await self._db_client.answers.get_overall_avg_percentile(
             player_id,
         )
+        xp = await self._db_client.users.get_xp(player_id)
+        level = (xp // 100) + 1
         return {
             'total_party_games': await self._db_client.answers.count_user_party_games(
                 player_id,
@@ -203,6 +222,8 @@ class GameAnalyticsGateway:
                 player_id,
             ),
             'average_percentile': avg_pct,
+            'xp': xp,
+            'level': level,
         }
 
     async def set_user_vote(

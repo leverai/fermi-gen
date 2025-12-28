@@ -92,3 +92,41 @@ class UserService:
             }
             for user in users
         }
+
+    async def increment_xp_by_score(
+        self,
+        firebase_uid: str,
+        score: float,
+    ) -> int:
+        """Increment a user's XP based on their score.
+
+        Formula: xp_increment = score // 100
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+            score: The score earned by the player.
+
+        Returns:
+            The XP increment amount.
+
+        """
+        xp_increment = int(score // 100)
+        if xp_increment > 0:
+            await self._user_repository.increment_xp(firebase_uid, xp_increment)
+        return xp_increment
+
+    async def get_xp_level(self, firebase_uid: str) -> dict[str, int]:
+        """Get a user's XP and computed level.
+
+        Formula: level = (xp // 100) + 1
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+
+        Returns:
+            Dict with 'xp' and 'level' keys.
+
+        """
+        xp = await self._user_repository.get_xp(firebase_uid)
+        level = (xp // 100) + 1
+        return {'xp': xp, 'level': level}
