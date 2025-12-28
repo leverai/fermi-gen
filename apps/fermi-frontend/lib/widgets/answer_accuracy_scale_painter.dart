@@ -146,7 +146,6 @@ class ScalePainter extends CustomPainter {
         canvas,
         Offset(x, cy),
         appTheme.borderMuted.withOpacity(0.5),
-        h, // Height needed for line
       );
     });
 
@@ -157,7 +156,6 @@ class ScalePainter extends CustomPainter {
       canvas,
       Offset(userX, cy),
       appTheme.secondary,
-      h,
     );
 
     // Draw Correct Indicator (if revealed)
@@ -172,27 +170,36 @@ class ScalePainter extends CustomPainter {
         canvas,
         Offset(currentX, cy),
         appTheme.primary,
-        h,
       );
     }
   }
 
-  void _drawIndicator(
-      Canvas canvas, Offset center, Color color, double height) {
+  void _drawIndicator(Canvas canvas, Offset tip, Color color) {
+    const double size = 16.0;
+    const double radius = 1.0;
+    const double strokeWidth = radius * 2;
+
+    final p = Path();
+    // Inset the path by half the stroke width to keep the total size close to 'size'
+    // and offset down by strokeWidth/2 to keep the tip at the exact 'tip' location.
+    const double halfWidth = (size - strokeWidth) / 2;
+    const double height = size - strokeWidth;
+    const double topOffset = strokeWidth / 2;
+
+    p.moveTo(tip.dx, tip.dy + topOffset);
+    p.lineTo(tip.dx - halfWidth, tip.dy + topOffset + height);
+    p.lineTo(tip.dx + halfWidth, tip.dy + topOffset + height);
+    p.close();
+
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 3.0 // Requirement: "Use a line" - assumed width
-      ..strokeCap = StrokeCap.round; // Rounded ends looks nicer
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = strokeWidth;
 
-    // Draw line spanning the entire height
-    // Center is at cy (middle).
-    // range is 0 to h.
-    // x is center.dx
-    canvas.drawLine(
-      Offset(center.dx, 0),
-      Offset(center.dx, height),
-      paint,
-    );
+    // Draw both fill and stroke to get rounded corners on a filled shape
+    canvas.drawPath(p, paint..style = PaintingStyle.fill);
+    canvas.drawPath(p, paint..style = PaintingStyle.stroke);
   }
 
   @override

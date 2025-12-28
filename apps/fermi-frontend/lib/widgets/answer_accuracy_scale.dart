@@ -352,7 +352,8 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                   // User Answer Text Box
                   Positioned(
                     left: padding + (userLogValue / 15.0) * drawWidth,
-                    bottom: 60, // Position 12px above the scale (48 + 12 = 60)
+                    bottom:
+                        38, // Position 8px above the scale (y=16, bottom=32)
                     child: FractionalTranslation(
                       translation: const Offset(-0.5, 0),
                       child: AnimatedOpacity(
@@ -405,7 +406,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                   if (currentCorrectX != null && widget.revealedAnswer != null)
                     Positioned(
                       left: currentCorrectX,
-                      top: 60, // Position 12px below the scale (48 + 12 = 60)
+                      bottom: 38, // Position 8px above the scale
                       child: FractionalTranslation(
                         translation: const Offset(-0.5, 0),
                         child: Opacity(

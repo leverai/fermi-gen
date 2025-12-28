@@ -397,8 +397,25 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                   thickness: 1,
                   color: appTheme.bgDark,
                 ),
-                const SizedBox(height: 16),
                 // Answer display row: SliderTextMirror + UnitTape (grouped together)
+
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeInOut,
+                  alignment: Alignment.topCenter,
+                  child: showCarousel
+                      ? Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(height: 16),
+                            _buildResultsCarousel(context, appTheme),
+                            const SizedBox(height: 12),
+                          ],
+                        )
+                      : const SizedBox(height: 16),
+                ),
+                // const SizedBox(height: 2),
+                // Animated results row carousel (only when revealed with other players)
                 SizedBox(
                   height: kQuestionAnswerCardAnswerRowHeight,
                   child: Row(
@@ -444,23 +461,8 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
-                // Animated results row carousel (only when revealed with other players)
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeInOut,
-                  alignment: Alignment.topCenter,
-                  child: showCarousel
-                      ? Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _buildResultsCarousel(context, appTheme),
-                            const SizedBox(height: 12),
-                          ],
-                        )
-                      : const SizedBox(height: 28),
-                ),
                 // Answer Accuracy Scale (no text boxes for other players)
+                const SizedBox(height: 16),
                 AnswerAccuracyScale(
                   key: widget.answerScaleKey,
                   currentAnswer: widget.currentAnswer,
