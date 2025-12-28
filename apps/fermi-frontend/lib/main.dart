@@ -147,6 +147,7 @@ class _MyAppState extends State<MyApp> {
       service: _dailyQuestionService,
       firestoreService: _dqFirestoreService,
     );
+    _dailyQuestionController.initialize();
     _preloadService = PreloadService(api: _apiService, auth: _authService);
     _appRouter = AppRouter(
       authService: _authService,
