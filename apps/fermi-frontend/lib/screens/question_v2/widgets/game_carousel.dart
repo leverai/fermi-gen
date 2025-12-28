@@ -70,7 +70,10 @@ class GameCarousel extends StatelessWidget {
                           width: originalCardWidth,
                           child: CarouselPageWrapper(
                             index: index,
-                            child: itemBuilder(context, index, index),
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: itemBuilder(context, index, index),
+                            ),
                           ),
                         ),
                       );

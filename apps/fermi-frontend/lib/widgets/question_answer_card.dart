@@ -196,16 +196,8 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: appTheme.bgLight,
-          borderRadius: BorderRadius.circular(4),
-          boxShadow: [
-            BoxShadow(
-              color:
-                  isCurrentPlayer ? appTheme.secondary : appTheme.borderMuted,
-              blurRadius: 0,
-              offset: const Offset(2, 2),
-            ),
-          ],
+          color: isCurrentPlayer ? appTheme.secondaryMuted : appTheme.bgDark,
+          borderRadius: BorderRadius.circular(100),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -395,14 +387,14 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                 Divider(
                   height: 1,
                   thickness: 1,
-                  color: appTheme.bgDark,
+                  color: appTheme.bgDark.withAlpha(100),
                 ),
                 // Answer display row: SliderTextMirror + UnitTape (grouped together)
 
                 AnimatedSize(
                   duration: const Duration(milliseconds: 400),
                   curve: Curves.easeInOut,
-                  alignment: Alignment.topCenter,
+                  alignment: Alignment.bottomCenter,
                   child: showCarousel
                       ? Column(
                           mainAxisSize: MainAxisSize.min,
@@ -462,7 +454,7 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                   ),
                 ),
                 // Answer Accuracy Scale (no text boxes for other players)
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 AnswerAccuracyScale(
                   key: widget.answerScaleKey,
                   currentAnswer: widget.currentAnswer,
@@ -476,8 +468,14 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                       widget.editable ? widget.onAnswerChanged : null,
                 ),
                 // Button widget (if provided)
+                const SizedBox(height: 16),
+                Divider(
+                  color: appTheme.bgDark.withAlpha(100),
+                  thickness: 1,
+                  height: 1,
+                ),
                 if (widget.buttonWidget != null) ...[
-                  const SizedBox(height: 48.0),
+                  const SizedBox(height: 16.0),
                   widget.buttonWidget!,
                 ],
               ],
