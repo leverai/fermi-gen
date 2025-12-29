@@ -242,8 +242,23 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         isAnonymous: widget.authService.isAnonymous,
         onCreateAccount: _handleCreateAccount,
         email: widget.authService.currentUser?.email,
+        currentLocale: widget.authService.locale,
+        onLocaleChanged: _handleLocaleChanged,
       ),
     );
+  }
+
+  Future<void> _handleLocaleChanged(String newLocale) async {
+    try {
+      await widget.apiService.setUserLocale(locale: newLocale);
+      if (mounted) setState(() {});
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update locale: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _handleSignOut() async {

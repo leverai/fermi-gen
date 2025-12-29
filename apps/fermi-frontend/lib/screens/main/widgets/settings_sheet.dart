@@ -3,8 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
+import 'package:fermi_frontend/widgets/unit_system_switch.dart';
 
-class SettingsSheet extends StatelessWidget {
+class SettingsSheet extends StatefulWidget {
   const SettingsSheet({
     super.key,
     required this.onSignOut,
@@ -12,6 +13,8 @@ class SettingsSheet extends StatelessWidget {
     required this.isAnonymous,
     this.onCreateAccount,
     this.email,
+    this.currentLocale,
+    this.onLocaleChanged,
   });
 
   final VoidCallback onSignOut;
@@ -19,6 +22,21 @@ class SettingsSheet extends StatelessWidget {
   final bool isAnonymous;
   final VoidCallback? onCreateAccount;
   final String? email;
+  final String? currentLocale;
+  final ValueChanged<String>? onLocaleChanged;
+
+  @override
+  State<SettingsSheet> createState() => _SettingsSheetState();
+}
+
+class _SettingsSheetState extends State<SettingsSheet> {
+  late String _currentLocale;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentLocale = widget.currentLocale?.toUpperCase() ?? 'US';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,16 +99,22 @@ class SettingsSheet extends StatelessWidget {
               shrinkWrap: true,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               children: [
-                _buildSectionHeader(context, "Account", appTheme, email: email),
+                _buildSectionHeader(context, "Regional Settings", appTheme),
                 const SizedBox(height: 8),
-                if (isAnonymous)
+                _buildUnitSystemRow(context, appTheme),
+                // Account Section
+                const SizedBox(height: 24),
+                _buildSectionHeader(context, "Account", appTheme,
+                    email: widget.email),
+                const SizedBox(height: 8),
+                if (widget.isAnonymous)
                   _buildMenuItem(
                     context,
                     icon: Icons.person_add,
                     label: "Create Account",
                     onTap: () {
                       Navigator.of(context).pop();
-                      onCreateAccount?.call();
+                      widget.onCreateAccount?.call();
                     },
                     appTheme: appTheme,
                   )
@@ -101,7 +125,7 @@ class SettingsSheet extends StatelessWidget {
                     label: "Sign out",
                     onTap: () {
                       Navigator.of(context).pop();
-                      onSignOut();
+                      widget.onSignOut();
                     },
                     appTheme: appTheme,
                   ),
@@ -116,13 +140,12 @@ class SettingsSheet extends StatelessWidget {
                     label: "Delete account",
                     onTap: () {
                       Navigator.of(context).pop();
-                      onDeleteAccount();
+                      widget.onDeleteAccount();
                     },
                     appTheme: appTheme,
                     isDestructive: true,
                   ),
                 ],
-                // Add more sections here in the future
                 const SizedBox(height: 48), // Extra space at bottom
               ],
             ),
@@ -191,13 +214,76 @@ class SettingsSheet extends StatelessWidget {
               label,
               style: AppFont.primaryTextStyle(
                 context,
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: isDestructive ? appTheme.danger : appTheme.text,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildUnitSystemRow(BuildContext context, AppTheme appTheme) {
+    final bool isUS = _currentLocale == 'US';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Unit system',
+            style: AppFont.primaryTextStyle(
+              context,
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+              color: appTheme.text,
+            ),
+          ),
+          GestureDetector(
+            onTap: () {
+              final newLocale = isUS ? 'EU' : 'US';
+              setState(() {
+                _currentLocale = newLocale;
+              });
+              widget.onLocaleChanged?.call(newLocale);
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Imperial label
+                Text(
+                  'Imperial',
+                  style: AppFont.primaryTextStyle(
+                    context,
+                    fontSize: 14,
+                    fontWeight: isUS ? FontWeight.w600 : FontWeight.w400,
+                    color: isUS ? appTheme.secondary : appTheme.textMuted,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Switch container
+                UnitSystemSwitch(
+                  isUS: isUS,
+                  appTheme: appTheme,
+                ),
+                const SizedBox(width: 6),
+                // Metric label
+                Text(
+                  'Metric',
+                  style: AppFont.primaryTextStyle(
+                    context,
+                    fontSize: 14,
+                    fontWeight: !isUS ? FontWeight.w600 : FontWeight.w400,
+                    color: !isUS ? appTheme.secondary : appTheme.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
