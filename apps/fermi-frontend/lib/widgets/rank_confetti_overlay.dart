@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import 'dart:math';
+import 'package:fermi_frontend/theme/app_theme.dart';
 
 /// Displays a full-screen confetti animation for top 3 players.
 ///
@@ -70,56 +71,69 @@ class _RankConfettiOverlayState extends State<RankConfettiOverlay> {
   }
 
   /// Returns the confetti configuration based on rank.
-  _RankConfettiConfig _getConfigForRank(int rank) {
+  _RankConfettiConfig _getConfigForRank(int rank, AppTheme theme) {
+    // Standard vibrant "happy" colors
+    final happyColors = [
+      Colors.redAccent,
+      Colors.blueAccent,
+      Colors.greenAccent,
+      Colors.yellowAccent,
+      Colors.orangeAccent,
+      Colors.purpleAccent,
+      Colors.pinkAccent,
+      Colors.cyanAccent,
+      theme.primary,
+      theme.secondary,
+    ];
+
+    Color rankColor;
+    int particles;
+    double frequency;
+    double gravity;
+
     switch (rank) {
       case 1:
-        return const _RankConfettiConfig(
-          colors: [
-            Color(0xFFFFD700), // Gold
-            Color(0xFFFFC700),
-            Color(0xFFFFB700),
-            Color(0xFFFFAA00),
-            Color(0xFFFF9500),
-          ],
-          numberOfParticles: 30,
-          emissionFrequency: 0.01,
-          gravity: 0.1,
-        );
+        rankColor = theme.gold;
+        particles = 30;
+        frequency = 0.02;
+        gravity = 0.1;
+        break;
       case 2:
-        return const _RankConfettiConfig(
-          colors: [
-            Color(0xFFC0C0C0), // Silver
-            Color(0xFFD3D3D3),
-            Color(0xFFB8B8B8),
-            Color(0xFFA9A9A9),
-            Color(0xFF9E9E9E),
-          ],
-          numberOfParticles: 20,
-          emissionFrequency: 0.015,
-          gravity: 0.12,
-        );
+        rankColor = theme.silver;
+        particles = 20;
+        frequency = 0.02;
+        gravity = 0.1;
+        break;
       case 3:
-        return const _RankConfettiConfig(
-          colors: [
-            Color(0xFFCD7F32), // Bronze
-            Color(0xFFB87333),
-            Color(0xFFA0522D),
-            Color(0xFF8B4513),
-            Color(0xFF704214),
-          ],
-          numberOfParticles: 15,
-          emissionFrequency: 0.02,
-          gravity: 0.15,
-        );
+        rankColor = theme.bronze;
+        particles = 15;
+        frequency = 0.02;
+        gravity = 0.1;
+        break;
       default:
-        // Fallback (shouldn't happen)
-        return const _RankConfettiConfig(
-          colors: [Colors.grey],
-          numberOfParticles: 10,
-          emissionFrequency: 0.02,
-          gravity: 0.15,
-        );
+        rankColor = Colors.grey;
+        particles = 10;
+        frequency = 0.02;
+        gravity = 0.1;
     }
+
+    // Per requirement: The gold/silver/bronze confettis should take 4th of the total confetti.
+    // To achieve 25% rank color, we mix happyColors with rankColor in 3:1 ratio.
+    // Since happyColors has 10 elements, we add 10/3 ~ 3 or 4 elements of rankColor.
+    // Specifically, if we want rankColor to be 1/4, and happyColors is 3/4:
+    // happyColors.length / 3 = rankColorsCount
+    final int rankColorsCount = (happyColors.length / 3).ceil();
+    final colors = [
+      ...happyColors,
+      ...List.generate(rankColorsCount, (_) => rankColor),
+    ];
+
+    return _RankConfettiConfig(
+      colors: colors,
+      numberOfParticles: particles,
+      emissionFrequency: frequency,
+      gravity: gravity,
+    );
   }
 
   @override
@@ -129,62 +143,63 @@ class _RankConfettiOverlayState extends State<RankConfettiOverlay> {
       return const SizedBox.shrink();
     }
 
-    final config = _getConfigForRank(widget.rank);
+    final theme = Theme.of(context).extension<AppTheme>()!;
+    final config = _getConfigForRank(widget.rank, theme);
 
     // Explicitly fill the entire available space to ensure confetti covers full screen
     return SizedBox.expand(
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Center confetti - positioned at absolute top center
+          // Center confetti - positioned at bottom center firing up
           Align(
-            alignment: Alignment.topCenter,
+            alignment: Alignment.bottomCenter,
             child: ConfettiWidget(
               confettiController: _controllerCenter,
-              blastDirection: pi / 2, // Down
-              blastDirectionality: BlastDirectionality.explosive,
-              particleDrag: 0.05,
+              blastDirection: -pi / 2, // Straight up
+              blastDirectionality: BlastDirectionality.directional,
+              particleDrag: 0.015,
               emissionFrequency: config.emissionFrequency,
               numberOfParticles: config.numberOfParticles,
               gravity: config.gravity,
               shouldLoop: false,
               colors: config.colors,
-              maxBlastForce: 20,
-              minBlastForce: 10,
+              maxBlastForce: 60,
+              minBlastForce: 30,
             ),
           ),
-          // Left side confetti - positioned at absolute left center
+          // Left side confetti - positioned at bottom left firing top-right
           Align(
-            alignment: Alignment.centerLeft,
+            alignment: Alignment.bottomLeft,
             child: ConfettiWidget(
               confettiController: _controllerLeft,
-              blastDirection: 0, // Right
+              blastDirection: -pi / 3, // Top-right
               blastDirectionality: BlastDirectionality.directional,
-              particleDrag: 0.05,
+              particleDrag: 0.015,
               emissionFrequency: config.emissionFrequency,
-              numberOfParticles: (config.numberOfParticles * 0.6).round(),
+              numberOfParticles: (config.numberOfParticles * 0.8).round(),
               gravity: config.gravity,
               shouldLoop: false,
               colors: config.colors,
-              maxBlastForce: 15,
-              minBlastForce: 8,
+              maxBlastForce: 80,
+              minBlastForce: 40,
             ),
           ),
-          // Right side confetti - positioned at absolute right center
+          // Right side confetti - positioned at bottom right firing top-left
           Align(
-            alignment: Alignment.centerRight,
+            alignment: Alignment.bottomRight,
             child: ConfettiWidget(
               confettiController: _controllerRight,
-              blastDirection: pi, // Left
+              blastDirection: -2 * pi / 3, // Top-left
               blastDirectionality: BlastDirectionality.directional,
-              particleDrag: 0.05,
+              particleDrag: 0.015,
               emissionFrequency: config.emissionFrequency,
-              numberOfParticles: (config.numberOfParticles * 0.6).round(),
+              numberOfParticles: (config.numberOfParticles * 0.8).round(),
               gravity: config.gravity,
               shouldLoop: false,
               colors: config.colors,
-              maxBlastForce: 15,
-              minBlastForce: 8,
+              maxBlastForce: 80,
+              minBlastForce: 40,
             ),
           ),
         ],
