@@ -45,7 +45,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
 
     return Container(
       decoration: BoxDecoration(
-        color: appTheme.bgLight,
+        color: appTheme.bg,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         boxShadow: [
           BoxShadow(
@@ -99,53 +99,73 @@ class _SettingsSheetState extends State<SettingsSheet> {
               shrinkWrap: true,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               children: [
+                // Regional Settings Section
                 _buildSectionHeader(context, "Regional Settings", appTheme),
                 const SizedBox(height: 8),
-                _buildUnitSystemRow(context, appTheme),
+                _buildSectionCard(
+                  context,
+                  appTheme,
+                  children: [
+                    _buildSettingsRow(
+                      context,
+                      appTheme,
+                      label: 'Unit system',
+                      icon: Icons.straighten,
+                      trailing: _buildUnitSystemToggle(context, appTheme),
+                    ),
+                  ],
+                ),
                 // Account Section
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 _buildSectionHeader(context, "Account", appTheme,
                     email: widget.email),
                 const SizedBox(height: 8),
-                if (widget.isAnonymous)
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.person_add,
-                    label: "Create Account",
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      widget.onCreateAccount?.call();
-                    },
-                    appTheme: appTheme,
-                  )
-                else ...[
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.logout,
-                    label: "Sign out",
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      widget.onSignOut();
-                    },
-                    appTheme: appTheme,
-                  ),
-                  Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: appTheme.borderMuted.withOpacity(0.3),
-                  ),
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.delete_forever,
-                    label: "Delete account",
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      widget.onDeleteAccount();
-                    },
-                    appTheme: appTheme,
-                    isDestructive: true,
-                  ),
-                ],
+                _buildSectionCard(
+                  context,
+                  appTheme,
+                  children: [
+                    if (widget.isAnonymous)
+                      _buildSettingsRow(
+                        context,
+                        appTheme,
+                        label: "Create Account",
+                        icon: Icons.person_add,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          widget.onCreateAccount?.call();
+                        },
+                      )
+                    else ...[
+                      _buildSettingsRow(
+                        context,
+                        appTheme,
+                        label: "Sign out",
+                        icon: Icons.logout,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          widget.onSignOut();
+                        },
+                      ),
+                      Divider(
+                        height: 1,
+                        thickness: 1,
+                        indent: 24, // Align with text after icon
+                        color: appTheme.bg,
+                      ),
+                      _buildSettingsRow(
+                        context,
+                        appTheme,
+                        label: "Delete account",
+                        icon: Icons.delete_forever,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          widget.onDeleteAccount();
+                        },
+                        isDestructive: true,
+                      ),
+                    ],
+                  ],
+                ),
                 const SizedBox(height: 48), // Extra space at bottom
               ],
             ),
@@ -189,98 +209,122 @@ class _SettingsSheetState extends State<SettingsSheet> {
     );
   }
 
-  Widget _buildMenuItem(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    required AppTheme appTheme,
-    bool isDestructive = false,
+  /// Builds a section card with rounded corners and bgLight background
+  Widget _buildSectionCard(
+    BuildContext context,
+    AppTheme appTheme, {
+    required List<Widget> children,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+    return Container(
+      decoration: BoxDecoration(
+        color: appTheme.bgLight,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 24,
-              color: isDestructive ? appTheme.danger : appTheme.text,
-            ),
-            const SizedBox(width: 16),
-            Text(
-              label,
-              style: AppFont.primaryTextStyle(
-                context,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: isDestructive ? appTheme.danger : appTheme.text,
-              ),
-            ),
-          ],
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: children,
         ),
       ),
     );
   }
 
-  Widget _buildUnitSystemRow(BuildContext context, AppTheme appTheme) {
-    final bool isUS = _currentLocale == 'US';
+  /// Builds a reusable settings row with optional icon, label, and trailing widget
+  Widget _buildSettingsRow(
+    BuildContext context,
+    AppTheme appTheme, {
+    required String label,
+    IconData? icon,
+    Widget? trailing,
+    VoidCallback? onTap,
+    bool isDestructive = false,
+  }) {
+    final Color textColor = isDestructive ? appTheme.danger : appTheme.text;
 
-    return Padding(
+    Widget content = Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 16,
+                  color: textColor,
+                ),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                label,
+                style: AppFont.primaryTextStyle(
+                  context,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: textColor,
+                ),
+              ),
+            ],
+          ),
+          if (trailing != null) trailing,
+        ],
+      ),
+    );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: content,
+      );
+    }
+
+    return content;
+  }
+
+  /// Builds the unit system toggle (Imperial / Switch / Metric)
+  Widget _buildUnitSystemToggle(BuildContext context, AppTheme appTheme) {
+    final bool isUS = _currentLocale == 'US';
+
+    return GestureDetector(
+      onTap: () {
+        final newLocale = isUS ? 'EU' : 'US';
+        setState(() {
+          _currentLocale = newLocale;
+        });
+        widget.onLocaleChanged?.call(newLocale);
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Imperial label
           Text(
-            'Unit system',
+            'Imperial',
             style: AppFont.primaryTextStyle(
               context,
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-              color: appTheme.text,
+              fontSize: 12,
+              fontWeight: isUS ? FontWeight.w600 : FontWeight.w400,
+              color: isUS ? appTheme.secondary : appTheme.borderMuted,
             ),
           ),
-          GestureDetector(
-            onTap: () {
-              final newLocale = isUS ? 'EU' : 'US';
-              setState(() {
-                _currentLocale = newLocale;
-              });
-              widget.onLocaleChanged?.call(newLocale);
-            },
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Imperial label
-                Text(
-                  'Imperial',
-                  style: AppFont.primaryTextStyle(
-                    context,
-                    fontSize: 14,
-                    fontWeight: isUS ? FontWeight.w600 : FontWeight.w400,
-                    color: isUS ? appTheme.secondary : appTheme.textMuted,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Switch container
-                UnitSystemSwitch(
-                  isUS: isUS,
-                  appTheme: appTheme,
-                ),
-                const SizedBox(width: 6),
-                // Metric label
-                Text(
-                  'Metric',
-                  style: AppFont.primaryTextStyle(
-                    context,
-                    fontSize: 14,
-                    fontWeight: !isUS ? FontWeight.w600 : FontWeight.w400,
-                    color: !isUS ? appTheme.secondary : appTheme.textMuted,
-                  ),
-                ),
-              ],
+          const SizedBox(width: 8),
+          // Switch container
+          UnitSystemSwitch(
+            isUS: isUS,
+            appTheme: appTheme,
+          ),
+          const SizedBox(width: 8),
+          // Metric label
+          Text(
+            'Metric',
+            style: AppFont.primaryTextStyle(
+              context,
+              fontSize: 12,
+              fontWeight: !isUS ? FontWeight.w600 : FontWeight.w400,
+              color: !isUS ? appTheme.secondary : appTheme.borderMuted,
             ),
           ),
         ],

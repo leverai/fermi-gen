@@ -76,7 +76,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
     return AppTheme(
       // Backgrounds
       bgDark: const HSLColor.fromAHSL(1.0, 177, 0.08, 0.89).toColor(),
-      bg: const HSLColor.fromAHSL(1.0, 177, 0.16, 0.98).toColor(),
+      bg: const HSLColor.fromAHSL(1.0, 177, 0.08, 0.94).toColor(),
       bgLight: const HSLColor.fromAHSL(1.0, 177, 1.0, 1.0).toColor(),
 
       // Text
