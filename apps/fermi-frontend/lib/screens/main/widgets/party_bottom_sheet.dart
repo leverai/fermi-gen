@@ -90,10 +90,10 @@ void showPartyBottomSheet({
                         ),
                       ),
                       Text(
-                        'Select Category:',
+                        'Select category:',
                         style: AppFont.primaryTextStyle(
                           context,
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: FontWeight.w400,
                           color: appTheme.textMuted,
                         ),
@@ -108,10 +108,10 @@ void showPartyBottomSheet({
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Select Difficulty:',
+                        'Select difficulty:',
                         style: AppFont.primaryTextStyle(
                           context,
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: FontWeight.w400,
                           color: appTheme.textMuted,
                         ),

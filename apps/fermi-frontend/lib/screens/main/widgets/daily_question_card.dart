@@ -219,7 +219,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                       children: [
                         Text(
                           weekdayFormat.format(widget.date).toUpperCase(),
-                          style: AppFont.secondaryTextStyle(
+                          style: AppFont.primaryTextStyle(
                             context,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,

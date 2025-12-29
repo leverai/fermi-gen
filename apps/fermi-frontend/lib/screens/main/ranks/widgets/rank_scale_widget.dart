@@ -127,10 +127,10 @@ class _ScalePainter extends CustomPainter {
 
       bool isBoundary = t == startPercentile || t == endPercentile;
       if (isBoundary) {
-        String label = '$t%';
+        String label = '$t';
         if (startPercentile == 98) {
           if (t == 100) continue; // Skip 100% text to avoid overlap
-          if (t == 98) label = '>98%';
+          if (t == 98) label = '98 100';
         }
 
         textPainter.text = TextSpan(
@@ -163,7 +163,7 @@ class _ScalePainter extends CustomPainter {
 
     // Bubble Text "You" or "$p%"
     textPainter.text = TextSpan(
-      text: 'You: $playerPercentile%',
+      text: '$playerPercentile',
       style: AppFont.primaryTextStyle(
         context,
         fontSize: 12,
