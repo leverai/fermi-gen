@@ -67,10 +67,9 @@ class _UnitSystemSwitchState extends State<UnitSystemSwitch>
     // Calculate dimensions: rectangle should be wide enough for square + spacing
     // Square size: 24x24 (typical for switches)
     // Rectangle: 2 * square size = 48 width, square height = 24
-    const double squareSize = 24.0;
-    const double rectangleWidth = squareSize * 2;
-    const double rectangleHeight = squareSize;
-    const double borderWidth = 2.0;
+    const double circleRadius = 20.0;
+    const double rectangleWidth = circleRadius * 2;
+    const double rectangleHeight = circleRadius;
 
     return AnimatedBuilder(
       animation: _animation,
@@ -78,17 +77,14 @@ class _UnitSystemSwitchState extends State<UnitSystemSwitch>
         // Calculate square position: left (0.0) to right (1.0)
         final double squarePosition = _animation.value;
         final double leftOffset =
-            squarePosition * (rectangleWidth - squareSize);
+            squarePosition * (rectangleWidth - circleRadius);
 
         return Container(
           width: rectangleWidth,
           height: rectangleHeight,
           decoration: BoxDecoration(
-            border: Border.all(
-              color: widget.appTheme.border,
-              width: borderWidth,
-            ),
-            borderRadius: BorderRadius.zero, // Square edges
+            color: widget.appTheme.bgDark,
+            borderRadius: BorderRadius.circular(12), // Square edges
           ),
           child: Stack(
             children: [
@@ -96,15 +92,11 @@ class _UnitSystemSwitchState extends State<UnitSystemSwitch>
                 left: leftOffset,
                 top: 0,
                 child: Container(
-                  width: squareSize,
-                  height: squareSize,
+                  width: circleRadius,
+                  height: circleRadius,
                   decoration: BoxDecoration(
                     color: widget.appTheme.secondary,
-                    border: Border.all(
-                      color: widget.appTheme.border,
-                      width: 1.0,
-                    ),
-                    borderRadius: BorderRadius.zero, // Square edges
+                    borderRadius: BorderRadius.circular(100), // Square edges
                   ),
                 ),
               ),
