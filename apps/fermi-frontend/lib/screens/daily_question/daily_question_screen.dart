@@ -364,10 +364,13 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     // If already submitted, just navigate back to main
     if (_isSubmitted) {
       if (mounted) {
-        // Pop Navigator stack first (handles in-app push navigation)
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        // Then use go_router (handles deep link entry)
-        context.go('/main');
+        if (Navigator.of(context).canPop()) {
+          // Push navigation - triggers .then() callback
+          Navigator.of(context).pop();
+        } else {
+          // Deep link navigation - goes through go_router
+          context.go('/main');
+        }
       }
       return;
     }
@@ -394,10 +397,13 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     if (confirmed == true) {
       await _submit();
       if (mounted) {
-        // Pop Navigator stack first (handles in-app push navigation)
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        // Then use go_router (handles deep link entry)
-        context.go('/main');
+        if (Navigator.of(context).canPop()) {
+          // Push navigation - triggers .then() callback
+          Navigator.of(context).pop();
+        } else {
+          // Deep link navigation - goes through go_router
+          context.go('/main');
+        }
       }
     }
   }

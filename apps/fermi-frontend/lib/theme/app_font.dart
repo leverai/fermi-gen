@@ -69,6 +69,7 @@ class AppFont extends ThemeExtension<AppFont> {
     final String fontFamily = ext?.primaryFamily ?? 'Barlow';
 
     if (useGoogle) {
+      final letterSpacing = fontSize == 12 ? 0.5 : null;
       return GoogleFonts.getFont(
         fontFamily,
         fontSize: fontSize,
@@ -76,6 +77,7 @@ class AppFont extends ThemeExtension<AppFont> {
         color: color,
         height: height,
         decoration: decoration,
+        letterSpacing: letterSpacing,
       );
     } else {
       return TextStyle(
@@ -104,6 +106,7 @@ class AppFont extends ThemeExtension<AppFont> {
     final String fontFamily = ext?.secondaryFamily ?? 'Jura';
 
     if (useGoogle) {
+      final letterSpacing = fontSize == 12 ? 0.5 : null;
       return GoogleFonts.getFont(
         fontFamily,
         fontSize: fontSize,
@@ -111,6 +114,7 @@ class AppFont extends ThemeExtension<AppFont> {
         color: color,
         height: height,
         decoration: decoration,
+        letterSpacing: letterSpacing,
       );
     } else {
       return TextStyle(

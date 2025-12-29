@@ -5,12 +5,19 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
+import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/screens/daily_question/daily_question_screen.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 
 class DailyQuestionArchiveSheet extends StatefulWidget {
-  const DailyQuestionArchiveSheet({super.key});
+  const DailyQuestionArchiveSheet({
+    super.key,
+    required this.mainScreenController,
+  });
+
+  /// Controller for refreshing stats when returning from DQ screen.
+  final MainScreenController mainScreenController;
 
   @override
   State<DailyQuestionArchiveSheet> createState() =>
@@ -249,32 +256,57 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
 
                           if (isActive && !hasParticipated) {
                             // Navigate to DQ play screen
-                            Navigator.of(context).pop(); // Close the sheet
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const DailyQuestionScreen(),
-                              ),
-                            );
+                            // Capture controller and navigator before async gap to avoid lint warning
+                            final mainController = widget.mainScreenController;
+                            final navigator = Navigator.of(context);
+                            navigator.pop(); // Close the sheet
+                            navigator
+                                .push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const DailyQuestionScreen(),
+                                  ),
+                                )
+                                .then((_) {
+                                  // Refresh stats when returning from DQ screen
+                                  // in case player submitted an answer
+                                  mainController.refreshInBackground();
+                                });
                           } else if (isActive && hasParticipated) {
                             // Already submitted - go to unified screen
-                            Navigator.of(context).pop();
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => DailyQuestionScreen(
-                                  questionDate: dateStr,
-                                ),
-                              ),
-                            );
+                            // Capture controller and navigator before async gap to avoid lint warning
+                            final mainController = widget.mainScreenController;
+                            final navigator = Navigator.of(context);
+                            navigator.pop();
+                            navigator
+                                .push(
+                                  MaterialPageRoute(
+                                    builder: (_) => DailyQuestionScreen(
+                                      questionDate: dateStr,
+                                    ),
+                                  ),
+                                )
+                                .then((_) {
+                                  // Refresh stats when returning from DQ screen
+                                  mainController.refreshInBackground();
+                                });
                           } else {
                             // Past date or closed - show unified screen with results
-                            Navigator.of(context).pop();
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => DailyQuestionScreen(
-                                  questionDate: dateStr,
-                                ),
-                              ),
-                            );
+                            // Capture controller and navigator before async gap to avoid lint warning
+                            final mainController = widget.mainScreenController;
+                            final navigator = Navigator.of(context);
+                            navigator.pop();
+                            navigator
+                                .push(
+                                  MaterialPageRoute(
+                                    builder: (_) => DailyQuestionScreen(
+                                      questionDate: dateStr,
+                                    ),
+                                  ),
+                                )
+                                .then((_) {
+                                  // Refresh stats when returning from DQ screen
+                                  mainController.refreshInBackground();
+                                });
                           }
                         }
                       : null,

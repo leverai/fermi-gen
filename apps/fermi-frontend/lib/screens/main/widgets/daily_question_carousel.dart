@@ -195,11 +195,14 @@ class DailyQuestionCarousel extends StatelessWidget {
   Widget _buildArchiveButton(BuildContext context, AppTheme appTheme) {
     return PressEffectWrapper(
       onTap: () {
+        final mainController = context.read<MainScreenController>();
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
-          builder: (context) => const DailyQuestionArchiveSheet(),
+          builder: (context) => DailyQuestionArchiveSheet(
+            mainScreenController: mainController,
+          ),
         );
       },
       enablePushDown: false,

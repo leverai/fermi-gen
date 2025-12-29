@@ -262,6 +262,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _handleSignOut() async {
+    // Clear preload cache to prevent stale stats for next user
+    widget.preloadService?.clearCache();
     await widget.authService.signOut();
     if (!mounted) return;
     context.go('/sign-in');
@@ -292,6 +294,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     if (confirm == true) {
       try {
+        // Clear preload cache to prevent stale stats for next user
+        widget.preloadService?.clearCache();
         await widget.authService.deleteAccount();
         if (!mounted) return;
         context.go('/sign-in');
