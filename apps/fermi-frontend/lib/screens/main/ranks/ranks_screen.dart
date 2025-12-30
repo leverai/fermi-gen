@@ -4,6 +4,7 @@ import 'package:fermi_frontend/screens/main/ranks/widgets/rank_scale_widget.dart
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/leave_button.dart';
+import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -51,95 +52,98 @@ class _RanksScreenState extends State<RanksScreen> {
     final AppTheme appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    return Scaffold(
+    return ResponsiveContainer(
       backgroundColor: appTheme.bgDark,
-      body: Stack(
-        children: [
-          // Main Content
-          Column(
-            children: [
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(), // Use arrows
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentIndex = index;
-                    });
-                  },
-                  itemCount: allRanks.length,
-                  itemBuilder: (context, index) {
-                    final rank = allRanks[index];
-                    return _RankPage(
-                        rank: rank, playerStats: widget.playerStats);
-                  },
-                ),
-              ),
-              RankScaleWidget(
-                currentRank: allRanks[_currentIndex],
-                playerPercentile: widget.playerStats.averagePercentile,
-              ),
-              // Bottom padding for scale
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
-            ],
-          ),
-
-          // Leave Button
-          LeaveButtonOverlay(
-            iconColor: appTheme.text,
-            splashColor: appTheme.textMuted.withOpacity(0.2),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-
-          // Navigation Arrows
-          if (_currentIndex > 0)
-            Positioned(
-              left: 16,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: FloatingActionButton(
-                  heroTag: 'left_arrow',
-                  onPressed: () => _goToPage(_currentIndex - 1),
-                  mini: true,
-                  backgroundColor: appTheme.bg,
-                  foregroundColor: appTheme.text,
-                  elevation: 0,
-                  focusElevation: 0,
-                  hoverElevation: 0,
-                  highlightElevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(100),
+      child: Scaffold(
+        backgroundColor: appTheme.bgDark,
+        body: Stack(
+          children: [
+            // Main Content
+            Column(
+              children: [
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(), // Use arrows
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentIndex = index;
+                      });
+                    },
+                    itemCount: allRanks.length,
+                    itemBuilder: (context, index) {
+                      final rank = allRanks[index];
+                      return _RankPage(
+                          rank: rank, playerStats: widget.playerStats);
+                    },
                   ),
-                  child: const Icon(Icons.arrow_back),
                 ),
-              ),
+                RankScaleWidget(
+                  currentRank: allRanks[_currentIndex],
+                  playerPercentile: widget.playerStats.averagePercentile,
+                ),
+                // Bottom padding for scale (safe area handled by ResponsiveContainer)
+                const SizedBox(height: 16),
+              ],
             ),
 
-          if (_currentIndex < allRanks.length - 1)
-            Positioned(
-              right: 16,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: FloatingActionButton(
-                  heroTag: 'right_arrow',
-                  onPressed: () => _goToPage(_currentIndex + 1),
-                  mini: true,
-                  backgroundColor: appTheme.bg,
-                  foregroundColor: appTheme.text,
-                  elevation: 0,
-                  focusElevation: 0,
-                  hoverElevation: 0,
-                  highlightElevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(100),
+            // Leave Button
+            LeaveButtonOverlay(
+              iconColor: appTheme.text,
+              splashColor: appTheme.textMuted.withOpacity(0.2),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+
+            // Navigation Arrows
+            if (_currentIndex > 0)
+              Positioned(
+                left: 16,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: FloatingActionButton(
+                    heroTag: 'left_arrow',
+                    onPressed: () => _goToPage(_currentIndex - 1),
+                    mini: true,
+                    backgroundColor: appTheme.bg,
+                    foregroundColor: appTheme.text,
+                    elevation: 0,
+                    focusElevation: 0,
+                    hoverElevation: 0,
+                    highlightElevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: const Icon(Icons.arrow_back),
                   ),
-                  child: const Icon(Icons.arrow_forward),
                 ),
               ),
-            ),
-        ],
+
+            if (_currentIndex < allRanks.length - 1)
+              Positioned(
+                right: 16,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: FloatingActionButton(
+                    heroTag: 'right_arrow',
+                    onPressed: () => _goToPage(_currentIndex + 1),
+                    mini: true,
+                    backgroundColor: appTheme.bg,
+                    foregroundColor: appTheme.text,
+                    elevation: 0,
+                    focusElevation: 0,
+                    hoverElevation: 0,
+                    highlightElevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: const Icon(Icons.arrow_forward),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

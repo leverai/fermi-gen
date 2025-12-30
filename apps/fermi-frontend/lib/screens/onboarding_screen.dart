@@ -8,6 +8,7 @@ import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/styled_dialog.dart';
+import 'package:fermi_frontend/widgets/responsive_container.dart';
 
 /// Onboarding screen that guides first-time users through answering a question.
 ///
@@ -274,18 +275,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     return Theme(
       data: themedData,
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        body: IgnorePointer(
-          ignoring: _blockInteractions,
-          child: _QuestionScreenWrapper(
-            key: _questionScreenKey,
-            realtime: _realtime,
-            questionWidgetKey: _questionWidgetKey,
-            unitLabelKey: _unitLabelKey,
-            answerScaleKey: _answerScaleKey,
-            onExit: _exitOnboarding,
-            onDismissTutorial: _dismissTutorialForDialog,
+      child: ResponsiveContainer(
+        backgroundColor: appTheme.bgDark,
+        child: Scaffold(
+          resizeToAvoidBottomInset: false,
+          body: IgnorePointer(
+            ignoring: _blockInteractions,
+            child: _QuestionScreenWrapper(
+              key: _questionScreenKey,
+              realtime: _realtime,
+              questionWidgetKey: _questionWidgetKey,
+              unitLabelKey: _unitLabelKey,
+              answerScaleKey: _answerScaleKey,
+              onExit: _exitOnboarding,
+              onDismissTutorial: _dismissTutorialForDialog,
+            ),
           ),
         ),
       ),

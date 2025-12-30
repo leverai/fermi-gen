@@ -2,6 +2,7 @@
 
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/leave_button.dart';
+import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -119,37 +120,40 @@ class AuthScreen extends StatelessWidget {
 
     return Theme(
       data: authTheme,
-      child: Stack(
-        children: [
-          SignInScreen(
-            providers: providers,
-            actions: actions ?? const [],
-            styles: const {
-              // Custom styles for specific views if needed
-            },
-            headerBuilder: (context, constraints, shrinkOffset) {
-              return Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Center(
-                  child: Text(
-                    'Welcome',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: appTheme.text,
+      child: ResponsiveContainer(
+        backgroundColor: appTheme.bg,
+        child: Stack(
+          children: [
+            SignInScreen(
+              providers: providers,
+              actions: actions ?? const [],
+              styles: const {
+                // Custom styles for specific views if needed
+              },
+              headerBuilder: (context, constraints, shrinkOffset) {
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(
+                    child: Text(
+                      'Welcome',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: appTheme.text,
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-          // Leave Button
-          LeaveButtonOverlay(
-            iconColor: appTheme.text,
-            splashColor: appTheme.primary.withOpacity(0.2),
-            onPressed: onLeave ?? () => Navigator.of(context).maybePop(),
-          ),
-        ],
+                );
+              },
+            ),
+            // Leave Button
+            LeaveButtonOverlay(
+              iconColor: appTheme.text,
+              splashColor: appTheme.primary.withOpacity(0.2),
+              onPressed: onLeave ?? () => Navigator.of(context).maybePop(),
+            ),
+          ],
+        ),
       ),
     );
   }

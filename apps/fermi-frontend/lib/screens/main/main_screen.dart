@@ -395,19 +395,18 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             curve: Curves.easeInOutCubic,
             child: ResponsiveContainer(
               backgroundColor: appTheme.bgDark,
+              safeAreaBottom: false, // BottomNavigationBar handles bottom safe area
               child: Scaffold(
                 body: Stack(
                   children: [
                     Column(
                       children: [
                         Expanded(
-                          child: SafeArea(
-                            bottom: false,
-                            child: PageView(
-                              controller: _pageController,
-                              onPageChanged: _onPageChanged,
-                              physics: const NeverScrollableScrollPhysics(),
-                              children: [
+                          child: PageView(
+                            controller: _pageController,
+                            onPageChanged: _onPageChanged,
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
                                 ClipRect(
                                   child: GamesTab(
                                     displayName: widget
@@ -449,7 +448,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                               ],
                             ),
                           ),
-                        ),
                       ],
                     ),
                     // Settings FAB
