@@ -26,27 +26,29 @@ class GamesTab extends StatelessWidget {
     final AppTheme appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    return Column(
-      children: [
-        _buildTopBar(appTheme),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 24),
-                _buildWelcomeMessage(context, appTheme),
-                const SizedBox(height: 32),
-                const DailyQuestionCarousel(),
-                const SizedBox(height: 24),
-                _buildPartyCard(context, appTheme),
-              ],
+    return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
+        child: Column(
+          children: [
+            _buildTopBar(appTheme),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 24),
+                    _buildWelcomeMessage(context, appTheme),
+                    const SizedBox(height: 32),
+                    const DailyQuestionCarousel(),
+                    const SizedBox(height: 24),
+                    _buildPartyCard(context, appTheme),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
-    );
+          ],
+        ));
   }
 
   Widget _buildTopBar(AppTheme appTheme) {

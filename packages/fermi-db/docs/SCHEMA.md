@@ -414,6 +414,56 @@ CREATE INDEX idx_user_email ON user(email);
 
 ---
 
+### Subscription Tables
+
+#### `subscriptions`
+
+Tracks user subscription status and history.
+
+```sql
+CREATE TYPE subscriptiontier AS ENUM ('FREE', 'PRO');
+CREATE TYPE subscriptionplatform AS ENUM ('APP_STORE', 'PLAY_STORE', 'STRIPE', 'PROMOTIONAL');
+
+CREATE TABLE subscriptions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+    revenuecat_user_id TEXT NOT NULL,
+    tier subscriptiontier NOT NULL DEFAULT 'FREE',
+    product_id TEXT,                          -- e.g., 'fermi_pro_lifetime', 'fermi_pro_monthly'
+    platform subscriptionplatform,
+    is_active BOOLEAN NOT NULL DEFAULT FALSE,
+    expires_at TIMESTAMP,                     -- NULL for lifetime
+    original_purchase_date TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id)
+);
+
+CREATE INDEX idx_subscriptions_user_id ON subscriptions(user_id);
+CREATE INDEX idx_subscriptions_revenuecat_user_id ON subscriptions(revenuecat_user_id);
+```
+
+**Fields:**
+- `id`: Internal subscription ID
+- `user_id`: Reference to user table (one subscription per user)
+- `revenuecat_user_id`: RevenueCat app user ID (typically matches Firebase UID)
+- `tier`: Subscription tier ('FREE' or 'PRO')
+- `product_id`: Product identifier from RevenueCat (e.g., 'fermi_pro_lifetime')
+- `platform`: Platform where subscription was purchased
+- `is_active`: Whether the subscription is currently active
+- `expires_at`: Expiration timestamp (NULL for lifetime subscriptions)
+- `original_purchase_date`: When the subscription was originally purchased
+- `created_at`: When the subscription record was created
+- `updated_at`: When the subscription record was last updated
+
+**Subscription Management:**
+- Subscriptions are synced from RevenueCat via webhook events
+- One subscription record per user (enforced by UNIQUE constraint)
+- Records are updated on purchase, renewal, cancellation, and expiration events
+- Lifetime subscriptions have `expires_at = NULL` and `is_active = TRUE`
+
+---
+
 ### Game Tables
 
 See Legacy Tables section for `user_question_history`, `answer_events`, and `questions_votes`.

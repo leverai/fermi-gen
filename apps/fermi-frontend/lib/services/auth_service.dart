@@ -253,12 +253,14 @@ class AuthUser {
   final String? email;
   final String? displayName;
   final String? picture;
+  final String subscriptionTier; // 'FREE' or 'PRO'
 
   const AuthUser({
     required this.firebaseUid,
     this.email,
     this.displayName,
     this.picture,
+    this.subscriptionTier = 'FREE',
   });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
@@ -267,6 +269,7 @@ class AuthUser {
       email: json['email'] as String?,
       displayName: json['display_name'] as String?,
       picture: json['picture'] as String?,
+      subscriptionTier: json['subscription_tier'] as String? ?? 'FREE',
     );
   }
 }

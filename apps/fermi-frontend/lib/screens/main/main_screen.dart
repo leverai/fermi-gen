@@ -395,7 +395,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             curve: Curves.easeInOutCubic,
             child: ResponsiveContainer(
               backgroundColor: appTheme.bgDark,
-              safeAreaBottom: false, // BottomNavigationBar handles bottom safe area
+              safeAreaBottom:
+                  false, // BottomNavigationBar handles bottom safe area
               child: Scaffold(
                 body: Stack(
                   children: [
@@ -407,47 +408,46 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                             onPageChanged: _onPageChanged,
                             physics: const NeverScrollableScrollPhysics(),
                             children: [
-                                ClipRect(
-                                  child: GamesTab(
-                                    displayName: widget
-                                        .authService.currentUser?.displayName,
-                                    onPartyCardTapped: () =>
-                                        showPartyBottomSheet(
-                                      context: context,
-                                      controller: _controller,
-                                      onPrimaryAction: _onPrimaryAction,
-                                    ),
+                              ClipRect(
+                                child: GamesTab(
+                                  displayName: widget
+                                      .authService.currentUser?.displayName,
+                                  onPartyCardTapped: () => showPartyBottomSheet(
+                                    context: context,
+                                    controller: _controller,
+                                    onPrimaryAction: _onPrimaryAction,
                                   ),
                                 ),
-                                ClipRect(
-                                  child: MeTab(
-                                    avatarUrl:
-                                        widget.authService.currentUser?.picture,
-                                    displayName: widget
-                                        .authService.currentUser?.displayName,
-                                    isAnonymous: widget.authService.isAnonymous,
-                                    onCreateAccount: _handleCreateAccount,
-                                    onEditProfile: _handleEditProfile,
-                                    playerStats:
-                                        _controller.playerStatsDto?.stats,
-                                    onStatsTapped: () {
-                                      final stats =
-                                          _controller.playerStatsDto?.stats;
-                                      if (stats != null) {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (_) => RanksScreen(
-                                              playerStats: stats,
-                                            ),
+                              ),
+                              ClipRect(
+                                child: MeTab(
+                                  avatarUrl:
+                                      widget.authService.currentUser?.picture,
+                                  displayName: widget
+                                      .authService.currentUser?.displayName,
+                                  isAnonymous: widget.authService.isAnonymous,
+                                  onCreateAccount: _handleCreateAccount,
+                                  onEditProfile: _handleEditProfile,
+                                  playerStats:
+                                      _controller.playerStatsDto?.stats,
+                                  onStatsTapped: () {
+                                    final stats =
+                                        _controller.playerStatsDto?.stats;
+                                    if (stats != null) {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => RanksScreen(
+                                            playerStats: stats,
                                           ),
-                                        );
-                                      }
-                                    },
-                                  ),
+                                        ),
+                                      );
+                                    }
+                                  },
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
+                        ),
                       ],
                     ),
                     // Settings FAB
