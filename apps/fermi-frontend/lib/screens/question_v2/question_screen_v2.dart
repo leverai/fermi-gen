@@ -193,22 +193,19 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Players row
-                    SafeArea(
-                      bottom: false,
-                      child: PlayersRow(
-                        players: _controller
-                            .getPlayersForIndex(_controller.currentIndex),
-                        controllerById: _controller.playerControllers,
-                        showScoreOverlay: true,
-                        animateScoreOverlay: true,
-                        showNameChip: true,
-                        showRankIcons: _controller.isReviewMode,
-                        currentPlayerId: widget.realtime.currentPlayerId,
-                        questionIndex: _controller.currentIndex,
-                        deadlineProgressTracker:
-                            _controller.deadlineProgressTracker,
-                        finalRanks: _controller.finalRanks,
-                      ),
+                    PlayersRow(
+                      players: _controller
+                          .getPlayersForIndex(_controller.currentIndex),
+                      controllerById: _controller.playerControllers,
+                      showScoreOverlay: true,
+                      animateScoreOverlay: true,
+                      showNameChip: true,
+                      showRankIcons: _controller.isReviewMode,
+                      currentPlayerId: widget.realtime.currentPlayerId,
+                      questionIndex: _controller.currentIndex,
+                      deadlineProgressTracker:
+                          _controller.deadlineProgressTracker,
+                      finalRanks: _controller.finalRanks,
                     ),
                     // Spacer to center carousel vertically in remaining space
                     const Spacer(),

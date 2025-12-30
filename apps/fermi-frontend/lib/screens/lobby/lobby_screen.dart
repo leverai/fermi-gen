@@ -8,6 +8,7 @@ import 'package:fermi_frontend/widgets/player_widget.dart';
 import 'package:fermi_frontend/widgets/players_row.dart';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/widgets/leave_button.dart';
+import 'package:fermi_frontend/widgets/responsive_container.dart';
 
 class LobbyScreen extends StatelessWidget {
   const LobbyScreen({
@@ -57,25 +58,26 @@ class LobbyScreen extends StatelessWidget {
           Navigator.of(context).maybePop();
         }
       },
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [appTheme.bg, appTheme.bg, appTheme.bgDark],
-                stops: const [0.0, 0.8, 1.0],
+      child: ResponsiveContainer(
+        backgroundColor: appTheme.bgDark,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [appTheme.bg, appTheme.bg, appTheme.bgDark],
+                  stops: const [0.0, 0.8, 1.0],
+                ),
               ),
             ),
-          ),
-          Scaffold(
-            backgroundColor: Colors.transparent,
-            body: Stack(
-              children: [
-                SafeArea(
-                  child: Padding(
+            Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Stack(
+                children: [
+                  Padding(
                     padding: const EdgeInsets.only(
                         left: 24, right: 24, top: 0, bottom: 48),
                     child: Column(
@@ -126,16 +128,17 @@ class LobbyScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
-                LeaveButtonOverlay(
-                  iconColor: appTheme.borderMuted,
-                  splashColor: appTheme.borderMuted,
-                  onPressed: onLeave ?? () => Navigator.of(context).maybePop(),
-                ),
-              ],
+                  LeaveButtonOverlay(
+                    iconColor: appTheme.borderMuted,
+                    splashColor: appTheme.borderMuted,
+                    onPressed:
+                        onLeave ?? () => Navigator.of(context).maybePop(),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

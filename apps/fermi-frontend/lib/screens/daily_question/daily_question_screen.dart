@@ -551,22 +551,21 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
           body: Stack(
             children: [
               // Main content
-              SafeArea(
-                child: Column(
-                  children: [
-                    // Header with back button and timer
-                    _buildHeader(appTheme, inputsEnabled),
+              Column(
+                children: [
+                  // Header with back button and timer
+                  _buildHeader(appTheme, inputsEnabled),
 
-                    // Question and input area (or waiting placeholder)
-                    Expanded(
-                      child: Center(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
+                  // Question and input area (or waiting placeholder)
+                  Expanded(
+                    child: Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                               // Animated transition between question card and waiting placeholder
                               AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 600),
@@ -624,8 +623,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                         ),
                       ),
                     ),
-                  ],
-                ),
+                ],
               ),
 
               // Results bottom sheet

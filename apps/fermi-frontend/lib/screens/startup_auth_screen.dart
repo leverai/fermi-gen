@@ -36,10 +36,9 @@ class StartupAuthScreen extends StatelessWidget {
       backgroundColor: appTheme.bg,
       child: Scaffold(
         backgroundColor: appTheme.bg,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
+        body: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Spacer(),
@@ -186,7 +185,6 @@ class StartupAuthScreen extends StatelessWidget {
                 const SizedBox(height: 32),
               ],
             ),
-          ),
         ),
       ),
     );
