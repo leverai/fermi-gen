@@ -39,5 +39,11 @@ class Settings(BaseSettings):
     # For dev/prod, set to 'https://guesstimate.chottu.link'
     invite_url_base: str | None = None
 
+    # RevenueCat
+    revenuecat_webhook_secret: str = ''
+
+    # Premium bypass patterns (for testing/reviewers)
+    premium_bypass_patterns: list[str] = []
+
 
 settings = Settings()

@@ -14,6 +14,7 @@ import 'package:fermi_frontend/services/daily_question_service.dart';
 import 'package:fermi_frontend/services/dq_firestore.dart';
 import 'package:fermi_frontend/services/deep_link_service.dart';
 import 'package:fermi_frontend/services/preload_service.dart';
+import 'package:fermi_frontend/services/subscription_service.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/state/theme_config_service.dart';
@@ -127,6 +128,7 @@ class _MyAppState extends State<MyApp> {
   late final ThemeConfigService _themeConfigService;
   late final DeepLinkService _deepLinkService;
   final AuthService _authService = AuthService();
+  late final SubscriptionService _subscriptionService;
   late final ApiService _apiService;
   late final PreloadService _preloadService;
   late final DailyQuestionService _dailyQuestionService;
@@ -140,6 +142,8 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _themeConfigService = ThemeConfigService();
     _themeConfigService.addListener(_onThemeChanged);
+    _subscriptionService = SubscriptionService();
+    _subscriptionService.initialize(); // Initialize RevenueCat
     _apiService = ApiService(authService: _authService);
     _dailyQuestionService = DailyQuestionService(api: _apiService);
     _dqFirestoreService = DQFirestoreService();
@@ -178,6 +182,11 @@ class _MyAppState extends State<MyApp> {
       if (success) {
         // signInAnonymously already calls exchangeToken internally,
         // so accessToken should be available now
+        // Sync user ID with RevenueCat
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await _subscriptionService.login(user.uid);
+        }
         // Start preloading data in the background
         _preloadService.preload();
       } else {
@@ -188,6 +197,7 @@ class _MyAppState extends State<MyApp> {
           // User can still use the app, so preload data
           debugPrint(
               'Anonymous sign-in succeeded but token exchange failed. User can still use the app.');
+          await _subscriptionService.login(user.uid);
           _preloadService.preload();
         } else {
           // Actual sign-in failure
@@ -199,6 +209,8 @@ class _MyAppState extends State<MyApp> {
       if (_authService.accessToken == null) {
         await _authService.exchangeToken();
       }
+      // Sync user ID with RevenueCat
+      await _subscriptionService.login(currentUser.uid);
       // Start preloading immediately
       _preloadService.preload();
     }

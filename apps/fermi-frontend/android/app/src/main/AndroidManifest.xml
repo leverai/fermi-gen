@@ -3,6 +3,8 @@
 
     <!-- Required for network requests in all build types -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Required for in-app purchases -->
+    <uses-permission android:name="com.android.vending.BILLING"/>
 
     <application
         android:label="@string/app_name"

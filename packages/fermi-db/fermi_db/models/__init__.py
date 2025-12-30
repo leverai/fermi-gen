@@ -20,6 +20,11 @@ from .pipeline import (
     Seed,
     SeedsUsage,
 )
+from .subscription import (
+    Subscription,
+    SubscriptionPlatform,
+    SubscriptionTier,
+)
 from .user import User
 
 __all__ = [
@@ -35,6 +40,9 @@ __all__ = [
     'RawQuestion',
     'Seed',
     'SeedsUsage',
+    'Subscription',
+    'SubscriptionPlatform',
+    'SubscriptionTier',
     'User',
     'UserQuestionHistory',
     'VoteVerdict',

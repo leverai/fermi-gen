@@ -27,11 +27,12 @@ This document describes the architecture, design decisions, and internal working
 
 ## Overview
 
-The Fermi API is a FastAPI application that exposes RESTful endpoints for The Fermi Game. It's comprised of three main services:
+The Fermi API is a FastAPI application that exposes RESTful endpoints for The Fermi Game. It's comprised of four main services:
 
 - **auth**: Authentication (token exchange) endpoint. Firebase integrated.
 - **game**: Game-related endpoints for creating, joining, and playing games.
 - **user**: User-related endpoints for profile and settings.
+- **webhooks**: External service webhooks (RevenueCat for subscription management).
 
 The backend uses a dual-storage approach:
 - **PostgreSQL**: Stores questions, user history, answer analytics, and persistent data.
@@ -50,7 +51,8 @@ apps/fermi-api/
 │   │   ├── auth.py
 │   │   ├── game.py
 │   │   ├── user.py
-│   │   └── question.py
+│   │   ├── question.py
+│   │   └── webhooks.py
 │   ├── core/             # Configuration and database setup
 │   │   ├── config.py
 │   │   └── database.py
@@ -61,7 +63,8 @@ apps/fermi-api/
 │   └── services/         # Business logic
 │       ├── auth.py
 │       ├── game.py
-│       └── user.py
+│       ├── user.py
+│       └── subscription.py
 ├── static/               # Static assets (avatars, categories, difficulties)
 ├── tests/                # Test suite
 │   ├── api/
@@ -89,6 +92,7 @@ The game service uses the `fermi-db` Data Access Layer (DAL) to interact with Po
 - **`answer_events`**: Contains answering events from all players.
 - **`answers_quantiles`**: Materialized view of `answer_events` that computes quantiles of scores. This helps show quick stats to players on how they compare to others.
 - **`questions_votes`**: Stores per-user upvotes/downvotes on questions.
+- **`subscriptions`**: Tracks user subscription status and tier (synced from RevenueCat).
 
 ### Firestore Collections
 
@@ -118,6 +122,41 @@ Authentication is handled via JWT bearer tokens. Clients must first authenticate
 **Protected Endpoints:**
 
 All game and user endpoints require a valid JWT access token. The backend validates the token on each request and extracts the user's `firebase_uid` for authorization checks.
+
+---
+
+## Subscription Management
+
+The API integrates with RevenueCat to manage subscription tiers and feature gating.
+
+### Architecture
+
+- **Frontend**: RevenueCat Flutter SDK handles purchases and entitlement checks
+- **Backend**: PostgreSQL `subscriptions` table stores subscription status synced via webhooks
+- **Webhook**: RevenueCat sends events to `/api/v1/webhooks/revenuecat` when subscription status changes
+
+### Subscription Tiers
+
+- **FREE**: Default tier with limited features
+- **PRO**: Premium tier with full feature access (lifetime, monthly, or annual)
+
+### Webhook Flow
+
+1. User purchases subscription via RevenueCat SDK in Flutter app
+2. RevenueCat processes purchase and sends webhook event to backend
+3. Backend validates webhook secret and updates `subscriptions` table
+4. User's subscription tier is included in auth responses (`/auth/token`, `/auth/refresh`)
+
+### Subscription Service
+
+Located in `app/services/subscription.py`:
+- `SubscriptionService`: Handles webhook events and updates subscription records
+- Parses RevenueCat customer_info to extract tier, product_id, platform, expiration dates
+- Updates subscription status on INITIAL_PURCHASE, RENEWAL, CANCELLATION, EXPIRATION events
+
+### Database Schema
+
+See [`packages/fermi-db/docs/SCHEMA.md`](../../packages/fermi-db/docs/SCHEMA.md#subscription-tables) for the `subscriptions` table schema.
 
 ---
 

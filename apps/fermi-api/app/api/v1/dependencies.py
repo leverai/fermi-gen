@@ -4,6 +4,7 @@ from functools import lru_cache
 
 from fastapi import Depends
 from fermi_db.dal import DatabaseClient
+from fermi_db.repositories.subscription_repository import SubscriptionRepository
 from fermi_db.repositories.user_repository import UserRepository
 from fermi_db.session import get_session
 from google.cloud.firestore_v1.async_client import AsyncClient
@@ -13,6 +14,7 @@ from app.services.auth import AuthService
 from app.services.daily_question.service import DailyQuestionService
 from app.services.game.service import GameService
 from app.services.scoring import ScoringService
+from app.services.subscription import SubscriptionService
 from app.services.user import UserService
 
 
@@ -64,3 +66,23 @@ def get_user_service(
 ) -> UserService:
     """Get an instance of the UserService."""
     return UserService(user_repository=user_repository)
+
+
+def get_subscription_repository(
+    session: AsyncSession = Depends(get_session),  # noqa: B008
+) -> SubscriptionRepository:
+    """Get an instance of the SubscriptionRepository."""
+    return SubscriptionRepository(session)
+
+
+def get_subscription_service(
+    subscription_repository: SubscriptionRepository = Depends(  # noqa: B008
+        get_subscription_repository,
+    ),
+    user_repository: UserRepository = Depends(get_user_repository),  # noqa: B008
+) -> SubscriptionService:
+    """Get an instance of the SubscriptionService."""
+    return SubscriptionService(
+        subscription_repository=subscription_repository,
+        user_repository=user_repository,
+    )

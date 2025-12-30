@@ -12,6 +12,7 @@ from app.api.v1.endpoints import (
     privacy_policy,
     question,
     user,
+    webhooks,
 )
 
 api_router = APIRouter()
@@ -28,3 +29,4 @@ api_router.include_router(privacy_policy.router, tags=['privacy'])
 api_router.include_router(question.router, prefix='/question', tags=['question'])
 api_router.include_router(user.router, prefix='/user', tags=['user'])
 api_router.include_router(assets.router, prefix='/assets', tags=['assets'])
+api_router.include_router(webhooks.router, prefix='/webhooks', tags=['webhooks'])

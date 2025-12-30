@@ -11,6 +11,7 @@ class UserResponse(BaseModel):
     display_name: str | None = None
     picture: str | None = None
     locale: str | None = None
+    subscription_tier: str = 'FREE'  # 'FREE' or 'PRO'
 
 
 class TokenResponse(BaseModel):
