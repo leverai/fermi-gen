@@ -150,12 +150,28 @@ class _FakeQuestionVotes:
         return dict.fromkeys(user_ids, 1)
 
 
+class _FakeUsers:
+    def __init__(self) -> None:
+        self.xp_store: dict[str, int] = {}
+
+    async def increment_xp(self, firebase_uid: str, amount: int) -> None:
+        """Mock increment_xp that tracks XP in memory."""
+        if firebase_uid not in self.xp_store:
+            self.xp_store[firebase_uid] = 0
+        self.xp_store[firebase_uid] += amount
+
+    async def get_xp(self, firebase_uid: str) -> int:
+        """Mock get_xp that returns stored XP or 0."""
+        return self.xp_store.get(firebase_uid, 0)
+
+
 class _FakeDbClient:
     def __init__(self, call_log: list[str]) -> None:
         self.fermi = _FakeFermi(call_log)
         self.users_history = _FakeUsersHistory(call_log)
         self.answers = _FakeAnswers(call_log)
         self.question_votes = _FakeQuestionVotes()
+        self.users = _FakeUsers()
 
 
 def test_get_questions_and_answers_docs_general_mapping_and_shapes() -> None:

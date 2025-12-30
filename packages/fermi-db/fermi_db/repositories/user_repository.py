@@ -213,9 +213,10 @@ class UserRepository(BaseRepository):
             firebase_uid: The user's Firebase UID.
 
         Returns:
-            The user's XP value.
+            The user's XP value, or 0 if user not found.
 
         """
         user = await self.get_by_firebase_uid(firebase_uid)
-        assert user is not None
+        if user is None:
+            return 0
         return user.xp
