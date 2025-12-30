@@ -29,6 +29,36 @@ from fermi_core.utils import create_generic_chain
 logger = logging.getLogger(__name__)
 
 
+def _flatten_text_blocks(text_blocks: list[dict[str, Any]]) -> str:
+    """Recursively extract all snippets from text_blocks.
+
+    Handles nested structures with 'list' fields and extracts all 'snippet' values.
+    Joins them with spaces to create a comprehensive answer paragraph.
+
+    Args:
+        text_blocks: List of text block dictionaries from SerpAPI AI Overview
+
+    Returns:
+        Single string with all snippets concatenated
+
+    """
+    snippets: list[str] = []
+
+    def extract_snippets(blocks: list[dict[str, Any]]) -> None:
+        """Recursively extract snippets from blocks and nested lists."""
+        for block in blocks:
+            # Extract snippet from current block
+            if snippet := block.get('snippet'):
+                snippets.append(snippet)
+
+            # Recursively extract from nested lists
+            if nested_list := block.get('list'):
+                extract_snippets(nested_list)
+
+    extract_snippets(text_blocks)
+    return ' '.join(snippets)
+
+
 async def asearch_google_ai_mode(
     query: str,
     gl: str = 'us',
@@ -115,12 +145,8 @@ def extract_snippet_candidate(
     if not result.text_blocks:
         raise NoSnippetFoundError('No text_blocks found in AI Mode result')
 
-    snippet = result.snippet
-    if not snippet:
-        raise NoSnippetFoundError('Empty snippet in AI Mode result')
-
     return SnippetCandidate(
-        snippet=snippet,
+        snippet_json=result.snippet_json,
         metadata={'text_blocks': result.text_blocks, 'references': result.references},
         source='ai_mode',
     )
@@ -244,7 +270,7 @@ async def aget_questions_answers_serp(
         [
             ExtractInfoState(
                 question=questions[idx],
-                paragraph=snippet.snippet,
+                paragraph=_flatten_text_blocks(snippet.metadata['text_blocks']),
             )
             for idx, snippet in valid_with_snippet
         ],
@@ -276,7 +302,7 @@ async def aget_questions_answers_serp(
             results[idx] = SerpAnswer(
                 number=extracted_info.number,
                 unit=extracted_info.unit,
-                snippet=snippet.snippet,
+                snippet=snippet.snippet_json,
                 used_ai_overview=True,  # Always true with AI Mode
                 metadata=snippet.metadata,
                 confidence=extracted_info.confidence,
