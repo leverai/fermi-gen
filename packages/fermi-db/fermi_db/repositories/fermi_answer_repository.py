@@ -1,5 +1,8 @@
 """Repository for FermiAnswer table operations."""
 
+from collections.abc import Sequence
+from typing import cast
+
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import select
 
@@ -76,7 +79,7 @@ class FermiAnswerRepository(BaseRepository):
     async def get_latest_unanswered_questions(
         self,
         limit: int,
-    ) -> list[int]:
+    ) -> Sequence[int]:
         """Get the latest N unanswered question IDs efficiently.
 
         Uses a LEFT JOIN to find questions without any answer attempts.
@@ -102,4 +105,5 @@ class FermiAnswerRepository(BaseRepository):
         result = await self.session.exec(statement)
         # Extract IDs from Row objects (result.all() returns Rows, not raw integers)
         rows = result.all()
-        return [row[0] for row in rows if row[0] is not None]
+        assert all(row is not None for row in rows)
+        return cast(Sequence[int], rows)
