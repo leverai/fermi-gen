@@ -503,21 +503,28 @@ class _UnitTapeState extends State<UnitTape>
         !_isFocused &&
         !_isDragging;
 
+    // Helper to get full name from abbreviation
+    String getFullName(String abbreviation) {
+      final entry = widget.unitOptions.entries.firstWhere(
+        (e) => e.value == abbreviation,
+        orElse: () => MapEntry(abbreviation, abbreviation),
+      );
+      return entry.key;
+    }
+
     return AnimatedBuilder(
       animation: _indicatorFadeController,
       builder: (context, child) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-          decoration: BoxDecoration(
-            color: appTheme.secondaryMuted.withAlpha(40),
-            borderRadius: BorderRadius.circular(60),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Left arrow
-              if (widget.units.length > 1)
-                GestureDetector(
+        // No container styling - parent container handles background/padding
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Left arrow - hidden entirely at reveal (not just muted)
+            if (widget.units.length > 1)
+              AnimatedOpacity(
+                opacity: _isRevealed ? 0.0 : 1.0,
+                duration: const Duration(milliseconds: 300),
+                child: GestureDetector(
                   onTap: widget.editable && canGoLeft
                       ? () => _navigatePage(-1)
                       : null,
@@ -529,57 +536,65 @@ class _UnitTapeState extends State<UnitTape>
                         : appTheme.secondaryMuted,
                   ),
                 ),
-              // PageView for units
-              GestureDetector(
-                onTap: widget.editable ? _showUnitSelector : null,
-                behavior: HitTestBehavior.opaque,
-                child: SizedBox(
-                  width: 68, // Fixed width to accommodate "m. ton"
-                  height: 24,
-                  child: NotificationListener<ScrollNotification>(
-                    onNotification: (notification) {
-                      if (notification is ScrollStartNotification) {
-                        setState(() => _isDragging = true);
-                      } else if (notification is ScrollEndNotification) {
-                        setState(() => _isDragging = false);
-                      }
-                      return false;
-                    },
-                    child: PageView.builder(
-                      // Key includes editable state and target index when locked
-                      // This forces the PageView to rebuild fresh with correct position
-                      // when transitioning from editable to non-editable (reveal time)
-                      key: widget.editable
-                          ? null
-                          : ValueKey('locked_${_indexOf(_current)}'),
-                      controller: _pageController,
-                      physics: widget.editable && !_isFocused
-                          ? const PageScrollPhysics()
-                          : const NeverScrollableScrollPhysics(),
-                      onPageChanged: _onPageChanged,
-                      itemCount: widget.units.length,
-                      itemBuilder: (context, index) {
-                        return Center(
-                          child: Text(
-                            widget.units[index],
-                            style: AppFont.primaryTextStyle(
-                              context,
-                              fontSize: 12.0,
-                              fontWeight: FontWeight.w500,
-                              color:
-                                  textColor, // Use the pre-calculated textColor
-                              decoration: TextDecoration.none,
-                            ),
+              ),
+            // PageView for units - now shows full names
+            GestureDetector(
+              onTap: widget.editable ? _showUnitSelector : null,
+              behavior: HitTestBehavior.opaque,
+              child: SizedBox(
+                width:
+                    95, // Increased width to accommodate full names like "kilograms"
+                height: 24,
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    if (notification is ScrollStartNotification) {
+                      setState(() => _isDragging = true);
+                    } else if (notification is ScrollEndNotification) {
+                      setState(() => _isDragging = false);
+                    }
+                    return false;
+                  },
+                  child: PageView.builder(
+                    // Key includes editable state and target index when locked
+                    // This forces the PageView to rebuild fresh with correct position
+                    // when transitioning from editable to non-editable (reveal time)
+                    key: widget.editable
+                        ? null
+                        : ValueKey('locked_${_indexOf(_current)}'),
+                    controller: _pageController,
+                    physics: widget.editable && !_isFocused
+                        ? const PageScrollPhysics()
+                        : const NeverScrollableScrollPhysics(),
+                    onPageChanged: _onPageChanged,
+                    itemCount: widget.units.length,
+                    itemBuilder: (context, index) {
+                      // Show full name instead of abbreviation
+                      final fullName = getFullName(widget.units[index]);
+                      return Center(
+                        child: Text(
+                          fullName,
+                          style: AppFont.primaryTextStyle(
+                            context,
+                            fontSize: 12.0,
+                            fontWeight: FontWeight.w500,
+                            color:
+                                textColor, // Use the pre-calculated textColor
+                            decoration: TextDecoration.none,
                           ),
-                        );
-                      },
-                    ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
-              // Right arrow
-              if (widget.units.length > 1)
-                GestureDetector(
+            ),
+            // Right arrow - hidden entirely at reveal (not just muted)
+            if (widget.units.length > 1)
+              AnimatedOpacity(
+                opacity: _isRevealed ? 0.0 : 1.0,
+                duration: const Duration(milliseconds: 300),
+                child: GestureDetector(
                   onTap: widget.editable && canGoRight
                       ? () => _navigatePage(1)
                       : null,
@@ -591,8 +606,8 @@ class _UnitTapeState extends State<UnitTape>
                         : appTheme.secondaryMuted,
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         );
       },
     );
