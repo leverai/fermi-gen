@@ -93,6 +93,7 @@ class DQResultsResponse(BaseModel):
     user_rank: int | None
     total_participants: int
     leaderboard: list[DQLeaderboardEntry]
+    paragraph: str | None = None
 
 
 class DQLiteArchiveResponse(BaseModel):

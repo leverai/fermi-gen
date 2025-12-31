@@ -476,6 +476,7 @@ class DailyQuestionService:
             user_rank=user_rank,
             total_participants=total_participants,
             leaderboard=leaderboard,
+            paragraph=fermi.snippet,
         )
 
     async def get_results(

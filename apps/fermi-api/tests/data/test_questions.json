@@ -31052,7 +31052,7 @@
             "question_id": 10,
             "number": 150000000,
             "unit": "metric_ton",
-            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"text\": \"There are an estimated 150 million metric tons of plastic in the oceans.\"}]}",
+            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"There are an estimated 150 million metric tons of plastic in the oceans.\"}]}",
             "used_ai_overview": false,
             "success": true,
             "serp_metadata": {
