@@ -706,7 +706,6 @@ class _UnitSelectorSheet extends StatelessWidget {
                             // Switch container
                             UnitSystemSwitch(
                               isUS: isUS,
-                              appTheme: appTheme,
                             ),
                             const SizedBox(width: 12),
                             // Metric label - fixed width to prevent toggle shifting

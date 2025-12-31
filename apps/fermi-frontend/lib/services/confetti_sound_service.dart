@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
+import 'package:fermi_frontend/services/local_settings_service.dart';
 
 /// Manages sound effects for a single confetti celebration.
 ///
@@ -55,6 +56,11 @@ class ConfettiSoundService {
       await initialize();
     }
 
+    if (!LocalSettingsService.instance.soundEnabled.value) {
+      debugPrint('ConfettiSoundService: Sound disabled, skipping cheer');
+      return;
+    }
+
     try {
       debugPrint('ConfettiSoundService: Playing crowd_cheering.mp3');
       await _cheerPlayer?.play(AssetSource('sounds/crowd_cheering.mp3'));
@@ -67,6 +73,10 @@ class ConfettiSoundService {
   Future<void> playPop() async {
     if (!_isInitialized || _popPool == null) {
       debugPrint('ConfettiSoundService: Pop pool not initialized');
+      return;
+    }
+
+    if (!LocalSettingsService.instance.soundEnabled.value) {
       return;
     }
 

@@ -15,6 +15,7 @@ import 'package:fermi_frontend/services/dq_firestore.dart';
 import 'package:fermi_frontend/services/deep_link_service.dart';
 import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/services/subscription_service.dart';
+import 'package:fermi_frontend/services/local_settings_service.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/state/theme_config_service.dart';
@@ -44,6 +45,9 @@ Future<void> main() async {
           )
         : base;
     await Firebase.initializeApp(options: initOptions);
+
+    // Initialize local settings early
+    await LocalSettingsService.instance.initialize();
 
     if (useEmulators) {
       const String configuredAuthHost =

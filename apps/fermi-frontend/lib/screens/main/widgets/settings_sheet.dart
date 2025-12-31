@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/unit_system_switch.dart';
+import 'package:fermi_frontend/widgets/sound_toggle_chip.dart';
+import 'package:fermi_frontend/services/local_settings_service.dart';
 
 class SettingsSheet extends StatefulWidget {
   const SettingsSheet({
@@ -99,8 +101,8 @@ class _SettingsSheetState extends State<SettingsSheet> {
               shrinkWrap: true,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               children: [
-                // Regional Settings Section
-                _buildSectionHeader(context, "Regional Settings", appTheme),
+                // Gameplay Settings Section
+                _buildSectionHeader(context, "Gameplay", appTheme),
                 const SizedBox(height: 8),
                 _buildSectionCard(
                   context,
@@ -109,8 +111,43 @@ class _SettingsSheetState extends State<SettingsSheet> {
                     _buildSettingsRow(
                       context,
                       appTheme,
+                      label: 'Sound',
+                      icon: Icons.volume_up,
+                      showSplash: false,
+                      onTap: () {
+                        final bool current =
+                            LocalSettingsService.instance.soundEnabled.value;
+                        LocalSettingsService.instance.setSoundEnabled(!current);
+                      },
+                      trailing: ValueListenableBuilder<bool>(
+                        valueListenable:
+                            LocalSettingsService.instance.soundEnabled,
+                        builder: (context, enabled, _) {
+                          return SoundToggleChip(
+                            isOn: enabled,
+                          );
+                        },
+                      ),
+                    ),
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      indent: 24,
+                      color: appTheme.bg,
+                    ),
+                    _buildSettingsRow(
+                      context,
+                      appTheme,
                       label: 'Unit system',
                       icon: Icons.straighten,
+                      showSplash: false,
+                      onTap: () {
+                        final newLocale = _currentLocale == 'US' ? 'EU' : 'US';
+                        setState(() {
+                          _currentLocale = newLocale;
+                        });
+                        widget.onLocaleChanged?.call(newLocale);
+                      },
                       trailing: _buildUnitSystemToggle(context, appTheme),
                     ),
                   ],
@@ -239,6 +276,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
     Widget? trailing,
     VoidCallback? onTap,
     bool isDestructive = false,
+    bool showSplash = true,
   }) {
     final Color textColor = isDestructive ? appTheme.danger : appTheme.text;
 
@@ -275,11 +313,19 @@ class _SettingsSheetState extends State<SettingsSheet> {
     );
 
     if (onTap != null) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: content,
-      );
+      if (showSplash) {
+        return InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: content,
+        );
+      } else {
+        return GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: content,
+        );
+      }
     }
 
     return content;
@@ -289,46 +335,37 @@ class _SettingsSheetState extends State<SettingsSheet> {
   Widget _buildUnitSystemToggle(BuildContext context, AppTheme appTheme) {
     final bool isUS = _currentLocale == 'US';
 
-    return GestureDetector(
-      onTap: () {
-        final newLocale = isUS ? 'EU' : 'US';
-        setState(() {
-          _currentLocale = newLocale;
-        });
-        widget.onLocaleChanged?.call(newLocale);
-      },
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Imperial label
-          Text(
-            'Imperial',
-            style: AppFont.primaryTextStyle(
-              context,
-              fontSize: 12,
-              fontWeight: isUS ? FontWeight.w600 : FontWeight.w400,
-              color: isUS ? appTheme.secondary : appTheme.borderMuted,
-            ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Imperial label
+        Text(
+          'Imperial',
+          style: AppFont.primaryTextStyle(
+            context,
+            fontSize: 12,
+            fontWeight: isUS ? FontWeight.w600 : FontWeight.w400,
+            color: isUS ? appTheme.primary : appTheme.borderMuted,
           ),
-          const SizedBox(width: 8),
-          // Switch container
-          UnitSystemSwitch(
-            isUS: isUS,
-            appTheme: appTheme,
+        ),
+        const SizedBox(width: 8),
+        // Switch container
+        UnitSystemSwitch(
+          isUS: isUS,
+          circleColor: appTheme.primary,
+        ),
+        const SizedBox(width: 8),
+        // Metric label
+        Text(
+          'Metric',
+          style: AppFont.primaryTextStyle(
+            context,
+            fontSize: 12,
+            fontWeight: !isUS ? FontWeight.w600 : FontWeight.w400,
+            color: !isUS ? appTheme.primary : appTheme.borderMuted,
           ),
-          const SizedBox(width: 8),
-          // Metric label
-          Text(
-            'Metric',
-            style: AppFont.primaryTextStyle(
-              context,
-              fontSize: 12,
-              fontWeight: !isUS ? FontWeight.w600 : FontWeight.w400,
-              color: !isUS ? appTheme.secondary : appTheme.borderMuted,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
