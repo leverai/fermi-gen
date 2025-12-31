@@ -14,15 +14,19 @@ class UnitSystemSwitch extends StatefulWidget {
   const UnitSystemSwitch({
     super.key,
     required this.isUS,
-    required this.appTheme,
+    this.bgColor,
+    this.circleColor,
   });
 
   /// Whether the switch is in the US (Imperial) position.
   /// When `true`, the square is on the left; when `false`, it's on the right (Metric).
   final bool isUS;
 
-  /// The app theme to use for colors (border, secondary).
-  final AppTheme appTheme;
+  /// Optional background color. Defaults to `theme.bgDark`.
+  final Color? bgColor;
+
+  /// Optional circle color. Defaults to `theme.secondary`.
+  final Color? circleColor;
 
   @override
   State<UnitSystemSwitch> createState() => _UnitSystemSwitchState();
@@ -71,6 +75,9 @@ class _UnitSystemSwitchState extends State<UnitSystemSwitch>
     const double rectangleWidth = circleRadius * 2;
     const double rectangleHeight = circleRadius;
 
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
@@ -83,7 +90,7 @@ class _UnitSystemSwitchState extends State<UnitSystemSwitch>
           width: rectangleWidth,
           height: rectangleHeight,
           decoration: BoxDecoration(
-            color: widget.appTheme.bgDark,
+            color: widget.bgColor ?? appTheme.bgDark,
             borderRadius: BorderRadius.circular(12), // Square edges
           ),
           child: Stack(
@@ -95,7 +102,7 @@ class _UnitSystemSwitchState extends State<UnitSystemSwitch>
                   width: circleRadius,
                   height: circleRadius,
                   decoration: BoxDecoration(
-                    color: widget.appTheme.secondary,
+                    color: widget.circleColor ?? appTheme.secondary,
                     borderRadius: BorderRadius.circular(100), // Square edges
                   ),
                 ),
