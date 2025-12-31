@@ -143,7 +143,7 @@ class ApiService {
   }
 
   Future<String> createGame({
-    String? category,
+    List<String>? categories,
     String? difficulty,
     int? nQuestions,
   }) async {
@@ -151,7 +151,7 @@ class ApiService {
       final body = {
         'question_round_settings': {
           if (nQuestions != null) 'n_questions': nQuestions,
-          'category': category,
+          'categories': categories,
           'difficulty': difficulty,
         },
       };

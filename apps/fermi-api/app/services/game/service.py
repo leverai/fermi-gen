@@ -438,11 +438,9 @@ class GameService:
     ) -> GameConfigResponse:
         """Get the game config."""
         return GameConfigResponse(
-            categories=get_request_categories(request),
+            categories=get_request_categories(),
             difficulties=get_request_difficulties(request),
         )
-
-    # Legacy: update_votes no longer used; per-user votes are stored in votes table.
 
     async def vote(
         self,

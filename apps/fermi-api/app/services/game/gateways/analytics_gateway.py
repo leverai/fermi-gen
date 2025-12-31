@@ -45,15 +45,16 @@ class GameAnalyticsGateway:
         question_round_settings: 'QuestionRoundSettings',
     ) -> tuple[list[QuestionDoc], list[AnswerDoc]]:
         """Get questions and their answers from the database."""
-        request_category = cast(
-            QuestionCategory | None,
-            question_round_settings.category,
+        # Cast directly - RequestCategory values are compatible with QuestionCategory
+        request_categories = cast(
+            list[QuestionCategory] | None,
+            question_round_settings.categories,
         )
         # 1. Fetch questions (with correct answers)
         questions = await self._db_client.fermi.get_unseen_random_questions(
             count=question_round_settings.n_questions,
             for_user_ids=user_ids,
-            category=request_category,
+            categories=request_categories,
             difficulty=question_round_settings.difficulty,
         )
 

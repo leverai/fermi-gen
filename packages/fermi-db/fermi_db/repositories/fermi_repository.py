@@ -125,7 +125,7 @@ class FermiRepository(BaseRepository):
         self,
         count: int,
         for_user_ids: list[str],
-        category: QuestionCategory | None = None,
+        categories: list[QuestionCategory] | None = None,
         difficulty: QuestionDifficulty | None = None,
     ) -> list[Fermi]:
         """Fetch up to N APPROVED questions, prioritizing less-seen ones.
@@ -134,26 +134,34 @@ class FermiRepository(BaseRepository):
         Questions are prioritized by those seen by the fewest users, then by
         the fewest total times among those users.
 
-        Equivalent SQL:
-        SELECT fq.*
-        FROM fermi AS fq
-        LEFT JOIN (
-            SELECT
-                uqh.question_uid,
-                COUNT(DISTINCT uqh.user_id) AS seen_by_user_count,
-                COUNT(uqh.id) AS total_seen_count
-            FROM user_question_history AS uqh
-            WHERE uqh.user_id IN (<user_ids>)
-            GROUP BY uqh.question_uid
-        ) AS seen_stats ON fq.uid = seen_stats.question_uid
-        WHERE fq.status = 'APPROVED'
-        -- AND fq.category = <category>
-        -- AND fq.difficulty = <difficulty>
-        ORDER BY
-            COALESCE(seen_stats.seen_by_user_count, 0) ASC,
-            COALESCE(seen_stats.total_seen_count, 0) ASC,
-            fq.random_sort_key ASC
-        LIMIT <count>;
+        Equivalent SQL::
+
+            SELECT fq.*
+            FROM fermi AS fq
+            LEFT JOIN (
+                SELECT
+                    uqh.question_uid,
+                    COUNT(DISTINCT uqh.user_id) AS seen_by_user_count,
+                    COUNT(uqh.id) AS total_seen_count
+                FROM user_question_history AS uqh
+                WHERE uqh.user_id IN (<user_ids>)
+                GROUP BY uqh.question_uid
+            ) AS seen_stats ON fq.uid = seen_stats.question_uid
+            WHERE fq.status = 'APPROVED'
+            -- AND fq.category IN (<categories>)
+            -- AND fq.difficulty = <difficulty>
+            ORDER BY
+                COALESCE(seen_stats.seen_by_user_count, 0) ASC,
+                COALESCE(seen_stats.total_seen_count, 0) ASC,
+                fq.random_sort_key ASC
+            LIMIT <count>;
+
+        Args:
+            count: Maximum number of questions to return.
+            for_user_ids: User IDs to check question history against.
+            categories: List of categories to filter by, or None for all.
+            difficulty: Difficulty level to filter by, or None for all.
+
         """
         if not for_user_ids:
             return []
@@ -180,8 +188,8 @@ class FermiRepository(BaseRepository):
             Fermi.is_daily_question == False,  # noqa: E712
         )
 
-        if category is not None:
-            statement = statement.where(Fermi.category == category)
+        if categories:
+            statement = statement.where(Fermi.category.in_(categories))  # type: ignore
         if difficulty is not None:
             statement = statement.where(Fermi.difficulty == difficulty)
 

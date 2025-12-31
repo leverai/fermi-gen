@@ -236,11 +236,15 @@ class AuthService {
 }
 
 class LastRoundSettings {
-  final String? category; // Backend enum name, e.g. 'PLANET_EARTH' or 'GENERAL'
-  final String? difficulty; // 'EASY' | 'MEDIUM' | 'HARD' | null
+  /// List of selected category backend names (e.g. ['PLANET_EARTH', 'POP_CULTURE']),
+  /// or null if none/all selected.
+  final List<String>? categories;
+
+  /// Difficulty setting: 'EASY' | 'MEDIUM' | 'HARD' | null
+  final String? difficulty;
 
   const LastRoundSettings({
-    required this.category,
+    required this.categories,
     required this.difficulty,
   });
 }

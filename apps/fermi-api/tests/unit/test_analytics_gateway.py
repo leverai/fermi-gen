@@ -42,13 +42,13 @@ class _FakeFermi:
         *,
         count: int,
         for_user_ids: list[str],
-        category: QuestionCategory | None,
+        categories: list[QuestionCategory] | None,
         difficulty: QuestionDifficulty | None,
     ) -> list[Any]:
         self.last_get_params = {
             'count': count,
             'for_user_ids': for_user_ids,
-            'category': category,
+            'categories': categories,
             'difficulty': difficulty,
         }
         now = datetime(2024, 1, 1, tzinfo=UTC)
@@ -181,7 +181,7 @@ def test_get_questions_and_answers_docs_general_mapping_and_shapes() -> None:
 
     qrs = QuestionRoundSettings(
         n_questions=2,
-        category=None,
+        categories=None,
         difficulty=None,
     )
 
@@ -189,9 +189,9 @@ def test_get_questions_and_answers_docs_general_mapping_and_shapes() -> None:
         gw.get_questions_and_answers_docs(user_ids=['u1'], question_round_settings=qrs),
     )
 
-    # DB was called with category None
+    # DB was called with categories None
     assert db.fermi.last_get_params is not None
-    assert db.fermi.last_get_params['category'] is None
+    assert db.fermi.last_get_params['categories'] is None
     # Shapes
     assert len(questions_docs) == 2
     assert len(answers_docs) == 2

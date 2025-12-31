@@ -54,7 +54,8 @@ void main() {
       });
 
       when(() => mockAuth.currentUser).thenReturn(mockUser);
-      when(() => mockUser.getIdToken()).thenAnswer((_) async => firebaseIdToken);
+      when(() => mockUser.getIdToken())
+          .thenAnswer((_) async => firebaseIdToken);
       when(() => mockHttpClient.post(
             any(),
             headers: any(named: 'headers'),
@@ -90,7 +91,8 @@ void main() {
       });
 
       when(() => mockAuth.currentUser).thenReturn(mockUser);
-      when(() => mockUser.getIdToken()).thenAnswer((_) async => firebaseIdToken);
+      when(() => mockUser.getIdToken())
+          .thenAnswer((_) async => firebaseIdToken);
       when(() => mockHttpClient.post(any(), headers: any(named: 'headers')))
           .thenAnswer((_) async => http.Response(responseBody, 200));
 
@@ -116,7 +118,8 @@ void main() {
       });
 
       when(() => mockAuth.currentUser).thenReturn(mockUser);
-      when(() => mockUser.getIdToken()).thenAnswer((_) async => firebaseIdToken);
+      when(() => mockUser.getIdToken())
+          .thenAnswer((_) async => firebaseIdToken);
       when(() => mockHttpClient.post(any(), headers: any(named: 'headers')))
           .thenAnswer((_) async => http.Response(responseBody, 200));
 
@@ -144,7 +147,8 @@ void main() {
       });
 
       when(() => mockAuth.currentUser).thenReturn(mockUser);
-      when(() => mockUser.getIdToken()).thenAnswer((_) async => firebaseIdToken);
+      when(() => mockUser.getIdToken())
+          .thenAnswer((_) async => firebaseIdToken);
       when(() => mockHttpClient.post(any(), headers: any(named: 'headers')))
           .thenAnswer((_) async => http.Response(responseBody, 200));
 
@@ -169,7 +173,8 @@ void main() {
       });
 
       when(() => mockAuth.currentUser).thenReturn(mockUser);
-      when(() => mockUser.getIdToken()).thenAnswer((_) async => firebaseIdToken);
+      when(() => mockUser.getIdToken())
+          .thenAnswer((_) async => firebaseIdToken);
       when(() => mockHttpClient.post(any(), headers: any(named: 'headers')))
           .thenAnswer((_) async => http.Response(responseBody, 200));
 
@@ -186,7 +191,8 @@ void main() {
       final responseBody = jsonEncode({'detail': 'Invalid token'});
 
       when(() => mockAuth.currentUser).thenReturn(mockUser);
-      when(() => mockUser.getIdToken()).thenAnswer((_) async => firebaseIdToken);
+      when(() => mockUser.getIdToken())
+          .thenAnswer((_) async => firebaseIdToken);
       when(() => mockHttpClient.post(any(), headers: any(named: 'headers')))
           .thenAnswer((_) async => http.Response(responseBody, 401));
 
@@ -203,7 +209,8 @@ void main() {
       const firebaseIdToken = 'firebase-id-token-123';
 
       when(() => mockAuth.currentUser).thenReturn(mockUser);
-      when(() => mockUser.getIdToken()).thenAnswer((_) async => firebaseIdToken);
+      when(() => mockUser.getIdToken())
+          .thenAnswer((_) async => firebaseIdToken);
       when(() => mockHttpClient.post(any(), headers: any(named: 'headers')))
           .thenThrow(Exception('Network error'));
 
@@ -225,7 +232,8 @@ void main() {
       // Assert
       expect(result, false);
       expect(authService.accessToken, isNull);
-      verifyNever(() => mockHttpClient.post(any(), headers: any(named: 'headers')));
+      verifyNever(
+          () => mockHttpClient.post(any(), headers: any(named: 'headers')));
     });
   });
 
@@ -270,7 +278,9 @@ void main() {
       // Assert
       expect(result, true);
       verify(() => mockHttpClient.post(
-            any(that: predicate((Uri uri) => uri.path.endsWith('/auth/refresh'))),
+            any(
+                that:
+                    predicate((Uri uri) => uri.path.endsWith('/auth/refresh'))),
             headers: any(
               named: 'headers',
               that: predicate((Map<String, String> headers) =>
@@ -353,13 +363,16 @@ void main() {
 
       // Mock refresh returning 401
       when(() => mockHttpClient.post(
-            any(that: predicate((Uri uri) => uri.path.endsWith('/auth/refresh'))),
+            any(
+                that:
+                    predicate((Uri uri) => uri.path.endsWith('/auth/refresh'))),
             headers: any(named: 'headers'),
           )).thenAnswer((_) async => http.Response(refreshResponseBody, 401));
 
       // Mock exchange succeeding
       when(() => mockAuth.currentUser).thenReturn(mockUser);
-      when(() => mockUser.getIdToken()).thenAnswer((_) async => firebaseIdToken);
+      when(() => mockUser.getIdToken())
+          .thenAnswer((_) async => firebaseIdToken);
       when(() => mockHttpClient.post(
             any(that: predicate((Uri uri) => uri.path.endsWith('/auth/token'))),
             headers: any(named: 'headers'),
@@ -372,7 +385,9 @@ void main() {
       expect(result, true);
       expect(authService.accessToken, newAccessToken);
       verify(() => mockHttpClient.post(
-            any(that: predicate((Uri uri) => uri.path.endsWith('/auth/refresh'))),
+            any(
+                that:
+                    predicate((Uri uri) => uri.path.endsWith('/auth/refresh'))),
             headers: any(named: 'headers'),
           )).called(1);
       verify(() => mockUser.getIdToken()).called(1);
@@ -397,7 +412,8 @@ void main() {
 
       // Assert
       expect(result, false);
-      expect(authService.accessToken, oldAccessToken); // Token unchanged on failure
+      expect(authService.accessToken,
+          oldAccessToken); // Token unchanged on failure
     });
 
     test('should handle network errors', () async {
@@ -413,7 +429,8 @@ void main() {
 
       // Assert
       expect(result, false);
-      expect(authService.accessToken, oldAccessToken); // Token unchanged on error
+      expect(
+          authService.accessToken, oldAccessToken); // Token unchanged on error
     });
   });
 
@@ -434,7 +451,7 @@ void main() {
     test('should store last round settings', () {
       // Arrange
       const settings = LastRoundSettings(
-        category: 'PLANET_EARTH',
+        categories: ['PLANET_EARTH'],
         difficulty: 'MEDIUM',
       );
 
@@ -443,14 +460,14 @@ void main() {
 
       // Assert
       expect(authService.lastRoundSettings, isNotNull);
-      expect(authService.lastRoundSettings?.category, 'PLANET_EARTH');
+      expect(authService.lastRoundSettings?.categories, ['PLANET_EARTH']);
       expect(authService.lastRoundSettings?.difficulty, 'MEDIUM');
     });
 
     test('should clear last round settings', () {
       // Arrange
       const settings = LastRoundSettings(
-        category: 'PLANET_EARTH',
+        categories: ['PLANET_EARTH'],
         difficulty: 'MEDIUM',
       );
       authService.lastRoundSettings = settings;
