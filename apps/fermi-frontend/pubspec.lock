@@ -496,6 +496,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_math_fork:
+    dependency: transitive
+    description:
+      name: flutter_math_fork
+      sha256: "94bee4642892a94939af0748c6a7de0ff8318feee588379dcdfea7dc5cba06c8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.7.2"
   flutter_spinkit:
     dependency: "direct main"
     description:
@@ -676,6 +684,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.9.0"
+  latext:
+    dependency: "direct main"
+    description:
+      name: latext
+      sha256: d341bad2af5fd71983d899ac2f28d0442b6c4b7f80ccebb5545f051c83625523
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.1"
   leak_tracker:
     dependency: transitive
     description:

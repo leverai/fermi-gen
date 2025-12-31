@@ -430,7 +430,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                             child: Text(
                               _formatAnswerText(widget.revealedAnswer!),
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: appTheme.text,
                               ),

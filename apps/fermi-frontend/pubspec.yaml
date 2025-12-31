@@ -67,6 +67,7 @@ dependencies:
   collection: ^1.18.0
   audioplayers: ^6.1.0
   purchases_flutter: ^8.0.0
+  latext: ^0.4.1
 
 dev_dependencies:
   flutter_test:
