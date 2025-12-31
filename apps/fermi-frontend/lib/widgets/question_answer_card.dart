@@ -10,6 +10,7 @@ import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/utils/answer_format.dart';
 import 'package:fermi_frontend/widgets/answer_walkthrough_sheet.dart';
 import 'package:fermi_frontend/models/serp_text_block.dart';
+import 'package:fermi_frontend/widgets/walkthrough_button.dart';
 
 const double kQuestionAnswerCardQuestionHeight = 24.0 * 5;
 const double kQuestionAnswerCardAnswerRowHeight = 36.0;
@@ -439,16 +440,6 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                         mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // "You:" label
-                          Text(
-                            'You: ',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.normal,
-                              color: appTheme.textMuted,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
                           // Unified container for SliderTextMirror + UnitTape
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -501,43 +492,27 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                         SizedBox(
                           height: kQuestionAnswerCardAnswerRowHeight - 8,
                           width: 30,
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () async {
-                                final success = await AnswerWalkthroughSheet.showFromJson(
-                                  context,
-                                  jsonString: widget.paragraph!,
+                          child: WalkthroughButton(
+                            size: 18,
+                            spinDuration: const Duration(milliseconds: 600),
+                            sparkleDuration: const Duration(seconds: 2),
+                            onTap: () async {
+                              final success =
+                                  await AnswerWalkthroughSheet.showFromJson(
+                                context,
+                                jsonString: widget.paragraph!,
+                              );
+                              if (!success && mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                        'Failed to load answer walkthrough'),
+                                    duration: Duration(seconds: 2),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
                                 );
-                                if (!success && mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Failed to load answer walkthrough'),
-                                      duration: Duration(seconds: 2),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                }
-                              },
-                              borderRadius: BorderRadius.circular(100),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: appTheme.bgDark,
-                                  borderRadius: BorderRadius.circular(100),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.max,
-                                  children: [
-                                    Icon(
-                                      Icons.auto_awesome,
-                                      size: 20,
-                                      color: appTheme.primary,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                              }
+                            },
                           ),
                         ),
                     ],
