@@ -105,6 +105,7 @@ class DQResultsResponse {
   final int? userRank;
   final int totalParticipants;
   final List<DQLeaderboardEntry> leaderboard;
+  final String? paragraph;
 
   DQResultsResponse({
     required this.questionDate,
@@ -116,10 +117,12 @@ class DQResultsResponse {
     this.userRank,
     required this.totalParticipants,
     required this.leaderboard,
+    this.paragraph,
   });
 
   factory DQResultsResponse.fromJson(Map<String, dynamic> json) {
     // Parse correct answer - unit is now a UnitInfo object {id, name, abbreviation}
+    print('paragraph: ${json['paragraph']}');
     final correctAnswerJson = json['correct_answer'] as Map<String, dynamic>;
     final correctAnswerNumber = (correctAnswerJson['number'] as num).toDouble();
     String correctAnswerUnit = '';
@@ -161,6 +164,7 @@ class DQResultsResponse {
       userRank: json['user_rank'] as int?,
       totalParticipants: json['total_participants'] as int,
       leaderboard: leaderboard,
+      paragraph: json['paragraph'] as String?,
     );
   }
 }

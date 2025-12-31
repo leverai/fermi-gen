@@ -607,6 +607,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                                             inputsEnabled ? _submit : null,
                                         label: MainButtonLabel.submit,
                                       ),
+                                      paragraph: _resultsData?.paragraph,
                                     )
                                   : KeyedSubtree(
                                       key:
