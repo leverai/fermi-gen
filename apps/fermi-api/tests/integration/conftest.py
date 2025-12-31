@@ -598,20 +598,20 @@ def create_private_game(api_client: TestClient) -> Callable[[dict[str, str]], st
     """Return a callable that creates a private game and returns its id.
 
     The callable signature is ``(headers) -> game_id``. Optional kwargs may be
-    supplied for ``n_questions``, ``category``, and ``difficulty``.
+    supplied for ``n_questions``, ``categories``, and ``difficulty``.
     """
 
     def _create(
         headers: dict[str, str],
         *,
         n_questions: int = 3,
-        category: str | None = None,
+        categories: list[str] | None = None,
         difficulty: str | None = None,
     ) -> str:
         payload = {
             'question_round_settings': {
                 'n_questions': n_questions,
-                'category': category,
+                'categories': categories,
                 'difficulty': difficulty,
             },
         }

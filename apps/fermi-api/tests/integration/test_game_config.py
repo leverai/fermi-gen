@@ -67,7 +67,3 @@ def test_game_config_categories_and_difficulties(
         assert c['name']
         assert isinstance(c['slug'], str)
         assert c['slug']
-        pic = c['picture']
-        assert isinstance(pic, str)
-        assert pic.startswith('http')
-        assert '/static/categories/' in pic

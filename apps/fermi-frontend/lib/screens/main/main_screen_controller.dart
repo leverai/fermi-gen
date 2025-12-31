@@ -22,7 +22,7 @@ class MainScreenController extends ChangeNotifier {
   PlayerStatsResponse? _playerStatsDto;
 
   // UI state
-  int? selectedCategoryIndex;
+  Set<int> selectedCategoryIndices = {};
   String? selectedDifficulty;
   bool isLoading = true;
   bool isSubmitting = false;
@@ -36,26 +36,35 @@ class MainScreenController extends ChangeNotifier {
       _configDto?.difficulties ?? const <DifficultyInfo>[];
 
   // Derived/computed
-  String? get currentCategoryBackendName {
+  /// Returns list of selected category backend names, or null if none/all selected.
+  List<String>? get currentCategoryBackendNames {
     final categories = _configDto?.categories;
-    if (categories == null ||
-        categories.isEmpty ||
-        selectedCategoryIndex == null) {
+    if (categories == null || categories.isEmpty) {
       return null;
     }
-    final int i = selectedCategoryIndex!.clamp(0, categories.length - 1);
-    return categories[i].name;
+    // If none selected or all selected, return null (no filter)
+    if (selectedCategoryIndices.isEmpty ||
+        selectedCategoryIndices.length == categories.length) {
+      return null;
+    }
+    return selectedCategoryIndices
+        .map((i) => categories[i.clamp(0, categories.length - 1)].name)
+        .toList();
   }
 
-  String? get currentCategorySlug {
+  /// Returns list of selected category slugs for display, or null if none/all selected.
+  List<String>? get currentCategorySlugs {
     final categories = _configDto?.categories;
-    if (categories == null ||
-        categories.isEmpty ||
-        selectedCategoryIndex == null) {
+    if (categories == null || categories.isEmpty) {
       return null;
     }
-    final int i = selectedCategoryIndex!.clamp(0, categories.length - 1);
-    return categories[i].slug;
+    if (selectedCategoryIndices.isEmpty ||
+        selectedCategoryIndices.length == categories.length) {
+      return null;
+    }
+    return selectedCategoryIndices
+        .map((i) => categories[i.clamp(0, categories.length - 1)].slug)
+        .toList();
   }
 
   // Lifecycle
@@ -76,10 +85,13 @@ class MainScreenController extends ChangeNotifier {
       final LastRoundSettings? lrs = auth.lastRoundSettings;
       if (lrs != null) {
         selectedDifficulty = lrs.difficulty;
-        final categories = _configDto?.categories ?? const <CategoryInfo>[];
-        final int idx = categories.indexWhere((c) => c.name == lrs.category);
-        if (idx >= 0) {
-          selectedCategoryIndex = idx;
+        // Restore categories from saved list
+        if (lrs.categories != null) {
+          final categories = _configDto?.categories ?? const <CategoryInfo>[];
+          selectedCategoryIndices = lrs.categories!
+              .map((name) => categories.indexWhere((c) => c.name == name))
+              .where((idx) => idx >= 0)
+              .toSet();
         }
       }
 
@@ -109,10 +121,13 @@ class MainScreenController extends ChangeNotifier {
       final LastRoundSettings? lrs = auth.lastRoundSettings;
       if (lrs != null) {
         selectedDifficulty = lrs.difficulty;
-        final categories = _configDto?.categories ?? const <CategoryInfo>[];
-        final int idx = categories.indexWhere((c) => c.name == lrs.category);
-        if (idx >= 0) {
-          selectedCategoryIndex = idx;
+        // Restore categories from saved list
+        if (lrs.categories != null) {
+          final categories = _configDto?.categories ?? const <CategoryInfo>[];
+          selectedCategoryIndices = lrs.categories!
+              .map((name) => categories.indexWhere((c) => c.name == name))
+              .where((idx) => idx >= 0)
+              .toSet();
         }
       }
       print('[MainScreenController] initialize complete');
@@ -167,8 +182,8 @@ class MainScreenController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void selectCategoryIndex(int? index) {
-    selectedCategoryIndex = index;
+  void selectCategoryIndices(Set<int> indices) {
+    selectedCategoryIndices = indices;
     notifyListeners();
   }
 
@@ -178,13 +193,13 @@ class MainScreenController extends ChangeNotifier {
     notifyListeners();
     try {
       final String gameId = await api.createGame(
-        category: currentCategoryBackendName,
+        categories: currentCategoryBackendNames,
         difficulty: selectedDifficulty,
         nQuestions: nQuestions ?? 6,
       );
       // Persist last round settings so we can restore on return
       auth.lastRoundSettings = LastRoundSettings(
-        category: currentCategoryBackendName,
+        categories: currentCategoryBackendNames,
         difficulty: selectedDifficulty,
       );
       return gameId;

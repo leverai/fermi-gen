@@ -31,7 +31,7 @@ class GameQuestionsWriter:
         writer: 'Writeable',
         questions_docs: Iterable['QuestionDoc'],
         answers_docs: Iterable['AnswerDoc'],
-        request_category: RequestCategory | None,
+        request_categories: list[RequestCategory] | None,
         game_difficulty: QuestionDifficulty | None,
     ) -> list[str]:
         """Create questions and answers documents, and set question_uids."""
@@ -57,7 +57,7 @@ class GameQuestionsWriter:
             game_ref,
             {
                 'question_uids': question_uids,
-                'category': request_category,
+                'categories': request_categories,
                 'difficulty': game_difficulty,
                 'n_questions': len(question_uids),
             },

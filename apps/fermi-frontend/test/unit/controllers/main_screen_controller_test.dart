@@ -114,7 +114,7 @@ void main() {
         ],
       );
       const lastRoundSettings = LastRoundSettings(
-        category: 'GENERAL',
+        categories: ['GENERAL'],
         difficulty: 'EASY',
       );
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
@@ -124,7 +124,7 @@ void main() {
       await controller.initialize();
 
       // ASSERT
-      expect(controller.selectedCategoryIndex, 0);
+      expect(controller.selectedCategoryIndices.contains(0), true);
       expect(controller.selectedDifficulty, 'EASY');
     });
 
@@ -180,54 +180,58 @@ void main() {
       await controller.initialize();
     });
 
-    test('should select category by index', () {
+    test('should select multiple categories by indices', () {
       // ACT
-      controller.selectCategoryIndex(1);
+      controller.selectCategoryIndices({0, 1});
 
       // ASSERT
-      expect(controller.selectedCategoryIndex, 1);
+      expect(controller.selectedCategoryIndices, {0, 1});
     });
 
-    test('should deselect category when index is null', () {
+    test('should deselect all categories when empty set', () {
       // ARRANGE
-      controller.selectCategoryIndex(0);
+      controller.selectCategoryIndices({0});
 
       // ACT
-      controller.selectCategoryIndex(null);
+      controller.selectCategoryIndices({});
 
       // ASSERT
-      expect(controller.selectedCategoryIndex, isNull);
+      expect(controller.selectedCategoryIndices, isEmpty);
     });
 
-    test('should compute currentCategoryBackendName correctly', () {
+    test(
+        'should compute currentCategoryBackendNames correctly for single selection',
+        () {
       // ARRANGE
-      controller.selectCategoryIndex(0);
+      controller.selectCategoryIndices({0});
 
       // ASSERT
-      expect(controller.currentCategoryBackendName, 'GENERAL');
+      expect(controller.currentCategoryBackendNames, ['GENERAL']);
     });
 
-    test('should compute currentCategorySlug correctly', () {
+    test('should compute currentCategorySlugs correctly for multiple selection',
+        () {
       // ARRANGE
-      controller.selectCategoryIndex(1);
+      controller.selectCategoryIndices({0, 1});
 
       // ASSERT
-      expect(controller.currentCategorySlug, 'Physics');
+      // All selected = null (no filter)
+      expect(controller.currentCategorySlugs, isNull);
     });
 
-    test('should return null when no category selected', () {
+    test('should return null when no categories selected', () {
       // ASSERT
-      expect(controller.currentCategoryBackendName, isNull);
-      expect(controller.currentCategorySlug, isNull);
+      expect(controller.currentCategoryBackendNames, isNull);
+      expect(controller.currentCategorySlugs, isNull);
     });
 
-    test('should clamp category index to valid range', () {
-      // ACT
-      controller.selectCategoryIndex(10); // Out of range
+    test('should return null when all categories selected', () {
+      // ACT - select all categories
+      controller.selectCategoryIndices({0, 1});
 
-      // ASSERT
-      expect(
-          controller.currentCategoryBackendName, 'PHYSICS'); // Clamped to last
+      // ASSERT - all selected means no filter
+      expect(controller.currentCategoryBackendNames, isNull);
+      expect(controller.currentCategorySlugs, isNull);
     });
   });
 
@@ -284,14 +288,14 @@ void main() {
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
       when(() => mockAuth.lastRoundSettings).thenReturn(null);
       await controller.initialize();
-      controller.selectCategoryIndex(0);
+      controller.selectCategoryIndices({0});
       controller.selectDifficulty('EASY');
     });
 
     test('should create game with selected settings', () async {
       // ARRANGE
       when(() => mockApi.createGame(
-            category: 'GENERAL',
+            categories: ['GENERAL'],
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async => 'game123');
@@ -302,7 +306,7 @@ void main() {
       // ASSERT
       expect(gameId, 'game123');
       verify(() => mockApi.createGame(
-            category: 'GENERAL',
+            categories: ['GENERAL'],
             difficulty: 'EASY',
             nQuestions: 6,
           )).called(1);
@@ -311,7 +315,7 @@ void main() {
     test('should persist last round settings after creation', () async {
       // ARRANGE
       when(() => mockApi.createGame(
-            category: 'GENERAL',
+            categories: ['GENERAL'],
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async => 'game123');
@@ -322,7 +326,8 @@ void main() {
       // ASSERT
       verify(() => mockAuth.lastRoundSettings = any(
             that: predicate<LastRoundSettings>((lrs) =>
-                lrs.category == 'GENERAL' &&
+                lrs.categories != null &&
+                lrs.categories!.contains('GENERAL') &&
                 lrs.difficulty == 'EASY'),
           )).called(1);
     });
@@ -330,7 +335,7 @@ void main() {
     test('should set isSubmitting during creation', () async {
       // ARRANGE
       when(() => mockApi.createGame(
-            category: 'GENERAL',
+            categories: ['GENERAL'],
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async {
@@ -352,7 +357,7 @@ void main() {
       // ARRANGE
       final error = Exception('Failed to create game');
       when(() => mockApi.createGame(
-            category: 'GENERAL',
+            categories: ['GENERAL'],
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async => throw error);
@@ -374,7 +379,7 @@ void main() {
       // ARRANGE
       controller.errorMessage = 'Previous error';
       when(() => mockApi.createGame(
-            category: 'GENERAL',
+            categories: ['GENERAL'],
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async => 'game123');

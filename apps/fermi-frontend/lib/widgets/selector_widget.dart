@@ -51,7 +51,7 @@ class SelectorWidget extends StatelessWidget {
   static const double _chipHeight =
       44.0; // Reduced to allow for 2px padding top/bottom (48 - 4)
   static const double _spacing = 0.0;
-  static const double _fontSize = 16.0;
+  static const double _fontSize = 14.0;
 
   Widget _buildIcon(String? iconUrl, IconData? icon, Color color) {
     if (iconUrl != null) {

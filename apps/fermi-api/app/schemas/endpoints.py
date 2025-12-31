@@ -33,10 +33,17 @@ class RequestCategory(StrEnum):
 
 
 class QuestionRoundSettings(BaseModel):
-    """Question round criteria."""
+    """Question round criteria.
+
+    Attributes:
+        n_questions: Number of questions in the round.
+        categories: List of categories to filter by, or None for all categories.
+        difficulty: Difficulty level to filter by, or None for all difficulties.
+
+    """
 
     n_questions: int = 6
-    category: RequestCategory | None = None
+    categories: list[RequestCategory] | None = None
     difficulty: RequestDifficulty
 
 
@@ -137,7 +144,6 @@ class GameConfigResponse(BaseModel):
         index: int
         name: RequestCategory
         slug: str
-        picture: str
 
     class DifficultyInfo(BaseModel):
         """Difficulty info."""

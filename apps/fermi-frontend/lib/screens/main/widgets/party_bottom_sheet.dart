@@ -4,7 +4,7 @@ import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/screens/main/widgets/primary_cta.dart';
 import 'package:fermi_frontend/widgets/selector_widget.dart';
-import 'package:fermi_frontend/widgets/categories/category_carousel_m3.dart';
+import 'package:fermi_frontend/widgets/categories/category_chip_selector.dart';
 
 /// Shows a modal bottom sheet for configuring party game settings.
 ///
@@ -88,24 +88,15 @@ void showPartyBottomSheet({
                           ],
                         ),
                       ),
-                      Text(
-                        'Select category:',
-                        style: AppFont.primaryTextStyle(
-                          context,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                          color: appTheme.textMuted,
-                        ),
-                        textAlign: TextAlign.left,
-                      ),
-                      CategoryCarouselM3(
+                      // Category chip selector
+                      CategoryChipSelector(
                         categories: items,
-                        initialIndex: controller.selectedCategoryIndex,
-                        onCategorySelected: controller.selectCategoryIndex,
-                        onCenteredIndexChanged: controller.selectCategoryIndex,
+                        initialSelectedIndices:
+                            controller.selectedCategoryIndices,
+                        onSelectionChanged: controller.selectCategoryIndices,
                         startColor: HSLColor.fromColor(appTheme.primary),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 24),
                       Text(
                         'Select difficulty:',
                         style: AppFont.primaryTextStyle(
@@ -136,7 +127,7 @@ void showPartyBottomSheet({
                         },
                         allowNoSelection: true,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       PrimaryCta(
                         isLoading: controller.isSubmitting,
                         onPressed: onPrimaryAction,
@@ -154,14 +145,13 @@ void showPartyBottomSheet({
   );
 }
 
-List<CategoryItemM3> _buildCategories(MainScreenController controller) {
+List<CategoryChipItem> _buildCategories(MainScreenController controller) {
   final cfg = controller.configDto;
-  if (cfg == null) return const <CategoryItemM3>[];
+  if (cfg == null) return const <CategoryChipItem>[];
   return cfg.categories
-      .map((c) => CategoryItemM3(
+      .map((c) => CategoryChipItem(
             id: c.index.toString(),
             title: c.slug,
-            svgPath: c.picture,
           ))
       .toList(growable: false);
 }

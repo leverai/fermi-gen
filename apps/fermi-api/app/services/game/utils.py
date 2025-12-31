@@ -42,9 +42,7 @@ def assert_state_le(got: GameState, le: GameState) -> None:
         )
 
 
-def get_request_categories(
-    request: Request | None = None,
-) -> list[GameConfigResponse.CategoryInfo]:
+def get_request_categories() -> list[GameConfigResponse.CategoryInfo]:
     """Return ordered categories exposed to clients with theme and assets.
 
     - Excludes OTHER
@@ -59,19 +57,12 @@ def get_request_categories(
     ]
 
     result: list[GameConfigResponse.CategoryInfo] = []
-    base = None
-    if request is not None:
-        base = str(request.base_url).rstrip('/')
     for idx, (name, slug) in enumerate(categories):
-        picture = f'/static/categories/{name}.svg'
-        if base:
-            picture = f'{base}{picture}'
         result.append(
             GameConfigResponse.CategoryInfo(
                 index=idx,
                 name=name,
                 slug=slug,
-                picture=picture,
             ),
         )
     return result
