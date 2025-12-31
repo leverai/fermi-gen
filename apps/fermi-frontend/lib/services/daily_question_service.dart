@@ -122,7 +122,6 @@ class DQResultsResponse {
 
   factory DQResultsResponse.fromJson(Map<String, dynamic> json) {
     // Parse correct answer - unit is now a UnitInfo object {id, name, abbreviation}
-    print('paragraph: ${json['paragraph']}');
     final correctAnswerJson = json['correct_answer'] as Map<String, dynamic>;
     final correctAnswerNumber = (correctAnswerJson['number'] as num).toDouble();
     String correctAnswerUnit = '';

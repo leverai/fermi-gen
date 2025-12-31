@@ -13,7 +13,6 @@ from app.schemas.endpoints import IdModel
 from app.schemas.game import GamePlayer, GameState
 from app.services.game.errors import StateConflictError
 from app.services.game.repositories.game_repo import GameRepository
-from app.services.game.utils import DIFFICULTY_TIMEOUT_SECONDS
 
 if TYPE_CHECKING:
     from fermi_db.models.user import User
@@ -74,8 +73,6 @@ class NextQuestionUseCase:
                 'question_order',
                 'players',
                 'host',
-                'difficulty',
-                'private',
             ],
         )
         if not data:
@@ -110,21 +107,11 @@ class NextQuestionUseCase:
             ) from err
 
         next_question_uid = question_uids[next_question_order - 1]
-        # Read difficulty from the specific question document
-        settings = await self._repo.get_questions_settings(
-            game_ref=game_ref,
-            question_uids=[next_question_uid],
-        )
-        difficulty = settings[next_question_uid].difficulty
-        timeout_seconds = (
-            None if data.get('private') else DIFFICULTY_TIMEOUT_SECONDS[difficulty]
-        )
         self._questions.reveal_question(
             game_ref=game_ref,
             writer=batch,
             question_uid=next_question_uid,
             question_order=next_question_order,
-            timeout_seconds=timeout_seconds,
         )
 
         active_player_ids = [

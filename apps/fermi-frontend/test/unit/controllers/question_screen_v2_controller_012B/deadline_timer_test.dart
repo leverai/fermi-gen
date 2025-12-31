@@ -110,7 +110,6 @@ void main() {
         isHost: false,
         questionNumber: testQuestionCount,
         nQuestions: testQuestionCount,
-        durationSeconds: 0,
         players: {
           testPlayerId: PlayerSummary(
             playerId: testPlayerId,
@@ -122,7 +121,6 @@ void main() {
             rank: 1,
           ),
         },
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 
@@ -170,7 +168,6 @@ void main() {
         isHost: false,
         questionNumber: 1,
         nQuestions: testQuestionCount,
-        durationSeconds: 0, // zero duration
         players: {
           testPlayerId: PlayerSummary(
             playerId: testPlayerId,
@@ -182,7 +179,6 @@ void main() {
             rank: 1,
           ),
         },
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 

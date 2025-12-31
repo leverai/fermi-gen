@@ -13,7 +13,6 @@ from app.schemas.endpoints import IdModel
 from app.schemas.game import GamePlayer, GameState
 from app.services.game.errors import StateConflictError
 from app.services.game.repositories.game_repo import GameRepository
-from app.services.game.utils import DIFFICULTY_TIMEOUT_SECONDS
 
 if TYPE_CHECKING:
     from fermi_db.models.user import User
@@ -63,8 +62,6 @@ class StartGameUseCase:
                 'question_uids',
                 'n_questions',
                 'state',
-                'difficulty',
-                'private',
             ],
         )
         if not data:
@@ -93,22 +90,11 @@ class StartGameUseCase:
 
         # Reveal first question
         first_q_uid = question_uids[0]
-        # Read difficulty from the specific question document
-        # Difficulty is used to set question's deadline
-        settings = await self._repo.get_questions_settings(
-            game_ref=game_ref,
-            question_uids=[first_q_uid],
-        )
-        difficulty = settings[first_q_uid].difficulty
-        timeout_seconds = (
-            None if data.get('private') else DIFFICULTY_TIMEOUT_SECONDS[difficulty]
-        )
         self._questions.reveal_question(
             game_ref=game_ref,
             writer=batch,
             question_uid=first_q_uid,
             question_order=1,
-            timeout_seconds=timeout_seconds,
         )
 
         # Init progress for all players

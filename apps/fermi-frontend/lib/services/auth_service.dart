@@ -238,13 +238,10 @@ class AuthService {
 class LastRoundSettings {
   final String? category; // Backend enum name, e.g. 'PLANET_EARTH' or 'GENERAL'
   final String? difficulty; // 'EASY' | 'MEDIUM' | 'HARD' | null
-  final bool
-      isPrivate; // true for private (create), false for public (join random)
 
   const LastRoundSettings({
     required this.category,
     required this.difficulty,
-    required this.isPrivate,
   });
 }
 

@@ -6,14 +6,10 @@ accept an optional ``tx`` parameter to support transactional reads.
 
 import asyncio
 from collections.abc import Iterable
-from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
-from google.cloud import firestore
-from google.cloud.firestore_v1.base_query import FieldFilter
-
-from app.schemas.endpoints import QuestionRoundSettings, QuestionSettings
-from app.schemas.game import AnswerDoc, GameState, PlayersResultsDoc
+from app.schemas.endpoints import QuestionSettings
+from app.schemas.game import AnswerDoc, PlayersResultsDoc
 
 if TYPE_CHECKING:
     from google.cloud.firestore_v1 import (
@@ -145,53 +141,3 @@ class GameRepository:
             ),
         )
         return cast('PlayersResultsDoc', snap.to_dict() or {})
-
-    async def find_public_available_game(
-        self,
-        games_ref: 'AsyncCollectionReference',
-        *,
-        round_settings: QuestionRoundSettings,
-        tx: 'AsyncTransaction | None' = None,
-    ) -> 'DocumentSnapshot | None':
-        """Return one public, non-full game at or before lobby-ready matching
-        filters.
-        """
-        query = (
-            games_ref.where(filter=FieldFilter('private', '==', value=False))
-            .where(filter=FieldFilter('full', '==', value=False))
-            .where(
-                filter=FieldFilter('state', '<=', value=GameState.LOBBY_READY),
-            )
-        )
-
-        if round_settings.category is not None:
-            query = query.where(
-                filter=FieldFilter('category', '==', value=round_settings.category),
-            )
-        if round_settings.difficulty is not None:
-            query = query.where(
-                filter=FieldFilter('difficulty', '==', value=round_settings.difficulty),
-            )
-
-        query = (
-            query.where(
-                filter=FieldFilter(
-                    'created_at',
-                    '>=',
-                    value=datetime.now(tz=UTC) - timedelta(minutes=3),
-                ),
-            )
-            .order_by(
-                field_path='created_at',
-                direction=firestore.Query.DESCENDING,
-            )
-            .limit(
-                1,
-            )
-        )
-
-        games = await query.get(transaction=tx)
-        if not games:
-            return None
-
-        return games.pop()

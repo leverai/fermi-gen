@@ -614,37 +614,6 @@ def create_private_game(api_client: TestClient) -> Callable[[dict[str, str]], st
                 'category': category,
                 'difficulty': difficulty,
             },
-            'is_private': True,
-        }
-        resp = api_client.post('/api/v1/game/create', json=payload, headers=headers)
-        resp.raise_for_status()
-        return resp.json()['resource_id']
-
-    return _create
-
-
-@pytest.fixture
-def create_public_game(api_client: TestClient) -> Callable[[dict[str, str]], str]:
-    """Return a callable that creates a public game and returns its id.
-
-    The callable signature is ``(headers) -> game_id``. Optional kwargs may be
-    supplied for ``n_questions``, ``category``, and ``difficulty``.
-    """
-
-    def _create(
-        headers: dict[str, str],
-        *,
-        n_questions: int = 3,
-        category: str | None = None,
-        difficulty: str | None = None,
-    ) -> str:
-        payload = {
-            'question_round_settings': {
-                'n_questions': n_questions,
-                'category': category,
-                'difficulty': difficulty,
-            },
-            'is_private': False,
         }
         resp = api_client.post('/api/v1/game/create', json=payload, headers=headers)
         resp.raise_for_status()

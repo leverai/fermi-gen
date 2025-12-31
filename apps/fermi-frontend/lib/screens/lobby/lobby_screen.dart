@@ -14,11 +14,9 @@ class LobbyScreen extends StatelessWidget {
   const LobbyScreen({
     super.key,
     required this.players,
-    required this.isWaiting,
     required this.onStart,
     this.startEnabled = true,
     this.onShare,
-    this.isPrivate = false,
     this.joinUrl,
     this.onLeave,
     this.currentPlayerId,
@@ -29,11 +27,9 @@ class LobbyScreen extends StatelessWidget {
   });
 
   final List<PlayerState> players;
-  final bool isWaiting;
   final VoidCallback onStart;
   final VoidCallback? onShare;
   final bool startEnabled;
-  final bool isPrivate;
   final String? joinUrl;
   final VoidCallback? onLeave;
   final String? currentPlayerId;
@@ -105,8 +101,6 @@ class LobbyScreen extends StatelessWidget {
                               ),
                             ),
                             child: _CenterCallout(
-                              isPrivate: isPrivate,
-                              isWaiting: isWaiting,
                               onShare: onShare,
                               color: appTheme.info,
                               joinUrl: joinUrl,
@@ -146,8 +140,6 @@ class LobbyScreen extends StatelessWidget {
 
 class _CenterCallout extends StatefulWidget {
   const _CenterCallout({
-    required this.isPrivate,
-    required this.isWaiting,
     required this.color,
     this.onShare,
     this.joinUrl,
@@ -159,8 +151,6 @@ class _CenterCallout extends StatefulWidget {
     this.createdAt,
   });
 
-  final bool isPrivate;
-  final bool isWaiting;
   final Color color;
   final VoidCallback? onShare;
   final String? joinUrl;
@@ -182,8 +172,7 @@ class _CenterCalloutState extends State<_CenterCallout>
   late AnimationController _dotsController;
   int _dotCount = 0;
 
-  // 20s for public, 60s for private (allow friends to join)
-  static const int _publicDuration = 20;
+  // 60s for private games (allow friends to join)
   static const int _privateDuration = 60;
 
   @override
@@ -211,9 +200,8 @@ class _CenterCalloutState extends State<_CenterCallout>
   @override
   void didUpdateWidget(_CenterCallout oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Recalculate timer if privacy setting or createdAt changes
-    if (widget.isPrivate != oldWidget.isPrivate ||
-        widget.createdAt != oldWidget.createdAt) {
+    // Recalculate timer if createdAt changes
+    if (widget.createdAt != oldWidget.createdAt) {
       setState(() {
         _timeLeft = _computeRemainingTime();
       });
@@ -223,7 +211,7 @@ class _CenterCalloutState extends State<_CenterCallout>
   /// Compute remaining time from server timestamp to ensure all clients
   /// see the same synchronized timer value.
   int _computeRemainingTime() {
-    final int duration = widget.isPrivate ? _privateDuration : _publicDuration;
+    const int duration = _privateDuration;
     final DateTime? created = widget.createdAt;
     if (created == null) {
       // Fallback to full duration if timestamp not yet available
@@ -289,87 +277,25 @@ class _CenterCalloutState extends State<_CenterCallout>
       ),
     );
 
-    if (widget.isPrivate) {
-      // Private lobby: show share button and optionally bot button for host
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (showBotButton) ...[
-              InviteBotsButton(
-                onPressed: widget.onInviteBots!,
-                botCount: widget.botsToInvite,
-              ),
-              const SizedBox(height: 24),
-            ],
-            ShareButton(onPressed: widget.onShare ?? () {}),
-            const SizedBox(height: 24),
-            autoStartLabel,
-            const SizedBox(height: 4),
-            timerText,
-          ],
-        ),
-      );
-    }
-
-    if (widget.isWaiting) {
-      // Public lobby waiting
-      String dots = '';
-      if (_dotCount == 1) dots = '.';
-      if (_dotCount == 2) dots = '..';
-      if (_dotCount >= 3) dots = '...';
-
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (showBotButton) ...[
-              InviteBotsButton(
-                onPressed: widget.onInviteBots!,
-                botCount: widget.botsToInvite,
-              ),
-              const SizedBox(height: 24),
-            ],
-            // Removed spinner, added text column
-            Column(
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Players can join',
-                      style: TextStyle(
-                        fontFamily: 'Barlow',
-                        fontSize: 18,
-                        color: appTheme.info,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 24,
-                      child: Text(
-                        dots,
-                        style: TextStyle(
-                          fontFamily: 'Barlow',
-                          fontSize: 18,
-                          color: appTheme.info,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                autoStartLabel,
-                const SizedBox(height: 4),
-                timerText,
-              ],
+    // Private lobby: show share button and optionally bot button for host
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showBotButton) ...[
+            InviteBotsButton(
+              onPressed: widget.onInviteBots!,
+              botCount: widget.botsToInvite,
             ),
+            const SizedBox(height: 24),
           ],
-        ),
-      );
-    }
-    return const SizedBox(height: 36);
+          ShareButton(onPressed: widget.onShare ?? () {}),
+          const SizedBox(height: 24),
+          autoStartLabel,
+          const SizedBox(height: 4),
+          timerText,
+        ],
+      ),
+    );
   }
 }

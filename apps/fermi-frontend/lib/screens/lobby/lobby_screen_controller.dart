@@ -43,9 +43,7 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
   List<PlayerState> _players = const <PlayerState>[];
   bool _isHost = false;
   bool _isLobbyReady = false;
-  bool _isPrivate = false;
   String? _joinUrl;
-  bool _isLobby = true;
   bool _navigatedToQuestions = false;
   GameSessionController? _session;
   int _botsToInvite = 0;
@@ -67,9 +65,6 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
       setState(() {
         _isHost = snapshot.isHost;
         _isLobbyReady = snapshot.state == GameState.lobbyReady;
-        _isLobby = snapshot.state == GameState.lobbyNotReady ||
-            snapshot.state == GameState.lobbyReady;
-        _isPrivate = snapshot.isPrivate;
         _joinUrl = snapshot.joinUrl;
         _createdAt = snapshot.createdAt;
         // Calculate how many bots can be invited
@@ -243,12 +238,10 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
       data: themed,
       child: LobbyScreen(
         players: _players,
-        isWaiting: (!_isPrivate) && _isLobby,
         startEnabled: _isHost && _isLobbyReady,
         onStart: _startGame,
-        isPrivate: _isPrivate,
         joinUrl: _joinUrl,
-        onShare: _isPrivate ? _shareInvite : null,
+        onShare: _shareInvite,
         currentPlayerId: widget.realtime.currentPlayerId,
         isHost: _isHost,
         onInviteBots: _isHost ? _inviteBots : null,

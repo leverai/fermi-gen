@@ -4,7 +4,6 @@ import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/screens/main/widgets/primary_cta.dart';
 import 'package:fermi_frontend/widgets/selector_widget.dart';
-import 'package:fermi_frontend/widgets/lock_toggle_chip.dart';
 import 'package:fermi_frontend/widgets/categories/category_carousel_m3.dart';
 
 /// Shows a modal bottom sheet for configuring party game settings.
@@ -138,23 +137,9 @@ void showPartyBottomSheet({
                         allowNoSelection: true,
                       ),
                       const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          LockToggleChip(
-                            isLocked: controller.isLocked,
-                            onToggle: controller.toggleLock,
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: PrimaryCta(
-                              isLoading: controller.isSubmitting,
-                              onPressed: onPrimaryAction,
-                              isLocked: controller.isLocked,
-                            ),
-                          ),
-                        ],
+                      PrimaryCta(
+                        isLoading: controller.isSubmitting,
+                        onPressed: onPrimaryAction,
                       ),
                       const SizedBox(height: 24),
                     ],

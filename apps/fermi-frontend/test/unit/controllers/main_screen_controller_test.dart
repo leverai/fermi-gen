@@ -116,7 +116,6 @@ void main() {
       const lastRoundSettings = LastRoundSettings(
         category: 'GENERAL',
         difficulty: 'EASY',
-        isPrivate: true,
       );
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
       when(() => mockAuth.lastRoundSettings).thenReturn(lastRoundSettings);
@@ -127,7 +126,6 @@ void main() {
       // ASSERT
       expect(controller.selectedCategoryIndex, 0);
       expect(controller.selectedDifficulty, 'EASY');
-      expect(controller.isLocked, true);
     });
 
     test('should handle initialization errors gracefully', () async {
@@ -268,39 +266,6 @@ void main() {
     });
   });
 
-  group('Privacy Toggle', () {
-    test('should toggle lock state', () {
-      // ARRANGE
-      expect(controller.isLocked, false);
-
-      // ACT
-      controller.toggleLock();
-
-      // ASSERT
-      expect(controller.isLocked, true);
-
-      // ACT
-      controller.toggleLock();
-
-      // ASSERT
-      expect(controller.isLocked, false);
-    });
-
-    test('should notify listeners on toggle', () {
-      // ARRANGE
-      var notified = false;
-      controller.addListener(() {
-        notified = true;
-      });
-
-      // ACT
-      controller.toggleLock();
-
-      // ASSERT
-      expect(notified, true);
-    });
-  });
-
   group('Game Creation', () {
     setUp(() async {
       const config = GameConfig(
@@ -321,13 +286,11 @@ void main() {
       await controller.initialize();
       controller.selectCategoryIndex(0);
       controller.selectDifficulty('EASY');
-      controller.isLocked = true;
     });
 
-    test('should create private game with selected settings', () async {
+    test('should create game with selected settings', () async {
       // ARRANGE
       when(() => mockApi.createGame(
-            isPrivate: true,
             category: 'GENERAL',
             difficulty: 'EASY',
             nQuestions: 6,
@@ -339,30 +302,6 @@ void main() {
       // ASSERT
       expect(gameId, 'game123');
       verify(() => mockApi.createGame(
-            isPrivate: true,
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).called(1);
-    });
-
-    test('should create public game with selected settings', () async {
-      // ARRANGE
-      controller.isLocked = false;
-      when(() => mockApi.createGame(
-            isPrivate: false,
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).thenAnswer((_) async => 'game456');
-
-      // ACT
-      final gameId = await controller.createGame();
-
-      // ASSERT
-      expect(gameId, 'game456');
-      verify(() => mockApi.createGame(
-            isPrivate: false,
             category: 'GENERAL',
             difficulty: 'EASY',
             nQuestions: 6,
@@ -372,7 +311,6 @@ void main() {
     test('should persist last round settings after creation', () async {
       // ARRANGE
       when(() => mockApi.createGame(
-            isPrivate: true,
             category: 'GENERAL',
             difficulty: 'EASY',
             nQuestions: 6,
@@ -385,15 +323,13 @@ void main() {
       verify(() => mockAuth.lastRoundSettings = any(
             that: predicate<LastRoundSettings>((lrs) =>
                 lrs.category == 'GENERAL' &&
-                lrs.difficulty == 'EASY' &&
-                lrs.isPrivate == true),
+                lrs.difficulty == 'EASY'),
           )).called(1);
     });
 
     test('should set isSubmitting during creation', () async {
       // ARRANGE
       when(() => mockApi.createGame(
-            isPrivate: true,
             category: 'GENERAL',
             difficulty: 'EASY',
             nQuestions: 6,
@@ -416,7 +352,6 @@ void main() {
       // ARRANGE
       final error = Exception('Failed to create game');
       when(() => mockApi.createGame(
-            isPrivate: true,
             category: 'GENERAL',
             difficulty: 'EASY',
             nQuestions: 6,
@@ -439,7 +374,6 @@ void main() {
       // ARRANGE
       controller.errorMessage = 'Previous error';
       when(() => mockApi.createGame(
-            isPrivate: true,
             category: 'GENERAL',
             difficulty: 'EASY',
             nQuestions: 6,
@@ -447,128 +381,6 @@ void main() {
 
       // ACT
       await controller.createGame();
-
-      // ASSERT
-      expect(controller.errorMessage, isNull);
-    });
-  });
-
-  group('Join Random Game', () {
-    setUp(() async {
-      const config = GameConfig(
-        categories: [
-          CategoryInfo(
-            index: 0,
-            name: 'GENERAL',
-            slug: 'General',
-            picture: '',
-          ),
-        ],
-        difficulties: [
-          DifficultyInfo(name: 'EASY', slug: 'Easy', picture: ''),
-        ],
-      );
-      when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
-      when(() => mockAuth.lastRoundSettings).thenReturn(null);
-      await controller.initialize();
-      controller.selectCategoryIndex(0);
-      controller.selectDifficulty('EASY');
-    });
-
-    test('should join random game with selected settings', () async {
-      // ARRANGE
-      when(() => mockApi.joinRandomGame(
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).thenAnswer((_) async => 'game789');
-
-      // ACT
-      final gameId = await controller.joinRandomGame();
-
-      // ASSERT
-      expect(gameId, 'game789');
-      verify(() => mockApi.joinRandomGame(
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).called(1);
-    });
-
-    test('should persist last round settings after join', () async {
-      // ARRANGE
-      when(() => mockApi.joinRandomGame(
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).thenAnswer((_) async => 'game789');
-
-      // ACT
-      await controller.joinRandomGame();
-
-      // ASSERT
-      verify(() => mockAuth.lastRoundSettings = any(
-            that: predicate<LastRoundSettings>((lrs) =>
-                lrs.category == 'GENERAL' &&
-                lrs.difficulty == 'EASY' &&
-                lrs.isPrivate == false), // Public game
-          )).called(1);
-    });
-
-    test('should set isSubmitting during join', () async {
-      // ARRANGE
-      when(() => mockApi.joinRandomGame(
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).thenAnswer((_) async {
-        // Simulate async delay
-        await Future.delayed(const Duration(milliseconds: 10));
-        return 'game789';
-      });
-
-      // ACT
-      final future = controller.joinRandomGame();
-
-      // ASSERT
-      expect(controller.isSubmitting, true);
-      await future;
-      expect(controller.isSubmitting, false);
-    });
-
-    test('should handle join errors', () async {
-      // ARRANGE
-      final error = Exception('Failed to join game');
-      when(() => mockApi.joinRandomGame(
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).thenAnswer((_) async => throw error);
-
-      // ACT
-      try {
-        await controller.joinRandomGame();
-        fail('Expected exception');
-      } catch (e) {
-        // Expected
-      }
-
-      // ASSERT
-      expect(controller.errorMessage, isNotNull);
-      expect(controller.isSubmitting, false);
-    });
-
-    test('should clear error message on success', () async {
-      // ARRANGE
-      controller.errorMessage = 'Previous error';
-      when(() => mockApi.joinRandomGame(
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).thenAnswer((_) async => 'game789');
-
-      // ACT
-      await controller.joinRandomGame();
 
       // ASSERT
       expect(controller.errorMessage, isNull);

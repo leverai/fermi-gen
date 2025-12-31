@@ -189,7 +189,6 @@ void main() {
         // ARRANGE
         final privateSnapshot = GameSnapshotFixtures.lobbyReady(
           currentPlayerId: currentPlayerId,
-          isPrivate: true,
           joinUrl: 'https://example.com/join/abc123',
         );
 
@@ -219,7 +218,6 @@ void main() {
         const joinUrl = 'https://example.com/join/test123';
         final snapshot = GameSnapshotFixtures.lobbyReady(
           currentPlayerId: currentPlayerId,
-          isPrivate: true,
           joinUrl: joinUrl,
         );
 
@@ -510,7 +508,6 @@ void main() {
         // ARRANGE
         final snapshot = GameSnapshotFixtures.lobbyReady(
           currentPlayerId: currentPlayerId,
-          isPrivate: true,
           joinUrl: null,
         );
 

@@ -45,7 +45,7 @@ void main() {
       );
 
       // ACT
-      await apiService.createGame(isPrivate: true);
+      await apiService.createGame();
 
       // ASSERT - verified by expect in MockClient callback
     });
@@ -76,7 +76,7 @@ void main() {
       );
 
       // ACT
-      final result = await apiService.createGame(isPrivate: true);
+      final result = await apiService.createGame();
 
       // ASSERT
       verify(() => mockAuthService.refreshAccessToken()).called(1);
@@ -112,7 +112,7 @@ void main() {
       );
 
       // ACT
-      await apiService.createGame(isPrivate: true);
+      await apiService.createGame();
 
       // ASSERT
       expect(callCount, 2);
@@ -134,7 +134,7 @@ void main() {
 
       // ACT & ASSERT
       expect(
-        () => apiService.createGame(isPrivate: true),
+        () => apiService.createGame(),
         throwsA(isA<Exception>().having(
           (e) => e.toString(),
           'message',
@@ -160,7 +160,7 @@ void main() {
 
       // ACT & ASSERT
       expect(
-        () => apiService.createGame(isPrivate: true),
+        () => apiService.createGame(),
         throwsA(isA<Exception>().having(
           (e) => e.toString(),
           'message',

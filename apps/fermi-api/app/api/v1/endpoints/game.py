@@ -14,7 +14,6 @@ from app.schemas.endpoints import (
     GameAnswerRequest,
     GameConfigResponse,
     GameCreateRequest,
-    GameJoinRandomRequest,
     GameRemovePlayerRequest,
     GetPlayerStatsRequest,
     GetPlayerStatsResponse,
@@ -88,25 +87,6 @@ async def end_game(
 ) -> IdModel:
     """End a game. Only the host can end the game."""
     return await game_service.end_game(
-        payload=payload,
-        background_tasks=background_tasks,
-        current_user=current_user,
-        firestore_client=firestore_client,
-    )
-
-
-@router.post('/join_random', response_model=IdModel)
-async def join_random_game(
-    request: Request,
-    payload: GameJoinRandomRequest,
-    background_tasks: BackgroundTasks,
-    current_user: Annotated[User, Depends(get_current_user)],
-    firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
-    game_service: Annotated[GameService, Depends(get_game_service)],
-) -> IdModel:
-    """Join a random game."""
-    return await game_service.join_or_create_game(
-        request=request,
         payload=payload,
         background_tasks=background_tasks,
         current_user=current_user,
