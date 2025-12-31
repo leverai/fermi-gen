@@ -27,6 +27,9 @@ class QuestionState {
   final bool isRevealed;
   final Duration? duration;
 
+  /// JSON string of SerpAPI AI response for answer walkthrough (may be empty)
+  final String? paragraph;
+
   QuestionState({
     this.questionUid,
     this.questionText = '',
@@ -48,6 +51,7 @@ class QuestionState {
     this.players = const [],
     this.isRevealed = false,
     this.duration,
+    this.paragraph,
   });
 
   QuestionState copyWith({
@@ -71,6 +75,7 @@ class QuestionState {
     List<PlayerState>? players,
     bool? isRevealed,
     Duration? duration,
+    String? paragraph,
   }) {
     return QuestionState(
       questionUid: questionUid ?? this.questionUid,
@@ -93,6 +98,7 @@ class QuestionState {
       players: players ?? this.players,
       isRevealed: isRevealed ?? this.isRevealed,
       duration: duration ?? this.duration,
+      paragraph: paragraph ?? this.paragraph,
     );
   }
 }

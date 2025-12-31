@@ -115,6 +115,8 @@ class GameCard extends StatelessWidget {
     this.otherPlayersScores,
     this.currentPlayerAvatarUrl,
     this.currentPlayerId,
+    // Answer walkthrough
+    this.paragraph,
   });
 
   final String questionText;
@@ -163,6 +165,9 @@ class GameCard extends StatelessWidget {
   final Map<String, double>? otherPlayersScores;
   final String? currentPlayerAvatarUrl;
   final String? currentPlayerId;
+
+  /// JSON string of SerpAPI AI response for answer walkthrough
+  final String? paragraph;
 
   Widget _buildMainButton(BuildContext context) {
     if (paneState == null) {
@@ -311,6 +316,7 @@ class GameCard extends StatelessWidget {
               otherPlayersScores: otherPlayersScores,
               currentPlayerAvatarUrl: currentPlayerAvatarUrl,
               currentPlayerId: currentPlayerId,
+              paragraph: paragraph,
             ),
 
             // Feedback row (right-aligned like widget)

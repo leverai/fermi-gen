@@ -403,8 +403,11 @@ class FirestoreGameRealtime implements GameRealtime {
     // Backend now treats unitless as null; use empty string for UI
     final String unit = (data['unit'] as String?) ?? '';
     final AnswerValue parsedAnswer = _parseBackendAnswer(rawNumber, unit);
+    // Extract paragraph (SerpAPI AI response JSON) for answer walkthrough
+    final String? paragraph = data['paragraph'] as String?;
     return RevealPayload(
       correct: parsedAnswer,
+      paragraph: paragraph,
     );
   }
 

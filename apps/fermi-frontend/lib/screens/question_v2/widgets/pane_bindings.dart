@@ -22,7 +22,7 @@ class QuestionPaneBindings {
   });
 
   void listen({
-    required void Function(AnswerValue correct) onReveal,
+    required void Function(AnswerValue correct, String? paragraph) onReveal,
     required void Function(PlayersAnswersSnapshot snapshot) onPlayersAnswers,
     void Function(RevealedQuestion q)? onQuestion,
     void Function(Object error, StackTrace st)? onError,
@@ -37,7 +37,7 @@ class QuestionPaneBindings {
     _revealSub =
         realtime.revealsForQuestion(gameId, index).listen((RevealPayload p) {
       qlog('[bindings] reveal onData index=$index');
-      onReveal(p.correct);
+      onReveal(p.correct, p.paragraph);
     }, onError: (Object e, StackTrace st) {
       qlog('[bindings] reveal onError index=$index e=$e');
       if (onError != null) onError(e, st);

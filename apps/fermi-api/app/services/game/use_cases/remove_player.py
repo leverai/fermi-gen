@@ -24,6 +24,7 @@ if TYPE_CHECKING:
         GamePlayersAnswersWriter,
     )
     from app.services.game.writers.players_writer import GamePlayersWriter
+    from app.services.game.writers.questions_writer import GameQuestionsWriter
 
 
 class RemovePlayerResult(TypedDict):
@@ -45,6 +46,7 @@ class RemovePlayerUseCase:
         lifecycle: 'GameLifecycleWriter',
         players: 'GamePlayersWriter',
         players_answers: 'GamePlayersAnswersWriter',
+        questions: 'GameQuestionsWriter',
     ) -> None:
         """Initialize the use case with required collaborators."""
         self._client = firestore_client
@@ -53,6 +55,7 @@ class RemovePlayerUseCase:
         self._lifecycle = lifecycle
         self._players = players
         self._players_answers = players_answers
+        self._questions = questions
 
     async def execute(
         self,
@@ -161,6 +164,12 @@ class RemovePlayerUseCase:
                             writer=tx,
                             question_uid=cast(str, data['question_uid']),
                             players_results_doc=players_results_doc,
+                        )
+                        # Also reveal the answer document to enable answer walkthrough
+                        self._questions.reveal_answer(
+                            game_ref=game_ref,
+                            writer=tx,
+                            question_uid=cast(str, data['question_uid']),
                         )
 
             return RemovePlayerResult(
