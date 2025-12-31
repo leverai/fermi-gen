@@ -6,6 +6,7 @@ from typing import Any, Literal, Self
 from pint import UnitRegistry
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
     computed_field,
     field_validator,
@@ -69,10 +70,10 @@ class GoogleAIModeResult(BaseModel):
     without the need for page token fallback requests.
     """
 
+    model_config = ConfigDict(extra='ignore')  # Ignore extra fields from SerpAPI
+
     text_blocks: list[dict[str, Any]] = []
     references: list[dict[str, Any]] = []
-
-    model_config = {'extra': 'allow'}  # Allow extra fields from SerpAPI
 
     @computed_field
     @property
