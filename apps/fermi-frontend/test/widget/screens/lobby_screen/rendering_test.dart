@@ -59,8 +59,6 @@ void main() {
       await pumpLobbyScreen(
         tester,
         players: players,
-        isWaiting: true,
-        isPrivate: false,
         currentPlayerId: 'player_1',
       );
       // Use pump() instead of pumpAndSettle() to avoid infinite animation timeout
@@ -150,7 +148,6 @@ void main() {
       await pumpLobbyScreen(
         tester,
         players: players,
-        isPrivate: true,
         joinUrl: 'https://example.com/join/abc',
         onShare: () {},
         currentPlayerId: 'player_1',

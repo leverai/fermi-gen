@@ -59,7 +59,6 @@ void main() {
       await pumpLobbyScreen(
         tester,
         players: players,
-        isPrivate: true,
         joinUrl: 'https://example.com/join/abc',
         onShare: () {
           shareCalled = true;
@@ -92,7 +91,6 @@ void main() {
       await pumpLobbyScreen(
         tester,
         players: players,
-        isPrivate: true,
         joinUrl: 'https://example.com/join/abc',
         onShare: null, // No share handler
         currentPlayerId: 'player_1',

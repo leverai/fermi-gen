@@ -6,7 +6,6 @@ import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/player_stats.dart';
 import 'package:fermi_frontend/utils/env.dart';
 import 'package:fermi_frontend/utils/om_constants.dart';
-import 'package:flutter/foundation.dart';
 
 class ApiService {
   final String _apiBaseUrl;
@@ -144,7 +143,6 @@ class ApiService {
   }
 
   Future<String> createGame({
-    required bool isPrivate,
     String? category,
     String? difficulty,
     int? nQuestions,
@@ -156,7 +154,6 @@ class ApiService {
           'category': category,
           'difficulty': difficulty,
         },
-        'is_private': isPrivate,
       };
 
       final response = await _authPost('/game/create', body);
@@ -167,40 +164,6 @@ class ApiService {
       }
       final error = jsonDecode(response.body)['detail'];
       throw Exception('Failed to create game: $error');
-    } on http.ClientException catch (_) {
-      throw Exception('Network error: Please check your connection.');
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  Future<String> joinRandomGame({
-    String? category,
-    String? difficulty,
-    int? nQuestions,
-  }) async {
-    try {
-      final body = {
-        'resource_id': null,
-        'question_round_settings': {
-          if (nQuestions != null) 'n_questions': nQuestions,
-          'category': category,
-          'difficulty': difficulty,
-        },
-      };
-
-      debugPrint(
-          '🔍 joinRandomGame: Sending request body: ${jsonEncode(body)}');
-      final response = await _authPost('/game/join_random', body);
-      debugPrint('🔍 joinRandomGame: Response status: ${response.statusCode}');
-      debugPrint('🔍 joinRandomGame: Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        return (data['resource_id'] as String);
-      }
-      final error = jsonDecode(response.body)['detail'];
-      throw Exception('Failed to join random game: $error');
     } on http.ClientException catch (_) {
       throw Exception('Network error: Please check your connection.');
     } catch (e) {

@@ -59,9 +59,7 @@ class FirestoreGameRealtime implements GameRealtime {
           isHost: false,
           questionNumber: 0,
           nQuestions: 0,
-          durationSeconds: 0,
           players: <String, PlayerSummary>{},
-          isPrivate: false,
           progressAnswered: <String, bool>{},
           allAnswered: false,
         );
@@ -124,10 +122,6 @@ class FirestoreGameRealtime implements GameRealtime {
         }
       }
 
-      // Read per-question duration (seconds) from authoritative game doc field
-      int durationSeconds = (data['question_duration_s'] as num?)?.toInt() ?? 0;
-
-      final bool isPrivate = (data['private'] as bool?) ?? false;
       final String? joinUrl = data['join_url'] as String?;
 
       // Progress answered map
@@ -160,9 +154,7 @@ class FirestoreGameRealtime implements GameRealtime {
         isHost: isHost,
         questionNumber: questionNumber,
         nQuestions: nQuestions,
-        durationSeconds: durationSeconds,
         players: players,
-        isPrivate: isPrivate,
         joinUrl: joinUrl,
         progressAnswered: answered,
         allAnswered: allAnswered,

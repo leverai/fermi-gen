@@ -85,7 +85,6 @@ void main() {
         isHost: false,
         questionNumber: 1,
         nQuestions: testQuestionCount,
-        durationSeconds: 15,
         players: {
           currentPlayerId: PlayerSummary(
             playerId: currentPlayerId,
@@ -102,7 +101,6 @@ void main() {
             isActive: true,
           ),
         },
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 

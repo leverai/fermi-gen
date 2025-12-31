@@ -123,11 +123,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   Future<void> _onPrimaryAction() async {
     try {
-      if (_controller.isLocked) {
-        await _createGame();
-      } else {
-        await _joinRandomGame();
-      }
+      await _createGame();
     } catch (_) {
       // errors surfaced elsewhere
     }
@@ -184,48 +180,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _joinRandomGame() async {
-    try {
-      final String gameId = await _controller.joinRandomGame(
-          nQuestions: AppConfig.defaultQuestionCount);
-      if (!mounted) return;
-      Navigator.of(context)
-          .push(
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => LobbyScreenController(
-            gameId: gameId,
-            realtime: _controller.buildRealtimeAdapter(),
-            api: widget.apiService,
-          ),
-          transitionDuration: const Duration(milliseconds: 300),
-          reverseTransitionDuration: const Duration(milliseconds: 300),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1.0, 0.0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeInOut,
-              )),
-              child: child,
-            );
-          },
-        ),
-      )
-          .then((_) {
-        // Refresh stats when returning from Party game
-        if (mounted) {
-          _controller.refreshInBackground();
-          context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
-        }
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
-    }
-  }
 
   // --------------------------------------------------------------------------
   // Settings Handlers

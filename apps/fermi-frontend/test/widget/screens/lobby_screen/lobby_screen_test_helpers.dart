@@ -32,11 +32,9 @@ List<PlayerState> createPlayerStatesFromSnapshot(GameSnapshot snapshot) {
 Future<void> pumpLobbyScreen(
   WidgetTester tester, {
   required List<PlayerState> players,
-  bool isWaiting = false,
   VoidCallback? onStart,
   bool startEnabled = true,
   VoidCallback? onShare,
-  bool isPrivate = false,
   String? joinUrl,
   VoidCallback? onLeave,
   String? currentPlayerId,
@@ -45,11 +43,9 @@ Future<void> pumpLobbyScreen(
     tester,
     LobbyScreen(
       players: players,
-      isWaiting: isWaiting,
       onStart: onStart ?? () {},
       startEnabled: startEnabled,
       onShare: onShare,
-      isPrivate: isPrivate,
       joinUrl: joinUrl,
       onLeave: onLeave,
       currentPlayerId: currentPlayerId,

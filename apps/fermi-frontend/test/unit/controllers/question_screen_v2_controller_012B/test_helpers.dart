@@ -25,7 +25,6 @@ MockGameRealtime createMockRealtime() {
         isHost: false,
         questionNumber: 1,
         nQuestions: testQuestionCount,
-        durationSeconds: 15,
         players: {
           testPlayerId: PlayerSummary(
             playerId: testPlayerId,
@@ -37,7 +36,6 @@ MockGameRealtime createMockRealtime() {
             rank: 1,
           ),
         },
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ),
     ),

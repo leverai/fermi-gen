@@ -39,9 +39,7 @@ void main() {
         isHost: true, // User is host
         questionNumber: 1,
         nQuestions: testQuestionCount,
-        durationSeconds: 15,
         players: {},
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 
@@ -70,9 +68,7 @@ void main() {
         isHost: false, // User is NOT host
         questionNumber: 1,
         nQuestions: testQuestionCount,
-        durationSeconds: 15,
         players: {},
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 
@@ -101,9 +97,7 @@ void main() {
         isHost: true,
         questionNumber: testQuestionCount,
         nQuestions: testQuestionCount,
-        durationSeconds: 0,
         players: {},
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 
@@ -140,9 +134,7 @@ void main() {
         isHost: true,
         questionNumber: 1,
         nQuestions: testQuestionCount,
-        durationSeconds: 15,
         players: {},
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 

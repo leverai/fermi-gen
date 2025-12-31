@@ -1,17 +1,15 @@
 """Game service."""
 
 import uuid
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, Optional
 
 from fastapi import BackgroundTasks, HTTPException, Request, status
-from google.cloud import firestore
 
 from app.core.config import settings
 from app.schemas.endpoints import (
     GameAnswerRequest,
     GameConfigResponse,
     GameCreateRequest,
-    GameJoinRandomRequest,
     GameRemovePlayerRequest,
     GetPlayerStatsRequest,
     GetPlayerStatsResponse,
@@ -27,10 +25,6 @@ from app.services.game.tasks.fetch_and_set_questions import fetch_and_set_questi
 from app.services.game.transactions.runner import TransactionRunner
 from app.services.game.use_cases.end_game import EndGameUseCase
 from app.services.game.use_cases.join_game import JoinGameUseCase
-from app.services.game.use_cases.join_or_create_game import (
-    JoinOrCreateGameUseCase,
-    PostCommitData,
-)
 from app.services.game.use_cases.next_question import NextQuestionUseCase
 from app.services.game.use_cases.remove_player import RemovePlayerUseCase
 from app.services.game.use_cases.start_game import StartGameUseCase
@@ -107,7 +101,6 @@ class GameService:
             join_url = f'{base}/api/v1/game/invite/{game_ref.id}'
         misc = {
             'join_url': join_url,
-            'private': payload.is_private,
             'version_uid': version_uid,
         }
         batch.update(game_ref, misc)
@@ -170,78 +163,6 @@ class GameService:
         )
 
         return IdModel(resource_id=payload.resource_id)
-
-    async def join_or_create_game(
-        self,
-        request: Request,
-        payload: GameJoinRandomRequest,
-        background_tasks: BackgroundTasks,
-        current_user: 'User',
-        firestore_client: 'AsyncClient',
-    ) -> IdModel:
-        """Join a matching public game or create a new one if none exists."""
-        games_ref = firestore_client.collection('games')
-
-        use_case = JoinOrCreateGameUseCase(
-            firestore_client=firestore_client,
-            repo=GameRepository(firestore_client),
-            join_use_case=JoinGameUseCase(
-                firestore_client=firestore_client,
-                txn_runner=TransactionRunner(firestore_client),
-                repo=GameRepository(firestore_client),
-                lifecycle=self._lifecycle_writer,
-                players=self._players_writer,
-                questions=self._questions_writer,
-            ),
-        )
-
-        @firestore.async_transactional
-        async def _txn(
-            transaction: 'AsyncTransaction',
-        ) -> tuple[str | None, PostCommitData | None]:
-            result = await use_case.execute_in_transaction(
-                tx=transaction,
-                payload=payload,
-                current_user=current_user,
-            )
-            return result['game_id'], result['post_commit']
-
-        transaction = firestore_client.transaction()
-        game_id, post = cast(
-            tuple[str | None, PostCommitData | None],
-            await _txn(transaction),
-        )
-
-        # 2. If no game was found, create a new one
-        if not game_id:
-            response = await self.create_game(
-                request=request,
-                payload=GameCreateRequest(
-                    question_round_settings=payload.question_round_settings,
-                    is_private=False,
-                ),
-                background_tasks=background_tasks,
-                current_user=current_user,
-                firestore_client=firestore_client,
-            )
-            game_id = response.resource_id
-        else:
-            # Schedule post-commit re-fetch for the joined game
-            game_ref = games_ref.document(game_id)
-            assert post is not None
-            background_tasks.add_task(
-                fetch_and_set_questions,
-                lifecycle=self._lifecycle_writer,
-                players_answers=self._players_results_writer,
-                questions=self._questions_writer,
-                game_ref=game_ref,
-                batch=firestore_client.batch(),
-                user_ids=post['players_uids'],
-                question_round_settings=post['question_round_settings'],
-                version_uid=post['version_uid'],
-            )
-
-        return IdModel(resource_id=game_id)
 
     async def start_game(
         self,

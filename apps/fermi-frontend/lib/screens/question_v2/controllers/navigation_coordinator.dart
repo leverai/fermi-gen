@@ -32,10 +32,8 @@ class NavigationCoordinator {
     required GameTimerManager timerManager,
     required AnswerController answerController,
     required bool isReviewMode,
-    required Duration perQuestionDuration,
     required VoidCallback onUpdate,
   }) {
-    final oldIndex = _currentIndex;
 
     // Clear any ongoing animation state BEFORE changing index
     // This prevents animation callbacks from updating stale question indices
@@ -78,23 +76,6 @@ class NavigationCoordinator {
         // Silently fail in unit tests or when widget tree is not available
         // The carousel animation is a UI concern, not critical for business logic
       });
-    }
-
-    // Stop deadline timer for old question
-    if (oldIndex != newIndex) {
-      timerManager.resetDeadlineTimer();
-      // Cancel auto-next timer when moving to next question
-      timerManager.cancelAutoNextTimer();
-    }
-
-    // Start deadline timer for new question
-    if (!isReviewMode) {
-      final state = stateManager.getQuestionState(newIndex);
-      if (state != null &&
-          !state.isRevealed &&
-          perQuestionDuration.inMilliseconds > 0) {
-        timerManager.startDeadlineTimer(perQuestionDuration);
-      }
     }
 
     onUpdate();

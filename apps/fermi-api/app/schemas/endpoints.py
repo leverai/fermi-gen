@@ -44,7 +44,6 @@ class GameCreateRequest(BaseModel):
     """Request model for creating a new game."""
 
     question_round_settings: QuestionRoundSettings
-    is_private: bool
 
 
 class IdModel(BaseModel):
@@ -68,13 +67,6 @@ class VoteVerdictResponse(BaseModel):
 
     resource_id: str
     verdict: int
-
-
-class GameJoinRandomRequest(BaseModel):
-    """Request model for joining a random game."""
-
-    resource_id: str | None = None
-    question_round_settings: QuestionRoundSettings
 
 
 class GameAnswerRequest(IdModel):

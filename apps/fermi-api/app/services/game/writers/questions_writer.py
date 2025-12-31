@@ -70,7 +70,6 @@ class GameQuestionsWriter:
         writer: 'Writeable',
         question_uid: str,
         question_order: int,
-        timeout_seconds: int | None,
     ) -> None:
         """Reveal the question and update game doc."""
         writer.update(
@@ -83,7 +82,6 @@ class GameQuestionsWriter:
             {
                 'question_uid': question_uid,
                 'question_order': question_order,
-                'question_duration_s': timeout_seconds,
             },
         )
 

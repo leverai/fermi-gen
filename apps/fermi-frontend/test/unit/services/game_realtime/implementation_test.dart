@@ -63,8 +63,6 @@ void main() {
       expect(snapshot.isHost, true);
       expect(snapshot.questionNumber, 1);
       expect(snapshot.nQuestions, 5);
-      expect(snapshot.durationSeconds, 15);
-      expect(snapshot.isPrivate, false);
       expect(snapshot.players, hasLength(1));
       expect(snapshot.players[currentPlayerId]?.name, 'Player 1');
       expect(snapshot.players[currentPlayerId]?.score, 10.0);
@@ -225,10 +223,9 @@ void main() {
 
       // ACT
       final stream = realtime.watchGame(gameId);
-      final snapshot = await stream.first;
+      await stream.first;
 
       // ASSERT
-      expect(snapshot.durationSeconds, 30);
     });
 
     test('should extract progress answered map', () async {

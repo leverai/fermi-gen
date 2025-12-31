@@ -93,13 +93,6 @@ The entire state of a game is stored in a Firestore `games` collection document.
 - `GAME_FINISHED` (8): Officially ended
 - `GAME_ABORTED` (9): Aborted (all players left)
 
-**Question Durations:**
-- Easy: 10 seconds
-- Medium: 20 seconds
-- Hard: 40 seconds
-
-Frontend must auto-submit answers when the deadline expires.
-
 For complete schema details, see **[Architecture Documentation](docs/ARCHITECTURE.md#real-time-game-state)**.
 
 ## API Endpoints
@@ -210,8 +203,7 @@ Creates a new private game. The user who creates the game becomes the host.
         "n_questions": 6,
         "category": "PLANET_EARTH", // RequestCategory value; use None for all categories
         "difficulty": "MEDIUM"       // or null
-      },
-      "is_private": true
+      }
     }
     ```
 -   **Response (200 OK):** `IdModel`
@@ -223,31 +215,6 @@ Creates a new private game. The user who creates the game becomes the host.
 -   **Side Effects:**
     -   A new game document is created in Firestore.
     -   A background task is started to fetch questions for the game. The `state` field will be updated to `LOBBY_NOT_READY` initially, and then to `LOBBY_READY` when the questions are fetched.
-
-#### `POST /game/join_random`
-Joins a random public game that matches the specified settings, or creates a new one if no suitable game is found.
-
--   **Request Body:** `GameJoinRandomRequest`
-    ```json
-    {
-      "resource_id": str | None = None
-      "question_round_settings": {
-        "n_questions": 6,
-        "category": <category or null>,
-        "difficulty": null
-      }
-    }
-    ```
--   **Response (200 OK):** `IdModel`
-    ```json
-    {
-      "resource_id": "string"
-    }
-    ```
--   **Side Effects:**
-    -   If a game is joined, the new player is added to the `players` map in the game document. The `state` is set to `LOBBY_NOT_READY`.
-    -   A background task is started to (re)fetch questions. The `state` will be updated to `LOBBY_READY` when done.
-    -   If a new game is created, the behavior is the same as `/game/create` with `is_private: false`.
 
 #### `POST /game/join`
 Joins a specific game by its ID.

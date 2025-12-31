@@ -41,7 +41,6 @@ class OnboardingRealtime implements GameRealtime {
         isHost: true,
         questionNumber: 1,
         nQuestions: 1,
-        durationSeconds: 0, // No timer in onboarding
         players: {
           'me': PlayerSummary(
             playerId: 'me',
@@ -53,7 +52,6 @@ class OnboardingRealtime implements GameRealtime {
             rank: 1,
           ),
         },
-        isPrivate: false,
         currentQuestionUid: questionUid,
         questionUids: [questionUid],
       ));

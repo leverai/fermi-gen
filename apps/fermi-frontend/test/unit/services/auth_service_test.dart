@@ -436,7 +436,6 @@ void main() {
       const settings = LastRoundSettings(
         category: 'PLANET_EARTH',
         difficulty: 'MEDIUM',
-        isPrivate: true,
       );
 
       // Act
@@ -446,7 +445,6 @@ void main() {
       expect(authService.lastRoundSettings, isNotNull);
       expect(authService.lastRoundSettings?.category, 'PLANET_EARTH');
       expect(authService.lastRoundSettings?.difficulty, 'MEDIUM');
-      expect(authService.lastRoundSettings?.isPrivate, true);
     });
 
     test('should clear last round settings', () {
@@ -454,7 +452,6 @@ void main() {
       const settings = LastRoundSettings(
         category: 'PLANET_EARTH',
         difficulty: 'MEDIUM',
-        isPrivate: true,
       );
       authService.lastRoundSettings = settings;
 

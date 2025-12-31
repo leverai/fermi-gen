@@ -5,11 +5,9 @@ import 'package:fermi_frontend/widgets/question_deadline_progress_tracker.dart';
 /// Manages game timers including auto-next, review mode activation, and deadline tracking.
 class GameTimerManager {
   GameTimerManager({
-    required this.onDeadlineExpired,
     required this.notifyListeners,
   });
 
-  final VoidCallback onDeadlineExpired;
   final VoidCallback notifyListeners;
 
   // Auto-next timer state
@@ -29,8 +27,7 @@ class GameTimerManager {
       _deadlineProgressTracker;
 
   void init() {
-    _deadlineProgressTracker = QuestionDeadlineProgressTracker();
-    _deadlineProgressTracker?.setOnExpired(onDeadlineExpired);
+    // Deadline tracker not used for private games (no deadlines)
   }
 
   void dispose() {
@@ -91,7 +88,7 @@ class GameTimerManager {
   // --- Deadline Timer Logic ---
 
   void startDeadlineTimer(Duration duration) {
-    _deadlineProgressTracker?.start(duration, onExpired: onDeadlineExpired);
+    // Not used for private games (no deadlines)
   }
 
   void stopDeadlineTimer() {

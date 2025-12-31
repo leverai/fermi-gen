@@ -5,13 +5,12 @@ import '../../helpers/test_helpers.dart';
 
 void main() {
   group('PrimaryCta - Label Display', () {
-    testWidgets('should display "Create" label when isLocked is true',
+    testWidgets('should display "Create" label',
         (WidgetTester tester) async {
       // ARRANGE
       const widget = PrimaryCta(
         isLoading: false,
         onPressed: null,
-        isLocked: true,
       );
 
       // ACT
@@ -26,34 +25,12 @@ void main() {
       expect(mainButton.label, MainButtonLabel.create);
     });
 
-    testWidgets('should display "Join" label when isLocked is false',
-        (WidgetTester tester) async {
-      // ARRANGE
-      const widget = PrimaryCta(
-        isLoading: false,
-        onPressed: null,
-        isLocked: false,
-      );
-
-      // ACT
-      await pumpWithMaterialApp(tester, widget);
-      await tester.pumpAndSettle();
-
-      // ASSERT
-      expect(find.byType(MainButton), findsOneWidget);
-      final mainButton = tester.widget<MainButton>(
-        find.byType(MainButton),
-      );
-      expect(mainButton.label, MainButtonLabel.join);
-    });
-
     testWidgets('should pass isLoading state to MainButton',
         (WidgetTester tester) async {
       // ARRANGE
       final widget = PrimaryCta(
         isLoading: true,
         onPressed: () {},
-        isLocked: false,
       );
 
       // ACT
@@ -75,7 +52,6 @@ void main() {
       final widget = PrimaryCta(
         isLoading: false,
         onPressed: () {},
-        isLocked: false,
       );
 
       // ACT

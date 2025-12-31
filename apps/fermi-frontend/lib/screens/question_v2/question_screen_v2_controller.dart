@@ -40,7 +40,6 @@ class QuestionScreenV2Controller extends ChangeNotifier {
     _confettiManager = ConfettiManager();
     _submissionHandler = AnswerSubmissionHandler();
     _timerManager = GameTimerManager(
-      onDeadlineExpired: _handleDeadlineExpired,
       notifyListeners: notifyListeners,
     );
   }
@@ -60,9 +59,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
 
   // Minimal state (orchestration only)
   bool _isHost = false;
-  bool _isPrivate = false;
   bool _isReviewMode = false;
-  Duration _perQuestionDuration = const Duration(seconds: 15);
   String? _errorMessage;
   String _currentLocale = 'US';
   GameState? _previousGameState;
@@ -86,7 +83,6 @@ class QuestionScreenV2Controller extends ChangeNotifier {
   int get currentIndex => _navigationCoordinator.currentIndex;
   bool get isHost => _isHost;
   bool get isReviewMode => _isReviewMode;
-  Duration get perQuestionDuration => _perQuestionDuration;
   String? get errorMessage => _errorMessage;
   AnswerController get answerController => _answerController;
   UnitTapeController get unitTapeController => _unitTapeController;
@@ -114,9 +110,8 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       _playerManager.playerControllers;
   ValueNotifier<Map<String, String>> get unitOptionsNotifier =>
       _unitOptionsNotifier;
-  double get autoNextProgress => _timerManager.autoNextProgress;
-  QuestionDeadlineProgressTracker? get deadlineProgressTracker =>
-      _timerManager.deadlineProgressTracker;
+  double get autoNextProgress => 0.0; // Always 0 for private games
+  QuestionDeadlineProgressTracker? get deadlineProgressTracker => null; // No deadline for private games
   int? get confettiRank => _confettiManager.confettiRank;
   Map<String, Rank>? get finalRanks => _confettiManager.finalRanks;
 
@@ -155,35 +150,11 @@ class QuestionScreenV2Controller extends ChangeNotifier {
     _startGameWatch();
   }
 
-  /// Handle deadline expiration - auto-submit current answer
-  void _handleDeadlineExpired() {
-    _submissionHandler.handleDeadlineExpired(
-      currentIndex: currentIndex,
-      stateManager: _stateManager,
-      realtime: realtime,
-      gameId: gameId,
-      isReviewMode: _isReviewMode,
-      onError: (msg) {
-        _errorMessage = msg;
-        notifyListeners();
-      },
-      onSuccess: () {
-        _errorMessage = null;
-        notifyListeners();
-      },
-    );
-  }
-
   void _startGameWatch() {
     _gameSub?.cancel();
     _gameSub = realtime.watchGame(gameId).listen(
       (snapshot) {
         _isHost = snapshot.isHost;
-        _isPrivate = snapshot.isPrivate;
-        _perQuestionDuration = _isPrivate
-            ? Duration.zero
-            : Duration(
-                seconds: snapshot.durationSeconds.clamp(0, 24 * 60 * 60));
 
         // Clear transient score chips when transitioning from finished to answering phase
         final bool isTransitionToAnswering = _isTransitionToAnsweringPhase(
@@ -343,13 +314,6 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       }
     }
 
-    // Start deadline timer if this is the current question
-    if (index == currentIndex &&
-        !_isReviewMode &&
-        _perQuestionDuration.inMilliseconds > 0) {
-      _timerManager.startDeadlineTimer(_perQuestionDuration);
-    }
-
     _safeNotifyListeners();
   }
 
@@ -361,7 +325,6 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       timerManager: _timerManager,
       answerController: _answerController,
       isReviewMode: _isReviewMode,
-      perQuestionDuration: _perQuestionDuration,
       onUpdate: notifyListeners,
     );
   }
@@ -382,11 +345,6 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       ),
     );
 
-    // Stop deadline timer when revealed
-    if (index == currentIndex) {
-      _timerManager.stopDeadlineTimer();
-    }
-
     // If this is the current question and it wasn't already revealed, reveal the answer widget
     // Note: _handlePlayersAnswers might have already triggered the reveal, so we check wasRevealed
     // Allow animation even if review mode activates simultaneously (for last question)
@@ -397,11 +355,6 @@ class QuestionScreenV2Controller extends ChangeNotifier {
     } else {
       AppLogger.debug(
           '_handleReveal: NOT triggering animation (index=$index, currentIndex=$currentIndex, wasRevealed=$wasRevealed)');
-    }
-
-    // Start auto-next timer if not last question and not in review mode
-    if (index == currentIndex && !_isReviewMode && index < questionCount - 1) {
-      _startAutoNextTimer();
     }
 
     // Animation callback will notify listeners when animation completes
@@ -422,28 +375,6 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       myPlayerId: realtime.currentPlayerId,
       onAnimationComplete: () {
         _safeNotifyListeners();
-      },
-    );
-  }
-
-  void _startAutoNextTimer() {
-    _timerManager.startAutoNextTimer(
-      onComplete: () {
-        // Auto-trigger next if host
-        if (_isHost) {
-          requestNext();
-        }
-      },
-      shouldContinue: () {
-        // Check if timer should still be running
-        if (_isReviewMode || _isPrivate) return false;
-        if (currentIndex >= questionCount - 1) return false;
-
-        // Verify question is still revealed
-        final currentState = _stateManager.getQuestionState(currentIndex);
-        if (currentState == null || !currentState.isRevealed) return false;
-
-        return true;
       },
     );
   }
@@ -569,14 +500,6 @@ class QuestionScreenV2Controller extends ChangeNotifier {
     } else {
       AppLogger.debug(
           '_handlePlayersAnswers: NOT triggering animation (index=$index, currentIndex=$currentIndex, wasRevealed=$wasRevealed, correctAnswer=$correctAnswer)');
-    }
-
-    // Start auto-next timer if this question was just revealed and it's the current question
-    if (!wasRevealed &&
-        index == currentIndex &&
-        !_isReviewMode &&
-        index < questionCount - 1) {
-      _startAutoNextTimer();
     }
 
     // Check confetti if this is the last question and we're in review mode

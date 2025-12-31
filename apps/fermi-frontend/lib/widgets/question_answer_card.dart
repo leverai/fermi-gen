@@ -502,7 +502,7 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                                 context,
                                 jsonString: widget.paragraph!,
                               );
-                              if (!success && mounted) {
+                              if (!success && context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(

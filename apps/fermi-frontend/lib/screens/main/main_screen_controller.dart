@@ -24,7 +24,6 @@ class MainScreenController extends ChangeNotifier {
   // UI state
   int? selectedCategoryIndex;
   String? selectedDifficulty;
-  bool isLocked = false;
   bool isLoading = true;
   bool isSubmitting = false;
   String? errorMessage;
@@ -76,7 +75,6 @@ class MainScreenController extends ChangeNotifier {
       // Restore last round settings if available
       final LastRoundSettings? lrs = auth.lastRoundSettings;
       if (lrs != null) {
-        isLocked = lrs.isPrivate;
         selectedDifficulty = lrs.difficulty;
         final categories = _configDto?.categories ?? const <CategoryInfo>[];
         final int idx = categories.indexWhere((c) => c.name == lrs.category);
@@ -110,7 +108,6 @@ class MainScreenController extends ChangeNotifier {
       // Restore last round settings if available
       final LastRoundSettings? lrs = auth.lastRoundSettings;
       if (lrs != null) {
-        isLocked = lrs.isPrivate;
         selectedDifficulty = lrs.difficulty;
         final categories = _configDto?.categories ?? const <CategoryInfo>[];
         final int idx = categories.indexWhere((c) => c.name == lrs.category);
@@ -165,11 +162,6 @@ class MainScreenController extends ChangeNotifier {
   }
 
   // Actions
-  void toggleLock() {
-    isLocked = !isLocked;
-    notifyListeners();
-  }
-
   void selectDifficulty(String? value) {
     selectedDifficulty = value;
     notifyListeners();
@@ -186,7 +178,6 @@ class MainScreenController extends ChangeNotifier {
     notifyListeners();
     try {
       final String gameId = await api.createGame(
-        isPrivate: isLocked,
         category: currentCategoryBackendName,
         difficulty: selectedDifficulty,
         nQuestions: nQuestions ?? 6,
@@ -195,44 +186,11 @@ class MainScreenController extends ChangeNotifier {
       auth.lastRoundSettings = LastRoundSettings(
         category: currentCategoryBackendName,
         difficulty: selectedDifficulty,
-        isPrivate: isLocked,
       );
       return gameId;
     } catch (e, st) {
       errorMessage = e.toString();
       print('❌ MainScreenController.createGame error: $e');
-      print(st);
-      rethrow;
-    } finally {
-      isSubmitting = false;
-      notifyListeners();
-    }
-  }
-
-  Future<String> joinRandomGame({int? nQuestions}) async {
-    isSubmitting = true;
-    errorMessage = null;
-    notifyListeners();
-    try {
-      debugPrint(
-          '🔍 MainScreenController.joinRandomGame: firebaseUid=${auth.firebaseUid}, category=$currentCategoryBackendName, difficulty=$selectedDifficulty, nQuestions=${nQuestions ?? 6}');
-      final String gameId = await api.joinRandomGame(
-        category: currentCategoryBackendName,
-        difficulty: selectedDifficulty,
-        nQuestions: nQuestions ?? 6,
-      );
-      debugPrint(
-          '🔍 MainScreenController.joinRandomGame: Received gameId=$gameId');
-      // Persist last round settings (public round)
-      auth.lastRoundSettings = LastRoundSettings(
-        category: currentCategoryBackendName,
-        difficulty: selectedDifficulty,
-        isPrivate: false,
-      );
-      return gameId;
-    } catch (e, st) {
-      errorMessage = e.toString();
-      print('❌ MainScreenController.joinRandomGame error: $e');
       print(st);
       rethrow;
     } finally {

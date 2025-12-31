@@ -14,7 +14,6 @@ class DemoGameRealtime implements GameRealtime {
       isHost: isHost,
       questionNumber: 1,
       nQuestions: 3,
-      durationSeconds: 10,
       players: const {
         'host': PlayerSummary(
           playerId: 'host',
@@ -44,7 +43,6 @@ class DemoGameRealtime implements GameRealtime {
           rank: 3,
         ),
       },
-      isPrivate: false,
     );
   }
 
@@ -156,9 +154,7 @@ class DemoGameRealtime implements GameRealtime {
       isHost: isHost,
       questionNumber: next,
       nQuestions: _latest.nQuestions,
-      durationSeconds: _latest.durationSeconds,
       players: _latest.players,
-      isPrivate: false,
     );
     _game.add(_latest);
   }

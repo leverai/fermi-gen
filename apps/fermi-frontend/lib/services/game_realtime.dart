@@ -70,9 +70,7 @@ class GameSnapshot {
   final bool isHost;
   final int questionNumber; // 1-based
   final int nQuestions;
-  final int durationSeconds; // for current question (0 if not applicable)
   final Map<String, PlayerSummary> players; // playerId -> summary
-  final bool isPrivate; // from game doc 'private'
   final String? joinUrl; // from game doc 'join_url'
   final Map<String, bool> progressAnswered; // current question answered map
   final bool allAnswered;
@@ -85,9 +83,7 @@ class GameSnapshot {
     required this.isHost,
     required this.questionNumber,
     required this.nQuestions,
-    required this.durationSeconds,
     required this.players,
-    required this.isPrivate,
     this.joinUrl,
     this.progressAnswered = const <String, bool>{},
     this.allAnswered = false,

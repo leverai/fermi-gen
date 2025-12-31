@@ -205,7 +205,6 @@ The structure of a game document is defined by the `GameDoc` schema (`apps/fermi
 - `question_uids` (array of strings): An ordered list of the UIDs for the questions in the game.
 - `question_uid` (string): The UID of the current question.
 - `question_number` (number): The number of the current question (1-indexed).
-- `question_duration_s` (timestamp, optional): The duration of the current question.
 - `host` (string): The `firebase_uid` of the host player.
 - `players` (map): A map where keys are `firebase_uid`s and values are `GamePlayer` objects.
   - `GamePlayer` Schema:
@@ -222,7 +221,6 @@ The structure of a game document is defined by the `GameDoc` schema (`apps/fermi
     - `answered` (map): A map where keys are `firebase_uid`s and values are booleans indicating if the player has answered.
     - `all_answered` (boolean): Whether all active players have answered the current question.
 - `join_url` (string): The URL to join the game.
-- `private` (boolean): Whether the game is private.
 - `version_uid` (string): A UID for the current set of questions to prevent race conditions.
 
 ### Subcollections
@@ -282,16 +280,6 @@ The `state` field in the game document drives the game's flow. The frontend shou
 - `GAME_FINISHED` (8): The game has been officially ended by the host. The final scores are displayed, and the game results are being archived.
 - `GAME_ABORTED` (9): The game was aborted, for example, because all players left.
 
-### Question Durations
-
-Each question has a duration by which players must submit their answers. The duration is determined on the backend side by the question's difficulty:
-
-- **Easy:** 10 seconds
-- **Medium:** 20 seconds
-- **Hard:** 40 seconds
-
-The frontend should enforce this deadline. When the `question_duration_s` field is set in the game document, the frontend should start a timer of that duration in seconds. If the player has not submitted their answer when the timer expires, the frontend must automatically submit the answer currently in the input field via the `/game/answer` endpoint. The backend will not detect late submissions, so it's the frontend's responsibility to submit a question before the deadline.
-
 ---
 
 ## Game Flow
@@ -312,11 +300,9 @@ Under the hood, the game state is managed in a Firestore `games` collection whic
 
 This section describes the typical game flow logic:
 
-**0. Player creates/joins a game**
+**0. Player creates a game**
 
-In the main screen the player configures the game's category, difficulty, and privacy, then create/join a game of those settings.
-- If private, the game is created and not joined, and the player becomes host.
-- If no active game matches the configured settings, a new one is created and the player becomes host.
+In the main screen the player configures the game's category and difficulty, then creates a private game. The player becomes the host.
 
 **1. Host starts a game**
 
@@ -339,7 +325,6 @@ Game starts and the first question gets revealed. Game becomes in `QUESTION_N` (
 **6. Player answers the question**
 
 Now, the host submits their answer to the question. Logic checks if all active players have answered the question (False in this case), state becomes `QUESTION_N_FINISHED`.
-- Each question has a deadline. If the deadline is reached, players' current answers should be submitted as they are by the frontend. Any late submissions will raise an error and break the game's flow.
 
 **7. All players' answers are submitted**
 

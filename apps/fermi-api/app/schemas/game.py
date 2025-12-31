@@ -70,7 +70,6 @@ class GameDocQuestions(TypedDict):
     question_uids: list[str]
     question_uid: str
     question_number: int
-    question_duration_s: NotRequired[float | None]
 
 
 class GameDocPlayers(TypedDict):
@@ -96,7 +95,6 @@ class GameDoc(
     """Game document."""
 
     join_url: str
-    private: bool
     version_uid: str
 
 

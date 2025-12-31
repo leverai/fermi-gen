@@ -19,16 +19,6 @@ if TYPE_CHECKING:
     )
 
 
-# Grace tolerance (seconds) added when enforcing question deadlines. This allows
-# for small client-server clock drift and network latency. Enforcement happens
-# exclusively in the ``SubmitAnswerUseCase``.
-DIFFICULTY_TIMEOUT_SECONDS = {
-    QuestionDifficulty.EASY: 30,
-    QuestionDifficulty.MEDIUM: 35,
-    QuestionDifficulty.HARD: 40,
-}
-
-
 # Writable types for firestore transactions
 Writeable = Union['AsyncWriteBatch', 'AsyncTransaction']
 
