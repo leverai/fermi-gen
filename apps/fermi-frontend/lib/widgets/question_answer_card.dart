@@ -411,45 +411,62 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                 SizedBox(
                   height: kQuestionAnswerCardAnswerRowHeight,
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // SliderTextMirror
-                      Row(
-                        children: [
-                          Text(
-                            'You: ',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.normal,
-                              color: appTheme.textMuted,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          SliderTextMirror(
-                            value: widget.currentAnswer,
-                            unitOptions: widget.unitOptions,
-                          )
-                        ],
-                      ),
-                      // Spacing between widgets
-                      if (widget.units.isNotEmpty) const SizedBox(width: 8),
-                      // UnitTape (if units available)
-                      if (widget.units.isNotEmpty)
-                        UnitTape(
-                          key: widget.unitKey,
-                          units: widget.units,
-                          unitOptions: widget.unitOptions,
-                          initialValue: widget.currentAnswer.unit,
-                          currentLocale: widget.currentLocale,
-                          onUnitChanged: (unit) => widget.onAnswerChanged(
-                            widget.currentAnswer.copyWith(unit: unit),
-                          ),
-                          onLocaleChanged: widget.onLocaleChanged,
-                          editable: widget.editable,
-                          unitOptionsNotifier: widget.unitOptionsNotifier,
-                          controller: widget.unitTapeController,
+                      // "You:" label
+                      Text(
+                        'You: ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.normal,
+                          color: appTheme.textMuted,
+                          letterSpacing: 0.5,
                         ),
+                      ),
+                      // Unified container for SliderTextMirror + UnitTape
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12.0, vertical: 4.0),
+                        decoration: BoxDecoration(
+                          color: appTheme.secondaryMuted.withAlpha(40),
+                          borderRadius: BorderRadius.circular(60),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // SliderTextMirror with fixed width to prevent jumping
+                            SizedBox(
+                              width: 90, // Fixed width for "999 Trillion"
+                              child: Align(
+                                alignment: Alignment.center,
+                                heightFactor: 1,
+                                widthFactor: 1,
+                                child: SliderTextMirror(
+                                  value: widget.currentAnswer,
+                                  unitOptions: widget.unitOptions,
+                                ),
+                              ),
+                            ),
+                            // UnitTape (if units available) - no separator needed
+                            if (widget.units.isNotEmpty)
+                              UnitTape(
+                                key: widget.unitKey,
+                                units: widget.units,
+                                unitOptions: widget.unitOptions,
+                                initialValue: widget.currentAnswer.unit,
+                                currentLocale: widget.currentLocale,
+                                onUnitChanged: (unit) => widget.onAnswerChanged(
+                                  widget.currentAnswer.copyWith(unit: unit),
+                                ),
+                                onLocaleChanged: widget.onLocaleChanged,
+                                editable: widget.editable,
+                                unitOptionsNotifier: widget.unitOptionsNotifier,
+                                controller: widget.unitTapeController,
+                              ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),

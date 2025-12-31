@@ -33,7 +33,8 @@ class SliderTextMirror extends StatelessWidget {
     return orderOfMagnitudeWords[index];
   }
 
-  /// Format the answer value as display text.
+  /// Format the answer value as display text (number + order of magnitude only).
+  /// Unit is now displayed separately in UnitTape.
   String _formatValue(AnswerValue answer) {
     final omWord = _getOMWord(answer.orderOfMagnitude);
     final parts = <String>[answer.number.toString()];
@@ -44,17 +45,7 @@ class SliderTextMirror extends StatelessWidget {
       parts.add(capitalizedWord);
     }
 
-    if (answer.unit.isNotEmpty) {
-      // Find the full name from unitOptions map (abbreviation -> full name)
-      // unitOptions is full name -> abbreviation, so we need to reverse lookup
-      final fullName = unitOptions.entries
-          .firstWhere(
-            (entry) => entry.value == answer.unit,
-            orElse: () => MapEntry(answer.unit, answer.unit),
-          )
-          .key;
-      parts.add(fullName);
-    }
+    // Unit removed - now displayed in UnitTape widget
 
     return parts.join(' ');
   }
@@ -64,20 +55,14 @@ class SliderTextMirror extends StatelessWidget {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-      decoration: BoxDecoration(
-        color: appTheme.bgDark.withAlpha(100),
-        borderRadius: BorderRadius.circular(60),
-      ),
-      child: Text(
-        _formatValue(value),
-        style: AppFont.primaryTextStyle(
-          context,
-          fontSize: fontSize,
-          fontWeight: fontWeight,
-          color: appTheme.text,
-        ),
+    // No container styling - parent container handles background/padding
+    return Text(
+      _formatValue(value),
+      style: AppFont.primaryTextStyle(
+        context,
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: appTheme.text,
       ),
     );
   }
