@@ -188,7 +188,7 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
               ),
               Padding(
                 padding: const EdgeInsets.only(
-                    top: 0, bottom: 72, left: 12, right: 12),
+                    top: 16, bottom: 72, left: 12, right: 12),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
