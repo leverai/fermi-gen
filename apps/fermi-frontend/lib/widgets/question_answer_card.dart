@@ -8,6 +8,8 @@ import 'package:fermi_frontend/widgets/unit_tape.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/utils/answer_format.dart';
+import 'package:fermi_frontend/widgets/answer_walkthrough_sheet.dart';
+import 'package:fermi_frontend/models/serp_text_block.dart';
 
 const double kQuestionAnswerCardQuestionHeight = 24.0 * 5;
 const double kQuestionAnswerCardAnswerRowHeight = 36.0;
@@ -52,6 +54,8 @@ class QuestionAnswerCard extends StatefulWidget {
     this.otherPlayersScores,
     this.currentPlayerAvatarUrl,
     this.currentPlayerId,
+    // Answer walkthrough
+    this.paragraph,
   });
 
   final String questionText;
@@ -79,6 +83,9 @@ class QuestionAnswerCard extends StatefulWidget {
   final Map<String, double>? otherPlayersScores;
   final String? currentPlayerAvatarUrl;
   final String? currentPlayerId;
+
+  /// JSON string of SerpAPI AI response for answer walkthrough
+  final String? paragraph;
 
   @override
   State<QuestionAnswerCard> createState() => _QuestionAnswerCardState();
@@ -128,6 +135,17 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
   bool _shouldShowCarousel() {
     return widget.otherPlayersAnswers != null &&
         widget.otherPlayersAnswers!.isNotEmpty;
+  }
+
+  /// Check if the paragraph JSON is valid and parseable.
+  /// Returns true only if the JSON can be parsed and contains content.
+  bool _isValidParagraph() {
+    if (widget.paragraph == null || widget.paragraph!.isEmpty) {
+      return false;
+    }
+    // Use the existing tryParse method to validate
+    final response = SerpAiResponse.tryParse(widget.paragraph!);
+    return response != null && response.hasContent;
   }
 
   void _copyToClipboard(BuildContext context) {
@@ -407,66 +425,121 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                       : const SizedBox(height: 16),
                 ),
                 // const SizedBox(height: 2),
-                // Animated results row carousel (only when revealed with other players)
+                // Answer row (Row Y) containing player's answer (Row X) and Explain button
                 SizedBox(
                   height: kQuestionAnswerCardAnswerRowHeight,
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.max,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // "You:" label
-                      Text(
-                        'You: ',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.normal,
-                          color: appTheme.textMuted,
-                          letterSpacing: 0.5,
-                        ),
+                      // Row X: Player's answer display
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // "You:" label
+                          Text(
+                            'You: ',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.normal,
+                              color: appTheme.textMuted,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          // Unified container for SliderTextMirror + UnitTape
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12.0, vertical: 4.0),
+                            decoration: BoxDecoration(
+                              color: appTheme.secondaryMuted.withAlpha(40),
+                              borderRadius: BorderRadius.circular(60),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // SliderTextMirror with fixed width to prevent jumping
+                                SizedBox(
+                                  width: 90, // Fixed width for "999 Trillion"
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    heightFactor: 1,
+                                    widthFactor: 1,
+                                    child: SliderTextMirror(
+                                      value: widget.currentAnswer,
+                                      unitOptions: widget.unitOptions,
+                                    ),
+                                  ),
+                                ),
+                                // UnitTape (if units available) - no separator needed
+                                if (widget.units.isNotEmpty)
+                                  UnitTape(
+                                    key: widget.unitKey,
+                                    units: widget.units,
+                                    unitOptions: widget.unitOptions,
+                                    initialValue: widget.currentAnswer.unit,
+                                    currentLocale: widget.currentLocale,
+                                    onUnitChanged: (unit) =>
+                                        widget.onAnswerChanged(
+                                      widget.currentAnswer.copyWith(unit: unit),
+                                    ),
+                                    onLocaleChanged: widget.onLocaleChanged,
+                                    editable: widget.editable,
+                                    unitOptionsNotifier:
+                                        widget.unitOptionsNotifier,
+                                    controller: widget.unitTapeController,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      // Unified container for SliderTextMirror + UnitTape
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12.0, vertical: 4.0),
-                        decoration: BoxDecoration(
-                          color: appTheme.secondaryMuted.withAlpha(40),
-                          borderRadius: BorderRadius.circular(60),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // SliderTextMirror with fixed width to prevent jumping
-                            SizedBox(
-                              width: 90, // Fixed width for "999 Trillion"
-                              child: Align(
-                                alignment: Alignment.center,
-                                heightFactor: 1,
-                                widthFactor: 1,
-                                child: SliderTextMirror(
-                                  value: widget.currentAnswer,
-                                  unitOptions: widget.unitOptions,
+                      // Explain button (only shown when paragraph is valid and parseable)
+                      if (_isValidParagraph())
+                        SizedBox(
+                          height: kQuestionAnswerCardAnswerRowHeight - 8,
+                          width: 30,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () async {
+                                final success = await AnswerWalkthroughSheet.showFromJson(
+                                  context,
+                                  jsonString: widget.paragraph!,
+                                );
+                                if (!success && mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Failed to load answer walkthrough'),
+                                      duration: Duration(seconds: 2),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(100),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: appTheme.bgDark,
+                                  borderRadius: BorderRadius.circular(100),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Icon(
+                                      Icons.auto_awesome,
+                                      size: 20,
+                                      color: appTheme.primary,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                            // UnitTape (if units available) - no separator needed
-                            if (widget.units.isNotEmpty)
-                              UnitTape(
-                                key: widget.unitKey,
-                                units: widget.units,
-                                unitOptions: widget.unitOptions,
-                                initialValue: widget.currentAnswer.unit,
-                                currentLocale: widget.currentLocale,
-                                onUnitChanged: (unit) => widget.onAnswerChanged(
-                                  widget.currentAnswer.copyWith(unit: unit),
-                                ),
-                                onLocaleChanged: widget.onLocaleChanged,
-                                editable: widget.editable,
-                                unitOptionsNotifier: widget.unitOptionsNotifier,
-                                controller: widget.unitTapeController,
-                              ),
-                          ],
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),

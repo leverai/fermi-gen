@@ -381,6 +381,8 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
       otherPlayersScores: otherPlayersScores,
       currentPlayerAvatarUrl: currentPlayerAvatarUrl,
       currentPlayerId: myId,
+      // Answer walkthrough
+      paragraph: showFeedback ? _controller.getParagraphForIndex(index) : null,
     );
   }
 

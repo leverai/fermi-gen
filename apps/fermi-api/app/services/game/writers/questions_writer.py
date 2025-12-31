@@ -87,6 +87,23 @@ class GameQuestionsWriter:
             },
         )
 
+    def reveal_answer(
+        self,
+        game_ref: 'AsyncDocumentReference',
+        writer: 'Writeable',
+        question_uid: str,
+    ) -> None:
+        """Reveal the answer document to enable answer walkthrough in frontend.
+
+        Sets revealed=True on the answers collection document. This triggers
+        the frontend's revealsForQuestion stream to emit, which provides the
+        paragraph (answer walkthrough) data to the UI.
+        """
+        writer.update(
+            game_ref.collection('answers').document(question_uid),
+            {'revealed': True},
+        )
+
     def clear_questions(
         self,
         game_ref: 'AsyncDocumentReference',

@@ -341,6 +341,7 @@ class GameService:
             lifecycle=self._lifecycle_writer,
             players_answers=self._players_results_writer,
             players=self._players_writer,
+            questions=self._questions_writer,
         )
 
         result = await use_case.execute(
@@ -428,6 +429,7 @@ class GameService:
             lifecycle=self._lifecycle_writer,
             players=self._players_writer,
             players_answers=self._players_results_writer,
+            questions=self._questions_writer,
         )
 
         result = await use_case.execute(

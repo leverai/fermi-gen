@@ -282,8 +282,8 @@ class QuestionScreenV2Controller extends ChangeNotifier {
         );
 
         bindings.listen(
-          onReveal: (correct) {
-            _handleReveal(i, correct);
+          onReveal: (correct, paragraph) {
+            _handleReveal(i, correct, paragraph);
           },
           onPlayersAnswers: (answers) {
             _handlePlayersAnswers(i, answers);
@@ -366,7 +366,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
     );
   }
 
-  void _handleReveal(int index, AnswerValue correct) {
+  void _handleReveal(int index, AnswerValue correct, String? paragraph) {
     AppLogger.debug(
         '_handleReveal: index=$index, correct=$correct, currentIndex=$currentIndex');
     final currentState =
@@ -378,6 +378,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       currentState.copyWith(
         correctAnswer: correct,
         isRevealed: true,
+        paragraph: paragraph,
       ),
     );
 
@@ -751,6 +752,11 @@ class QuestionScreenV2Controller extends ChangeNotifier {
   /// Check if a question is revealed (for onboarding tutorial)
   bool isQuestionRevealed(int index) {
     return _stateManager.isQuestionRevealed(index);
+  }
+
+  /// Get paragraph (SerpAPI AI response JSON) for a question index
+  String? getParagraphForIndex(int index) {
+    return _stateManager.getQuestionState(index)?.paragraph;
   }
 
   /// Check if transitioning from a finished state to an answering state

@@ -27,6 +27,7 @@ if TYPE_CHECKING:
         GamePlayersAnswersWriter,
     )
     from app.services.game.writers.players_writer import GamePlayersWriter
+    from app.services.game.writers.questions_writer import GameQuestionsWriter
 
 
 class SubmitAnswerResult(TypedDict):
@@ -48,6 +49,7 @@ class SubmitAnswerUseCase:
         lifecycle: 'GameLifecycleWriter',
         players_answers: 'GamePlayersAnswersWriter',
         players: 'GamePlayersWriter',
+        questions: 'GameQuestionsWriter',
     ) -> None:
         """Initialize the use case with required collaborators."""
         self._client = firestore_client
@@ -56,6 +58,7 @@ class SubmitAnswerUseCase:
         self._lifecycle = lifecycle
         self._players_answers = players_answers
         self._players = players
+        self._questions = questions
 
     async def execute(
         self,
@@ -157,6 +160,12 @@ class SubmitAnswerUseCase:
                         players_results_doc=players_results_doc,
                         current_player_id=player_id,
                         current_player_result=current_player_result,
+                    )
+                    # Also reveal the answer document to enable answer walkthrough
+                    self._questions.reveal_answer(
+                        game_ref=game_ref,
+                        writer=tx,
+                        question_uid=question_uid,
                     )
                 except NotFoundError as err:
                     raise HTTPException(

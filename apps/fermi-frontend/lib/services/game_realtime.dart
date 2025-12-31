@@ -155,7 +155,10 @@ class PlayersAnswersSnapshot {
 class RevealPayload {
   final AnswerValue correct;
 
-  const RevealPayload({required this.correct});
+  /// JSON string of SerpAPI AI response for answer walkthrough (may be empty)
+  final String? paragraph;
+
+  const RevealPayload({required this.correct, this.paragraph});
 }
 
 /// Minimal payload for revealed question content.
