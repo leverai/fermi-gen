@@ -113,7 +113,7 @@ class _QuestionWidgetState extends State<QuestionWidget> {
           Container(
             width: 1,
             height: 12,
-            color: appTheme.borderMuted,
+            color: appTheme.textMuted.withAlpha(40),
           ),
         );
       }

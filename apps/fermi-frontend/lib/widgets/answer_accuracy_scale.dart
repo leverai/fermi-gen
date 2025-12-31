@@ -431,8 +431,8 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                               _formatAnswerText(widget.revealedAnswer!),
                               style: TextStyle(
                                 fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: appTheme.text,
+                                fontWeight: FontWeight.w600,
+                                color: appTheme.bgLight,
                               ),
                             ),
                           ),
