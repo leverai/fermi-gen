@@ -6,7 +6,7 @@ import traceback
 from fastapi import APIRouter
 
 from app.config import get_config
-from app.schemas.requests import AnswerUnansweredRequest
+from app.schemas.requests import AnswerPipelineArgs
 from app.schemas.responses import AnswerResponse
 from app.services.answer_service import answer_unanswered_questions
 
@@ -16,7 +16,7 @@ router = APIRouter()
 
 
 @router.post('/insert_serp', response_model=AnswerResponse)
-async def insert_serp(request: AnswerUnansweredRequest) -> AnswerResponse:
+async def insert_serp(request: AnswerPipelineArgs) -> AnswerResponse:
     """Answer the latest N unanswered questions using SERP API.
 
     Process:
