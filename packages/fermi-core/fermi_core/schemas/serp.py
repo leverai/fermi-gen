@@ -1,5 +1,6 @@
 """Schemas for SerpAPI-based answer pipeline."""
 
+import json
 import math
 from typing import Any, Literal, Self
 
@@ -79,7 +80,9 @@ class GoogleAIModeResult(BaseModel):
     @property
     def snippet_json(self) -> str:
         """Json serialized text_blocks."""
-        return self.model_dump_json()
+        return json.dumps(
+            {'text_blocks': self.text_blocks, 'references': self.references},
+        )
 
 
 class SnippetCandidate(BaseModel):
