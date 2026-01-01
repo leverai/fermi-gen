@@ -41,7 +41,15 @@ class CompositeResult:
 
 async def _run_answer_workflow(
     question_result: QuestionBatchResult,
-    config: ETLConfig,
+    location_model: str = 'gpt-5-mini',
+    extraction_model: str = 'gpt-5-mini',
+    answer_model_provider: str = 'openai',
+    confidence_threshold: float = 0.8,
+    category_model: str = 'gpt-5-mini',
+    category_model_provider: str = 'openai',
+    difficulty_model: str = 'gpt-5-mini',
+    difficulty_model_provider: str = 'openai',
+    config: ETLConfig | None = None,
 ) -> CompositeResult:
     # Step 2: Answer questions
     logger.info(
@@ -49,6 +57,10 @@ async def _run_answer_workflow(
     )
     answer_result = await answer_questions(
         question_ids=question_result.new_question_ids,
+        location_model=location_model,
+        extraction_model=extraction_model,
+        model_provider=answer_model_provider,
+        confidence_threshold=confidence_threshold,
         config=config,
     )
 
@@ -67,6 +79,8 @@ async def _run_answer_workflow(
     try:
         category_result = await enrich_categories(
             limit=answer_result.questions_answered,
+            model=category_model,
+            model_provider=category_model_provider,
             config=config,
         )
     except Exception:
@@ -82,6 +96,8 @@ async def _run_answer_workflow(
     try:
         difficulty_result = await enrich_difficulties(
             limit=answer_result.questions_answered,
+            model=difficulty_model,
+            model_provider=difficulty_model_provider,
             config=config,
         )
     except Exception:
@@ -94,26 +110,28 @@ async def _run_answer_workflow(
         )
 
     # Step 4: LLM answer questions with all configured models
+    # Note: LLM answer models stay in config per user request
     logger.info('Step 4: LLM answering newly enriched questions...')
     llm_answer_results: list[LLMAnswerResult] = []
-    for model in config.llm_answer_models:
-        try:
-            llm_result = await llm_answer_questions(
-                model=model,
-                limit=answer_result.questions_answered,
-                config=config,
-            )
-            llm_answer_results.append(llm_result)
-        except Exception:
-            logger.exception(f'LLM answering failed for model {model}')
-            # Continue with other models even if one fails
+    if config:
+        for model in config.llm_answer_models:
+            try:
+                llm_result = await llm_answer_questions(
+                    model=model,
+                    limit=answer_result.questions_answered,
+                    config=config,
+                )
+                llm_answer_results.append(llm_result)
+            except Exception:
+                logger.exception(f'LLM answering failed for model {model}')
+                # Continue with other models even if one fails
 
     # Step 4.5: Gemini Flash answer questions (5 models)
     logger.info('Step 4.5: Gemini Flash answering newly enriched questions...')
     try:
         gemini_result = await gemini_flash_answer_questions(
             limit=answer_result.questions_answered,
-            config=config,
+            # Uses defaults: model_name, model_provider, temperature
         )
         llm_answer_results.append(gemini_result)
     except Exception:
@@ -147,13 +165,29 @@ async def _run_answer_workflow(
 async def run_literal_workflow(
     question_texts: list[str],
     provider: Literal['human', 'other'],
-    config: ETLConfig,
+    location_model: str = 'gpt-5-mini',
+    extraction_model: str = 'gpt-5-mini',
+    answer_model_provider: str = 'openai',
+    confidence_threshold: float = 0.8,
+    category_model: str = 'gpt-5-mini',
+    category_model_provider: str = 'openai',
+    difficulty_model: str = 'gpt-5-mini',
+    difficulty_model_provider: str = 'openai',
+    config: ETLConfig | None = None,
 ) -> CompositeResult:
     """Run complete literal workflow: insert → answer → enrich → refresh.
 
     Args:
         question_texts: List of question texts to insert
         provider: Provider of the questions
+        location_model: Model for location selection
+        extraction_model: Model for answer extraction
+        answer_model_provider: Model provider for answer generation
+        confidence_threshold: Minimum confidence threshold
+        category_model: Model for category classification
+        category_model_provider: Model provider for category
+        difficulty_model: Model for difficulty assessment
+        difficulty_model_provider: Model provider for difficulty
         config: Application configuration
 
     Returns:
@@ -177,7 +211,18 @@ async def run_literal_workflow(
         )
 
     # Step 2: Answer and enrich questions
-    composite_result = await _run_answer_workflow(question_result, config)
+    composite_result = await _run_answer_workflow(
+        question_result,
+        location_model=location_model,
+        extraction_model=extraction_model,
+        answer_model_provider=answer_model_provider,
+        confidence_threshold=confidence_threshold,
+        category_model=category_model,
+        category_model_provider=category_model_provider,
+        difficulty_model=difficulty_model,
+        difficulty_model_provider=difficulty_model_provider,
+        config=config,
+    )
     logger.info('Composite result: %s', composite_result)
     return composite_result
 
@@ -186,7 +231,18 @@ async def run_llm_workflow(
     num_seeds: int,
     questions_per_seed: int,
     mode: Literal['thompson', 'lru'],
-    config: ETLConfig,
+    question_model: str = 'o3',
+    question_model_provider: str = 'openai',
+    question_temperature: float = 1.0,
+    location_model: str = 'gpt-5-mini',
+    extraction_model: str = 'gpt-5-mini',
+    answer_model_provider: str = 'openai',
+    confidence_threshold: float = 0.8,
+    category_model: str = 'gpt-5-mini',
+    category_model_provider: str = 'openai',
+    difficulty_model: str = 'gpt-5-mini',
+    difficulty_model_provider: str = 'openai',
+    config: ETLConfig | None = None,
 ) -> CompositeResult:
     """Run complete LLM workflow: generate → answer → enrich → refresh.
 
@@ -194,6 +250,17 @@ async def run_llm_workflow(
         num_seeds: Number of seeds to use
         questions_per_seed: Questions to generate per seed
         mode: Seed selection mode
+        question_model: Model for question generation
+        question_model_provider: Model provider for question generation
+        question_temperature: Temperature for question generation
+        location_model: Model for location selection
+        extraction_model: Model for answer extraction
+        answer_model_provider: Model provider for answer generation
+        confidence_threshold: Minimum confidence threshold
+        category_model: Model for category classification
+        category_model_provider: Model provider for category
+        difficulty_model: Model for difficulty assessment
+        difficulty_model_provider: Model provider for difficulty
         config: Application configuration
 
     Returns:
@@ -206,6 +273,9 @@ async def run_llm_workflow(
         num_seeds=num_seeds,
         questions_per_seed=questions_per_seed,
         mode=mode,
+        model=question_model,
+        model_provider=question_model_provider,
+        temperature=question_temperature,
         config=config,
     )
 
@@ -218,4 +288,15 @@ async def run_llm_workflow(
         )
 
     # Step 2: Answer and enrich questions
-    return await _run_answer_workflow(question_result, config)
+    return await _run_answer_workflow(
+        question_result,
+        location_model=location_model,
+        extraction_model=extraction_model,
+        answer_model_provider=answer_model_provider,
+        confidence_threshold=confidence_threshold,
+        category_model=category_model,
+        category_model_provider=category_model_provider,
+        difficulty_model=difficulty_model,
+        difficulty_model_provider=difficulty_model_provider,
+        config=config,
+    )

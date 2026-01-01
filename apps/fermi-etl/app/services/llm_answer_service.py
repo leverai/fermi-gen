@@ -213,20 +213,24 @@ async def llm_answer_questions(
 
 async def gemini_flash_answer_questions(
     limit: int,
-    config: ETLConfig,
+    model_name: str = 'gemini-2.5-flash-lite',
+    model_provider: str = 'google-vertexai',
+    temperature: float = 0.2,
 ) -> LLMAnswerResult:
-    """Answer questions with 5 Gemini Flash instances (high temp, atomic upload).
+    """Answer questions with 5 Gemini Flash instances (atomic upload).
 
     For each question:
-    1. Generate 5 answers using Gemini 1.5 Flash with high temperature
+    1. Generate 5 answers using Gemini Flash
     2. If ALL 5 succeed → store all 5 atomically
     3. If ANY fail → skip the question entirely
 
-    Uses google_genai provider which works with ADC on Cloud Run.
+    Uses google-vertexai provider which works with ADC on Cloud Run.
 
     Args:
         limit: Maximum number of questions to process
-        config: Application configuration
+        model_name: Gemini model name (default: gemini-2.5-flash-lite)
+        model_provider: Model provider (default: google-vertexai)
+        temperature: Temperature for generation (default: 0.2, max: 0.2)
 
     Returns:
         LLMAnswerResult with statistics
@@ -322,9 +326,9 @@ async def gemini_flash_answer_questions(
                     try:
                         results = await allm_answer_batch(
                             questions=[llm_input],
-                            model=config.gemini_flash_model,
-                            model_provider='google-vertexai',
-                            temperature=config.gemini_flash_temperature,
+                            model=model_name,
+                            model_provider=model_provider,
+                            temperature=temperature,
                             top_p=0.99,
                             top_k=40,
                         )

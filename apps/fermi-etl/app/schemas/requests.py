@@ -50,6 +50,19 @@ class QuestionLLMRequest(BaseModel):
         default='thompson',
         description="Seed selection mode: 'thompson' or 'lru'",
     )
+    question_model: str = Field(
+        default='o3',
+        description='LLM model for question generation',
+    )
+    question_model_provider: str = Field(
+        default='openai',
+        description='Model provider for question generation',
+    )
+    question_temperature: float = Field(
+        default=1.0,
+        le=2.0,
+        description='Temperature for question generation (o3 default: 1.0)',
+    )
 
 
 class AnswerRequest(BaseModel):
@@ -72,6 +85,24 @@ class AnswerUnansweredRequest(BaseModel):
         gt=0,
         le=200,
     )
+    location_model: str = Field(
+        default='gpt-5-mini',
+        description='Model for location selection',
+    )
+    extraction_model: str = Field(
+        default='gpt-5-mini',
+        description='Model for answer extraction',
+    )
+    answer_model_provider: str = Field(
+        default='openai',
+        description='Model provider for answer generation',
+    )
+    confidence_threshold: float = Field(
+        default=0.8,
+        ge=0.0,
+        le=1.0,
+        description='Minimum confidence threshold for answers',
+    )
 
 
 class InsertLLMRequest(BaseModel):
@@ -93,6 +124,56 @@ class InsertLLMRequest(BaseModel):
         default='thompson',
         description="Seed selection mode: 'thompson' or 'lru'",
     )
+    # Question generation params
+    question_model: str = Field(
+        default='o3',
+        description='LLM model for question generation',
+    )
+    question_model_provider: str = Field(
+        default='openai',
+        description='Model provider for question generation',
+    )
+    question_temperature: float = Field(
+        default=1.0,
+        le=2.0,
+        description='Temperature for question generation (o3 default: 1.0)',
+    )
+    # Answer generation params
+    location_model: str = Field(
+        default='gpt-5-mini',
+        description='Model for location selection',
+    )
+    extraction_model: str = Field(
+        default='gpt-5-mini',
+        description='Model for answer extraction',
+    )
+    answer_model_provider: str = Field(
+        default='openai',
+        description='Model provider for answer generation',
+    )
+    confidence_threshold: float = Field(
+        default=0.8,
+        ge=0.0,
+        le=1.0,
+        description='Minimum confidence threshold for answers',
+    )
+    # Enrichment params
+    category_model: str = Field(
+        default='gpt-5-mini',
+        description='Model for category classification',
+    )
+    category_model_provider: str = Field(
+        default='openai',
+        description='Model provider for category classification',
+    )
+    difficulty_model: str = Field(
+        default='gpt-5-mini',
+        description='Model for difficulty assessment',
+    )
+    difficulty_model_provider: str = Field(
+        default='openai',
+        description='Model provider for difficulty assessment',
+    )
 
 
 class InsertLiteralRequest(BaseModel):
@@ -108,6 +189,42 @@ class InsertLiteralRequest(BaseModel):
         default='other',
         description='The provider of the literal questions (defaults to other)',
     )
+    # Answer generation params
+    location_model: str = Field(
+        default='gpt-5-mini',
+        description='Model for location selection',
+    )
+    extraction_model: str = Field(
+        default='gpt-5-mini',
+        description='Model for answer extraction',
+    )
+    answer_model_provider: str = Field(
+        default='openai',
+        description='Model provider for answer generation',
+    )
+    confidence_threshold: float = Field(
+        default=0.8,
+        ge=0.0,
+        le=1.0,
+        description='Minimum confidence threshold for answers',
+    )
+    # Enrichment params
+    category_model: str = Field(
+        default='gpt-5-mini',
+        description='Model for category classification',
+    )
+    category_model_provider: str = Field(
+        default='openai',
+        description='Model provider for category classification',
+    )
+    difficulty_model: str = Field(
+        default='gpt-5-mini',
+        description='Model for difficulty assessment',
+    )
+    difficulty_model_provider: str = Field(
+        default='openai',
+        description='Model provider for difficulty assessment',
+    )
 
 
 class EnrichmentRequest(BaseModel):
@@ -118,4 +235,12 @@ class EnrichmentRequest(BaseModel):
         description='Number of questions to enrich',
         gt=0,
         le=200,
+    )
+    model: str = Field(
+        default='gpt-5-mini',
+        description='Model for enrichment (category or difficulty)',
+    )
+    model_provider: str = Field(
+        default='openai',
+        description='Model provider for enrichment',
     )

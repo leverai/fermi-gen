@@ -89,6 +89,9 @@ async def insert_llm(request: QuestionLLMRequest) -> QuestionResponse:
             num_seeds=request.num_seeds,
             questions_per_seed=request.questions_per_seed,
             mode=request.mode,
+            model=request.question_model,
+            model_provider=request.question_model_provider,
+            temperature=request.question_temperature,
             config=config,
         )
 

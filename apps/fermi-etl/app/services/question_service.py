@@ -64,6 +64,9 @@ async def insert_llm_questions(
     num_seeds: int = 5,
     questions_per_seed: int = 20,
     mode: Literal['thompson', 'lru'] = 'thompson',
+    model: str = 'o3',
+    model_provider: str = 'openai',
+    temperature: float = 1.0,
     config: ETLConfig | None = None,
 ) -> QuestionBatchResult:
     """Generate questions from seeds using LLM.
@@ -74,6 +77,9 @@ async def insert_llm_questions(
         num_seeds: Number of seeds to use for generation
         questions_per_seed: Number of questions to generate per seed
         mode: Seed selection mode ('thompson' or 'lru')
+        model: LLM model for question generation
+        model_provider: Model provider (e.g., 'openai', 'ollama')
+        temperature: Temperature for generation
         config: ETL configuration (if None, load from env)
 
     Returns:
@@ -142,9 +148,9 @@ async def insert_llm_questions(
         batches = await aask_batch(
             seeds=[seed.seed for seed in seeds],
             num_questions=questions_per_seed,
-            model=config.question_generation_model,
-            model_provider=config.question_generation_model_provider,
-            temperature=0.9,
+            model=model,
+            model_provider=model_provider,
+            temperature=temperature,
             service_tier='flex',
         )
 
@@ -178,8 +184,8 @@ async def insert_llm_questions(
             for question, embedding in zip(questions, embeddings, strict=True):
                 source = _create_llm_source_metadata(
                     seed=seed.seed,
-                    model=config.question_generation_model,
-                    model_provider=config.question_generation_model_provider,
+                    model=model,
+                    model_provider=model_provider,
                 )
                 raw_q = RawQuestion(
                     seed_id=seed.id,  # type: ignore

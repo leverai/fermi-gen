@@ -36,6 +36,17 @@ async def insert_llm(request: InsertLLMRequest) -> CompositeResponse:
             num_seeds=request.num_seeds,
             questions_per_seed=request.questions_per_seed,
             mode=request.mode,
+            question_model=request.question_model,
+            question_model_provider=request.question_model_provider,
+            question_temperature=request.question_temperature,
+            location_model=request.location_model,
+            extraction_model=request.extraction_model,
+            answer_model_provider=request.answer_model_provider,
+            confidence_threshold=request.confidence_threshold,
+            category_model=request.category_model,
+            category_model_provider=request.category_model_provider,
+            difficulty_model=request.difficulty_model,
+            difficulty_model_provider=request.difficulty_model_provider,
             config=config,
         )
 
@@ -72,6 +83,14 @@ async def insert_literal(request: InsertLiteralRequest) -> CompositeResponse:
         result = await run_literal_workflow(
             question_texts=request.questions,
             provider=request.provider,
+            location_model=request.location_model,
+            extraction_model=request.extraction_model,
+            answer_model_provider=request.answer_model_provider,
+            confidence_threshold=request.confidence_threshold,
+            category_model=request.category_model,
+            category_model_provider=request.category_model_provider,
+            difficulty_model=request.difficulty_model,
+            difficulty_model_provider=request.difficulty_model_provider,
             config=config,
         )
 
