@@ -2,6 +2,7 @@
 
 import logging
 import random
+import traceback
 from typing import Any
 
 from fermi_core.op import allm_answer_batch
@@ -131,6 +132,22 @@ async def llm_answer_questions(
             if isinstance(result, BaseException):
                 logger.error(
                     f'Failed to LLM answer question {question_id}: {result}',
+                    extra={
+                        'json_fields': {
+                            'stage': Stage.LLM_ANSWER,
+                            'model': model,
+                            'question_id': question_id,
+                        },
+                    },
+                )
+                skipped += 1
+                continue
+
+            # Handle None results (structured output parsing failed silently)
+            if result is None:
+                logger.error(
+                    f'LLM returned None for question {question_id} '
+                    '(structured output parsing failed)',
                     extra={
                         'json_fields': {
                             'stage': Stage.LLM_ANSWER,
@@ -296,78 +313,122 @@ async def gemini_flash_answer_questions(
 
             for model_idx in range(1, 6):
                 model_name = f'gemini-flash-{model_idx}'
-                try:
-                    results = await allm_answer_batch(
-                        questions=[llm_input],
-                        model=config.gemini_flash_model,
-                        model_provider='google-vertexai',
-                        temperature=config.gemini_flash_temperature,
-                        top_p=0.99,  # Full nucleus sampling (less restrictive)
-                        top_k=40,  # Larger candidate pool (default is often lower)
-                    )
-                    result = results[0]
+                max_attempts = 3
+                attempt = 0
+                model_succeeded = False
 
-                    if isinstance(result, BaseException):
-                        logger.error(
-                            f'Gemini Flash failed for Q{question_id} '
-                            f'model {model_idx}: {result}',
+                while attempt < max_attempts and not model_succeeded:
+                    attempt += 1
+                    try:
+                        results = await allm_answer_batch(
+                            questions=[llm_input],
+                            model=config.gemini_flash_model,
+                            model_provider='google-vertexai',
+                            temperature=config.gemini_flash_temperature,
+                            top_p=0.99,
+                            top_k=40,
+                        )
+                        result = results[0]
+
+                        if isinstance(result, BaseException):
+                            logger.warning(
+                                f'Gemini Flash failed for Q{question_id} '
+                                f'model {model_idx} attempt {attempt}/{max_attempts}: '
+                                f'{result}',
+                                extra={
+                                    'json_fields': {
+                                        'stage': Stage.LLM_ANSWER,
+                                        'model': model_name,
+                                        'question_id': question_id,
+                                        'attempt': attempt,
+                                    },
+                                },
+                            )
+                            continue  # Retry
+
+                        # Handle None results (structured output parsing failed)
+                        if result is None:
+                            logger.warning(
+                                f'Gemini Flash returned None for Q{question_id} '
+                                f'model {model_idx} attempt {attempt}/{max_attempts} '
+                                '(structured output parsing failed)',
+                                extra={
+                                    'json_fields': {
+                                        'stage': Stage.LLM_ANSWER,
+                                        'model': model_name,
+                                        'question_id': question_id,
+                                        'attempt': attempt,
+                                    },
+                                },
+                            )
+                            continue  # Retry
+
+                        if units_set and result.unit not in units_set:
+                            logger.warning(
+                                f'Gemini unit {result.unit} not in {units_set} '
+                                f'for Q{question_id} attempt {attempt}/{max_attempts}',
+                                extra={
+                                    'json_fields': {
+                                        'stage': Stage.LLM_ANSWER,
+                                        'model': model_name,
+                                        'question_id': question_id,
+                                        'attempt': attempt,
+                                    },
+                                },
+                            )
+                            continue  # Retry
+
+                        # Validate unit
+                        if not units_set and result.unit:
+                            logger.warning(
+                                f'Gemini unit {result.unit} received with no units '
+                                f'set for Q{question_id} attempt '
+                                f'{attempt}/{max_attempts}',
+                                extra={
+                                    'json_fields': {
+                                        'stage': Stage.LLM_ANSWER,
+                                        'model': model_name,
+                                        'question_id': question_id,
+                                        'attempt': attempt,
+                                    },
+                                },
+                            )
+                            continue  # Retry
+
+                        # Success! Scale number by random amount
+                        result.number *= random.uniform(0.4, 2.1)
+
+                        answers_for_question.append(
+                            LLMAnswer(
+                                question_id=question_id,
+                                model=model_name,
+                                number=result.number,
+                                unit=result.unit,
+                            ),
+                        )
+                        model_succeeded = True
+
+                    except Exception as e:
+                        logger.warning(
+                            f'Exception in Gemini Flash for Q{question_id} '
+                            f'model {model_idx} attempt {attempt}/{max_attempts}: '
+                            f'{e}\n{traceback.format_exc()}',
                             extra={
                                 'json_fields': {
                                     'stage': Stage.LLM_ANSWER,
                                     'model': model_name,
                                     'question_id': question_id,
+                                    'attempt': attempt,
                                 },
                             },
                         )
-                        all_succeeded = False
-                        break
+                        continue  # Retry
 
-                    if units_set and result.unit not in units_set:
-                        logger.error(
-                            f'Gemini unit {result.unit} not in {units_set} '
-                            f'for Q{question_id}',
-                            extra={
-                                'json_fields': {
-                                    'stage': Stage.LLM_ANSWER,
-                                    'model': model_name,
-                                    'question_id': question_id,
-                                },
-                            },
-                        )
-                        all_succeeded = False
-                        break
-
-                    # Validate unit
-                    if not units_set and result.unit:
-                        logger.error(
-                            f'Gemini unit {result.unit} received with no units set '
-                            f'for Q{question_id}',
-                            extra={
-                                'json_fields': {
-                                    'stage': Stage.LLM_ANSWER,
-                                    'model': model_name,
-                                    'question_id': question_id,
-                                },
-                            },
-                        )
-                        all_succeeded = False
-                        break
-
-                    # Scale number by random amount
-                    result.number *= random.uniform(0.4, 2.1)
-
-                    answers_for_question.append(
-                        LLMAnswer(
-                            question_id=question_id,
-                            model=model_name,
-                            number=result.number,
-                            unit=result.unit,
-                        ),
-                    )
-                except Exception as e:
+                # If all attempts failed for this model, skip the question
+                if not model_succeeded:
                     logger.error(
-                        f'Exception in Gemini Flash for Q{question_id} '
-                        f'model {model_idx}: {e}',
+                        f'All {max_attempts} attempts failed for Q{question_id} '
+                        f'model {model_idx}',
                         extra={
                             'json_fields': {
                                 'stage': Stage.LLM_ANSWER,
