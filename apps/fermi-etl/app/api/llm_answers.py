@@ -88,7 +88,7 @@ async def answer_gemini_flash(request: GeminiFlashRequest) -> LLMAnswerResult:
 
 
 @router.post('/all', response_model=list[LLMAnswerResult])
-async def answer_all_models(request: LLMAnswerRequest) -> list[LLMAnswerResult]:
+async def answer_all_models(request: GeminiFlashRequest) -> list[LLMAnswerResult]:
     """Answer questions using all LLM models (GPT and Gemini Flash)."""
     logger.info(f'LLM answering {request.num_questions} questions with all models')
     config = get_config()
@@ -104,7 +104,9 @@ async def answer_all_models(request: LLMAnswerRequest) -> list[LLMAnswerResult]:
     # Then Gemini Flash
     gemini_result = await gemini_flash_answer_questions(
         limit=request.num_questions,
-        config=config,
+        model_name=request.model_name,
+        model_provider=request.model_provider,
+        temperature=request.temperature,
     )
     results.append(gemini_result)
     return results
