@@ -76,7 +76,7 @@ class AnswerRequest(BaseModel):
     )
 
 
-class AnswerUnansweredRequest(BaseModel):
+class AnswerPipelineArgs(BaseModel):
     """Request model for answering unanswered questions."""
 
     num_questions: int = Field(
@@ -105,7 +105,7 @@ class AnswerUnansweredRequest(BaseModel):
     )
 
 
-class InsertLLMRequest(BaseModel):
+class InsertLLMRequest(AnswerPipelineArgs):
     """Request model for composite LLM workflow (generate + answer)."""
 
     num_seeds: int = Field(
@@ -138,25 +138,6 @@ class InsertLLMRequest(BaseModel):
         le=2.0,
         description='Temperature for question generation (o3 default: 1.0)',
     )
-    # Answer generation params
-    location_model: str = Field(
-        default='gpt-5-mini',
-        description='Model for location selection',
-    )
-    extraction_model: str = Field(
-        default='gpt-5-mini',
-        description='Model for answer extraction',
-    )
-    answer_model_provider: str = Field(
-        default='openai',
-        description='Model provider for answer generation',
-    )
-    confidence_threshold: float = Field(
-        default=0.8,
-        ge=0.0,
-        le=1.0,
-        description='Minimum confidence threshold for answers',
-    )
     # Enrichment params
     category_model: str = Field(
         default='gpt-5-mini',
@@ -176,7 +157,7 @@ class InsertLLMRequest(BaseModel):
     )
 
 
-class InsertLiteralRequest(BaseModel):
+class InsertLiteralRequest(AnswerPipelineArgs):
     """Request model for composite literal workflow (insert + answer)."""
 
     questions: list[str] = Field(
@@ -188,25 +169,6 @@ class InsertLiteralRequest(BaseModel):
     provider: Literal['human', 'other'] = Field(
         default='other',
         description='The provider of the literal questions (defaults to other)',
-    )
-    # Answer generation params
-    location_model: str = Field(
-        default='gpt-5-mini',
-        description='Model for location selection',
-    )
-    extraction_model: str = Field(
-        default='gpt-5-mini',
-        description='Model for answer extraction',
-    )
-    answer_model_provider: str = Field(
-        default='openai',
-        description='Model provider for answer generation',
-    )
-    confidence_threshold: float = Field(
-        default=0.8,
-        ge=0.0,
-        le=1.0,
-        description='Minimum confidence threshold for answers',
     )
     # Enrichment params
     category_model: str = Field(

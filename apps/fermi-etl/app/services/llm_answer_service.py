@@ -316,7 +316,7 @@ async def gemini_flash_answer_questions(
             all_succeeded = True
 
             for model_idx in range(1, 6):
-                model_name = f'gemini-flash-{model_idx}'
+                column_name = f'gemini-flash-{model_idx}'
                 max_attempts = 3
                 attempt = 0
                 model_succeeded = False
@@ -342,7 +342,7 @@ async def gemini_flash_answer_questions(
                                 extra={
                                     'json_fields': {
                                         'stage': Stage.LLM_ANSWER,
-                                        'model': model_name,
+                                        'model': column_name,
                                         'question_id': question_id,
                                         'attempt': attempt,
                                     },
@@ -359,7 +359,7 @@ async def gemini_flash_answer_questions(
                                 extra={
                                     'json_fields': {
                                         'stage': Stage.LLM_ANSWER,
-                                        'model': model_name,
+                                        'model': column_name,
                                         'question_id': question_id,
                                         'attempt': attempt,
                                     },
@@ -374,7 +374,7 @@ async def gemini_flash_answer_questions(
                                 extra={
                                     'json_fields': {
                                         'stage': Stage.LLM_ANSWER,
-                                        'model': model_name,
+                                        'model': column_name,
                                         'question_id': question_id,
                                         'attempt': attempt,
                                     },
@@ -391,7 +391,7 @@ async def gemini_flash_answer_questions(
                                 extra={
                                     'json_fields': {
                                         'stage': Stage.LLM_ANSWER,
-                                        'model': model_name,
+                                        'model': column_name,
                                         'question_id': question_id,
                                         'attempt': attempt,
                                     },
@@ -405,7 +405,7 @@ async def gemini_flash_answer_questions(
                         answers_for_question.append(
                             LLMAnswer(
                                 question_id=question_id,
-                                model=model_name,
+                                model=column_name,
                                 number=result.number,
                                 unit=result.unit,
                             ),
@@ -420,7 +420,7 @@ async def gemini_flash_answer_questions(
                             extra={
                                 'json_fields': {
                                     'stage': Stage.LLM_ANSWER,
-                                    'model': model_name,
+                                    'model': column_name,
                                     'question_id': question_id,
                                     'attempt': attempt,
                                 },
@@ -436,7 +436,7 @@ async def gemini_flash_answer_questions(
                         extra={
                             'json_fields': {
                                 'stage': Stage.LLM_ANSWER,
-                                'model': model_name,
+                                'model': column_name,
                                 'question_id': question_id,
                             },
                         },
