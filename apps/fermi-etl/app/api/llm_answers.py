@@ -3,7 +3,7 @@
 import logging
 
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.config import get_config
 from app.services.llm_answer_service import (
@@ -21,6 +21,15 @@ class LLMAnswerRequest(BaseModel):
     """Request body for LLM answering endpoints."""
 
     num_questions: int = 50
+
+
+class GeminiFlashRequest(BaseModel):
+    """Request body for Gemini Flash answering endpoint."""
+
+    num_questions: int = 50
+    model_name: str = 'gemini-2.5-flash-lite'
+    model_provider: str = 'google-vertexai'
+    temperature: float = Field(default=0.2, le=0.2)
 
 
 @router.post('/gpt-5.1', response_model=LLMAnswerResult)
@@ -60,20 +69,21 @@ async def answer_gpt5_nano(request: LLMAnswerRequest) -> LLMAnswerResult:
 
 
 @router.post('/gemini-flash', response_model=LLMAnswerResult)
-async def answer_gemini_flash(request: LLMAnswerRequest) -> LLMAnswerResult:
-    """Answer questions with 5 Gemini Flash instances (high temp, atomic upload).
+async def answer_gemini_flash(request: GeminiFlashRequest) -> LLMAnswerResult:
+    """Answer questions with 5 Gemini Flash instances (atomic upload).
 
     Each question gets 5 Gemini answers. All 5 must succeed for any to be stored.
-    Uses high temperature for varied/casual bot answers.
+    Model settings (name, provider, temperature) can be configured per request.
     """
     logger.info(
         f'LLM answering {request.num_questions} questions with '
-        'Gemini Flash (5 answers each)',
+        f'Gemini Flash ({request.model_name}, temp={request.temperature})',
     )
-    config = get_config()
     return await gemini_flash_answer_questions(
         limit=request.num_questions,
-        config=config,
+        model_name=request.model_name,
+        model_provider=request.model_provider,
+        temperature=request.temperature,
     )
 
 

@@ -24,12 +24,20 @@ class AnswerResult(BaseModel):
 
 async def answer_questions(
     question_ids: list[int],
+    location_model: str = 'gpt-5-mini',
+    extraction_model: str = 'gpt-5-mini',
+    model_provider: str = 'openai',
+    confidence_threshold: float = 0.8,
     config: ETLConfig | None = None,
 ) -> AnswerResult:
     """Answer questions and store successful results.
 
     Args:
         question_ids: List of question IDs to answer
+        location_model: Model for location selection
+        extraction_model: Model for answer extraction
+        model_provider: Model provider
+        confidence_threshold: Minimum confidence threshold
         config: ETL configuration (if None, load from env)
 
     Returns:
@@ -67,10 +75,10 @@ async def answer_questions(
         question_texts = [q.text for q in questions]
         answers_or_errors = await aget_questions_answers_serp(
             questions=question_texts,
-            location_model=config.location_model,
-            extraction_model=config.extraction_model,
-            model_provider=config.model_provider,
-            confidence_threshold=config.confidence_threshold,
+            location_model=location_model,
+            extraction_model=extraction_model,
+            model_provider=model_provider,
+            confidence_threshold=confidence_threshold,
             temperature=0.0,
             # service_tier='flex',
         )
@@ -148,12 +156,20 @@ async def answer_questions(
 
 async def answer_unanswered_questions(
     num_questions: int = 50,
+    location_model: str = 'gpt-5-mini',
+    extraction_model: str = 'gpt-5-mini',
+    model_provider: str = 'openai',
+    confidence_threshold: float = 0.8,
     config: ETLConfig | None = None,
 ) -> AnswerResult:
     """Fetch and answer the latest N unanswered questions.
 
     Args:
         num_questions: Number of unanswered questions to answer
+        location_model: Model for location selection
+        extraction_model: Model for answer extraction
+        model_provider: Model provider
+        confidence_threshold: Minimum confidence threshold
         config: ETL configuration (if None, load from env)
 
     Returns:
@@ -192,4 +208,11 @@ async def answer_unanswered_questions(
     logger.info(f'Found {len(unanswered_ids)} unanswered questions')
 
     # Call answer_questions (which creates its own session)
-    return await answer_questions(unanswered_ids, config)
+    return await answer_questions(
+        unanswered_ids,
+        location_model=location_model,
+        extraction_model=extraction_model,
+        model_provider=model_provider,
+        confidence_threshold=confidence_threshold,
+        config=config,
+    )

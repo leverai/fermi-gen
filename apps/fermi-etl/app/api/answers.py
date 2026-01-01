@@ -40,6 +40,10 @@ async def insert_serp(request: AnswerUnansweredRequest) -> AnswerResponse:
         config = get_config()
         result = await answer_unanswered_questions(
             num_questions=request.num_questions,
+            location_model=request.location_model,
+            extraction_model=request.extraction_model,
+            model_provider=request.answer_model_provider,
+            confidence_threshold=request.confidence_threshold,
             config=config,
         )
 

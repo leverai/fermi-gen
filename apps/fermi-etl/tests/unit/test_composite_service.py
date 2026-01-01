@@ -17,7 +17,6 @@ def mock_config() -> MagicMock:
     """Create a mock ETLConfig."""
     config = MagicMock(spec=ETLConfig)
     config.llm_answer_models = ['gpt-5.1', 'gpt-5-mini', 'gpt-5-nano']
-    config.gemini_flash_temperature = 1.5
     return config
 
 
@@ -38,7 +37,8 @@ def question_result() -> QuestionBatchResult:
 
 @pytest.mark.asyncio
 async def test_run_answer_workflow_calls_gemini_flash(
-    mock_config: MagicMock, question_result: QuestionBatchResult
+    mock_config: MagicMock,
+    question_result: QuestionBatchResult,
 ) -> None:
     """Test that _run_answer_workflow calls gemini_flash_answer_questions."""
     # Mock all the service functions
@@ -103,13 +103,16 @@ async def test_run_answer_workflow_calls_gemini_flash(
             details={},
         )
 
-        # Run the workflow
-        result = await _run_answer_workflow(question_result, mock_config)
+        # Run the workflow (config is now optional and passed as keyword arg)
+        result = await _run_answer_workflow(
+            question_result,
+            config=mock_config,
+        )
 
-        # Verify gemini_flash_answer_questions was called
+        # Verify gemini_flash_answer_questions was called with limit only
+        # (uses defaults)
         mock_gemini_flash.assert_called_once_with(
             limit=2,
-            config=mock_config,
         )
 
         # Verify the result includes Gemini Flash in llm_answer_results
@@ -183,7 +186,10 @@ async def test_run_answer_workflow_continues_if_gemini_flash_fails(
         mock_gemini_flash.side_effect = Exception('Gemini Flash API error')
 
         # Run the workflow
-        result = await _run_answer_workflow(question_result, mock_config)
+        result = await _run_answer_workflow(
+            question_result,
+            config=mock_config,
+        )
 
         # Verify workflow still succeeds
         assert result.success is True

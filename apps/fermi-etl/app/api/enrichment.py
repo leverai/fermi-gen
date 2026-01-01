@@ -35,6 +35,8 @@ async def enrich_category(request: EnrichmentRequest) -> EnrichmentResponse:
         config = get_config()
         result = await enrich_categories(
             limit=request.num_questions,
+            model=request.model,
+            model_provider=request.model_provider,
             config=config,
         )
 
@@ -71,6 +73,8 @@ async def enrich_difficulty(request: EnrichmentRequest) -> EnrichmentResponse:
         config = get_config()
         result = await enrich_difficulties(
             limit=request.num_questions,
+            model=request.model,
+            model_provider=request.model_provider,
             config=config,
         )
 

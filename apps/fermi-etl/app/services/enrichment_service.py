@@ -25,18 +25,27 @@ class EnrichmentResult(BaseModel):
 
 async def enrich_categories(
     limit: int,
-    config: ETLConfig,
+    model: str = 'gpt-5-mini',
+    model_provider: str = 'openai',
+    config: ETLConfig | None = None,
 ) -> EnrichmentResult:
     """Enrich questions with categories using LLM classification.
 
     Args:
         limit: Maximum number of questions to enrich
+        model: Model for category classification
+        model_provider: Model provider
         config: Application configuration
 
     Returns:
         EnrichmentResult with statistics
 
     """
+    if config is None:
+        from app.config import get_config
+
+        config = get_config()
+
     async with session_context() as session:
         db_client = DatabaseClient(session)
 
@@ -61,8 +70,8 @@ async def enrich_categories(
         # Batch categorize using langchain
         results = await acategorize_batch(
             questions=question_texts,
-            model=config.category_model,
-            model_provider=config.category_model_provider,
+            model=model,
+            model_provider=model_provider,
             temperature=0.5,
             # service_tier='flex',
         )
@@ -101,18 +110,27 @@ async def enrich_categories(
 
 async def enrich_difficulties(
     limit: int,
-    config: ETLConfig,
+    model: str = 'gpt-5-mini',
+    model_provider: str = 'openai',
+    config: ETLConfig | None = None,
 ) -> EnrichmentResult:
     """Enrich questions with difficulties using LLM classification.
 
     Args:
         limit: Maximum number of questions to enrich
+        model: Model for difficulty assessment
+        model_provider: Model provider
         config: Application configuration
 
     Returns:
         EnrichmentResult with statistics
 
     """
+    if config is None:
+        from app.config import get_config
+
+        config = get_config()
+
     async with session_context() as session:
         db_client = DatabaseClient(session)
 
@@ -137,8 +155,8 @@ async def enrich_difficulties(
         # Batch assess difficulty using langchain
         results = await adifficulty_batch(
             questions=question_texts,
-            model=config.difficulty_model,
-            model_provider=config.difficulty_model_provider,
+            model=model,
+            model_provider=model_provider,
             temperature=0.5,
             # service_tier='flex',
         )
