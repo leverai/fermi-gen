@@ -21,6 +21,16 @@ class ETLConfig(BaseSettings):
     openai_api_key: str = Field(..., description='OpenAI API key')
     serp_api_key: str = Field(..., description='SerpAPI key')
 
+    # LLM answering parameters
+    llm_answer_models: list[str] = Field(
+        default=['gpt-5.1', 'gpt-5-mini', 'gpt-5-nano'],
+        description='LLM models for question answering',
+    )
+    llm_answer_model_provider: str = Field(
+        default='openai',
+        description='Provider for LLM answer models',
+    )
+
     # Similarity thresholds
     seed_similarity_threshold: float = Field(
         default=0.1,
