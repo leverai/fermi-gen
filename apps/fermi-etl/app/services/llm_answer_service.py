@@ -2,18 +2,15 @@
 
 import logging
 import random
-import traceback
-from typing import Any
+from typing import Any, Literal
 
 from fermi_core.op import allm_answer_batch
 from fermi_core.schemas.llm_answer import LLMAnswerInput
-from fermi_core.units import get_units_ladder
 from fermi_db.dal import DatabaseClient
 from fermi_db.models import LLMAnswer
 from fermi_db.session import session_context
 from pydantic import BaseModel
 
-from app.config import ETLConfig
 from app.log_context import Stage
 
 logger = logging.getLogger(__name__)
@@ -28,20 +25,19 @@ class LLMAnswerResult(BaseModel):
     details: dict[str, Any]
 
 
-async def llm_answer_questions(
-    model: str,
+async def answer_gpt(
+    model: Literal['gpt-5.1', 'gpt-5-mini', 'gpt-5-nano'],
     limit: int,
-    config: ETLConfig,
 ) -> LLMAnswerResult:
-    """Answer questions using the specified LLM model.
+    """Answer questions using the specified GPT model.
 
     Finds questions with successful SerpAPI answers that haven't been
-    answered by this model yet, and generates LLM answers for them.
+    answered by this GPT model yet, and generates GPT answers for them.
 
     Args:
-        model: LLM model name (e.g., 'gpt-5.1', 'gpt-5-mini', 'gpt-5-nano')
+        model: GPT model name - one of 'gpt-5.1', 'gpt-5-mini', 'gpt-5-nano'
+        model_provider: Model provider
         limit: Maximum number of questions to answer
-        config: Application configuration
 
     Returns:
         LLMAnswerResult with statistics
@@ -51,7 +47,7 @@ async def llm_answer_questions(
         db_client = DatabaseClient(session)
 
         # Get questions needing LLM answer for this model
-        questions_data = await db_client.llm_answers.get_questions_needing_llm_answer(
+        questions_data = await db_client.llm_answers.get_questions_needing_gpt_answer(
             model=model,
             limit=limit,
         )
@@ -59,7 +55,7 @@ async def llm_answer_questions(
         if not questions_data:
             logger.info(
                 f'No questions need {model} LLM answering',
-                extra={'json_fields': {'stage': Stage.LLM_ANSWER, 'model': model}},
+                extra={'json_fields': {'stage': Stage.GPT_ANSWER, 'model': model}},
             )
             return LLMAnswerResult(
                 model=model,
@@ -72,49 +68,30 @@ async def llm_answer_questions(
             f'LLM answering {len(questions_data)} questions with {model}',
             extra={
                 'json_fields': {
-                    'stage': Stage.LLM_ANSWER,
+                    'stage': Stage.GPT_ANSWER,
                     'model': model,
                     'batch_size': len(questions_data),
                 },
             },
         )
 
-        # Build LLM inputs with units_set for dimensional questions
+        # Build LLM inputs
         llm_inputs: list[LLMAnswerInput] = []
         question_ids: list[int] = []
-
-        units_sets: list[list[str] | None] = []
-        for question_id, question_text, answer_unit in questions_data:
-            # Get units ladder for dimensional questions
-            units_set: list[str] | None = None
-            if answer_unit:
-                try:
-                    units_ladder = get_units_ladder(answer_unit)
-                    units_set = [u['id'] for u in units_ladder]
-                except ValueError:
-                    logger.warning(
-                        f'Unknown unit {answer_unit} for question {question_id}',
-                        extra={
-                            'json_fields': {
-                                'stage': Stage.LLM_ANSWER,
-                                'model': model,
-                                'question_id': question_id,
-                                'unit': answer_unit,
-                            },
-                        },
-                    )
-
+        for question in questions_data:
             llm_inputs.append(
-                LLMAnswerInput(question=question_text, units_set=units_set),
+                LLMAnswerInput(
+                    question=question['question_text'],
+                    answer_unit=question['answer_unit'],
+                ),
             )
-            question_ids.append(question_id)
-            units_sets.append(units_set)
+            question_ids.append(question['question_id'])
 
         # Batch LLM answering
         results = await allm_answer_batch(
             questions=llm_inputs,
             model=model,
-            model_provider=config.llm_answer_model_provider,
+            model_provider='openai',
             temperature=1,
             # service_tier='flex',
         )
@@ -123,10 +100,9 @@ async def llm_answer_questions(
         llm_answers: list[LLMAnswer] = []
         skipped = 0
 
-        for question_id, result, units_set in zip(
+        for question_id, result in zip(
             question_ids,
             results,
-            units_sets,
             strict=True,
         ):
             if isinstance(result, BaseException):
@@ -134,7 +110,7 @@ async def llm_answer_questions(
                     f'Failed to LLM answer question {question_id}: {result}',
                     extra={
                         'json_fields': {
-                            'stage': Stage.LLM_ANSWER,
+                            'stage': Stage.GPT_ANSWER,
                             'model': model,
                             'question_id': question_id,
                         },
@@ -150,23 +126,7 @@ async def llm_answer_questions(
                     '(structured output parsing failed)',
                     extra={
                         'json_fields': {
-                            'stage': Stage.LLM_ANSWER,
-                            'model': model,
-                            'question_id': question_id,
-                        },
-                    },
-                )
-                skipped += 1
-                continue
-
-            # Validate the the agent did choose a valid unit from the set.
-            if units_set and result.unit not in units_set:
-                logger.error(
-                    f'LLM answer unit {result.unit} does not match expected units '
-                    f'{units_set} for question {question_id}',
-                    extra={
-                        'json_fields': {
-                            'stage': Stage.LLM_ANSWER,
+                            'stage': Stage.GPT_ANSWER,
                             'model': model,
                             'question_id': question_id,
                         },
@@ -191,7 +151,7 @@ async def llm_answer_questions(
                 f'Successfully stored {len(llm_answers)} {model} LLM answers',
                 extra={
                     'json_fields': {
-                        'stage': Stage.LLM_ANSWER,
+                        'stage': Stage.GPT_ANSWER,
                         'model': model,
                         'stored': len(llm_answers),
                         'skipped': skipped,
@@ -211,24 +171,23 @@ async def llm_answer_questions(
         )
 
 
-async def gemini_flash_answer_questions(
+async def answer_gemini_flash(
     limit: int,
-    model_name: str = 'gemini-2.5-flash-lite',
+    model: str = 'gemini-2.5-flash-lite',
     model_provider: str = 'google-vertexai',
     temperature: float = 0.2,
 ) -> LLMAnswerResult:
-    """Answer questions with 5 Gemini Flash instances (atomic upload).
+    """Answer questions with 5 Gemini Flash instances (batched).
 
-    For each question:
-    1. Generate 5 answers using Gemini Flash
-    2. If ALL 5 succeed → store all 5 atomically
-    3. If ANY fail → skip the question entirely
+    Generates 5 answers per question using a single batched API call for
+    maximum throughput. Successfully generated answers are stored individually.
+    Failed answers can be retried by running this function again.
 
     Uses google-vertexai provider which works with ADC on Cloud Run.
 
     Args:
         limit: Maximum number of questions to process
-        model_name: Gemini model name (default: gemini-2.5-flash-lite)
+        model: Gemini model name (default: gemini-2.5-flash-lite)
         model_provider: Model provider (default: google-vertexai)
         temperature: Temperature for generation (default: 0.2, max: 0.2)
 
@@ -250,7 +209,7 @@ async def gemini_flash_answer_questions(
             logger.info(
                 'No questions need Gemini Flash answering',
                 extra={
-                    'json_fields': {'stage': Stage.LLM_ANSWER, 'model': 'gemini-flash'},
+                    'json_fields': {'stage': Stage.GPT_ANSWER, 'model': 'gemini-flash'},
                 },
             )
             return LLMAnswerResult(
@@ -264,226 +223,126 @@ async def gemini_flash_answer_questions(
             f'Gemini Flash answering {len(questions_data)} questions (5 answers each)',
             extra={
                 'json_fields': {
-                    'stage': Stage.LLM_ANSWER,
+                    'stage': Stage.GEMINI_FLASH_ANSWER,
                     'model': 'gemini-flash',
                     'batch_size': len(questions_data),
                 },
             },
         )
 
-        # Build LLM inputs
+        # Build flattened batch: 5 requests per question
         llm_inputs: list[LLMAnswerInput] = []
-        question_ids: list[int] = []
-        units_sets: list[list[str] | None] = []
+        request_metadata: list[tuple[int, str]] = []  # (question_id, model_name)
 
-        for question_id, question_text, answer_unit in questions_data:
-            units_set: list[str] | None = None
-            if answer_unit:
-                try:
-                    units_ladder = get_units_ladder(answer_unit)
-                    units_set = [u['id'] for u in units_ladder]
-                except ValueError:
-                    logger.warning(
-                        f'Unknown unit {answer_unit} for question {question_id}',
-                        extra={
-                            'json_fields': {
-                                'stage': Stage.LLM_ANSWER,
-                                'model': 'gemini-flash',
-                                'question_id': question_id,
-                                'unit': answer_unit,
-                            },
-                        },
-                    )
+        for question in questions_data:
+            for model_idx in range(1, 6):
+                llm_inputs.append(
+                    LLMAnswerInput(
+                        question=question['question_text'],
+                        answer_unit=question['answer_unit'],
+                    ),
+                )
+                request_metadata.append(
+                    (
+                        question['question_id'],
+                        f'gemini-flash-{model_idx}',
+                    ),
+                )
 
-            llm_inputs.append(
-                LLMAnswerInput(question=question_text, units_set=units_set),
-            )
-            question_ids.append(question_id)
-            units_sets.append(units_set)
+        # Single batched API call for all requests
+        results = await allm_answer_batch(
+            questions=llm_inputs,
+            model=model,
+            model_provider=model_provider,
+            temperature=temperature,
+            top_p=0.99,
+            top_k=40,
+        )
 
-        # Generate 5 answers per question, atomically
-        total_stored = 0
-        total_skipped = 0
+        # Process results and prepare database entries
+        llm_answers: list[LLMAnswer] = []
+        questions_with_answers: set[int] = set()
+        failed_count = 0
 
-        for question_id, llm_input, units_set in zip(
-            question_ids,
-            llm_inputs,
-            units_sets,
+        for (question_id, column_name), result in zip(
+            request_metadata,
+            results,
             strict=True,
         ):
-            # Generate 5 answers for this question
-            answers_for_question: list[LLMAnswer] = []
-            all_succeeded = True
-
-            for model_idx in range(1, 6):
-                column_name = f'gemini-flash-{model_idx}'
-                max_attempts = 3
-                attempt = 0
-                model_succeeded = False
-
-                while attempt < max_attempts and not model_succeeded:
-                    attempt += 1
-                    try:
-                        results = await allm_answer_batch(
-                            questions=[llm_input],
-                            model=model_name,
-                            model_provider=model_provider,
-                            temperature=temperature,
-                            top_p=0.99,
-                            top_k=40,
-                        )
-                        result = results[0]
-
-                        if isinstance(result, BaseException):
-                            logger.warning(
-                                f'Gemini Flash failed for Q{question_id} '
-                                f'model {model_idx} attempt {attempt}/{max_attempts}: '
-                                f'{result}',
-                                extra={
-                                    'json_fields': {
-                                        'stage': Stage.LLM_ANSWER,
-                                        'model': column_name,
-                                        'question_id': question_id,
-                                        'attempt': attempt,
-                                    },
-                                },
-                            )
-                            continue  # Retry
-
-                        # Handle None results (structured output parsing failed)
-                        if result is None:
-                            logger.warning(
-                                f'Gemini Flash returned None for Q{question_id} '
-                                f'model {model_idx} attempt {attempt}/{max_attempts} '
-                                '(structured output parsing failed)',
-                                extra={
-                                    'json_fields': {
-                                        'stage': Stage.LLM_ANSWER,
-                                        'model': column_name,
-                                        'question_id': question_id,
-                                        'attempt': attempt,
-                                    },
-                                },
-                            )
-                            continue  # Retry
-
-                        if units_set and result.unit not in units_set:
-                            logger.warning(
-                                f'Gemini unit {result.unit} not in {units_set} '
-                                f'for Q{question_id} attempt {attempt}/{max_attempts}',
-                                extra={
-                                    'json_fields': {
-                                        'stage': Stage.LLM_ANSWER,
-                                        'model': column_name,
-                                        'question_id': question_id,
-                                        'attempt': attempt,
-                                    },
-                                },
-                            )
-                            continue  # Retry
-
-                        # Validate unit
-                        if not units_set and result.unit:
-                            logger.warning(
-                                f'Gemini unit {result.unit} received with no units '
-                                f'set for Q{question_id} attempt '
-                                f'{attempt}/{max_attempts}',
-                                extra={
-                                    'json_fields': {
-                                        'stage': Stage.LLM_ANSWER,
-                                        'model': column_name,
-                                        'question_id': question_id,
-                                        'attempt': attempt,
-                                    },
-                                },
-                            )
-                            continue  # Retry
-
-                        # Success! Scale number by random amount
-                        result.number *= random.uniform(0.4, 2.1)
-
-                        answers_for_question.append(
-                            LLMAnswer(
-                                question_id=question_id,
-                                model=column_name,
-                                number=result.number,
-                                unit=result.unit,
-                            ),
-                        )
-                        model_succeeded = True
-
-                    except Exception as e:
-                        logger.warning(
-                            f'Exception in Gemini Flash for Q{question_id} '
-                            f'model {model_idx} attempt {attempt}/{max_attempts}: '
-                            f'{e}\n{traceback.format_exc()}',
-                            extra={
-                                'json_fields': {
-                                    'stage': Stage.LLM_ANSWER,
-                                    'model': column_name,
-                                    'question_id': question_id,
-                                    'attempt': attempt,
-                                },
-                            },
-                        )
-                        continue  # Retry
-
-                # If all attempts failed for this model, skip the question
-                if not model_succeeded:
-                    logger.error(
-                        f'All {max_attempts} attempts failed for Q{question_id} '
-                        f'model {model_idx}',
-                        extra={
-                            'json_fields': {
-                                'stage': Stage.LLM_ANSWER,
-                                'model': column_name,
-                                'question_id': question_id,
-                            },
-                        },
-                    )
-                    all_succeeded = False
-                    break
-
-            # Atomic insert: all 5 or none
-            if all_succeeded and len(answers_for_question) == 5:
-                await db_client.llm_answers.bulk_insert_llm_answers(
-                    answers_for_question,
-                )
-                total_stored += 1
-                logger.debug(
-                    f'Stored 5 Gemini answers for Q{question_id}',
+            if isinstance(result, BaseException):
+                logger.warning(
+                    f'Gemini Flash failed for Q{question_id} model {column_name}: '
+                    f'{result}',
                     extra={
                         'json_fields': {
-                            'stage': Stage.LLM_ANSWER,
-                            'model': 'gemini-flash',
+                            'stage': Stage.GPT_ANSWER,
+                            'model': column_name,
                             'question_id': question_id,
                         },
                     },
                 )
-            else:
-                total_skipped += 1
+                failed_count += 1
+                continue
+
+            # Handle None results (structured output parsing failed)
+            if result is None:
+                logger.warning(
+                    f'Gemini Flash returned None for Q{question_id} '
+                    f'model {column_name} (structured output parsing failed)',
+                    extra={
+                        'json_fields': {
+                            'stage': Stage.GPT_ANSWER,
+                            'model': column_name,
+                            'question_id': question_id,
+                        },
+                    },
+                )
+                failed_count += 1
+                continue
+
+            # Success! Scale number by random amount
+            scaled_number = result.number * random.uniform(0.4, 2.1)
+
+            llm_answers.append(
+                LLMAnswer(
+                    question_id=question_id,
+                    model=column_name,
+                    number=scaled_number,
+                    unit=result.unit,
+                ),
+            )
+            questions_with_answers.add(question_id)
+
+        # Batch insert all successful answers
+        if llm_answers:
+            await db_client.llm_answers.bulk_insert_llm_answers(llm_answers)
+
+        total_answers_stored = len(llm_answers)
+        questions_answered = len(questions_with_answers)
+        questions_skipped = len(questions_data) - questions_answered
 
         logger.info(
-            f'Gemini Flash complete: {total_stored} questions answered, '
-            f'{total_skipped} skipped',
+            f'Gemini Flash complete: {total_answers_stored} answers stored for '
+            f'{questions_answered} questions, {failed_count} failed',
             extra={
                 'json_fields': {
-                    'stage': Stage.LLM_ANSWER,
+                    'stage': Stage.GPT_ANSWER,
                     'model': 'gemini-flash',
-                    'stored': total_stored,
-                    'skipped': total_skipped,
+                    'answers_stored': total_answers_stored,
+                    'questions_answered': questions_answered,
+                    'failed': failed_count,
                 },
             },
         )
 
         return LLMAnswerResult(
             model='gemini-flash',
-            questions_answered=total_stored,
-            questions_skipped=total_skipped,
+            questions_answered=questions_answered,
+            questions_skipped=questions_skipped,
             details={
                 'total_requested': len(questions_data),
-                'questions_fully_answered': total_stored,
-                'questions_failed': total_skipped,
-                'answers_per_question': 5,
+                'total_answers_stored': total_answers_stored,
+                'total_answers_failed': failed_count,
+                'questions_with_at_least_one_answer': questions_answered,
             },
         )

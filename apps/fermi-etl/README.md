@@ -225,11 +225,14 @@ Environment variables (see `env.example`):
 ### Optional (with defaults)
 - `SEED_SIMILARITY_THRESHOLD` (0.1): Threshold for seed uniqueness
 - `QUESTION_SIMILARITY_THRESHOLD` (0.15): Threshold for question uniqueness
-- `QUESTION_GENERATION_MODEL` (gpt-4o-mini): LLM for question generation
-- `LOCATION_MODEL` (gpt-4o-mini): Model for location selection
-- `EXTRACTION_MODEL` (gpt-4o): Model for answer extraction
-- `MODEL_PROVIDER` (openai): Model provider
-- `CONFIDENCE_THRESHOLD` (0.8): Minimum confidence for answers
+
+### Endpoint Arguments (with defaults)
+Model parameters are passed as request arguments rather than environment variables:
+- `question_model` (o3): LLM for question generation
+- `location_model` (gpt-5-mini): Model for location selection
+- `extraction_model` (gpt-5-mini): Model for answer extraction
+- `model_provider` (openai): Model provider
+- `confidence_threshold` (0.8): Minimum confidence for answers
 
 ## Workflows
 

@@ -1,9 +1,19 @@
 """Repository for question-related database operations."""
 
+from typing import cast
+
+from pydantic import BaseModel
 from sqlmodel import select
 
 from fermi_db.models import FermiQuestion
 from fermi_db.repositories import BaseRepository
+
+
+class FermiQuestionLight(BaseModel):
+    """Lightweight FermiQuestion model with only id and text."""
+
+    id: int
+    text: str
 
 
 class QuestionRepository(BaseRepository):
@@ -83,3 +93,29 @@ class QuestionRepository(BaseRepository):
 
         result = await self.session.exec(statement)
         return list(result.all())
+
+    async def get_questions_light_by_ids(
+        self,
+        question_ids: list[int],
+    ) -> list[FermiQuestionLight]:
+        """Get questions (id and text only) by their IDs.
+
+        Args:
+            question_ids: List of question IDs to fetch
+
+        Returns:
+            List of FermiQuestionLight instances that exist
+
+        """
+        if not question_ids:
+            return []
+
+        statement = select(FermiQuestion.id, FermiQuestion.text).where(
+            FermiQuestion.id.in_(question_ids),  # type: ignore
+        )
+        result = await self.session.exec(statement)
+
+        return [
+            FermiQuestionLight(id=cast(int, question_id), text=question_text)
+            for question_id, question_text in result.all()
+        ]

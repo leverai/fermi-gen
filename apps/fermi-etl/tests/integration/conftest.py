@@ -128,11 +128,3 @@ def api_client() -> Generator[TestClient, None, None]:
             yield c
     finally:
         os.chdir(prev)
-
-
-@pytest.fixture(scope='session', autouse=True)
-def _dispose_engine_at_end() -> Generator[None, None, None]:
-    """Dispose the database engine at the end of the test session."""
-    return
-    # Engine disposal handled automatically on process exit
-    # Manual asyncio.run() disposal causes event loop conflicts

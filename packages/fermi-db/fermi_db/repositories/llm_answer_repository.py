@@ -1,6 +1,6 @@
 """Repository for LLMAnswer table operations."""
 
-from typing import cast
+from typing import Literal, TypedDict, cast
 
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import select
@@ -9,28 +9,36 @@ from fermi_db.models import FermiAnswer, FermiQuestion, LLMAnswer
 from fermi_db.repositories import BaseRepository
 
 
+class QuestionWithAnswerUnit(TypedDict):
+    """Question with answer unit."""
+
+    question_id: int
+    question_text: str
+    answer_unit: str | None
+
+
 class LLMAnswerRepository(BaseRepository):
     """Handle database operations for the LLMAnswer table."""
 
-    async def get_questions_needing_llm_answer(
+    async def get_questions_needing_gpt_answer(
         self,
-        model: str,
+        model: Literal['gpt-5.1', 'gpt-5-mini', 'gpt-5-nano'],
         limit: int,
-    ) -> list[tuple[int, str, str | None]]:
-        """Get questions with successful SerpAPI answers but no LLM answer.
+    ) -> list[QuestionWithAnswerUnit]:
+        """Get questions with successful SerpAPI answers but no GPT answer.
 
         Finds questions that have been answered by SerpAPI but not yet by the
-        specified LLM model.
+        specified GPT model.
 
         Args:
-            model: The LLM model name (e.g., 'gpt-5.1', 'gpt-5-mini', 'gpt-5-nano')
+            model: Gpt model name - one of 'gpt-5.1', 'gpt-5-mini', 'gpt-5-nano'
             limit: Maximum number of questions to return
 
         Returns:
             List of (question_id, question_text, answer_unit) tuples
 
         """
-        # Subquery to get question_ids already answered by this model
+        # Subquery to get question_ids already answered by this GPT model
         answered_subq = (
             select(LLMAnswer.question_id).where(LLMAnswer.model == model).subquery()
         )
@@ -46,7 +54,7 @@ class LLMAnswerRepository(BaseRepository):
             .limit(limit)
         )
         result = await self.session.exec(statement)
-        return cast(list[tuple[int, str, str | None]], list(result.all()))
+        return cast(list[QuestionWithAnswerUnit], list(result.all()))
 
     async def bulk_insert_llm_answers(
         self,
@@ -108,7 +116,7 @@ class LLMAnswerRepository(BaseRepository):
     async def get_questions_needing_all_gemini_answers(
         self,
         limit: int,
-    ) -> list[tuple[int, str, str | None]]:
+    ) -> list[QuestionWithAnswerUnit]:
         """Get questions needing all 5 Gemini Flash answers.
 
         Finds questions that:
@@ -122,7 +130,7 @@ class LLMAnswerRepository(BaseRepository):
             limit: Maximum number of questions to return
 
         Returns:
-            List of (question_id, question_text, answer_unit) tuples
+            List of QuestionWithAnswerUnit
 
         """
         # Subquery: questions with any gemini flash answer
@@ -143,4 +151,4 @@ class LLMAnswerRepository(BaseRepository):
             .limit(limit)
         )
         result = await self.session.exec(statement)
-        return cast(list[tuple[int, str, str | None]], list(result.all()))
+        return cast(list[QuestionWithAnswerUnit], list(result.all()))

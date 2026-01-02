@@ -6,8 +6,7 @@ from fastapi import APIRouter
 from fermi_db.dal import DatabaseClient
 from fermi_db.session import session_context
 
-from app.config import get_config
-from app.schemas.requests import EnrichmentRequest
+from app.schemas.requests import EnrichRequest
 from app.schemas.responses import EnrichmentResponse, EnrichmentResult
 from app.services.enrichment_service import enrich_categories, enrich_difficulties
 
@@ -17,7 +16,7 @@ router = APIRouter()
 
 
 @router.post('/category', response_model=EnrichmentResponse)
-async def enrich_category(request: EnrichmentRequest) -> EnrichmentResponse:
+async def enrich_category(request: EnrichRequest) -> EnrichmentResponse:
     """Enrich questions with category classifications.
 
     Args:
@@ -32,12 +31,10 @@ async def enrich_category(request: EnrichmentRequest) -> EnrichmentResponse:
     )
 
     try:
-        config = get_config()
         result = await enrich_categories(
             limit=request.num_questions,
             model=request.model,
             model_provider=request.model_provider,
-            config=config,
         )
 
         logger.info(
@@ -55,7 +52,7 @@ async def enrich_category(request: EnrichmentRequest) -> EnrichmentResponse:
 
 
 @router.post('/difficulty', response_model=EnrichmentResponse)
-async def enrich_difficulty(request: EnrichmentRequest) -> EnrichmentResponse:
+async def enrich_difficulty(request: EnrichRequest) -> EnrichmentResponse:
     """Enrich questions with difficulty classifications.
 
     Args:
@@ -70,12 +67,10 @@ async def enrich_difficulty(request: EnrichmentRequest) -> EnrichmentResponse:
     )
 
     try:
-        config = get_config()
         result = await enrich_difficulties(
             limit=request.num_questions,
             model=request.model,
             model_provider=request.model_provider,
-            config=config,
         )
 
         logger.info(

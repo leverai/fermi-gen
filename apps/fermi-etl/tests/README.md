@@ -47,9 +47,9 @@ tests/
   - Ensures duplicates are rejected
   - Tests mixed batches and edge cases
 - **`test_validation.py`**: Tests validation utilities for seeds and questions
-  - Validates length requirements
+  - Validates length requirements (raises AssertionError for invalid input)
   - Checks content requirements (must contain letters)
-  - Tests edge cases and unicode handling
+  - Verifies that valid inputs return the validated text
 
 #### Integration Tests (`integration/`)
 

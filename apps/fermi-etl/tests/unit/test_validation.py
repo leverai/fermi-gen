@@ -21,31 +21,23 @@ class TestSeedValidation:
         ]
 
         for seed in valid_seeds:
-            is_valid, error = validate_seed(seed)
-            assert is_valid is True, f"Seed '{seed}' should be valid"
-            assert error is None
+            assert validate_seed(seed), f"Seed '{seed}' should be valid"
 
     def test_validate_seed_empty(self) -> None:
         """Test that empty seed is rejected."""
-        is_valid, error = validate_seed('')
-        assert is_valid is False
-        assert error
-        assert 'cannot be empty' in error.lower()
+        with pytest.raises(AssertionError):
+            validate_seed('')
 
     def test_validate_seed_too_short(self) -> None:
         """Test that seeds shorter than 2 characters are rejected."""
-        is_valid, error = validate_seed('a')
-        assert is_valid is False
-        assert error
-        assert 'at least 2 characters' in error.lower()
+        with pytest.raises(AssertionError):
+            validate_seed('a')
 
     def test_validate_seed_too_long(self) -> None:
         """Test that seeds longer than 200 characters are rejected."""
         long_seed = 'x' * 201
-        is_valid, error = validate_seed(long_seed)
-        assert is_valid is False
-        assert error
-        assert 'cannot exceed 200 characters' in error.lower()
+        with pytest.raises(AssertionError):
+            validate_seed(long_seed)
 
     def test_validate_seed_no_letters(self) -> None:
         """Test that seeds with no letters are rejected."""
@@ -57,22 +49,17 @@ class TestSeedValidation:
         ]
 
         for seed in invalid_seeds:
-            is_valid, error = validate_seed(seed)
-            assert is_valid is False, f"Seed '{seed}' should be invalid"
-            assert error
-            assert 'must contain at least one letter' in error.lower()
+            with pytest.raises(AssertionError):
+                validate_seed(seed)
 
     def test_validate_seed_whitespace_only(self) -> None:
         """Test that whitespace-only seeds are rejected."""
-        is_valid, error = validate_seed('   ')
-        assert is_valid is False
-        # Will be rejected for being too short after stripping
+        with pytest.raises(AssertionError):
+            validate_seed('   ')
 
     def test_validate_seed_unicode(self) -> None:
         """Test that seeds with unicode characters are valid if they contain letters."""
-        is_valid, error = validate_seed('Café')
-        assert is_valid is True
-        assert error is None
+        assert validate_seed('Café')
 
 
 class TestQuestionValidation:
@@ -90,16 +77,12 @@ class TestQuestionValidation:
         ]
 
         for question in valid_questions:
-            is_valid, error = validate_question(question)
-            assert is_valid is True, f"Question '{question}' should be valid"
-            assert error is None
+            assert validate_question(question), f"Question '{question}' should be valid"
 
     def test_validate_question_empty(self) -> None:
         """Test that empty question is rejected."""
-        is_valid, error = validate_question('')
-        assert is_valid is False
-        assert error
-        assert 'cannot be empty' in error.lower()
+        with pytest.raises(AssertionError):
+            validate_question('')
 
     def test_validate_question_too_short(self) -> None:
         """Test that questions shorter than 10 characters are rejected."""
@@ -111,18 +94,14 @@ class TestQuestionValidation:
         ]
 
         for question in short_questions:
-            is_valid, error = validate_question(question)
-            assert is_valid is False, f"Question '{question}' should be invalid"
-            assert error
-            assert 'at least 10 characters' in error.lower()
+            with pytest.raises(AssertionError):
+                validate_question(question)
 
     def test_validate_question_too_long(self) -> None:
         """Test that questions longer than 500 characters are rejected."""
         long_question = 'x' * 501
-        is_valid, error = validate_question(long_question)
-        assert is_valid is False
-        assert error
-        assert 'cannot exceed 500 characters' in error.lower()
+        with pytest.raises(AssertionError):
+            validate_question(long_question)
 
     def test_validate_question_no_letters(self) -> None:
         """Test that questions with no letters are rejected."""
@@ -133,16 +112,12 @@ class TestQuestionValidation:
         ]
 
         for question in invalid_questions:
-            is_valid, error = validate_question(question)
-            assert is_valid is False, f"Question '{question}' should be invalid"
-            assert error
-            assert 'must contain at least one letter' in error.lower()
+            with pytest.raises(AssertionError):
+                validate_question(question)
 
     def test_validate_question_with_numbers(self) -> None:
         """Test that questions with numbers are valid if they contain letters."""
-        is_valid, error = validate_question('How many items are in 3 boxes?')
-        assert is_valid is True
-        assert error is None
+        assert validate_question('How many items are in 3 boxes?')
 
     def test_validate_question_with_special_chars(self) -> None:
         """Test that questions with special chars are valid with letters."""
@@ -153,21 +128,16 @@ class TestQuestionValidation:
         ]
 
         for question in questions:
-            is_valid, error = validate_question(question)
-            assert is_valid is True
-            assert error is None
+            assert validate_question(question)
 
     def test_validate_question_whitespace_only(self) -> None:
         """Test that whitespace-only questions are rejected."""
-        is_valid, error = validate_question('          ')
-        assert is_valid is False
-        # Will be rejected for being too short after stripping
+        with pytest.raises(AssertionError):
+            validate_question('          ')
 
     def test_validate_question_unicode(self) -> None:
         """Test that questions with unicode characters are valid with letters."""
-        is_valid, error = validate_question('Combien de personnes vivent à Paris?')
-        assert is_valid is True
-        assert error is None
+        assert validate_question('Combien de personnes vivent à Paris?')
 
 
 @pytest.mark.parametrize(
@@ -184,12 +154,11 @@ class TestQuestionValidation:
 )
 def test_validate_seed_parametrized(seed: str, *, expected_valid: bool) -> None:
     """Test seed validation with parametrized inputs."""
-    is_valid, error = validate_seed(seed)
-    assert is_valid == expected_valid
     if expected_valid:
-        assert error is None
+        assert validate_seed(seed)
     else:
-        assert error is not None
+        with pytest.raises(AssertionError):
+            validate_seed(seed)
 
 
 @pytest.mark.parametrize(
@@ -206,9 +175,8 @@ def test_validate_seed_parametrized(seed: str, *, expected_valid: bool) -> None:
 )
 def test_validate_question_parametrized(question: str, *, expected_valid: bool) -> None:
     """Test question validation with parametrized inputs."""
-    is_valid, error = validate_question(question)
-    assert is_valid == expected_valid
     if expected_valid:
-        assert error is None
+        assert validate_question(question)
     else:
-        assert error is not None
+        with pytest.raises(AssertionError):
+            validate_question(question)

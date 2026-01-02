@@ -5,7 +5,7 @@ import traceback
 from dataclasses import dataclass
 from typing import Literal
 
-from app.config import ETLConfig
+from app.config import get_config
 from app.services.answer_service import AnswerResult, answer_questions
 from app.services.enrichment_service import (
     EnrichmentResult,
@@ -15,8 +15,8 @@ from app.services.enrichment_service import (
 )
 from app.services.llm_answer_service import (
     LLMAnswerResult,
-    gemini_flash_answer_questions,
-    llm_answer_questions,
+    answer_gemini_flash,
+    answer_gpt,
 )
 from app.services.question_service import (
     QuestionBatchResult,
@@ -25,6 +25,8 @@ from app.services.question_service import (
 )
 
 logger = logging.getLogger(__name__)
+
+config = get_config()
 
 
 @dataclass
@@ -49,7 +51,6 @@ async def _run_answer_workflow(
     category_model_provider: str = 'openai',
     difficulty_model: str = 'gpt-5-mini',
     difficulty_model_provider: str = 'openai',
-    config: ETLConfig | None = None,
 ) -> CompositeResult:
     # Step 2: Answer questions
     logger.info(
@@ -61,7 +62,6 @@ async def _run_answer_workflow(
         extraction_model=extraction_model,
         model_provider=answer_model_provider,
         confidence_threshold=confidence_threshold,
-        config=config,
     )
 
     if not answer_result.questions_answered:
@@ -81,7 +81,6 @@ async def _run_answer_workflow(
             limit=answer_result.questions_answered,
             model=category_model,
             model_provider=category_model_provider,
-            config=config,
         )
     except Exception:
         logger.exception('Enrichment failed')
@@ -98,7 +97,6 @@ async def _run_answer_workflow(
             limit=answer_result.questions_answered,
             model=difficulty_model,
             model_provider=difficulty_model_provider,
-            config=config,
         )
     except Exception:
         logger.exception('Enrichment failed')
@@ -112,28 +110,26 @@ async def _run_answer_workflow(
     # Step 4: LLM answer questions with all configured models
     # Note: LLM answer models stay in config per user request
     logger.info('Step 4: LLM answering newly enriched questions...')
-    llm_answer_results: list[LLMAnswerResult] = []
-    if config:
-        for model in config.llm_answer_models:
-            try:
-                llm_result = await llm_answer_questions(
-                    model=model,
-                    limit=answer_result.questions_answered,
-                    config=config,
-                )
-                llm_answer_results.append(llm_result)
-            except Exception:
-                logger.exception(f'LLM answering failed for model {model}')
-                # Continue with other models even if one fails
+    gpt_answer_results: list[LLMAnswerResult] = []
+    for model in config.gpt_answer_models:
+        try:
+            llm_result = await answer_gpt(
+                model=model,
+                limit=answer_result.questions_answered,
+            )
+            gpt_answer_results.append(llm_result)
+        except Exception:
+            logger.exception(f'LLM answering failed for model {model}')
+            # Continue with other models even if one fails
 
     # Step 4.5: Gemini Flash answer questions (5 models)
     logger.info('Step 4.5: Gemini Flash answering newly enriched questions...')
     try:
-        gemini_result = await gemini_flash_answer_questions(
+        gemini_result = await answer_gemini_flash(
             limit=answer_result.questions_answered,
             # Uses defaults: model_name, model_provider, temperature
         )
-        llm_answer_results.append(gemini_result)
+        gpt_answer_results.append(gemini_result)
     except Exception:
         logger.exception('Gemini Flash answering failed')
         # Continue even if Gemini Flash fails
@@ -158,7 +154,7 @@ async def _run_answer_workflow(
         question_result=question_result,
         answer_result=answer_result,
         enrichment_result=combined_enrichment,
-        llm_answer_results=llm_answer_results if llm_answer_results else None,
+        llm_answer_results=gpt_answer_results if gpt_answer_results else None,
     )
 
 
@@ -173,7 +169,7 @@ async def run_literal_workflow(
     category_model_provider: str = 'openai',
     difficulty_model: str = 'gpt-5-mini',
     difficulty_model_provider: str = 'openai',
-    config: ETLConfig | None = None,
+    question_similarity_threshold: float = 0.15,
 ) -> CompositeResult:
     """Run complete literal workflow: insert → answer → enrich → refresh.
 
@@ -188,7 +184,7 @@ async def run_literal_workflow(
         category_model_provider: Model provider for category
         difficulty_model: Model for difficulty assessment
         difficulty_model_provider: Model provider for difficulty
-        config: Application configuration
+        question_similarity_threshold: Similarity threshold for question deduplication
 
     Returns:
         CompositeResult with all workflow results
@@ -199,7 +195,7 @@ async def run_literal_workflow(
     question_result = await insert_literal_questions(
         question_texts=question_texts,
         provider=provider,
-        config=config,
+        similarity_threshold=question_similarity_threshold,
     )
 
     if not question_result.new_question_ids:
@@ -221,7 +217,6 @@ async def run_literal_workflow(
         category_model_provider=category_model_provider,
         difficulty_model=difficulty_model,
         difficulty_model_provider=difficulty_model_provider,
-        config=config,
     )
     logger.info('Composite result: %s', composite_result)
     return composite_result
@@ -242,7 +237,7 @@ async def run_llm_workflow(
     category_model_provider: str = 'openai',
     difficulty_model: str = 'gpt-5-mini',
     difficulty_model_provider: str = 'openai',
-    config: ETLConfig | None = None,
+    question_similarity_threshold: float = 0.15,
 ) -> CompositeResult:
     """Run complete LLM workflow: generate → answer → enrich → refresh.
 
@@ -261,7 +256,7 @@ async def run_llm_workflow(
         category_model_provider: Model provider for category
         difficulty_model: Model for difficulty assessment
         difficulty_model_provider: Model provider for difficulty
-        config: Application configuration
+        question_similarity_threshold: Similarity threshold for question deduplication
 
     Returns:
         CompositeResult with all workflow results
@@ -276,7 +271,7 @@ async def run_llm_workflow(
         model=question_model,
         model_provider=question_model_provider,
         temperature=question_temperature,
-        config=config,
+        similarity_threshold=question_similarity_threshold,
     )
 
     if not question_result.new_question_ids:
@@ -298,5 +293,4 @@ async def run_llm_workflow(
         category_model_provider=category_model_provider,
         difficulty_model=difficulty_model,
         difficulty_model_provider=difficulty_model_provider,
-        config=config,
     )

@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-class SeedInsertRequest(BaseModel):
+class InsertLiteralSeedsRequest(BaseModel):
     """Request model for manual seed insertion."""
 
     seeds: list[str] = Field(
@@ -16,7 +16,7 @@ class SeedInsertRequest(BaseModel):
     )
 
 
-class QuestionLiteralRequest(BaseModel):
+class InsertLiteralQuestionsRequest(BaseModel):
     """Request model for literal question insertion."""
 
     questions: list[str] = Field(
@@ -31,25 +31,7 @@ class QuestionLiteralRequest(BaseModel):
     )
 
 
-class QuestionLLMRequest(BaseModel):
-    """Request model for LLM-based question generation."""
-
-    num_seeds: int = Field(
-        ...,
-        description='Number of seeds to use for generation',
-        gt=0,
-        le=100,
-    )
-    questions_per_seed: int = Field(
-        default=20,
-        description='Number of questions to generate per seed',
-        gt=0,
-        le=100,
-    )
-    mode: Literal['thompson', 'lru'] = Field(
-        default='thompson',
-        description="Seed selection mode: 'thompson' or 'lru'",
-    )
+class _GenerateLlmQuestionsArgs(BaseModel):
     question_model: str = Field(
         default='o3',
         description='LLM model for question generation',
@@ -65,26 +47,9 @@ class QuestionLLMRequest(BaseModel):
     )
 
 
-class AnswerRequest(BaseModel):
-    """Request model for manual answer generation."""
+class _AnswerQuestionsArgs(BaseModel):
+    """Request model for question answering."""
 
-    question_ids: list[int] = Field(
-        ...,
-        description='List of question IDs to answer',
-        min_length=1,
-        max_length=100,
-    )
-
-
-class AnswerPipelineArgs(BaseModel):
-    """Request model for answering unanswered questions."""
-
-    num_questions: int = Field(
-        default=50,
-        description='Number of unanswered questions to answer',
-        gt=0,
-        le=200,
-    )
     location_model: str = Field(
         default='gpt-5-mini',
         description='Model for location selection',
@@ -95,7 +60,7 @@ class AnswerPipelineArgs(BaseModel):
     )
     answer_model_provider: str = Field(
         default='openai',
-        description='Model provider for answer generation',
+        description='Model provider for location/extraction',
     )
     confidence_threshold: float = Field(
         default=0.8,
@@ -105,8 +70,29 @@ class AnswerPipelineArgs(BaseModel):
     )
 
 
-class InsertLLMRequest(AnswerPipelineArgs):
-    """Request model for composite LLM workflow (generate + answer)."""
+class _EnrichQuestionArgs(BaseModel):
+    """Request model for question enrichment."""
+
+    category_model: str = Field(
+        default='gpt-5-mini',
+        description='Model for category classification',
+    )
+    category_model_provider: str = Field(
+        default='openai',
+        description='Model provider for category classification',
+    )
+    difficulty_model: str = Field(
+        default='gpt-5-mini',
+        description='Model for difficulty assessment',
+    )
+    difficulty_model_provider: str = Field(
+        default='openai',
+        description='Model provider for difficulty assessment',
+    )
+
+
+class QuestionPipelineFromSeedsRequest(_GenerateLlmQuestionsArgs):
+    """Request model for LLM-based question generation from seeds."""
 
     num_seeds: int = Field(
         ...,
@@ -124,73 +110,48 @@ class InsertLLMRequest(AnswerPipelineArgs):
         default='thompson',
         description="Seed selection mode: 'thompson' or 'lru'",
     )
-    # Question generation params
-    question_model: str = Field(
-        default='o3',
-        description='LLM model for question generation',
-    )
-    question_model_provider: str = Field(
-        default='openai',
-        description='Model provider for question generation',
-    )
-    question_temperature: float = Field(
-        default=1.0,
-        le=2.0,
-        description='Temperature for question generation (o3 default: 1.0)',
-    )
-    # Enrichment params
-    category_model: str = Field(
-        default='gpt-5-mini',
-        description='Model for category classification',
-    )
-    category_model_provider: str = Field(
-        default='openai',
-        description='Model provider for category classification',
-    )
-    difficulty_model: str = Field(
-        default='gpt-5-mini',
-        description='Model for difficulty assessment',
-    )
-    difficulty_model_provider: str = Field(
-        default='openai',
-        description='Model provider for difficulty assessment',
-    )
 
 
-class InsertLiteralRequest(AnswerPipelineArgs):
-    """Request model for composite literal workflow (insert + answer)."""
+class AnswerByIdsRequest(BaseModel):
+    """Request model for manual answer generation by question IDs."""
 
-    questions: list[str] = Field(
+    question_ids: list[int] = Field(
         ...,
-        description='List of question texts to insert and answer',
+        description='List of question IDs to answer',
         min_length=1,
         max_length=100,
     )
-    provider: Literal['human', 'other'] = Field(
-        default='other',
-        description='The provider of the literal questions (defaults to other)',
-    )
-    # Enrichment params
-    category_model: str = Field(
-        default='gpt-5-mini',
-        description='Model for category classification',
-    )
-    category_model_provider: str = Field(
-        default='openai',
-        description='Model provider for category classification',
-    )
-    difficulty_model: str = Field(
-        default='gpt-5-mini',
-        description='Model for difficulty assessment',
-    )
-    difficulty_model_provider: str = Field(
-        default='openai',
-        description='Model provider for difficulty assessment',
+
+
+class AnswerPipelineRequest(_AnswerQuestionsArgs):
+    """Request model for answering unanswered questions."""
+
+    num_questions: int = Field(
+        default=50,
+        description='Number of unanswered questions to answer',
+        gt=0,
+        le=200,
     )
 
 
-class EnrichmentRequest(BaseModel):
-    """Request model for enrichment operations."""
+class CompositePipelineRequest(
+    QuestionPipelineFromSeedsRequest,
+    _AnswerQuestionsArgs,
+    _EnrichQuestionArgs,
+):
+    """Request model for composite LLM workflow (generate + answer)."""
+
+
+class CompositePipelineFromQuestionsRequest(
+    InsertLiteralQuestionsRequest,
+    _AnswerQuestionsArgs,
+    _EnrichQuestionArgs,
+):
+    """Request model for composite literal workflow (insert + answer)."""
+
+
+class EnrichRequest(BaseModel):
+    """Request for llm-basedenrichment."""
 
     num_questions: int = Field(
         default=50,
@@ -200,7 +161,7 @@ class EnrichmentRequest(BaseModel):
     )
     model: str = Field(
         default='gpt-5-mini',
-        description='Model for enrichment (category or difficulty)',
+        description='Model for enrichment',
     )
     model_provider: str = Field(
         default='openai',
