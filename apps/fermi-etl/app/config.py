@@ -4,7 +4,7 @@ from typing import Literal
 
 from dotenv import load_dotenv
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ETLConfig(BaseSettings):
@@ -13,6 +13,8 @@ class ETLConfig(BaseSettings):
     Merges configuration from seed, ask, and answer pipelines.
     Environment variables must be provided (no defaults for required fields).
     """
+
+    model_config = SettingsConfigDict(extra='ignore', env_file='.env')
 
     # Database
     database_url: str = Field(
@@ -42,17 +44,6 @@ class ETLConfig(BaseSettings):
         description='Cosine distance threshold for question uniqueness',
     )
 
-    class Config:
-        """Pydantic config.
-
-        The env_file is set to '.env' by default, but can be overridden
-        by loading a different env file before instantiating this class
-        (e.g., in test fixtures or main.py).
-        """
-
-        env_file = '.env'
-        extra = 'ignore'
-
 
 def get_config() -> ETLConfig:
     """Get ETL pipeline configuration from environment variables.
@@ -61,5 +52,5 @@ def get_config() -> ETLConfig:
     in the Config class. If you need to use a different env file (e.g., for tests),
     load it explicitly before calling this function using load_dotenv().
     """
-    load_dotenv()
+    load_dotenv(override=False)
     return ETLConfig()  # type: ignore

@@ -26,8 +26,6 @@ from app.services.question_service import (
 
 logger = logging.getLogger(__name__)
 
-config = get_config()
-
 
 @dataclass
 class CompositeResult:
@@ -110,6 +108,7 @@ async def _run_answer_workflow(
     # Step 4: LLM answer questions with all configured models
     # Note: LLM answer models stay in config per user request
     logger.info('Step 4: LLM answering newly enriched questions...')
+    config = get_config()
     gpt_answer_results: list[LLMAnswerResult] = []
     for model in config.gpt_answer_models:
         try:

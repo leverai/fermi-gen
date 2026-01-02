@@ -192,7 +192,7 @@ class _PlayersRowState extends State<PlayersRow> {
       return LayoutBuilder(
         builder: (context, constraints) {
           const double itemWidth = 108.0;
-          const double itemHeight = 132.0;
+          const double itemHeight = 164.0;
           // Extra height to accommodate transient score chip overflow (~32px below)
           const double overflowMargin = 32.0;
           final int itemCount = sortedPlayers.length;
@@ -268,7 +268,7 @@ class _PlayersRowState extends State<PlayersRow> {
     return LayoutBuilder(
       builder: (context, constraints) {
         const double itemWidth = 108.0;
-        const double itemHeight = 132.0;
+        const double itemHeight = 164.0;
         final int itemCount = sortedPlayers.length;
         final double contentWidth = itemCount * itemWidth;
 

@@ -4,20 +4,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.config import ETLConfig
+# from app.config import ETLConfig
 from app.services.answer_service import AnswerResult
 from app.services.composite_service import _run_answer_workflow
 from app.services.enrichment_service import EnrichmentResult
 from app.services.llm_answer_service import LLMAnswerResult
 from app.services.question_service import QuestionBatchResult
-
-
-@pytest.fixture
-def mock_config() -> MagicMock:
-    """Create a mock ETLConfig."""
-    config = MagicMock(spec=ETLConfig)
-    config.llm_answer_models = ['gpt-5.1', 'gpt-5-mini', 'gpt-5-nano']
-    return config
 
 
 @pytest.fixture
