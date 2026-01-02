@@ -60,7 +60,7 @@ async def allm_answer_batch(
     # Batch invoke - sends all requests concurrently
     # return_exceptions=True maintains 1:1 correspondence with inputs
     responses = cast(
-        list[LLMChainOutput | BaseException],
+        list[LLMChainOutput | BaseException | None],
         await chain.abatch(questions, return_exceptions=True),
     )
 
@@ -70,6 +70,12 @@ async def allm_answer_batch(
         if isinstance(response, BaseException):
             failure_count += 1
             llm_answers.append(response)
+            continue
+
+        # Dumb models sometimes don't return anything.
+        if response is None:
+            failure_count += 1
+            llm_answers.append(ValueError('LLM returned None'))
             continue
 
         llm_answers.append(
