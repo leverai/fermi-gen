@@ -233,14 +233,19 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
                     .format(DateTime(_selectedYear, _selectedMonth, day));
                 final participated = _monthItems[dateStr];
                 final hasData = participated != null;
+                // Get today's date to check if this is a future date
+                final dqController = context.read<DailyQuestionController>();
+                final todayDateStr = dqController.todayDate;
+                final isFuture =
+                    todayDateStr != null && dateStr.compareTo(todayDateStr) > 0;
+                // Future dates with data are SCHEDULED (not viewable yet)
+                final isTappable = hasData && !isFuture;
 
                 return InkWell(
-                  onTap: hasData
+                  onTap: isTappable
                       ? () {
-                          // Check if this is today's active DQ
-                          final dqController =
-                              context.read<DailyQuestionController>();
-                          final isToday = dateStr == dqController.todayDate;
+                          // Reuse dqController from outer scope
+                          final isToday = dateStr == todayDateStr;
                           final todayDoc = dqController.todayDocument;
                           final isActive =
                               isToday && (todayDoc?.status == 'ACTIVE');
@@ -262,15 +267,15 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
                             navigator.pop(); // Close the sheet
                             navigator
                                 .push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const DailyQuestionScreen(),
-                                  ),
-                                )
+                              MaterialPageRoute(
+                                builder: (_) => const DailyQuestionScreen(),
+                              ),
+                            )
                                 .then((_) {
-                                  // Refresh stats when returning from DQ screen
-                                  // in case player submitted an answer
-                                  mainController.refreshInBackground();
-                                });
+                              // Refresh stats when returning from DQ screen
+                              // in case player submitted an answer
+                              mainController.refreshInBackground();
+                            });
                           } else if (isActive && hasParticipated) {
                             // Already submitted - go to unified screen
                             // Capture controller and navigator before async gap to avoid lint warning
@@ -279,16 +284,16 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
                             navigator.pop();
                             navigator
                                 .push(
-                                  MaterialPageRoute(
-                                    builder: (_) => DailyQuestionScreen(
-                                      questionDate: dateStr,
-                                    ),
-                                  ),
-                                )
+                              MaterialPageRoute(
+                                builder: (_) => DailyQuestionScreen(
+                                  questionDate: dateStr,
+                                ),
+                              ),
+                            )
                                 .then((_) {
-                                  // Refresh stats when returning from DQ screen
-                                  mainController.refreshInBackground();
-                                });
+                              // Refresh stats when returning from DQ screen
+                              mainController.refreshInBackground();
+                            });
                           } else {
                             // Past date or closed - show unified screen with results
                             // Capture controller and navigator before async gap to avoid lint warning
@@ -297,16 +302,16 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
                             navigator.pop();
                             navigator
                                 .push(
-                                  MaterialPageRoute(
-                                    builder: (_) => DailyQuestionScreen(
-                                      questionDate: dateStr,
-                                    ),
-                                  ),
-                                )
+                              MaterialPageRoute(
+                                builder: (_) => DailyQuestionScreen(
+                                  questionDate: dateStr,
+                                ),
+                              ),
+                            )
                                 .then((_) {
-                                  // Refresh stats when returning from DQ screen
-                                  mainController.refreshInBackground();
-                                });
+                              // Refresh stats when returning from DQ screen
+                              mainController.refreshInBackground();
+                            });
                           }
                         }
                       : null,

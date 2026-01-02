@@ -1,8 +1,11 @@
 /**
  * Fermi Dashboard - Question Review Application
- * 
+ *
  * State management for staging, diffing, and committing question changes.
  */
+
+// Number formatter
+const numberFormatter = new Intl.NumberFormat('en-US');
 
 // State
 let originalEntries = {};  // uid -> original entry data
@@ -42,31 +45,31 @@ commitBtn.addEventListener('click', commitChanges);
  */
 async function fetchQuestions() {
     const limit = parseInt(limitInput.value) || 50;
-    
+
     showLoading(true);
     hideError();
-    
+
     try {
         const response = await fetch(`/api/questions/pending?limit=${limit}`);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const questions = await response.json();
-        
+
         // Store original state
         originalEntries = {};
         stagedEntries = {};
         expandedUids.clear();
-        
+
         questions.forEach(q => {
             originalEntries[q.uid] = { ...q };
             stagedEntries[q.uid] = { ...q };
         });
-        
+
         renderQuestions();
         updateChangeCount();
-        
+
     } catch (err) {
         showError(`Failed to fetch questions: ${err.message}`);
     } finally {
@@ -79,7 +82,7 @@ async function fetchQuestions() {
  */
 function renderQuestions() {
     const uids = Object.keys(stagedEntries);
-    
+
     if (uids.length === 0) {
         containerEl.innerHTML = `
             <div class="loading">
@@ -88,9 +91,9 @@ function renderQuestions() {
         `;
         return;
     }
-    
+
     containerEl.innerHTML = uids.map(uid => renderQuestionRow(uid)).join('');
-    
+
     // Attach event listeners
     uids.forEach(uid => {
         const headerEl = document.querySelector(`[data-uid="${uid}"] .question-header`);
@@ -106,7 +109,7 @@ function renderQuestionRow(uid) {
     const original = originalEntries[uid];
     const isChanged = hasChanges(uid);
     const isExpanded = expandedUids.has(uid);
-    
+
     return `
         <div class="question-row ${isChanged ? 'changed' : ''} ${isExpanded ? 'expanded' : ''}" data-uid="${uid}">
             <div class="question-header">
@@ -129,53 +132,66 @@ function renderQuestionRow(uid) {
 function renderExpandedForm(uid) {
     const entry = stagedEntries[uid];
     const original = originalEntries[uid];
-    
+
     return `
         <div class="form-grid">
             <div class="form-group full-width">
                 <label>Question Text</label>
-                <textarea 
-                    id="text-${uid}" 
+                <textarea
+                    id="text-${uid}"
                     class="${entry.text !== original.text ? 'changed' : ''}"
                     onchange="updateField('${uid}', 'text', this.value)"
                 >${escapeHtml(entry.text)}</textarea>
             </div>
-            
+
+            <div class="form-group full-width" style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <input
+                    type="checkbox"
+                    id="is_daily_question-${uid}"
+                    ${entry.is_daily_question ? 'checked' : ''}
+                    class="${entry.is_daily_question !== original.is_daily_question ? 'changed' : ''}"
+                    onchange="updateField('${uid}', 'is_daily_question', this.checked)"
+                >
+                <label for="is_daily_question-${uid}" style="margin: 0; font-weight: normal; cursor: pointer;">
+                    Reserved for Daily Question
+                </label>
+            </div>
+
             <div class="form-group">
                 <label>Answer Number</label>
-                <input 
-                    type="number" 
-                    step="any"
-                    id="number-${uid}" 
-                    value="${entry.number}"
+                <input
+                    type="text"
+                    id="number-${uid}"
+                    value="${formatNumberForInput(entry.number)}"
                     class="${entry.number !== original.number ? 'changed' : ''}"
-                    onchange="updateField('${uid}', 'number', parseFloat(this.value))"
+                    onchange="updateNumberField('${uid}', 'number', this.value)"
+                    placeholder="e.g. 1,234.56"
                 >
             </div>
-            
+
             <div class="form-group">
                 <label>Answer Unit</label>
-                <input 
-                    type="text" 
-                    id="unit-${uid}" 
+                <input
+                    type="text"
+                    id="unit-${uid}"
                     value="${entry.unit || ''}"
                     class="${entry.unit !== original.unit ? 'changed' : ''}"
                     onchange="updateField('${uid}', 'unit', this.value || null)"
                 >
             </div>
-            
+
             <div class="form-group full-width">
                 <label>Snippet (Source Reference)</label>
-                <textarea 
-                    id="snippet-${uid}" 
+                <textarea
+                    id="snippet-${uid}"
                     class="${entry.snippet !== original.snippet ? 'changed' : ''}"
                     onchange="updateField('${uid}', 'snippet', this.value)"
                 >${escapeHtml(entry.snippet)}</textarea>
             </div>
-            
+
             <div class="form-group">
                 <label>Category</label>
-                <select 
+                <select
                     id="category-${uid}"
                     class="${entry.category !== original.category ? 'changed' : ''}"
                     onchange="updateField('${uid}', 'category', this.value)"
@@ -187,10 +203,10 @@ function renderExpandedForm(uid) {
                     `).join('')}
                 </select>
             </div>
-            
+
             <div class="form-group">
                 <label>Difficulty</label>
-                <select 
+                <select
                     id="difficulty-${uid}"
                     class="${entry.difficulty !== original.difficulty ? 'changed' : ''}"
                     onchange="updateField('${uid}', 'difficulty', this.value)"
@@ -202,10 +218,10 @@ function renderExpandedForm(uid) {
                     `).join('')}
                 </select>
             </div>
-            
+
             <div class="form-group">
                 <label>Status</label>
-                <select 
+                <select
                     id="status-${uid}"
                     class="${entry.status !== original.status ? 'changed' : ''}"
                     onchange="updateField('${uid}', 'status', this.value)"
@@ -217,13 +233,13 @@ function renderExpandedForm(uid) {
                     `).join('')}
                 </select>
             </div>
-            
+
             <div class="form-group">
                 <label>Question ID</label>
                 <input type="text" value="${entry.question_id}" disabled>
             </div>
         </div>
-        
+
         <div class="llm-section">
             <h3>LLM Bot Answers</h3>
             <div class="llm-grid">
@@ -231,64 +247,61 @@ function renderExpandedForm(uid) {
                     <h4>GPT-5.1</h4>
                     <div class="form-group">
                         <label>Number</label>
-                        <input 
-                            type="number" 
-                            step="any"
-                            value="${entry.gpt_5_1_number}"
+                        <input
+                            type="text"
+                            value="${formatNumberForInput(entry.gpt_5_1_number)}"
                             class="${entry.gpt_5_1_number !== original.gpt_5_1_number ? 'changed' : ''}"
-                            onchange="updateField('${uid}', 'gpt_5_1_number', parseFloat(this.value))"
+                            onchange="updateNumberField('${uid}', 'gpt_5_1_number', this.value)"
                         >
                     </div>
                     <div class="form-group">
                         <label>Unit</label>
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             value="${entry.gpt_5_1_unit || ''}"
                             class="${entry.gpt_5_1_unit !== original.gpt_5_1_unit ? 'changed' : ''}"
                             onchange="updateField('${uid}', 'gpt_5_1_unit', this.value || null)"
                         >
                     </div>
                 </div>
-                
+
                 <div class="llm-answer">
                     <h4>GPT-5-mini</h4>
                     <div class="form-group">
                         <label>Number</label>
-                        <input 
-                            type="number" 
-                            step="any"
-                            value="${entry.gpt_5_mini_number}"
+                        <input
+                            type="text"
+                            value="${formatNumberForInput(entry.gpt_5_mini_number)}"
                             class="${entry.gpt_5_mini_number !== original.gpt_5_mini_number ? 'changed' : ''}"
-                            onchange="updateField('${uid}', 'gpt_5_mini_number', parseFloat(this.value))"
+                            onchange="updateNumberField('${uid}', 'gpt_5_mini_number', this.value)"
                         >
                     </div>
                     <div class="form-group">
                         <label>Unit</label>
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             value="${entry.gpt_5_mini_unit || ''}"
                             class="${entry.gpt_5_mini_unit !== original.gpt_5_mini_unit ? 'changed' : ''}"
                             onchange="updateField('${uid}', 'gpt_5_mini_unit', this.value || null)"
                         >
                     </div>
                 </div>
-                
+
                 <div class="llm-answer">
                     <h4>GPT-5-nano</h4>
                     <div class="form-group">
                         <label>Number</label>
-                        <input 
-                            type="number" 
-                            step="any"
-                            value="${entry.gpt_5_nano_number}"
+                        <input
+                            type="text"
+                            value="${formatNumberForInput(entry.gpt_5_nano_number)}"
                             class="${entry.gpt_5_nano_number !== original.gpt_5_nano_number ? 'changed' : ''}"
-                            onchange="updateField('${uid}', 'gpt_5_nano_number', parseFloat(this.value))"
+                            onchange="updateNumberField('${uid}', 'gpt_5_nano_number', this.value)"
                         >
                     </div>
                     <div class="form-group">
                         <label>Unit</label>
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             value="${entry.gpt_5_nano_unit || ''}"
                             class="${entry.gpt_5_nano_unit !== original.gpt_5_nano_unit ? 'changed' : ''}"
                             onchange="updateField('${uid}', 'gpt_5_nano_unit', this.value || null)"
@@ -297,7 +310,36 @@ function renderExpandedForm(uid) {
                 </div>
             </div>
         </div>
-        
+
+        <div class="llm-section">
+            <h3>Gemini Flash Answers</h3>
+            <div class="llm-grid">
+                ${[1, 2, 3, 4, 5].map(i => `
+                    <div class="llm-answer">
+                        <h4>Gemini Flash ${i}</h4>
+                        <div class="form-group">
+                            <label>Number</label>
+                            <input
+                                type="text"
+                                value="${formatNumberForInput(entry[`gemini_flash_${i}_number`])}"
+                                class="${entry[`gemini_flash_${i}_number`] !== original[`gemini_flash_${i}_number`] ? 'changed' : ''}"
+                                onchange="updateNumberField('${uid}', 'gemini_flash_${i}_number', this.value)"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label>Unit</label>
+                            <input
+                                type="text"
+                                value="${entry[`gemini_flash_${i}_unit`] || ''}"
+                                class="${entry[`gemini_flash_${i}_unit`] !== original[`gemini_flash_${i}_unit`] ? 'changed' : ''}"
+                                onchange="updateField('${uid}', 'gemini_flash_${i}_unit', this.value || null)"
+                            >
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+
         <div class="form-actions">
             <button class="btn btn-success btn-sm" onclick="approveEntry('${uid}')">
                 ✓ Approve
@@ -333,7 +375,7 @@ function toggleExpand(uid) {
 function updateField(uid, field, value) {
     stagedEntries[uid][field] = value;
     updateChangeCount();
-    
+
     // Update the row's changed indicator without full re-render
     const rowEl = document.querySelector(`[data-uid="${uid}"]`);
     if (rowEl) {
@@ -345,7 +387,7 @@ function updateField(uid, field, value) {
             rowEl.querySelector('.change-badge').textContent = '';
         }
     }
-    
+
     // Update field styling
     const fieldEl = document.getElementById(`${field}-${uid}`);
     if (fieldEl) {
@@ -355,6 +397,43 @@ function updateField(uid, field, value) {
             fieldEl.classList.remove('changed');
         }
     }
+}
+
+/**
+ * Handle number input updates with formatting
+ */
+function updateNumberField(uid, field, displayValue) {
+    if (!displayValue) {
+        updateField(uid, field, null);
+        return;
+    }
+
+    // Remove commas for parsing
+    const cleanValue = displayValue.replace(/,/g, '');
+    const floatValue = parseFloat(cleanValue);
+
+    if (isNaN(floatValue)) {
+        // Maybe show error or revert? For now just ignore invalid inputs
+        return;
+    }
+
+    // Update the underlying data
+    updateField(uid, field, floatValue);
+
+    // Check if the input element still has focus
+    // If we reformat while typing it can be annoying,
+    // but without full framework reactivity, we might just leave it
+    // until render or manually format properly on blur.
+
+    // Let's just update the internal state for now.
+    // The renderExpandedForm uses formatNumberForInput so it will
+    // look correct on next render.
+}
+
+function formatNumberForInput(val) {
+    if (val === null || val === undefined) return '';
+    // Format with commas, max 10 decimal places to avoid precision mess
+    return numberFormatter.format(val);
 }
 
 /**
@@ -394,14 +473,19 @@ function resetEntry(uid) {
 function hasChanges(uid) {
     const original = originalEntries[uid];
     const staged = stagedEntries[uid];
-    
+
     const fields = [
-        'text', 'number', 'unit', 'snippet', 'category', 'difficulty', 'status',
+        'text', 'number', 'unit', 'snippet', 'category', 'difficulty', 'status', 'is_daily_question',
         'gpt_5_1_number', 'gpt_5_1_unit',
         'gpt_5_mini_number', 'gpt_5_mini_unit',
-        'gpt_5_nano_number', 'gpt_5_nano_unit'
+        'gpt_5_nano_number', 'gpt_5_nano_unit',
+        'gemini_flash_1_number', 'gemini_flash_1_unit',
+        'gemini_flash_2_number', 'gemini_flash_2_unit',
+        'gemini_flash_3_number', 'gemini_flash_3_unit',
+        'gemini_flash_4_number', 'gemini_flash_4_unit',
+        'gemini_flash_5_number', 'gemini_flash_5_unit'
     ];
-    
+
     return fields.some(f => original[f] !== staged[f]);
 }
 
@@ -411,14 +495,19 @@ function hasChanges(uid) {
 function getChangedFields(uid) {
     const original = originalEntries[uid];
     const staged = stagedEntries[uid];
-    
+
     const fields = [
-        'text', 'number', 'unit', 'snippet', 'category', 'difficulty', 'status',
+        'text', 'number', 'unit', 'snippet', 'category', 'difficulty', 'status', 'is_daily_question',
         'gpt_5_1_number', 'gpt_5_1_unit',
         'gpt_5_mini_number', 'gpt_5_mini_unit',
-        'gpt_5_nano_number', 'gpt_5_nano_unit'
+        'gpt_5_nano_number', 'gpt_5_nano_unit',
+        'gemini_flash_1_number', 'gemini_flash_1_unit',
+        'gemini_flash_2_number', 'gemini_flash_2_unit',
+        'gemini_flash_3_number', 'gemini_flash_3_unit',
+        'gemini_flash_4_number', 'gemini_flash_4_unit',
+        'gemini_flash_5_number', 'gemini_flash_5_unit'
     ];
-    
+
     return fields
         .filter(f => original[f] !== staged[f])
         .map(f => ({
@@ -433,11 +522,11 @@ function getChangedFields(uid) {
  */
 function showDiff(uid) {
     const changes = getChangedFields(uid);
-    
+
     if (changes.length === 0) {
         return;
     }
-    
+
     diffContent.innerHTML = `
         <p style="margin-bottom: 1rem; color: var(--text-secondary);">
             Changes for question ${uid.slice(0, 8)}...
@@ -450,7 +539,7 @@ function showDiff(uid) {
             </div>
         `).join('')}
     `;
-    
+
     diffModal.classList.remove('hidden');
 }
 
@@ -473,7 +562,7 @@ diffModal.addEventListener('click', (e) => {
  */
 function updateChangeCount() {
     const changedCount = Object.keys(stagedEntries).filter(uid => hasChanges(uid)).length;
-    
+
     if (changedCount > 0) {
         changeCountEl.textContent = `${changedCount} ${changedCount === 1 ? 'change' : 'changes'} staged`;
         changeCountEl.classList.remove('hidden');
@@ -489,62 +578,67 @@ function updateChangeCount() {
  */
 async function commitChanges() {
     const changedUids = Object.keys(stagedEntries).filter(uid => hasChanges(uid));
-    
+
     if (changedUids.length === 0) {
         return;
     }
-    
+
     const updates = changedUids.map(uid => {
         const staged = stagedEntries[uid];
         const original = originalEntries[uid];
-        
+
         // Build update object with only changed fields
         const update = { uid };
-        
+
         const fields = [
-            'text', 'number', 'unit', 'snippet', 'category', 'difficulty', 'status',
+            'text', 'number', 'unit', 'snippet', 'category', 'difficulty', 'status', 'is_daily_question',
             'gpt_5_1_number', 'gpt_5_1_unit',
             'gpt_5_mini_number', 'gpt_5_mini_unit',
-            'gpt_5_nano_number', 'gpt_5_nano_unit'
+            'gpt_5_nano_number', 'gpt_5_nano_unit',
+            'gemini_flash_1_number', 'gemini_flash_1_unit',
+            'gemini_flash_2_number', 'gemini_flash_2_unit',
+            'gemini_flash_3_number', 'gemini_flash_3_unit',
+            'gemini_flash_4_number', 'gemini_flash_4_unit',
+            'gemini_flash_5_number', 'gemini_flash_5_unit'
         ];
-        
+
         fields.forEach(f => {
             if (staged[f] !== original[f]) {
                 update[f] = staged[f];
             }
         });
-        
+
         return update;
     });
-    
+
     commitBtn.disabled = true;
     commitBtn.innerHTML = '<span class="spinner"></span> Committing...';
-    
+
     try {
         const response = await fetch('/api/questions/commit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ updates })
         });
-        
+
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.detail || `HTTP ${response.status}`);
         }
-        
+
         const result = await response.json();
-        
+
         // Update original entries to match committed state
         changedUids.forEach(uid => {
             originalEntries[uid] = { ...stagedEntries[uid] };
         });
-        
+
         updateChangeCount();
         renderQuestions();
-        
+
         // Show success message
         alert(`✓ ${result.message}`);
-        
+
     } catch (err) {
         showError(`Failed to commit changes: ${err.message}`);
     } finally {

@@ -3,7 +3,6 @@
 import logging
 
 from fastapi import APIRouter, HTTPException
-
 from fermi_db import DatabaseClient, FermiUpdate
 from fermi_db.session import session_context
 
@@ -64,6 +63,17 @@ async def commit_changes(request: CommitRequest) -> CommitResponse:
                     gpt_5_mini_unit=u.gpt_5_mini_unit,
                     gpt_5_nano_number=u.gpt_5_nano_number,
                     gpt_5_nano_unit=u.gpt_5_nano_unit,
+                    is_daily_question=u.is_daily_question,
+                    gemini_flash_1_number=u.gemini_flash_1_number,
+                    gemini_flash_1_unit=u.gemini_flash_1_unit,
+                    gemini_flash_2_number=u.gemini_flash_2_number,
+                    gemini_flash_2_unit=u.gemini_flash_2_unit,
+                    gemini_flash_3_number=u.gemini_flash_3_number,
+                    gemini_flash_3_unit=u.gemini_flash_3_unit,
+                    gemini_flash_4_number=u.gemini_flash_4_number,
+                    gemini_flash_4_unit=u.gemini_flash_4_unit,
+                    gemini_flash_5_number=u.gemini_flash_5_number,
+                    gemini_flash_5_unit=u.gemini_flash_5_unit,
                 )
                 for u in request.updates
             ]

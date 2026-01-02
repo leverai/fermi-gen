@@ -75,6 +75,8 @@ MILLENNIUM = 'millennium'
 FAHRENHEIT = 'fahrenheit'
 CELSIUS = 'celsius'
 # --- Data size ---
+BIT = 'bit'
+BYTE = 'byte'
 KILOBYTE = 'kilobyte'
 MEGABYTE = 'megabyte'
 GIGABYTE = 'gigabyte'
@@ -126,6 +128,8 @@ _UNITS = {
     FAHRENHEIT: UnitInfo(id='fahrenheit', abbreviation='°F', name='Fahrenheit'),
     CELSIUS: UnitInfo(id='celsius', abbreviation='°C', name='Celsius'),
     # --- Data size ---
+    BIT: UnitInfo(id='bit', abbreviation='bit', name='Bit'),
+    BYTE: UnitInfo(id='byte', abbreviation='B', name='Byte'),
     KILOBYTE: UnitInfo(id='kilobyte', abbreviation='KB', name='Kilobyte'),
     MEGABYTE: UnitInfo(id='megabyte', abbreviation='MB', name='Megabyte'),
     GIGABYTE: UnitInfo(id='gigabyte', abbreviation='GB', name='Gigabyte'),

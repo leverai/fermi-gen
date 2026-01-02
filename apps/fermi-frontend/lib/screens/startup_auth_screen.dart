@@ -61,7 +61,7 @@ class StartupAuthScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'The Reasoning Trivia Showdown',
+                'Guess with logic, not facts.',
                 style: AppFont.primaryTextStyle(
                   context,
                   fontSize: 18,

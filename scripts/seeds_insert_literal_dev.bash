@@ -41,6 +41,15 @@ curl -X POST $SERVICE_URL/insert_literal \
         ]
       }'
 
+# Run pipeline from LLM questions
+curl -X POST $SERVICE_URL/insert_llm \
+  -H "Content-Type: application/json" \
+  -d '{
+        "num_seeds": 10,
+        "questions_per_seed": 2,
+        "mode": "lru"
+      }'
+
 # Insert gemini flash answers
 curl -X POST $SERVICE_URL/llm_answers/gemini-flash \
   -H "Content-Type: application/json" \
