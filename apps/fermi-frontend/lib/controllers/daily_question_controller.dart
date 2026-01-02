@@ -150,7 +150,7 @@ class DailyQuestionController extends ChangeNotifier {
 
     // Re-fetch archive to get new today
     // Use a slight delay to ensure backend has updated
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 5), () {
       refreshArchiveAndSubscribe();
     });
   }

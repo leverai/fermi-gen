@@ -33,7 +33,8 @@ void showPartyBottomSheet({
                   bottom: MediaQuery.of(context).viewInsets.bottom,
                 ),
                 child: Container(
-                  padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+                  padding: EdgeInsets.fromLTRB(
+                      16.0, 0, 16.0, MediaQuery.of(context).viewPadding.bottom),
                   decoration: BoxDecoration(
                     color: appTheme.bgLight,
                     borderRadius:

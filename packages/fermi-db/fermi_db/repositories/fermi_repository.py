@@ -30,6 +30,19 @@ class FermiUpdate:
     gpt_5_mini_unit: str | None = None
     gpt_5_nano_number: float | None = None
     gpt_5_nano_unit: str | None = None
+    # Gemini Flash answer fields
+    gemini_flash_1_number: float | None = None
+    gemini_flash_1_unit: str | None = None
+    gemini_flash_2_number: float | None = None
+    gemini_flash_2_unit: str | None = None
+    gemini_flash_3_number: float | None = None
+    gemini_flash_3_unit: str | None = None
+    gemini_flash_4_number: float | None = None
+    gemini_flash_4_unit: str | None = None
+    gemini_flash_5_number: float | None = None
+    gemini_flash_5_unit: str | None = None
+
+    is_daily_question: bool | None = None
 
 
 class FermiRepository(BaseRepository):
@@ -114,6 +127,31 @@ class FermiRepository(BaseRepository):
                 entry.gpt_5_nano_number = update.gpt_5_nano_number
             if update.gpt_5_nano_unit is not None:
                 entry.gpt_5_nano_unit = update.gpt_5_nano_unit
+
+            if update.is_daily_question is not None:
+                entry.is_daily_question = update.is_daily_question
+
+            # Gemini Flash answers
+            if update.gemini_flash_1_number is not None:
+                entry.gemini_flash_1_number = update.gemini_flash_1_number
+            if update.gemini_flash_1_unit is not None:
+                entry.gemini_flash_1_unit = update.gemini_flash_1_unit
+            if update.gemini_flash_2_number is not None:
+                entry.gemini_flash_2_number = update.gemini_flash_2_number
+            if update.gemini_flash_2_unit is not None:
+                entry.gemini_flash_2_unit = update.gemini_flash_2_unit
+            if update.gemini_flash_3_number is not None:
+                entry.gemini_flash_3_number = update.gemini_flash_3_number
+            if update.gemini_flash_3_unit is not None:
+                entry.gemini_flash_3_unit = update.gemini_flash_3_unit
+            if update.gemini_flash_4_number is not None:
+                entry.gemini_flash_4_number = update.gemini_flash_4_number
+            if update.gemini_flash_4_unit is not None:
+                entry.gemini_flash_4_unit = update.gemini_flash_4_unit
+            if update.gemini_flash_5_number is not None:
+                entry.gemini_flash_5_number = update.gemini_flash_5_number
+            if update.gemini_flash_5_unit is not None:
+                entry.gemini_flash_5_unit = update.gemini_flash_5_unit
 
             self.session.add(entry)
             updated_count += 1

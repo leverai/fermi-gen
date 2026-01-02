@@ -55,6 +55,8 @@ VALID_UNITS = Literal[
     'millennium',
     'fahrenheit',
     'celsius',
+    'bit',
+    'byte',
     'kilobyte',
     'megabyte',
     'gigabyte',

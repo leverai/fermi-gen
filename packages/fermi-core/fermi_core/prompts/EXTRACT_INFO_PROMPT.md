@@ -20,47 +20,49 @@ A valid answer paragraph is one which:
 -   Can confidently be viewed as the answer to the provided Fermi Question.
 -   Is clearly giving sufficient information about a *DQ* or *SQ*.
 -   The unit in the pargraph (if any) **MUST BE ONE OF THE FOLLOWING**:
-    -   `"ounce"`
-    -   `"pound"`
-    -   `"ton"`
-    -   `"gram"`
-    -   `"kilogram"`
-    -   `"metric_ton"`
-    -   `"inch"`
-    -   `"foot"`
-    -   `"mile"`
-    -   `"centimeter"`
-    -   `"meter"`
-    -   `"kilometer"`
-    -   `"foot ** 2"`
-    -   `"acre"`
-    -   `"mile ** 2"`
-    -   `"meter ** 2"`
-    -   `"hectare"`
-    -   `"km ** 2"`
-    -   `"quart"`
-    -   `"gallon"`
-    -   `"liter"`
-    -   `"meter ** 3"`
-    -   `"foot ** 3"`
-    -   `"km ** 3"`
-    -   `"mile ** 3"`
-    -   `"second"`
-    -   `"minute"`
-    -   `"hour"`
-    -   `"day"`
-    -   `"week"`
-    -   `"month"`
-    -   `"year"`
-    -   `"century"`
-    -   `"millennium"`
-    -   `"fahrenheit"`
-    -   `"celsius"`
-    -   `"kilobyte"`
-    -   `"megabyte"`
-    -   `"gigabyte"`
-    -   `"terabyte"`
-    -   `"petabyte"`
+    -   "ounce"
+    -   "pound"
+    -   "ton"
+    -   "gram"
+    -   "kilogram"
+    -   "metric_ton"
+    -   "inch"
+    -   "foot"
+    -   "mile"
+    -   "centimeter"
+    -   "meter"
+    -   "kilometer"
+    -   "foot ** 2"
+    -   "acre"
+    -   "mile ** 2"
+    -   "meter ** 2"
+    -   "hectare"
+    -   "km ** 2"
+    -   "quart"
+    -   "gallon"
+    -   "liter"
+    -   "meter ** 3"
+    -   "foot ** 3"
+    -   "km ** 3"
+    -   "mile ** 3"
+    -   "second"
+    -   "minute"
+    -   "hour"
+    -   "day"
+    -   "week"
+    -   "month"
+    -   "year"
+    -   "century"
+    -   "millennium"
+    -   "fahrenheit"
+    -   "celsius"
+    -   "bit"
+    -   "byte"
+    -   "kilobyte"
+    -   "megabyte"
+    -   "gigabyte"
+    -   "terabyte"
+    -   "petabyte"
 
 #### **Valid paragraph examples:**
 -   Question: How many starts can be seen by the naked eye from Earth on a clear night."
