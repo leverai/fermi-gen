@@ -54,7 +54,14 @@ class LLMAnswerRepository(BaseRepository):
             .limit(limit)
         )
         result = await self.session.exec(statement)
-        return cast(list[QuestionWithAnswerUnit], list(result.all()))
+        return [
+            QuestionWithAnswerUnit(
+                question_id=cast(int, row[0]),
+                question_text=row[1],
+                answer_unit=row[2],
+            )
+            for row in result.all()
+        ]
 
     async def bulk_insert_llm_answers(
         self,
@@ -151,4 +158,11 @@ class LLMAnswerRepository(BaseRepository):
             .limit(limit)
         )
         result = await self.session.exec(statement)
-        return cast(list[QuestionWithAnswerUnit], list(result.all()))
+        return [
+            QuestionWithAnswerUnit(
+                question_id=cast(int, row[0]),
+                question_text=row[1],
+                answer_unit=row[2],
+            )
+            for row in result.all()
+        ]
