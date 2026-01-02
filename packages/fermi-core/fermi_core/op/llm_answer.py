@@ -66,9 +66,7 @@ async def allm_answer_batch(
 
     failure_count = 0
     llm_answers: list[LLMAnswerOutput | BaseException] = []
-    for question, response in zip[
-        tuple[LLMAnswerInput, LLMChainOutput | BaseException]
-    ](questions, responses, strict=True):
+    for question, response in zip(questions, responses, strict=True):
         if isinstance(response, BaseException):
             failure_count += 1
             llm_answers.append(response)
