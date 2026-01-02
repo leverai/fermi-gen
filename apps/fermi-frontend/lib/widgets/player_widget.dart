@@ -254,6 +254,10 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
     // Use text-muted from app theme for name chip
     final Color nameColor = appTheme.textMuted;
+
+    // Spacing between elements
+    const double verticalSpacing = 12.0;
+
     return Material(
       type: MaterialType.transparency,
       child: InkWell(
@@ -273,106 +277,107 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         },
         child: SizedBox(
           width: 90,
-          height: 112,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              const double avatarSize = 63.0;
-              // Overflow distance for name chip (top)
-              final double totalH = constraints.maxHeight;
-              final double avatarTop = (totalH - avatarSize) / 2;
-              return Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned.fill(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      clipBehavior: Clip.none,
-                      children: [
-                        _buildAvatar(),
-                        // Running score at top of avatar
-                        if (widget.showScoreOverlay &&
-                            widget.playerState.score != null)
-                          Positioned(
-                            top: 4,
-                            left: 0,
-                            right: 0,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                PlayerScore(
-                                  key: const ValueKey('running_score_overlay'),
-                                  initialScore: _currentScore,
-                                  controller: _scoreOverlayController,
-                                  incrementAmount: _lastIncrement,
-                                  showIncrement: _lastIncrement != null &&
-                                      _lastIncrement! > 0,
-                                  rank: (widget.showRankIcons &&
-                                          widget.rankOverride != null)
-                                      ? widget.rankOverride
-                                      : null,
-                                ),
-                              ],
-                            ),
-                          ),
-                        // Rank icon removed - now integrated into PlayerScore
-                        // Status indicator (AnswerChip) at bottom
-                        Positioned(
-                          top: avatarTop + avatarSize - 12,
-                          left: (90 + 20) / 2,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _buildStatusIndicator(),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Player name at bottom of widget (below the ring)
-                  if (widget.showNameChip &&
-                      (widget.playerState.displayName?.isNotEmpty ?? false))
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. Score Overlay (Top)
+              //  Use a consistent height container or condition to avoid layout jumps if needed,
+              //  but user said "Everything should look exactly the same", implying persistent score?
+              //  The previous code showed score if `showScoreOverlay` and `score != null`.
+              if (widget.showScoreOverlay &&
+                  widget.playerState.score != null) ...[
+                PlayerScore(
+                  key: const ValueKey('running_score_overlay'),
+                  initialScore: _currentScore,
+                  controller: _scoreOverlayController,
+                  incrementAmount: _lastIncrement,
+                  showIncrement: _lastIncrement != null && _lastIncrement! > 0,
+                  rank: (widget.showRankIcons && widget.rankOverride != null)
+                      ? widget.rankOverride
+                      : null,
+                ),
+                const SizedBox(height: verticalSpacing),
+              ] else ...[
+                // If we want to reserve space or not?
+                // "Distance from ring top to score..." implies score is distinct.
+                // If no score, maybe no spacing?
+                // Let's assume conditional is fine.
+                // If there's no score, should we maintain the gap?
+                // Previously it was absolute positioned top: 4.
+                // If we want to EXACTLY match "ring top to score = ring bottom to name",
+                // we should just put the spacer here.
+              ],
+
+              // 2. Avatar + Status + Confetti (Middle)
+              SizedBox(
+                height: 80, // Allow space for overlaps? Avatar is 70.
+                // With chip overlapping bottom, we need to ensure clip behavior allows it.
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment:
+                      Alignment.center, // Center the avatar in this block
+                  children: [
+                    _buildAvatar(), // The main avatar ring
+
+                    // Status Indicator (AnswerChip)
+                    // Previous logic: top = avatarTop + avatarSize - 12.
+                    // Here we want it overlapping the bottom of the avatar.
+                    // Avatar is ~70 height. We want chip top at 70 - 12 = 58?
+                    // Or just anchor to bottom.
                     Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: SizedBox(
-                          width: 92.0,
-                          child: TextScroll(
-                            // Key includes scrollTriggerCount to restart animation on tap
-                            key: ValueKey(
-                                '${widget.playerState.displayName}_$_scrollTriggerCount'),
-                            widget.playerState.displayName!,
-                            delayBefore: const Duration(milliseconds: 500),
-                            pauseBetween: Duration.zero,
-                            pauseOnBounce: const Duration(milliseconds: 500),
-                            mode: TextScrollMode.bouncing,
-                            numberOfReps: 1,
-                            style: AppFont.primaryTextStyle(
-                              context,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 12.0,
-                              color: nameColor,
-                            ),
-                            textAlign: TextAlign.center,
-                            selectable: false,
+                      bottom: 0, // This puts bottom of chip at bottom of stack
+                      // If Stack height is 80 and Avatar is 70 centered (top 5, bottom 5),
+                      // Then bottom 0 is 5px below avatar bottom.
+                      // Let's rely on alignment.
+                      child: Transform.translate(
+                        offset:
+                            const Offset(24, 4), // Shifted 24px right, 4px down
+                        // Let's just use Stack with Alignment.bottomCenter?
+                        child: _buildStatusIndicator(),
+                      ),
+                    ),
+
+                    // Confetti
+                    if (_showConfetti)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: PlayerConfettiOverlay(
+                            onComplete: _handleClearConfetti,
                           ),
                         ),
                       ),
-                    ),
-                  // Confetti overlay for highest scorer
-                  if (_showConfetti)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: PlayerConfettiOverlay(
-                          onComplete: _handleClearConfetti,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
+                  ],
+                ),
+              ),
+
+              // 3. Name (Bottom)
+              if (widget.showNameChip &&
+                  (widget.playerState.displayName?.isNotEmpty ?? false)) ...[
+                const SizedBox(height: verticalSpacing),
+                SizedBox(
+                  width: 92.0,
+                  child: TextScroll(
+                    // Key includes scrollTriggerCount to restart animation on tap
+                    key: ValueKey(
+                        '${widget.playerState.displayName}_$_scrollTriggerCount'),
+                    widget.playerState.displayName!,
+                    delayBefore: const Duration(milliseconds: 500),
+                    pauseBetween: Duration.zero,
+                    pauseOnBounce: const Duration(milliseconds: 500),
+                    mode: TextScrollMode.bouncing,
+                    numberOfReps: 1,
+                    style: AppFont.primaryTextStyle(context,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12.0,
+                        color: nameColor,
+                        height: 0.5),
+                    textAlign: TextAlign.center,
+                    selectable: false,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),

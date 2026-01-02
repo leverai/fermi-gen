@@ -11,8 +11,27 @@ import numpy as np
 import pytest
 from fermi_db.models import FermiQuestion, RawQuestion
 
+from app.config import ETLConfig
+
 if TYPE_CHECKING:
     import pytest
+
+
+@pytest.fixture
+def mock_settings_env(monkeypatch: 'pytest.MonkeyPatch') -> None:
+    """Set fake env vars so the real ETLConfig creates successfully."""
+    monkeypatch.setenv('OPENAI_API_KEY', 'test-openai-api-key')
+    monkeypatch.setenv('SERP_API_KEY', 'test-serp-api-key')
+
+    # If using .env files, you might need to ensure they don't override this
+    # or use pydantic_settings specific logic, but monkeypatch usually wins.
+
+
+@pytest.fixture
+def mock_config(mock_settings_env) -> ETLConfig:  # noqa: ANN001
+    """Return a real instance with test data."""
+    # Since env vars are set, this succeeds without error
+    return ETLConfig()
 
 
 @pytest.fixture
