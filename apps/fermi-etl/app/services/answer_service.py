@@ -1,14 +1,13 @@
 """Service layer for answer generation operations."""
 
 import logging
+from collections.abc import Sequence
 
 from fermi_core.op.answer_serp import aget_questions_answers_serp
 from fermi_db import DatabaseClient
 from fermi_db.models import FermiAnswer
 from fermi_db.session import session_context
 from pydantic import BaseModel
-
-from app.config import ETLConfig
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +27,6 @@ async def answer_questions(
     extraction_model: str = 'gpt-5-mini',
     model_provider: str = 'openai',
     confidence_threshold: float = 0.8,
-    config: ETLConfig | None = None,
 ) -> AnswerResult:
     """Answer questions and store successful results.
 
@@ -38,17 +36,11 @@ async def answer_questions(
         extraction_model: Model for answer extraction
         model_provider: Model provider
         confidence_threshold: Minimum confidence threshold
-        config: ETL configuration (if None, load from env)
 
     Returns:
         AnswerResult with statistics
 
     """
-    if config is None:
-        from app.config import get_config
-
-        config = get_config()
-
     logger.info(f'Starting answer generation for {len(question_ids)} question IDs...')
 
     # Get database session
@@ -57,7 +49,7 @@ async def answer_questions(
 
         # Step 1: Fetch questions by IDs
         logger.info('Fetching questions...')
-        questions = await db_client.questions.get_questions_by_ids(question_ids)
+        questions = await db_client.questions.get_questions_light_by_ids(question_ids)
 
         if not questions:
             logger.warning('No questions found for provided IDs')
@@ -80,7 +72,7 @@ async def answer_questions(
             model_provider=model_provider,
             confidence_threshold=confidence_threshold,
             temperature=0.0,
-            # service_tier='flex',
+            # service_tier='flex',  # TODO: Consider adding answer kwargs input
         )
 
         # Step 3: Process all answers (successful and failed)
@@ -98,16 +90,10 @@ async def answer_questions(
                 failed_answer = FermiAnswer(
                     question_id=question.id,  # type: ignore
                     number=0.0,  # Set to 0 for failed attempts as per requirements
-                    snippet=(
-                        f'Failed to answer: {type(result).__name__}: '
-                        f'{str(result)[:500]}'
-                    ),
+                    snippet=str(result)[:500],
                     used_ai_overview=False,
                     success=False,
-                    serp_metadata={
-                        'error': type(result).__name__,
-                        'message': str(result)[:500],
-                    },
+                    serp_metadata={},
                 )
                 all_answers.append(failed_answer)
                 failed_count += 1
@@ -150,9 +136,6 @@ async def answer_questions(
             success_rate=success_rate,
         )
 
-    # Should never reach here due to async generator
-    raise RuntimeError('Failed to get database session')
-
 
 async def answer_unanswered_questions(
     num_questions: int = 50,
@@ -160,7 +143,6 @@ async def answer_unanswered_questions(
     extraction_model: str = 'gpt-5-mini',
     model_provider: str = 'openai',
     confidence_threshold: float = 0.8,
-    config: ETLConfig | None = None,
 ) -> AnswerResult:
     """Fetch and answer the latest N unanswered questions.
 
@@ -170,21 +152,15 @@ async def answer_unanswered_questions(
         extraction_model: Model for answer extraction
         model_provider: Model provider
         confidence_threshold: Minimum confidence threshold
-        config: ETL configuration (if None, load from env)
 
     Returns:
         AnswerResult with statistics
 
     """
-    if config is None:
-        from app.config import get_config
-
-        config = get_config()
-
     logger.info(f'Fetching and answering {num_questions} unanswered questions...')
 
     # Get database session and fetch unanswered question IDs
-    unanswered_ids: list[int] = []
+    unanswered_ids: Sequence[int] = []
     async with session_context() as session:
         db_client = DatabaseClient(session)
 
@@ -202,17 +178,16 @@ async def answer_unanswered_questions(
                 questions_requested=0,
                 questions_answered=0,
                 questions_failed=0,
-                success_rate=0.0,
+                success_rate=1.0,
             )
 
     logger.info(f'Found {len(unanswered_ids)} unanswered questions')
 
     # Call answer_questions (which creates its own session)
     return await answer_questions(
-        unanswered_ids,
+        list[int](unanswered_ids),
         location_model=location_model,
         extraction_model=extraction_model,
         model_provider=model_provider,
         confidence_threshold=confidence_threshold,
-        config=config,
     )

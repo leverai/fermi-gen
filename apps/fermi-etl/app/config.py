@@ -1,5 +1,8 @@
 """Configuration for the Fermi ETL Pipeline."""
 
+from typing import Literal
+
+from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
@@ -21,14 +24,12 @@ class ETLConfig(BaseSettings):
     openai_api_key: str = Field(..., description='OpenAI API key')
     serp_api_key: str = Field(..., description='SerpAPI key')
 
-    # LLM answering parameters
-    llm_answer_models: list[str] = Field(
-        default=['gpt-5.1', 'gpt-5-mini', 'gpt-5-nano'],
+    # Gpt answering parameters
+    gpt_answer_models: tuple[
+        (Literal['gpt-5.1'], Literal['gpt-5-mini'], Literal['gpt-5-nano'])
+    ] = Field(
+        default=('gpt-5.1', 'gpt-5-mini', 'gpt-5-nano'),
         description='LLM models for question answering',
-    )
-    llm_answer_model_provider: str = Field(
-        default='openai',
-        description='Provider for LLM answer models',
     )
 
     # Similarity thresholds
@@ -60,4 +61,5 @@ def get_config() -> ETLConfig:
     in the Config class. If you need to use a different env file (e.g., for tests),
     load it explicitly before calling this function using load_dotenv().
     """
+    load_dotenv()
     return ETLConfig()  # type: ignore

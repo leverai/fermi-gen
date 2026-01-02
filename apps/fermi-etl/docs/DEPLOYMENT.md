@@ -109,17 +109,10 @@ SERP_API_KEY: <from Secret Manager: serp-api-key>
 # Semantic deduplication thresholds
 SEED_SIMILARITY_THRESHOLD: "0.1"           # Cosine distance for seed uniqueness
 QUESTION_SIMILARITY_THRESHOLD: "0.15"      # Cosine distance for question uniqueness
-
-# LLM model configuration
-QUESTION_GENERATION_MODEL: "gpt-4o-mini"   # Model for question generation
-QUESTION_GENERATION_MODEL_PROVIDER: "openai"
-LOCATION_MODEL: "gpt-4o-mini"              # Model for location selection in answers
-EXTRACTION_MODEL: "gpt-4o"                 # Model for answer extraction
-MODEL_PROVIDER: "openai"
-
-# Answer confidence threshold
-CONFIDENCE_THRESHOLD: "0.8"                # Minimum confidence for accepting answers
 ```
+
+> [!NOTE]
+> Model configuration (question_model, location_model, extraction_model, etc.) is now passed as request arguments rather than environment variables. This allows runtime configuration per-request.
 
 ### Environment-Specific Configuration
 

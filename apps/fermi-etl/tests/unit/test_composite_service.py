@@ -27,11 +27,8 @@ def question_result() -> QuestionBatchResult:
         questions_requested=2,
         questions_generated=2,
         questions_yielded=2,
-        questions_rejected=0,
         yield_rate=1.0,
         new_question_ids=[1, 2],
-        duplicate_question_ids=[],
-        details={},
     )
 
 
@@ -56,11 +53,11 @@ async def test_run_answer_workflow_calls_gemini_flash(
             new_callable=AsyncMock,
         ) as mock_difficulty,
         patch(
-            'app.services.composite_service.llm_answer_questions',
+            'app.services.composite_service.answer_gpt',
             new_callable=AsyncMock,
         ) as mock_llm_answer,
         patch(
-            'app.services.composite_service.gemini_flash_answer_questions',
+            'app.services.composite_service.answer_gemini_flash',
             new_callable=AsyncMock,
         ) as mock_gemini_flash,
         patch(
@@ -74,7 +71,6 @@ async def test_run_answer_workflow_calls_gemini_flash(
             questions_answered=2,
             questions_failed=0,
             success_rate=1.0,
-            details={},
         )
 
         mock_category.return_value = EnrichmentResult(
@@ -106,7 +102,6 @@ async def test_run_answer_workflow_calls_gemini_flash(
         # Run the workflow (config is now optional and passed as keyword arg)
         result = await _run_answer_workflow(
             question_result,
-            config=mock_config,
         )
 
         # Verify gemini_flash_answer_questions was called with limit only
@@ -142,11 +137,11 @@ async def test_run_answer_workflow_continues_if_gemini_flash_fails(
             new_callable=AsyncMock,
         ) as mock_difficulty,
         patch(
-            'app.services.composite_service.llm_answer_questions',
+            'app.services.composite_service.answer_gpt',
             new_callable=AsyncMock,
         ) as mock_llm_answer,
         patch(
-            'app.services.composite_service.gemini_flash_answer_questions',
+            'app.services.composite_service.answer_gemini_flash',
             new_callable=AsyncMock,
         ) as mock_gemini_flash,
         patch(
@@ -160,7 +155,6 @@ async def test_run_answer_workflow_continues_if_gemini_flash_fails(
             questions_answered=2,
             questions_failed=0,
             success_rate=1.0,
-            details={},
         )
 
         mock_category.return_value = EnrichmentResult(
@@ -188,7 +182,6 @@ async def test_run_answer_workflow_continues_if_gemini_flash_fails(
         # Run the workflow
         result = await _run_answer_workflow(
             question_result,
-            config=mock_config,
         )
 
         # Verify workflow still succeeds

@@ -8,8 +8,10 @@ from pydantic import BaseModel, Field
 from app.config import get_config
 from app.services.llm_answer_service import (
     LLMAnswerResult,
-    gemini_flash_answer_questions,
-    llm_answer_questions,
+    answer_gpt,
+)
+from app.services.llm_answer_service import (
+    answer_gemini_flash as _answer_gemini_flash,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,36 +38,21 @@ class GeminiFlashRequest(BaseModel):
 async def answer_gpt51(request: LLMAnswerRequest) -> LLMAnswerResult:
     """Answer questions using gpt-5.1 model."""
     logger.info(f'LLM answering {request.num_questions} questions with gpt-5.1')
-    config = get_config()
-    return await llm_answer_questions(
-        model='gpt-5.1',
-        limit=request.num_questions,
-        config=config,
-    )
+    return await answer_gpt(model='gpt-5.1', limit=request.num_questions)
 
 
 @router.post('/gpt-5-mini', response_model=LLMAnswerResult)
 async def answer_gpt5_mini(request: LLMAnswerRequest) -> LLMAnswerResult:
     """Answer questions using gpt-5-mini model."""
     logger.info(f'LLM answering {request.num_questions} questions with gpt-5-mini')
-    config = get_config()
-    return await llm_answer_questions(
-        model='gpt-5-mini',
-        limit=request.num_questions,
-        config=config,
-    )
+    return await answer_gpt(model='gpt-5-mini', limit=request.num_questions)
 
 
 @router.post('/gpt-5-nano', response_model=LLMAnswerResult)
 async def answer_gpt5_nano(request: LLMAnswerRequest) -> LLMAnswerResult:
     """Answer questions using gpt-5-nano model."""
     logger.info(f'LLM answering {request.num_questions} questions with gpt-5-nano')
-    config = get_config()
-    return await llm_answer_questions(
-        model='gpt-5-nano',
-        limit=request.num_questions,
-        config=config,
-    )
+    return await answer_gpt(model='gpt-5-nano', limit=request.num_questions)
 
 
 @router.post('/gemini-flash', response_model=LLMAnswerResult)
@@ -79,9 +66,9 @@ async def answer_gemini_flash(request: GeminiFlashRequest) -> LLMAnswerResult:
         f'LLM answering {request.num_questions} questions with '
         f'Gemini Flash ({request.model_name}, temp={request.temperature})',
     )
-    return await gemini_flash_answer_questions(
+    return await _answer_gemini_flash(
         limit=request.num_questions,
-        model_name=request.model_name,
+        model=request.model_name,
         model_provider=request.model_provider,
         temperature=request.temperature,
     )
@@ -94,17 +81,13 @@ async def answer_all_models(request: GeminiFlashRequest) -> list[LLMAnswerResult
     config = get_config()
     results = []
     # GPT models first
-    for model in config.llm_answer_models:
-        result = await llm_answer_questions(
-            model=model,
-            limit=request.num_questions,
-            config=config,
-        )
+    for model in config.gpt_answer_models:
+        result = await answer_gpt(model=model, limit=request.num_questions)
         results.append(result)
     # Then Gemini Flash
-    gemini_result = await gemini_flash_answer_questions(
+    gemini_result = await _answer_gemini_flash(
         limit=request.num_questions,
-        model_name=request.model_name,
+        model=request.model_name,
         model_provider=request.model_provider,
         temperature=request.temperature,
     )

@@ -5,7 +5,10 @@ import logging
 from fastapi import APIRouter
 
 from app.config import get_config
-from app.schemas.requests import InsertLiteralRequest, InsertLLMRequest
+from app.schemas.requests import (
+    CompositePipelineFromQuestionsRequest,
+    CompositePipelineRequest,
+)
 from app.schemas.responses import CompositeResponse
 from app.services.composite_service import run_literal_workflow, run_llm_workflow
 
@@ -15,7 +18,7 @@ router = APIRouter()
 
 
 @router.post('/insert_llm', response_model=CompositeResponse)
-async def insert_llm(request: InsertLLMRequest) -> CompositeResponse:
+async def insert_llm(request: CompositePipelineRequest) -> CompositeResponse:
     """Generate questions via LLM, answer, enrich, and refresh view.
 
     Args:
@@ -47,7 +50,7 @@ async def insert_llm(request: InsertLLMRequest) -> CompositeResponse:
             category_model_provider=request.category_model_provider,
             difficulty_model=request.difficulty_model,
             difficulty_model_provider=request.difficulty_model_provider,
-            config=config,
+            question_similarity_threshold=config.question_similarity_threshold,
         )
 
         return CompositeResponse(
@@ -64,7 +67,9 @@ async def insert_llm(request: InsertLLMRequest) -> CompositeResponse:
 
 
 @router.post('/insert_literal', response_model=CompositeResponse)
-async def insert_literal(request: InsertLiteralRequest) -> CompositeResponse:
+async def insert_literal(
+    request: CompositePipelineFromQuestionsRequest,
+) -> CompositeResponse:
     """Insert literal questions, answer, enrich, and refresh view.
 
     Args:
@@ -91,7 +96,7 @@ async def insert_literal(request: InsertLiteralRequest) -> CompositeResponse:
             category_model_provider=request.category_model_provider,
             difficulty_model=request.difficulty_model,
             difficulty_model_provider=request.difficulty_model_provider,
-            config=config,
+            question_similarity_threshold=config.question_similarity_threshold,
         )
 
         return CompositeResponse(

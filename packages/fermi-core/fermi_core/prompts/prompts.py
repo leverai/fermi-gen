@@ -81,7 +81,7 @@ LLM_ANSWER_PROMPT = ChatPromptTemplate.from_messages(
         ),
         (
             'human',
-            'Answer the following Fermi question: **{question}**\n{units_info}',
+            'Answer the following Fermi question: **{question}**\nUnit: **{answer_unit}**',
         ),
     ],
 )

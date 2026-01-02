@@ -10,8 +10,6 @@ from fermi_db.schemas import QuestionCategory, QuestionDifficulty
 from fermi_db.session import session_context
 from pydantic import BaseModel
 
-from app.config import ETLConfig
-
 logger = logging.getLogger(__name__)
 
 
@@ -27,7 +25,6 @@ async def enrich_categories(
     limit: int,
     model: str = 'gpt-5-mini',
     model_provider: str = 'openai',
-    config: ETLConfig | None = None,
 ) -> EnrichmentResult:
     """Enrich questions with categories using LLM classification.
 
@@ -35,17 +32,11 @@ async def enrich_categories(
         limit: Maximum number of questions to enrich
         model: Model for category classification
         model_provider: Model provider
-        config: Application configuration
 
     Returns:
         EnrichmentResult with statistics
 
     """
-    if config is None:
-        from app.config import get_config
-
-        config = get_config()
-
     async with session_context() as session:
         db_client = DatabaseClient(session)
 
@@ -72,7 +63,7 @@ async def enrich_categories(
             questions=question_texts,
             model=model,
             model_provider=model_provider,
-            temperature=0.5,
+            temperature=0.9,
             # service_tier='flex',
         )
 
@@ -112,7 +103,6 @@ async def enrich_difficulties(
     limit: int,
     model: str = 'gpt-5-mini',
     model_provider: str = 'openai',
-    config: ETLConfig | None = None,
 ) -> EnrichmentResult:
     """Enrich questions with difficulties using LLM classification.
 
@@ -120,17 +110,11 @@ async def enrich_difficulties(
         limit: Maximum number of questions to enrich
         model: Model for difficulty assessment
         model_provider: Model provider
-        config: Application configuration
 
     Returns:
         EnrichmentResult with statistics
 
     """
-    if config is None:
-        from app.config import get_config
-
-        config = get_config()
-
     async with session_context() as session:
         db_client = DatabaseClient(session)
 
@@ -157,7 +141,7 @@ async def enrich_difficulties(
             questions=question_texts,
             model=model,
             model_provider=model_provider,
-            temperature=0.5,
+            temperature=0.2,
             # service_tier='flex',
         )
 
