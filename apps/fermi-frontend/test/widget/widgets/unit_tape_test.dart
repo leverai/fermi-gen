@@ -44,8 +44,8 @@ void main() {
           ),
         );
 
-        // Verify initial state - should show 'km³'
-        expect(find.text('km³'), findsOneWidget);
+        // Verify initial state - should show 'Kilometer³' (full name from unitOptions key)
+        expect(find.text('Kilometer³'), findsOneWidget);
         final initialChangeCount = changeCount;
 
         // Act: Trigger rebuild with NEW list instance + editable=false
@@ -53,9 +53,10 @@ void main() {
         await tester.tap(find.byKey(const Key('rebuild_button')));
         await tester.pumpAndSettle();
 
-        // Assert: Unit should still be 'km³'
-        expect(find.text('km³'), findsOneWidget,
-            reason: 'Unit should remain km³ after reveal (new list instance)');
+        // Assert: Unit should still be 'Kilometer³' (full name from unitOptions key)
+        expect(find.text('Kilometer³'), findsOneWidget,
+            reason:
+                'Unit should remain Kilometer³ after reveal (new list instance)');
 
         // Assert: onUnitChanged should NOT have been called with 'L' (first unit)
         // The bug would cause _onPageChanged to fire with index 0 when PageController
@@ -94,7 +95,7 @@ void main() {
           ),
         );
 
-        expect(find.text('foot³'), findsOneWidget);
+        expect(find.text('Foot³'), findsOneWidget);
         changedUnits.clear(); // Clear any init callbacks
 
         // Trigger rebuild (simulates reveal)
@@ -103,7 +104,7 @@ void main() {
 
         // Expected: no calls to onUnitChanged during reveal
         // Bug would add 'qt' to the list (first unit)
-        expect(changedUnits.where((u) => u == 'qt'), isEmpty,
+        expect(changedUnits.where((u) => u == 'Quart'), isEmpty,
             reason:
                 'BUG: onUnitChanged was called with first unit "qt" during reveal');
       },

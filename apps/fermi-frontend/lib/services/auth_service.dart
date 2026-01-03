@@ -7,7 +7,7 @@ import 'package:fermi_frontend/utils/env.dart';
 class AuthService {
   final FirebaseAuth _auth;
   final http.Client _httpClient;
-  late final String _apiBaseUrl = resolveApiBaseUrlOrThrow();
+  final String _apiBaseUrl;
   String? accessToken;
   String? firebaseUid;
   AuthUser? currentUser;
@@ -17,13 +17,15 @@ class AuthService {
 
   /// Creates an AuthService instance.
   ///
-  /// Parameters [auth] and [httpClient] are optional for testing purposes.
-  /// By default, uses [FirebaseAuth.instance] and a new [http.Client].
+  /// Parameters [auth], [httpClient], and [apiBaseUrl] are optional for testing purposes.
+  /// By default, uses [FirebaseAuth.instance], a new [http.Client], and resolves the API URL from dart-define.
   AuthService({
     FirebaseAuth? auth,
     http.Client? httpClient,
+    String? apiBaseUrl,
   })  : _auth = auth ?? FirebaseAuth.instance,
-        _httpClient = httpClient ?? http.Client();
+        _httpClient = httpClient ?? http.Client(),
+        _apiBaseUrl = apiBaseUrl ?? resolveApiBaseUrlOrThrow();
 
   /// Returns true if the current user is signed in anonymously.
   bool get isAnonymous {

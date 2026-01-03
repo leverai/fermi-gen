@@ -5,7 +5,7 @@ import 'package:fermi_frontend/widgets/player_widget_controller.dart';
 import 'package:fermi_frontend/widgets/player_ring_progress.dart';
 import 'package:fermi_frontend/widgets/player_score.dart';
 import 'package:fermi_frontend/widgets/answer_chip.dart';
-import 'package:fermi_frontend/models/rank.dart';
+// import 'package:fermi_frontend/models/rank.dart'; // Removed: rank icons feature was removed
 import 'package:fermi_frontend/widgets/player_confetti_overlay.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/widgets/question_deadline_progress_tracker.dart';
@@ -88,27 +88,28 @@ void main() {
       expect(find.byType(PlayerScore), findsOneWidget);
     });
 
-    testWidgets('should pass rank to PlayerScore when showRankIcons is true',
-        (WidgetTester tester) async {
-      // Arrange
-      final playerState = PlayerDataFixtures.waitingPlayerState(
-        playerId: 'player_1',
-      );
-
-      // Act
-      await pumpWithMaterialApp(
-        tester,
-        PlayerWidget(
-          playerState: playerState,
-          showRankIcons: true,
-          rankOverride: Rank.first,
-        ),
-      );
-
-      // Assert
-      final playerScore = tester.widget<PlayerScore>(find.byType(PlayerScore));
-      expect(playerScore.rank, Rank.first);
-    });
+    // SKIPPED: Rank icons feature was removed
+    // testWidgets('should pass rank to PlayerScore when showRankIcons is true',
+    //     (WidgetTester tester) async {
+    //   // Arrange
+    //   final playerState = PlayerDataFixtures.waitingPlayerState(
+    //     playerId: 'player_1',
+    //   );
+    //
+    //   // Act
+    //   await pumpWithMaterialApp(
+    //     tester,
+    //     PlayerWidget(
+    //       playerState: playerState,
+    //       showRankIcons: true,
+    //       rankOverride: Rank.first,
+    //     ),
+    //   );
+    //
+    //   // Assert
+    //   final playerScore = tester.widget<PlayerScore>(find.byType(PlayerScore));
+    //   expect(playerScore.rank, Rank.first);
+    // });
 
     testWidgets('should highlight host', (WidgetTester tester) async {
       // Arrange

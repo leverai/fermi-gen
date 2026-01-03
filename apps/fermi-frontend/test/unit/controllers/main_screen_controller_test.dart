@@ -11,10 +11,17 @@ class MockApiService extends Mock implements ApiService {}
 
 class MockAuthService extends Mock implements AuthService {}
 
+// Fallback values for mocktail
+class FakeLastRoundSettings extends Fake implements LastRoundSettings {}
+
 void main() {
   late MockApiService mockApi;
   late MockAuthService mockAuth;
   late MainScreenController controller;
+
+  setUpAll(() {
+    registerFallbackValue(FakeLastRoundSettings());
+  });
 
   setUp(() {
     mockApi = MockApiService();
@@ -287,6 +294,8 @@ void main() {
       );
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
       when(() => mockAuth.lastRoundSettings).thenReturn(null);
+      // Allow the setter to be called with any value
+      when(() => mockAuth.lastRoundSettings = any()).thenReturn(null);
       await controller.initialize();
       controller.selectCategoryIndices({0});
       controller.selectDifficulty('EASY');
@@ -294,8 +303,9 @@ void main() {
 
     test('should create game with selected settings', () async {
       // ARRANGE
+      // Note: When all categories are selected (1 of 1), currentCategoryBackendNames returns null
       when(() => mockApi.createGame(
-            categories: ['GENERAL'],
+            categories: null,
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async => 'game123');
@@ -306,7 +316,7 @@ void main() {
       // ASSERT
       expect(gameId, 'game123');
       verify(() => mockApi.createGame(
-            categories: ['GENERAL'],
+            categories: null,
             difficulty: 'EASY',
             nQuestions: 6,
           )).called(1);
@@ -315,7 +325,7 @@ void main() {
     test('should persist last round settings after creation', () async {
       // ARRANGE
       when(() => mockApi.createGame(
-            categories: ['GENERAL'],
+            categories: null,
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async => 'game123');
@@ -324,18 +334,17 @@ void main() {
       await controller.createGame();
 
       // ASSERT
+      // When all categories are selected, lastRoundSettings.categories is null
       verify(() => mockAuth.lastRoundSettings = any(
-            that: predicate<LastRoundSettings>((lrs) =>
-                lrs.categories != null &&
-                lrs.categories!.contains('GENERAL') &&
-                lrs.difficulty == 'EASY'),
+            that: predicate<LastRoundSettings>(
+                (lrs) => lrs.categories == null && lrs.difficulty == 'EASY'),
           )).called(1);
     });
 
     test('should set isSubmitting during creation', () async {
       // ARRANGE
       when(() => mockApi.createGame(
-            categories: ['GENERAL'],
+            categories: null,
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async {
@@ -357,7 +366,7 @@ void main() {
       // ARRANGE
       final error = Exception('Failed to create game');
       when(() => mockApi.createGame(
-            categories: ['GENERAL'],
+            categories: null,
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async => throw error);
@@ -379,7 +388,7 @@ void main() {
       // ARRANGE
       controller.errorMessage = 'Previous error';
       when(() => mockApi.createGame(
-            categories: ['GENERAL'],
+            categories: null,
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async => 'game123');

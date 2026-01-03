@@ -98,8 +98,8 @@ void main() {
       await pumpLobbyFrames(tester);
 
       // ASSERT
-      // ShareButton should still be rendered but with a no-op callback
-      expect(find.byType(ShareButton), findsOneWidget);
+      // ShareButton should NOT be rendered when onShare is null
+      expect(find.byType(ShareButton), findsNothing);
     });
 
     testWidgets('should call onLeave when leave button tapped', (tester) async {

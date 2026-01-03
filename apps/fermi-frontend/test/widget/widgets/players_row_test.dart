@@ -87,6 +87,11 @@ void main() {
       expect(playerWidgets.elementAt(1).playerState.score, 75);
       expect(playerWidgets.elementAt(2).playerState.playerId, 'player_2');
       expect(playerWidgets.elementAt(2).playerState.score, 50);
+
+      // Clean up: dispose widget and wait for PlayerScore shine loop timer (4.2s)
+      await tester.pumpWidget(const SizedBox());
+      await tester.binding.delayed(const Duration(seconds: 5));
+      await tester.pump();
     });
 
     testWidgets('should center align players by default',
@@ -123,8 +128,7 @@ void main() {
       expect(find.byType(SingleChildScrollView), findsNothing);
     });
 
-    testWidgets('should handle empty player list',
-        (WidgetTester tester) async {
+    testWidgets('should handle empty player list', (WidgetTester tester) async {
       // Arrange
       const widget = PlayersRow(
         players: [],
@@ -224,6 +228,11 @@ void main() {
       expect(playerWidgets.elementAt(0).playerState.playerId, 'player_a');
       expect(playerWidgets.elementAt(1).playerState.playerId, 'player_b');
       expect(playerWidgets.elementAt(2).playerState.playerId, 'player_c');
+
+      // Clean up: dispose widget and wait for PlayerScore shine loop timer (4.2s)
+      await tester.pumpWidget(const SizedBox());
+      await tester.binding.delayed(const Duration(seconds: 5));
+      await tester.pump();
     });
 
     testWidgets('should show rank icons when enabled',
@@ -265,6 +274,11 @@ void main() {
       for (final pw in playerWidgets) {
         expect(pw.showRankIcons, true);
       }
+
+      // Clean up: dispose widget and wait for PlayerScore shine loop timer (4.2s)
+      await tester.pumpWidget(const SizedBox());
+      await tester.binding.delayed(const Duration(seconds: 5));
+      await tester.pump();
     });
 
     testWidgets('should highlight current player when currentPlayerId is set',
@@ -424,10 +438,14 @@ void main() {
       expect(playerWidgets.elementAt(0).playerState.score, 120);
       expect(playerWidgets.elementAt(1).playerState.playerId, 'player_1');
       expect(playerWidgets.elementAt(1).playerState.score, 80);
+
+      // Clean up: dispose widget and wait for PlayerScore shine loop timer (4.2s)
+      await tester.pumpWidget(const SizedBox());
+      await tester.binding.delayed(const Duration(seconds: 5));
+      await tester.pump();
     });
 
-    testWidgets('should remove players who left',
-        (WidgetTester tester) async {
+    testWidgets('should remove players who left', (WidgetTester tester) async {
       // Arrange
       final initialPlayers = [
         const PlayerState(
@@ -489,8 +507,7 @@ void main() {
       expect(playerWidgets.elementAt(1).playerState.playerId, 'player_3');
     });
 
-    testWidgets('should update player scores',
-        (WidgetTester tester) async {
+    testWidgets('should update player scores', (WidgetTester tester) async {
       // Arrange
       final initialPlayers = [
         const PlayerState(
