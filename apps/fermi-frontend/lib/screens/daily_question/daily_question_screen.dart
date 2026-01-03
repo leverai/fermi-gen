@@ -363,15 +363,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
   Future<void> _handleLeave() async {
     // If already submitted, just navigate back to main
     if (_isSubmitted) {
-      if (mounted) {
-        if (Navigator.of(context).canPop()) {
-          // Push navigation - triggers .then() callback
-          Navigator.of(context).pop();
-        } else {
-          // Deep link navigation - goes through go_router
-          context.go('/main');
-        }
-      }
+      _navigateToMain();
       return;
     }
 
@@ -396,16 +388,20 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     // If user confirmed, submit answer then navigate back to main
     if (confirmed == true) {
       await _submit();
-      if (mounted) {
-        if (Navigator.of(context).canPop()) {
-          // Push navigation - triggers .then() callback
-          Navigator.of(context).pop();
-        } else {
-          // Deep link navigation - goes through go_router
-          context.go('/main');
-        }
-      }
+      _navigateToMain();
     }
+  }
+
+  /// Navigate to main screen, handling both Navigator-pushed and GoRouter cases.
+  void _navigateToMain() {
+    if (!mounted) return;
+    // Pop this screen from Navigator if it was pushed (e.g., from PreDailyQuestionScreen)
+    // This ensures we dismiss the Navigator-pushed screen before GoRouter navigation
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+    // Navigate to main via GoRouter
+    context.go('/main');
   }
 
   /// Load results when they become ready
@@ -680,15 +676,17 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         ),
         const SizedBox(height: 48),
         // Share button (after submission, before DQ closes)
-        Visibility(
-          visible: canInvite,
-          maintainSize: true,
-          maintainAnimation: true,
-          maintainState: true,
-          child: inviteUrl != null
-              ? ShareButton(onPressed: () => _shareInvite(inviteUrl))
-              : const SizedBox.shrink(),
-        ),
+        SizedBox(
+            width: 200,
+            child: Visibility(
+              visible: canInvite,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: inviteUrl != null
+                  ? ShareButton(onPressed: () => _shareInvite(inviteUrl))
+                  : const SizedBox.shrink(),
+            )),
       ],
     );
   }

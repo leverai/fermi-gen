@@ -7,6 +7,7 @@ import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fermi_frontend/services/auth_service.dart';
+import 'package:fermi_frontend/services/auth_state_notifier.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
@@ -15,8 +16,11 @@ import 'package:fermi_frontend/screens/onboarding_screen.dart';
 import 'package:fermi_frontend/screens/auth_screen.dart';
 import 'package:fermi_frontend/screens/startup_auth_screen.dart';
 import 'package:fermi_frontend/screens/daily_question/daily_question_screen.dart';
+import 'package:fermi_frontend/screens/daily_question/pre_daily_question_screen.dart';
 import 'package:fermi_frontend/screens/lobby/lobby_screen_controller.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
+import 'package:provider/provider.dart';
+import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 
 /// Creates and configures the app's GoRouter instance.
 ///
@@ -24,6 +28,7 @@ import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 /// "Could not navigate to initial route" exception on hot-restart.
 class AppRouter {
   final AuthService authService;
+  final AuthStateNotifier authStateNotifier;
   final ApiService apiService;
   final PreloadService preloadService;
   final DailyQuestionService dailyQuestionService;
@@ -35,6 +40,7 @@ class AppRouter {
 
   AppRouter({
     required this.authService,
+    required this.authStateNotifier,
     required this.apiService,
     required this.preloadService,
     required this.dailyQuestionService,
@@ -50,6 +56,7 @@ class AppRouter {
       navigatorKey: navigatorKey,
       initialLocation: '/',
       debugLogDiagnostics: true,
+      refreshListenable: authStateNotifier,
       redirect: _handleRedirect,
       routes: [
         // Root route - redirects based on auth/onboarding state
@@ -112,7 +119,7 @@ class AppRouter {
           path: '/dq/:date',
           builder: (context, state) {
             final date = state.pathParameters['date'] ?? '';
-            return DailyQuestionScreen(questionDate: date);
+            return _DQRouterWidget(questionDate: date);
           },
         ),
         // Game invite link
@@ -175,6 +182,14 @@ class AppRouter {
         location == '/sign-in' ||
         location == '/startup-auth') {
       return null;
+    }
+
+    // Wait for auth state to settle before making routing decisions
+    // This prevents redirecting to sign-in on hot-restart before Firebase
+    // Auth has restored persisted state
+    if (!authStateNotifier.isSettled) {
+      // If already on startup-auth, stay there; otherwise redirect to it
+      return location == '/startup-auth' ? null : '/startup-auth';
     }
 
     // Always read fresh from SharedPreferences to ensure refresh() picks up changes
@@ -392,5 +407,39 @@ class AppRouter {
       ],
       onLeave: () => context.pop(),
     );
+  }
+}
+
+/// Router widget that decides whether to show PreDailyQuestionScreen or DailyQuestionScreen
+/// based on DQ status and user participation.
+class _DQRouterWidget extends StatelessWidget {
+  final String questionDate;
+
+  const _DQRouterWidget({required this.questionDate});
+
+  @override
+  Widget build(BuildContext context) {
+    // Try to access the controller - it may not be available if we're coming from a deep link
+    // In that case, we'll need to check the state differently
+    final controller = context.read<DailyQuestionController>();
+    final todayDate = controller.todayDate;
+    final todayDocument = controller.todayDocument;
+    final isToday = questionDate == todayDate;
+    final hasParticipated = controller.weeklyItems[questionDate] ?? false;
+
+    // Check if this is scenario A2: ACTIVE + not participated
+    if (isToday) {
+      final status = todayDocument?.status ?? 'NOT_STARTED';
+      if (status == 'ACTIVE' && !hasParticipated) {
+        // Show pre-screen for invite links
+        return PreDailyQuestionScreen(
+          questionDate: questionDate,
+          fromInvite: true,
+        );
+      }
+    }
+
+    // All other cases: show the regular DQ screen
+    return DailyQuestionScreen(questionDate: questionDate);
   }
 }

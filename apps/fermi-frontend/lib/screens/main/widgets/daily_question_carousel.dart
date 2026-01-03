@@ -5,6 +5,7 @@ import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/screens/main/widgets/daily_question_card.dart';
 import 'package:fermi_frontend/screens/main/widgets/daily_question_archive_sheet.dart';
 import 'package:fermi_frontend/screens/daily_question/daily_question_screen.dart';
+import 'package:fermi_frontend/screens/daily_question/pre_daily_question_screen.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/press_effect_wrapper.dart';
@@ -86,7 +87,7 @@ class DailyQuestionCarousel extends StatelessWidget {
 
                     if (status == 'ACTIVE') {
                       if (!participated) {
-                        // User can play
+                        // User can play - show pre-screen first
                         displayStatus = 'ACTIVE';
                         onTapCallback = () {
                           // Capture controller before async gap to avoid lint warning
@@ -95,7 +96,10 @@ class DailyQuestionCarousel extends StatelessWidget {
                           Navigator.of(context)
                               .push(
                             MaterialPageRoute(
-                              builder: (context) => const DailyQuestionScreen(),
+                              builder: (context) => PreDailyQuestionScreen(
+                                questionDate: date,
+                                fromInvite: false,
+                              ),
                             ),
                           )
                               .then((_) {

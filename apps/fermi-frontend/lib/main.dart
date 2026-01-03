@@ -9,6 +9,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'dart:io' show Platform;
 import 'package:fermi_frontend/firebase_options.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
+import 'package:fermi_frontend/services/auth_state_notifier.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
 import 'package:fermi_frontend/services/dq_firestore.dart';
@@ -132,6 +133,7 @@ class _MyAppState extends State<MyApp> {
   late final ThemeConfigService _themeConfigService;
   late final DeepLinkService _deepLinkService;
   final AuthService _authService = AuthService();
+  late final AuthStateNotifier _authStateNotifier;
   late final SubscriptionService _subscriptionService;
   late final ApiService _apiService;
   late final PreloadService _preloadService;
@@ -146,6 +148,7 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _themeConfigService = ThemeConfigService();
     _themeConfigService.addListener(_onThemeChanged);
+    _authStateNotifier = AuthStateNotifier();
     _subscriptionService = SubscriptionService();
     _subscriptionService.initialize(); // Initialize RevenueCat
     _apiService = ApiService(authService: _authService);
@@ -159,6 +162,7 @@ class _MyAppState extends State<MyApp> {
     _preloadService = PreloadService(api: _apiService, auth: _authService);
     _appRouter = AppRouter(
       authService: _authService,
+      authStateNotifier: _authStateNotifier,
       apiService: _apiService,
       preloadService: _preloadService,
       dailyQuestionService: _dailyQuestionService,
