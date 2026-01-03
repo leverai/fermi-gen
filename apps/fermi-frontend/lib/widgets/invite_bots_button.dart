@@ -7,12 +7,14 @@ class InviteBotsButton extends StatefulWidget {
   final VoidCallback onPressed;
   final int botCount;
   final bool enabled;
+  final bool iconOnly;
 
   const InviteBotsButton({
     super.key,
     required this.onPressed,
     required this.botCount,
     this.enabled = true,
+    this.iconOnly = false,
   });
 
   @override
@@ -32,7 +34,7 @@ class _InviteBotsButtonState extends State<InviteBotsButton> {
     final isEnabled = widget.enabled && !_hasInvitedBots;
 
     // Use secondary color as requested
-    final backgroundColor = appTheme.bg;
+    final backgroundColor = isEnabled ? appTheme.bgLight : appTheme.bg;
     // Use a contrasting text color. Since secondary is vibrant/dark, white or bgLight usually works well.
     final foregroundColor = isEnabled ? appTheme.text : appTheme.borderMuted;
 
@@ -59,42 +61,50 @@ class _InviteBotsButtonState extends State<InviteBotsButton> {
           0,
         ),
         decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(12),
-          // boxShadow: [
-          //   if (!_isPressed && isEnabled)
-          //     BoxShadow(
-          //       color: appTheme.shadowColor,
-          //       offset: appTheme.shadowOffset,
-          //     ),
-          // ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SvgPicture.asset(
-              'assets/icons/add_bot.svg',
-              width: 24,
-              height: 24,
-              colorFilter: ColorFilter.mode(
-                foregroundColor,
-                BlendMode.srcIn,
+            color: backgroundColor,
+            shape: widget.iconOnly ? BoxShape.circle : BoxShape.rectangle,
+            borderRadius: widget.iconOnly ? null : BorderRadius.circular(12),
+            boxShadow: [
+              if (!_isPressed && isEnabled)
+                BoxShadow(
+                  color: appTheme.shadowColor,
+                  offset: appTheme.shadowOffset,
+                ),
+            ]),
+        padding: widget.iconOnly
+            ? EdgeInsets.zero
+            : const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        width: widget.iconOnly ? 52 : null,
+        height: widget.iconOnly ? 52 : null,
+        child: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgPicture.asset(
+                'assets/icons/add_bot.svg',
+                width: 24,
+                height: 24,
+                colorFilter: ColorFilter.mode(
+                  foregroundColor,
+                  BlendMode.srcIn,
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              buttonLabel,
-              style: TextStyle(
-                color: foregroundColor,
-                fontFamily: AppFont.primaryOf(context),
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 1,
-              ),
-            ),
-          ],
+              if (!widget.iconOnly) ...[
+                const SizedBox(width: 8),
+                Text(
+                  buttonLabel,
+                  style: TextStyle(
+                    color: foregroundColor,
+                    fontFamily: AppFont.primaryOf(context),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
