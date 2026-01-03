@@ -197,6 +197,7 @@ jobs:
           env_vars: |
             USE_EMULATORS=false
             GOOGLE_CLOUD_PROJECT=${{ vars.GCP_PROJECT_ID }}
+            INVITE_URL_BASE=https://guesstimate.chottu.link
           flags: |
             --service-account=fermi-api-runner@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
             --add-cloudsql-instances=${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:${{ vars.CLOUD_SQL_INSTANCE }}
