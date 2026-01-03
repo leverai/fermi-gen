@@ -111,7 +111,8 @@ class QuestionScreenV2Controller extends ChangeNotifier {
   ValueNotifier<Map<String, String>> get unitOptionsNotifier =>
       _unitOptionsNotifier;
   double get autoNextProgress => 0.0; // Always 0 for private games
-  QuestionDeadlineProgressTracker? get deadlineProgressTracker => null; // No deadline for private games
+  QuestionDeadlineProgressTracker? get deadlineProgressTracker =>
+      null; // No deadline for private games
   int? get confettiRank => _confettiManager.confettiRank;
   Map<String, Rank>? get finalRanks => _confettiManager.finalRanks;
 
@@ -334,30 +335,16 @@ class QuestionScreenV2Controller extends ChangeNotifier {
         '_handleReveal: index=$index, correct=$correct, currentIndex=$currentIndex');
     final currentState =
         _stateManager.getQuestionState(index) ?? QuestionState();
-    final wasRevealed = currentState.isRevealed;
-    AppLogger.debug('_handleReveal: wasRevealed=$wasRevealed');
+    AppLogger.debug('_handleReveal: wasRevealed=${currentState.isRevealed}');
     _stateManager.updateQuestionState(
       index,
       currentState.copyWith(
-        correctAnswer: correct,
         isRevealed: true,
         paragraph: paragraph,
       ),
     );
-
-    // If this is the current question and it wasn't already revealed, reveal the answer widget
-    // Note: _handlePlayersAnswers might have already triggered the reveal, so we check wasRevealed
-    // Allow animation even if review mode activates simultaneously (for last question)
-    if (index == currentIndex && !wasRevealed) {
-      AppLogger.debug(
-          '_handleReveal: Triggering reveal animation (index=$index, wasRevealed=$wasRevealed)');
-      _triggerRevealAnimation(index, correct);
-    } else {
-      AppLogger.debug(
-          '_handleReveal: NOT triggering animation (index=$index, currentIndex=$currentIndex, wasRevealed=$wasRevealed)');
-    }
-
-    // Animation callback will notify listeners when animation completes
+    // Animation is triggered by _handlePlayersAnswers which has the correct
+    // per-player answer in the user's unit
   }
 
   void _triggerRevealAnimation(int index, AnswerValue correctAnswer) {
