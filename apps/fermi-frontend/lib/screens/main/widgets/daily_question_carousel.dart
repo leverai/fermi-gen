@@ -20,7 +20,7 @@ class DailyQuestionCarousel extends StatelessWidget {
 
     if (controller.isLoading) {
       return const SizedBox(
-        height: 190,
+        height: 182,
         child: Center(child: CircularProgressIndicator()),
       );
     }
@@ -53,15 +53,15 @@ class DailyQuestionCarousel extends StatelessWidget {
                 ((availableWidth - 32) * 0.8).clamp(280.0, 500.0);
 
             return SizedBox(
-              height: 190, // Increased height to accommodate shadows
+              height: 182,
               child: ListView.separated(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
                 clipBehavior:
                     Clip.none, // Allow shadows to exceed carousel bounds
                 scrollDirection: Axis.horizontal,
                 itemCount: dates.length + 1, // Dates + Archive Button
-                separatorBuilder: (context, index) => const SizedBox(width: 16),
+                separatorBuilder: (context, index) => const SizedBox(width: 24),
                 itemBuilder: (context, index) {
                   // Archive Button (Last item)
                   if (index == dates.length) {
@@ -212,8 +212,7 @@ class DailyQuestionCarousel extends StatelessWidget {
       ),
       child: SizedBox(
         width: 100,
-        height:
-            182, // Matched height with cards (minus vertical padding of carousel)
+        height: 182, // Matched height with cards
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
