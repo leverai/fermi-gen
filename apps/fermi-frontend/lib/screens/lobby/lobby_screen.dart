@@ -101,12 +101,8 @@ class LobbyScreen extends StatelessWidget {
                               ),
                             ),
                             child: _CenterCallout(
-                              onShare: onShare,
                               color: appTheme.info,
-                              joinUrl: joinUrl,
                               isHost: isHost,
-                              onInviteBots: onInviteBots,
-                              botsToInvite: botsToInvite,
                               onStart: onStart,
                               startEnabled: startEnabled,
                               createdAt: createdAt,
@@ -114,6 +110,33 @@ class LobbyScreen extends StatelessWidget {
                           );
                         }),
                         const Spacer(),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (isHost &&
+                                  botsToInvite > 0 &&
+                                  onInviteBots != null) ...[
+                                InviteBotsButton(
+                                  onPressed: onInviteBots!,
+                                  botCount: botsToInvite,
+                                  iconOnly: true,
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                              if (onShare != null) ...[
+                                ShareButton(
+                                  onPressed: onShare!,
+                                  iconOnly: true,
+                                ),
+                                const SizedBox(height: 24),
+                              ],
+                            ],
+                          ),
+                        ),
+                        // Removed Spacer to keep buttons significantly closer to the start button
                         MainButton(
                           onPressed: startEnabled ? onStart : null,
                           label: MainButtonLabel.start,
@@ -141,22 +164,14 @@ class LobbyScreen extends StatelessWidget {
 class _CenterCallout extends StatefulWidget {
   const _CenterCallout({
     required this.color,
-    this.onShare,
-    this.joinUrl,
     this.isHost = false,
-    this.onInviteBots,
-    this.botsToInvite = 0,
     required this.onStart,
     required this.startEnabled,
     this.createdAt,
   });
 
   final Color color;
-  final VoidCallback? onShare;
-  final String? joinUrl;
   final bool isHost;
-  final VoidCallback? onInviteBots;
-  final int botsToInvite;
   final VoidCallback onStart;
   final bool startEnabled;
   final DateTime? createdAt;
@@ -254,10 +269,6 @@ class _CenterCalloutState extends State<_CenterCallout>
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    // Show bot invitation button if host and bots can be invited
-    final showBotButton =
-        widget.isHost && widget.botsToInvite > 0 && widget.onInviteBots != null;
-
     final timerText = Text(
       '$_timeLeft',
       style: TextStyle(
@@ -282,15 +293,6 @@ class _CenterCalloutState extends State<_CenterCallout>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showBotButton) ...[
-            InviteBotsButton(
-              onPressed: widget.onInviteBots!,
-              botCount: widget.botsToInvite,
-            ),
-            const SizedBox(height: 24),
-          ],
-          ShareButton(onPressed: widget.onShare ?? () {}),
-          const SizedBox(height: 24),
           autoStartLabel,
           const SizedBox(height: 4),
           timerText,
