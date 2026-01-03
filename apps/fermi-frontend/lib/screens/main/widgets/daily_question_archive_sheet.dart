@@ -7,6 +7,7 @@ import 'package:fermi_frontend/services/daily_question_service.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/screens/daily_question/daily_question_screen.dart';
+import 'package:fermi_frontend/screens/daily_question/pre_daily_question_screen.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 
@@ -260,7 +261,7 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
                           }
 
                           if (isActive && !hasParticipated) {
-                            // Navigate to DQ play screen
+                            // Navigate to pre-DQ screen first
                             // Capture controller and navigator before async gap to avoid lint warning
                             final mainController = widget.mainScreenController;
                             final navigator = Navigator.of(context);
@@ -268,7 +269,10 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
                             navigator
                                 .push(
                               MaterialPageRoute(
-                                builder: (_) => const DailyQuestionScreen(),
+                                builder: (_) => PreDailyQuestionScreen(
+                                  questionDate: dateStr,
+                                  fromInvite: false,
+                                ),
                               ),
                             )
                                 .then((_) {
