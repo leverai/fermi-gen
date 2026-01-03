@@ -55,14 +55,14 @@ test-etl:
 .PHONY: test-frontend-unit
 test-frontend-unit:
 	@cd apps/fermi-frontend && \
-	flutter test test/unit/ \
+	fvm flutter test test/unit/ \
 	  --dart-define=API_BASE_URL=http://localhost:8000 \
 	  --dart-define=SUPPRESS_TEST_LOGS=true
 
 .PHONY: test-frontend-widget
 test-frontend-widget:
 	@cd apps/fermi-frontend && \
-	flutter test test/widget/ \
+	fvm flutter test test/widget/ \
 	  --dart-define=SUPPRESS_TEST_LOGS=true
 
 # ============================================================================

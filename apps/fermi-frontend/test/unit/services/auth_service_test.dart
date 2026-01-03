@@ -36,6 +36,7 @@ void main() {
       authService = AuthService(
         auth: mockAuth,
         httpClient: mockHttpClient,
+        apiBaseUrl: 'http://test-api.example.com',
       );
     });
 
@@ -250,6 +251,7 @@ void main() {
       authService = AuthService(
         auth: mockAuth,
         httpClient: mockHttpClient,
+        apiBaseUrl: 'http://test-api.example.com',
       );
     });
 
@@ -445,6 +447,7 @@ void main() {
       authService = AuthService(
         auth: mockAuth,
         httpClient: mockHttpClient,
+        apiBaseUrl: 'http://test-api.example.com',
       );
     });
 
