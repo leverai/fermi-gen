@@ -47,29 +47,43 @@ class SubscriptionService:
         entitlements: dict,
     ) -> SubscriptionTier:
         """Parse subscription tier from RevenueCat entitlements."""
-        # Check if user has 'pro' entitlement active
-        if entitlements and 'pro' in entitlements:
-            pro_entitlement = entitlements['pro']
+        # Check if user has 'Guesstimate Pro' entitlement active
+        if entitlements and 'Guesstimate Pro' in entitlements:
+            pro_entitlement = entitlements['Guesstimate Pro']
             if pro_entitlement.get('is_active', False):
                 return SubscriptionTier.PRO
         return SubscriptionTier.FREE
 
     async def handle_webhook_event(
         self,
-        event: dict,
+        payload: dict,
     ) -> None:
         """Handle a RevenueCat webhook event.
 
         Args:
-            event: The webhook event payload from RevenueCat.
+            payload: The webhook payload from RevenueCat.
+                     Contains an 'event' object with the actual event data.
 
         """
+        # RevenueCat nests event data inside an 'event' key
+        event = payload.get('event', payload)
+
         event_type = event.get('type')
-        app_user_id = event.get('app_user_id')
-        customer_info = event.get('customer_info', {})
+        # Try app_user_id first, fall back to original_app_user_id
+        app_user_id = event.get('app_user_id') or event.get('original_app_user_id')
+
+        logger.info(
+            'Processing webhook event: type=%s, app_user_id=%s',
+            event_type,
+            app_user_id,
+        )
 
         if not app_user_id:
-            logger.warning('Webhook event missing app_user_id: %s', event_type)
+            logger.warning(
+                'Webhook event missing app_user_id: type=%s, keys=%s',
+                event_type,
+                list(event.keys()),
+            )
             return
 
         # Find user by RevenueCat app_user_id (which should match firebase_uid)
@@ -82,6 +96,7 @@ class SubscriptionService:
             return
 
         # Parse subscription details from customer_info
+        customer_info = event.get('subscriber', {})
         entitlements = customer_info.get('entitlements', {})
         tier = self._parse_tier_from_entitlements(entitlements)
 

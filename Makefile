@@ -164,7 +164,8 @@ build-frontend-android-release:
 	  --release \
 	  --dart-define=API_BASE_URL=https://fermi-api-bwuxx6eogq-uc.a.run.app/api/v1 \
 	  --dart-define=USE_EMULATORS=false \
-	  --dart-define=SUPPRESS_TEST_LOGS=true
+	  --dart-define=SUPPRESS_TEST_LOGS=true \
+	  --dart-define=REVENUECAT_ANDROID_API_KEY=REVENUECAT_ANDROID_API_KEY_PLACEHOLDER
 
 .PHONY: run-frontend-web
 run-frontend-web:
@@ -194,7 +195,8 @@ run-frontend-web:
 	  --dart-define=FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
 	  --dart-define=FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
 	  --dart-define=API_BASE_URL=http://localhost:8000/api/v1 \
-	  --dart-define=SUPPRESS_TEST_LOGS=true
+	  --dart-define=SUPPRESS_TEST_LOGS=true \
+	  --dart-define=REVENUECAT_ANDROID_API_KEY=REVENUECAT_ANDROID_API_KEY_PLACEHOLDER
 
 .PHONY: update-icons
 update-icons:

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 class SubscriptionService {
-  static const String _entitlementId = 'pro';
+  static const String _entitlementId = 'Guesstimate Pro';
 
   bool _isInitialized = false;
   CustomerInfo? _customerInfo;
@@ -58,9 +58,21 @@ class SubscriptionService {
 
   /// Fetch available offerings for custom paywall
   Future<Offerings?> getOfferings() async {
-    if (!_isInitialized) return null;
+    if (!_isInitialized) {
+      debugPrint('RevenueCat: getOfferings called but SDK not initialized');
+      return null;
+    }
     try {
-      return await Purchases.getOfferings();
+      final offerings = await Purchases.getOfferings();
+      debugPrint('RevenueCat: offerings fetched successfully');
+      debugPrint(
+          'RevenueCat: current offering = ${offerings.current?.identifier}');
+      debugPrint('RevenueCat: all offerings = ${offerings.all.keys.toList()}');
+      if (offerings.current != null) {
+        debugPrint(
+            'RevenueCat: packages in current = ${offerings.current!.availablePackages.map((p) => p.identifier).toList()}');
+      }
+      return offerings;
     } on PlatformException catch (e) {
       debugPrint('Error fetching offerings: ${e.message}');
       return null;
