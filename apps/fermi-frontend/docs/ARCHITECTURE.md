@@ -268,11 +268,46 @@ The `login()` method is safe to call multiple times with the same UID (RevenueCa
 
 #### Paywall Screen
 
-`PaywallScreen` (`lib/screens/paywall_screen.dart`) displays available subscription packages:
-- Fetches offerings from RevenueCat
-- Shows package title, description, and price
-- Handles purchase flow and error states
-- Returns `true` on successful purchase for navigation handling
+`PaywallScreen` (`lib/screens/paywall_screen.dart`) displays available subscription packages with a Neubrutalist-styled UI:
+
+**Features:**
+- **Dynamic Metadata**: Fetches FREE/PRO benefits from RevenueCat Offering metadata (allows remote updates without app redeployment)
+- **Benefits Comparison**: Side-by-side FREE vs PRO comparison table
+- **Product Cards**: Displays monthly, yearly, and lifetime options with:
+  - Price from Play Store (`StoreProduct.priceString`)
+  - Savings badge for yearly plan (calculated vs monthly)
+  - "BEST VALUE" badge for popular package (configurable via metadata)
+  - Free trial text (if configured in Play Store offers)
+  - Product description from Play Store
+- **Promo Banner**: Optional promotional text from metadata
+- **Restore Purchases**: Link to restore previous purchases
+
+**RevenueCat Offering Metadata Structure:**
+
+Configure in RevenueCat Dashboard → Products → Offerings → `default` → Metadata:
+
+```json
+{
+  "free_benefits": ["1 Daily Question", "3 Party Games per Day", "Limited Archive Access"],
+  "pro_benefits": ["Unlimited Party Games", "Full Daily Question Archive", "No Ads"],
+  "popular_package": "$rc_annual",
+  "promo_text": "Save 50% with yearly!"
+}
+```
+
+| Field | Purpose |
+|-------|---------|
+| `free_benefits` | Listed in FREE column of comparison table |
+| `pro_benefits` | Listed in PRO column with checkmarks |
+| `popular_package` | Package identifier for "BEST VALUE" badge |
+| `promo_text` | Promotional banner displayed at top |
+
+**Play Store Console Setup:**
+
+For subscriptions, configure:
+- **Benefits**: Listed in Google Play purchase UI (not exposed to app)
+- **Description**: Shown in app via `StoreProduct.description`
+- **Offers** (optional): Free trials or intro pricing via base plan offers
 
 #### Testing
 
