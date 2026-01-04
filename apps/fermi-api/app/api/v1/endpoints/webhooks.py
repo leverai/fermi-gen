@@ -72,6 +72,7 @@ async def revenuecat_webhook(
 
     Expected event types:
     - INITIAL_PURCHASE
+    - TRANSFER
     - RENEWAL
     - CANCELLATION
     - EXPIRATION

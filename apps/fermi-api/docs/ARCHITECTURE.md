@@ -131,9 +131,35 @@ The API integrates with RevenueCat to manage subscription tiers and feature gati
 
 ### Architecture
 
-- **Frontend**: RevenueCat Flutter SDK handles purchases and entitlement checks
+```
+┌─────────────┐      ┌──────────────┐      ┌─────────────┐
+│   Flutter   │──────│  RevenueCat  │──────│   Backend   │
+│     App     │      │    Cloud     │      │    API      │
+└─────────────┘      └──────────────┘      └─────────────┘
+       │                    │                     │
+       │ SDK purchase       │                     │
+       ├───────────────────>│                     │
+       │                    │ Webhook POST        │
+       │                    ├────────────────────>│
+       │                    │                     │ Update DB
+       │                    │                     ├──────────┐
+       │                    │                     │          │
+       │                    │         200 OK      │<─────────┘
+       │ entitlements       │<────────────────────┤
+       │<───────────────────┤                     │
+```
+
+- **Frontend**: RevenueCat Flutter SDK (`purchases_flutter`) handles purchases and entitlement checks
 - **Backend**: PostgreSQL `subscriptions` table stores subscription status synced via webhooks
 - **Webhook**: RevenueCat sends events to `/api/v1/webhooks/revenuecat` when subscription status changes
+
+### RevenueCat Configuration
+
+| Item | Value |
+|------|-------|
+| Entitlement ID | `Guesstimate Pro` |
+| Offering | `default` |
+| Products | `pro:pro-monthly`, `pro_yearly:pro-yearly`, `pro_lifetime` |
 
 ### Subscription Tiers
 
@@ -147,12 +173,66 @@ The API integrates with RevenueCat to manage subscription tiers and feature gati
 3. Backend validates webhook secret and updates `subscriptions` table
 4. User's subscription tier is included in auth responses (`/auth/token`, `/auth/refresh`)
 
+### Webhook Payload Structure
+
+RevenueCat sends events with nested structure:
+
+```json
+{
+  "api_version": "1.0",
+  "event": {
+    "type": "INITIAL_PURCHASE",
+    "app_user_id": "firebase_uid_here",
+    "original_app_user_id": "firebase_uid_here",
+    "subscriber": {
+      "entitlements": {
+        "Guesstimate Pro": {
+          "is_active": true,
+          "product_identifier": "pro:pro-monthly",
+          "store": "PLAY_STORE",
+          "expires_date": "2025-02-03T12:00:00Z"
+        }
+      }
+    }
+  }
+}
+```
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `REVENUECAT_WEBHOOK_SECRET` | Bearer token for webhook authentication. Must match RevenueCat webhook Authorization header. |
+
 ### Subscription Service
 
 Located in `app/services/subscription.py`:
 - `SubscriptionService`: Handles webhook events and updates subscription records
-- Parses RevenueCat customer_info to extract tier, product_id, platform, expiration dates
-- Updates subscription status on INITIAL_PURCHASE, RENEWAL, CANCELLATION, EXPIRATION events
+- Parses RevenueCat `event.subscriber` to extract tier, product_id, platform, expiration dates
+
+**Supported Event Types:**
+
+| Event Type | Description | Handling |
+|------------|-------------|----------|
+| `INITIAL_PURCHASE` | First subscription purchase | Updates subscription to PRO |
+| `RENEWAL` | Subscription renewed | Updates expiration date |
+| `CANCELLATION` | User cancelled (but still active until expiration) | Marks as cancelled |
+| `EXPIRATION` | Subscription expired | Updates subscription to FREE |
+| `PRODUCT_CHANGE` | User changed subscription plan | Updates product_id |
+| `TRANSFER` | Subscription transferred between users (restore on different account) | Special handling - see below |
+
+**TRANSFER Event Handling:**
+
+`TRANSFER` events occur when a user restores purchases on a different app_user_id than the original purchaser (e.g., same Google account but different Firebase login). These events have a unique structure:
+
+- No `app_user_id` field (unlike other events)
+- Contains `transferred_from`: array of user IDs losing the subscription
+- Contains `transferred_to`: array of user IDs receiving the subscription
+
+The service:
+1. Activates subscriptions for all users in `transferred_to` array
+2. Deactivates subscriptions for all users in `transferred_from` array
+3. Logs unrecognized user IDs (may be anonymous aliases)
 
 ### Database Schema
 

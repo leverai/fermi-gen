@@ -7,6 +7,7 @@ This document describes the architecture, design decisions, and implementation d
 - [Overview](#overview)
 - [Project Structure](#project-structure)
 - [Authentication & API Integration](#authentication--api-integration)
+- [Subscription Management](#subscription-management)
 - [Real-time Game State](#real-time-game-state)
 - [Screen Architecture](#screen-architecture)
   - [Main Screen](#main-screen)
@@ -209,6 +210,58 @@ When an anonymous user signs in with email/Google from the upgrade screen:
 ### API Service
 
 `ApiService` issues authorized HTTP requests with `Authorization: Bearer <ACCESS_TOKEN>`. All successful responses return a `200 OK` status code. Errors are communicated via standard `4xx` and `5xx` status codes with a JSON body containing a `detail` field.
+
+### Subscription Management
+
+The app integrates with RevenueCat for in-app purchases and subscription management via the `purchases_flutter` SDK.
+
+#### Configuration
+
+| Item | Value |
+|------|-------|
+| SDK Package | `purchases_flutter` |
+| Entitlement ID | `Guesstimate Pro` |
+| Offering | `default` |
+| Products | `$rc_monthly`, `$rc_annual`, `$rc_lifetime` |
+
+#### Service
+
+`SubscriptionService` (`lib/services/subscription_service.dart`) handles:
+- SDK initialization with platform-specific API keys
+- User login/logout synced with Firebase UID
+- Entitlement checking (`isPro`)
+- Fetching offerings for paywall display
+- Purchase and restore flows
+
+#### API Keys
+
+API keys are injected via `--dart-define` at build time:
+- `REVENUECAT_ANDROID_API_KEY`: Google Play API key (starts with `goog_*`)
+- `REVENUECAT_IOS_API_KEY`: App Store API key (starts with `appl_*`)
+
+#### User Flow
+
+1. On app launch, `SubscriptionService.initialize()` configures the SDK
+2. After Firebase auth, `SubscriptionService.login(firebaseUid)` links the user
+3. User navigates to Settings → Subscription to open `PaywallScreen`
+4. `PaywallScreen` fetches offerings and displays available packages
+5. User taps a package → `purchasePackage()` completes the purchase
+6. On success, entitlements are immediately active (RevenueCat handles receipt validation)
+7. RevenueCat sends webhook to backend to sync subscription status to database
+
+#### Paywall Screen
+
+`PaywallScreen` (`lib/screens/paywall_screen.dart`) displays available subscription packages:
+- Fetches offerings from RevenueCat
+- Shows package title, description, and price
+- Handles purchase flow and error states
+- Returns `true` on successful purchase for navigation handling
+
+#### Testing
+
+- **Sandbox Testing**: Use Google Play sandbox (test accounts in Play Console License testing)
+- **Sandbox Renewals**: Subscriptions renew every 5 minutes in sandbox mode
+- **No Real Charges**: License tester accounts are never charged
 
 ---
 
