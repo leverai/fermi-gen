@@ -7,8 +7,6 @@ import 'package:firebase_auth/firebase_auth.dart'
     hide EmailAuthProvider, AuthProvider;
 import 'package:firebase_core/firebase_core.dart';
 import 'dart:io' show Platform;
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:fermi_frontend/firebase_options.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/services/auth_state_notifier.dart';
@@ -145,14 +143,6 @@ class _MyAppState extends State<MyApp> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   late final AppRouter _appRouter;
 
-  // #region agent log
-  static const String _debugEndpoint = 'http://10.0.2.2:7242/ingest/fe179d7c-61d9-4203-845a-3c82594547fd';
-  void _debugLog(String location, String message, Map<String, dynamic> data, String hypothesisId) {
-    final payload = {'location': location, 'message': message, 'data': data, 'timestamp': DateTime.now().millisecondsSinceEpoch, 'sessionId': 'debug-session', 'hypothesisId': hypothesisId};
-    Uri.tryParse(_debugEndpoint) != null ? http.post(Uri.parse(_debugEndpoint), headers: {'Content-Type': 'application/json'}, body: jsonEncode(payload)).catchError((_) => http.Response('', 500)) : null;
-  }
-  // #endregion
-
   @override
   void initState() {
     super.initState();
@@ -160,10 +150,7 @@ class _MyAppState extends State<MyApp> {
     _themeConfigService.addListener(_onThemeChanged);
     _authStateNotifier = AuthStateNotifier();
     _subscriptionService = SubscriptionService();
-    // #region agent log
-    _debugLog('main.dart:initState', 'Calling initialize() (NOT awaited)', {'timestamp': DateTime.now().toIso8601String()}, 'A');
-    // #endregion
-    _subscriptionService.initialize(); // Initialize RevenueCat - NOT AWAITED!
+    _subscriptionService.initialize(); // Initialize RevenueCat early
     _apiService = ApiService(authService: _authService);
     _dailyQuestionService = DailyQuestionService(api: _apiService);
     _dqFirestoreService = DQFirestoreService();
@@ -179,6 +166,7 @@ class _MyAppState extends State<MyApp> {
       apiService: _apiService,
       preloadService: _preloadService,
       dailyQuestionService: _dailyQuestionService,
+      subscriptionService: _subscriptionService,
       navigatorKey: _navigatorKey,
       scaffoldMessengerKey: _appScaffoldMessengerKey,
       onCheckPendingJoin: () => _checkPendingJoin,
@@ -190,18 +178,12 @@ class _MyAppState extends State<MyApp> {
     );
 
     // Sign in anonymously early if no user exists
-    // #region agent log
-    _debugLog('main.dart:initState', 'Calling _ensureAuthenticated()', {'timestamp': DateTime.now().toIso8601String()}, 'A');
-    // #endregion
     _ensureAuthenticated();
   }
 
   /// Ensures user is authenticated (anonymous or regular).
-  /// Starts preloading data once authentication is ready.
+  /// Syncs RevenueCat with the Firebase UID and starts preloading data.
   Future<void> _ensureAuthenticated() async {
-    // #region agent log
-    _debugLog('main.dart:_ensureAuthenticated:entry', '_ensureAuthenticated() called', {'timestamp': DateTime.now().toIso8601String()}, 'A');
-    // #endregion
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       // Sign in anonymously as early as possible
@@ -212,9 +194,6 @@ class _MyAppState extends State<MyApp> {
         // Sync user ID with RevenueCat
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
-          // #region agent log
-          _debugLog('main.dart:_ensureAuthenticated:anon_login', 'About to call login() for anonymous user', {'uid': user.uid, 'isAnonymous': user.isAnonymous}, 'A');
-          // #endregion
           await _subscriptionService.login(user.uid);
         }
         // Start preloading data in the background
@@ -227,9 +206,6 @@ class _MyAppState extends State<MyApp> {
           // User can still use the app, so preload data
           debugPrint(
               'Anonymous sign-in succeeded but token exchange failed. User can still use the app.');
-          // #region agent log
-          _debugLog('main.dart:_ensureAuthenticated:anon_fallback', 'About to call login() (token exchange failed)', {'uid': user.uid, 'isAnonymous': user.isAnonymous}, 'A');
-          // #endregion
           await _subscriptionService.login(user.uid);
           _preloadService.preload();
         } else {
@@ -238,17 +214,11 @@ class _MyAppState extends State<MyApp> {
         }
       }
     } else {
-      // #region agent log
-      _debugLog('main.dart:_ensureAuthenticated:existing_user', 'User already exists', {'uid': currentUser.uid, 'isAnonymous': currentUser.isAnonymous, 'email': currentUser.email}, 'A,E');
-      // #endregion
       // User already exists, ensure we have a token
       if (_authService.accessToken == null) {
         await _authService.exchangeToken();
       }
       // Sync user ID with RevenueCat
-      // #region agent log
-      _debugLog('main.dart:_ensureAuthenticated:existing_login', 'About to call login() for existing user', {'uid': currentUser.uid, 'isAnonymous': currentUser.isAnonymous}, 'A');
-      // #endregion
       await _subscriptionService.login(currentUser.uid);
       // Start preloading immediately
       _preloadService.preload();

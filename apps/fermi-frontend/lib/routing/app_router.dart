@@ -5,14 +5,13 @@ import 'package:firebase_auth/firebase_auth.dart'
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/services/auth_state_notifier.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
+import 'package:fermi_frontend/services/subscription_service.dart';
 import 'package:fermi_frontend/screens/main/main_screen.dart';
 import 'package:fermi_frontend/screens/onboarding_screen.dart';
 import 'package:fermi_frontend/screens/auth_screen.dart';
@@ -34,32 +33,12 @@ class AppRouter {
   final ApiService apiService;
   final PreloadService preloadService;
   final DailyQuestionService dailyQuestionService;
+  final SubscriptionService subscriptionService;
   final GlobalKey<NavigatorState> navigatorKey;
   final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
   final VoidCallback Function()? onCheckPendingJoin;
 
   late final GoRouter router;
-
-  // #region agent log
-  static const String _debugEndpoint =
-      'http://10.0.2.2:7242/ingest/fe179d7c-61d9-4203-845a-3c82594547fd';
-  void _debugLog(String location, String message, Map<String, dynamic> data,
-      String hypothesisId) {
-    final payload = {
-      'location': location,
-      'message': message,
-      'data': data,
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
-      'sessionId': 'debug-session',
-      'hypothesisId': hypothesisId
-    };
-    http
-        .post(Uri.parse(_debugEndpoint),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(payload))
-        .catchError((_) => http.Response('', 500));
-  }
-  // #endregion
 
   AppRouter({
     required this.authService,
@@ -67,6 +46,7 @@ class AppRouter {
     required this.apiService,
     required this.preloadService,
     required this.dailyQuestionService,
+    required this.subscriptionService,
     required this.navigatorKey,
     required this.scaffoldMessengerKey,
     this.onCheckPendingJoin,
@@ -275,18 +255,11 @@ class AppRouter {
       actions: [
         AuthStateChangeAction<UserCreated>((context, state) async {
           final user = FirebaseAuth.instance.currentUser;
-          // #region agent log
-          _debugLog(
-              'app_router.dart:UserCreated',
-              'UserCreated event - subscriptionService.login() NOT CALLED',
-              {
-                'uid': user?.uid,
-                'email': user?.email,
-                'isAnonymous': user?.isAnonymous
-              },
-              'B');
-          // #endregion
           final ok = await authService.exchangeToken();
+          // Sync RevenueCat with the current Firebase user
+          if (user != null) {
+            await subscriptionService.login(user.uid);
+          }
           if (!context.mounted) return;
           if (ok) {
             SharedPreferences.getInstance()
@@ -303,18 +276,11 @@ class AppRouter {
         }),
         AuthStateChangeAction<SignedIn>((context, state) async {
           final user = FirebaseAuth.instance.currentUser;
-          // #region agent log
-          _debugLog(
-              'app_router.dart:SignedIn',
-              'SignedIn event - subscriptionService.login() NOT CALLED',
-              {
-                'uid': user?.uid,
-                'email': user?.email,
-                'isAnonymous': user?.isAnonymous
-              },
-              'B');
-          // #endregion
           final ok = await authService.exchangeToken();
+          // Sync RevenueCat with the current Firebase user
+          if (user != null) {
+            await subscriptionService.login(user.uid);
+          }
           if (!context.mounted) return;
           if (ok) {
             SharedPreferences.getInstance()
@@ -331,18 +297,11 @@ class AppRouter {
         }),
         AuthStateChangeAction<CredentialLinked>((context, state) async {
           final user = FirebaseAuth.instance.currentUser;
-          // #region agent log
-          _debugLog(
-              'app_router.dart:CredentialLinked',
-              'CredentialLinked event - subscriptionService.login() NOT CALLED',
-              {
-                'uid': user?.uid,
-                'email': user?.email,
-                'isAnonymous': user?.isAnonymous
-              },
-              'B');
-          // #endregion
           final ok = await authService.exchangeToken();
+          // Sync RevenueCat with the current Firebase user
+          if (user != null) {
+            await subscriptionService.login(user.uid);
+          }
           if (!context.mounted) return;
           if (ok) {
             scaffoldMessengerKey.currentState?.showSnackBar(
@@ -397,7 +356,12 @@ class AppRouter {
       providers: providers,
       actions: [
         AuthStateChangeAction<CredentialLinked>((context, state) async {
+          final user = FirebaseAuth.instance.currentUser;
           final ok = await authService.exchangeToken();
+          // Sync RevenueCat with the current Firebase user
+          if (user != null) {
+            await subscriptionService.login(user.uid);
+          }
           if (!context.mounted) return;
           if (ok) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -422,6 +386,10 @@ class AppRouter {
             debugPrint('User is still anonymous after sign-in');
           } else {
             final ok = await authService.exchangeToken();
+            // Sync RevenueCat with the current Firebase user
+            if (user != null) {
+              await subscriptionService.login(user.uid);
+            }
             if (!context.mounted) return;
             if (ok) {
               ScaffoldMessenger.of(context).showSnackBar(

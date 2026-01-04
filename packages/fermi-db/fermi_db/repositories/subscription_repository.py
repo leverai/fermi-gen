@@ -48,6 +48,13 @@ class SubscriptionRepository(BaseRepository):
         original_purchase_date: datetime | None = None,
     ) -> Subscription:
         """Create or update a subscription record."""
+        expires_at = None if expires_at is None else expires_at.astimezone(None)
+        original_purchase_date = (
+            None
+            if original_purchase_date is None
+            else original_purchase_date.astimezone(None)
+        )
+
         subscription = await self.get_by_user_id(user_id)
 
         if subscription is None:
