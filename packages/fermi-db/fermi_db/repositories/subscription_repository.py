@@ -2,6 +2,7 @@
 
 from datetime import datetime
 
+import pytz
 from fermi_core import utcnow_naive
 from sqlmodel import select
 
@@ -48,11 +49,15 @@ class SubscriptionRepository(BaseRepository):
         original_purchase_date: datetime | None = None,
     ) -> Subscription:
         """Create or update a subscription record."""
-        expires_at = None if expires_at is None else expires_at.astimezone(None)
+        expires_at = (
+            None
+            if expires_at is None
+            else expires_at.astimezone(pytz.UTC).replace(tzinfo=None)
+        )
         original_purchase_date = (
             None
             if original_purchase_date is None
-            else original_purchase_date.astimezone(None)
+            else original_purchase_date.astimezone(pytz.UTC).replace(tzinfo=None)
         )
 
         subscription = await self.get_by_user_id(user_id)
