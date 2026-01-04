@@ -16,7 +16,7 @@ This document outlines the monetization strategy for The Fermi Game, a mobile tr
 
 ## Executive Summary
 
-The Fermi Game is a unique educational trivia experience with no direct competitors on major app stores. This is an opportunity to establish the category while building a loyal user base. The recommended approach is a **generous freemium model** that prioritizes engagement and virality over aggressive monetization, converting engaged users to premium over time.
+Guesstimate is a unique educational trivia experience with no direct competitors on major app stores. This is an opportunity to establish the category while building a loyal user base. The recommended approach is a **generous freemium model** that prioritizes engagement and virality over aggressive monetization, converting engaged users to premium over time.
 
 > [!IMPORTANT]
 > Since the app hasn't launched yet, the strategy should prioritize **user acquisition and engagement** over immediate revenue. Aggressive paywalls early on will hurt growth in a category with no established demand.
@@ -44,10 +44,7 @@ The Fermi Game is a unique educational trivia experience with no direct competit
 ### Party Mode (Private-Only)
 
 > [!NOTE]
-> Party mode is **private-only** (invite link required). Public matchmaking was retired because:
-> - Requires skill-based matching to be fair
-> - 6 timed Fermi questions is cognitively demanding for random groups
-> - Competitive multiplayer is better served by DQ leaderboards and future Survival mode
+> Party mode is **private-only** (invite link required). Public matchmaking was retired.
 
 | Feature | Free Tier | Premium |
 |---------|-----------|---------|

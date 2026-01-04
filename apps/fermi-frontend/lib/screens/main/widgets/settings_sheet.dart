@@ -17,6 +17,8 @@ class SettingsSheet extends StatefulWidget {
     this.email,
     this.currentLocale,
     this.onLocaleChanged,
+    this.subscriptionTier = 'FREE',
+    this.onUpgradeSubscription,
   });
 
   final VoidCallback onSignOut;
@@ -26,6 +28,8 @@ class SettingsSheet extends StatefulWidget {
   final String? email;
   final String? currentLocale;
   final ValueChanged<String>? onLocaleChanged;
+  final String subscriptionTier;
+  final VoidCallback? onUpgradeSubscription;
 
   @override
   State<SettingsSheet> createState() => _SettingsSheetState();
@@ -161,6 +165,37 @@ class _SettingsSheetState extends State<SettingsSheet> {
                   context,
                   appTheme,
                   children: [
+                    // Subscription row - disabled for anonymous users
+                    _buildSettingsRow(
+                      context,
+                      appTheme,
+                      label: 'Subscription',
+                      icon: Icons.workspace_premium,
+                      trailing: Text(
+                        widget.subscriptionTier,
+                        style: AppFont.primaryTextStyle(
+                          context,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: widget.isAnonymous
+                              ? appTheme.borderMuted
+                              : appTheme.primary,
+                        ),
+                      ),
+                      onTap: widget.isAnonymous
+                          ? null
+                          : () {
+                              Navigator.of(context).pop();
+                              widget.onUpgradeSubscription?.call();
+                            },
+                      isDisabled: widget.isAnonymous,
+                    ),
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      indent: 24,
+                      color: appTheme.bg,
+                    ),
                     if (widget.isAnonymous)
                       _buildSettingsRow(
                         context,
@@ -277,8 +312,13 @@ class _SettingsSheetState extends State<SettingsSheet> {
     VoidCallback? onTap,
     bool isDestructive = false,
     bool showSplash = true,
+    bool isDisabled = false,
   }) {
-    final Color textColor = isDestructive ? appTheme.danger : appTheme.text;
+    final Color textColor = isDisabled
+        ? appTheme.borderMuted
+        : isDestructive
+            ? appTheme.danger
+            : appTheme.text;
 
     Widget content = Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),

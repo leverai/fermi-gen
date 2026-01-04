@@ -139,6 +139,7 @@ run-frontend:
 	export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080; \
 	export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099; \
 	export GOOGLE_CLOUD_PROJECT=fermi-local; \
+	export REVENUECAT_WEBHOOK_SECRET=test_lWemzPXwFDcNwckcycCYXkiVuDk; \
 	$(MAKE) migrate; \
 	echo "Seeding questions..." && \
 	uv run --package fermi-db python scripts/seed_test_questions.py --file apps/fermi-api/tests/data/test_questions.json --no-dq-history; \
@@ -150,6 +151,7 @@ run-frontend:
 	  --dart-define=FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
 	  --dart-define=FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
 	  --dart-define=API_BASE_URL=http://localhost:8000/api/v1 \
+	  --dart-define=REVENUECAT_ANDROID_API_KEY=goog_nlfyHlphbqbWfeqdPYtzBVVgkJJ \
 	  --dart-define=SUPPRESS_TEST_LOGS=true
 
 .PHONY: build-frontend-android-release

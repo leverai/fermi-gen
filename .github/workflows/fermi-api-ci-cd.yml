@@ -194,6 +194,7 @@ jobs:
           secrets: |
             DATABASE_URL=${{ vars.DATABASE_URL_SECRET }}:latest
             JWT_SECRET_KEY=fermi-api-jwt:latest
+            REVENUECAT_WEBHOOK_SECRET=revenuecat-webhook:latest
           env_vars: |
             USE_EMULATORS=false
             GOOGLE_CLOUD_PROJECT=${{ vars.GCP_PROJECT_ID }}

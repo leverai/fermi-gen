@@ -12,6 +12,8 @@ import 'package:fermi_frontend/widgets/player_widget.dart';
 import 'package:fermi_frontend/screens/main/widgets/settings_sheet.dart';
 import 'package:fermi_frontend/widgets/styled_dialog.dart';
 import 'package:fermi_frontend/widgets/avatar_widget.dart';
+import 'package:fermi_frontend/screens/paywall_screen.dart';
+import 'package:fermi_frontend/services/subscription_service.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:provider/provider.dart';
@@ -180,7 +182,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
-
   // --------------------------------------------------------------------------
   // Settings Handlers
   // --------------------------------------------------------------------------
@@ -198,6 +199,20 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         email: widget.authService.currentUser?.email,
         currentLocale: widget.authService.locale,
         onLocaleChanged: _handleLocaleChanged,
+        subscriptionTier:
+            widget.authService.currentUser?.subscriptionTier ?? 'FREE',
+        onUpgradeSubscription: _handleUpgradeSubscription,
+      ),
+    );
+  }
+
+  void _handleUpgradeSubscription() {
+    final subscriptionService = context.read<SubscriptionService>();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PaywallScreen(
+          subscriptionService: subscriptionService,
+        ),
       ),
     );
   }
