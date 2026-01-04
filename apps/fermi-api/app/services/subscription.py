@@ -41,16 +41,17 @@ class SubscriptionService:
         }
         return store_mapping.get(store.upper())
 
-    def _parse_tier_from_entitlements(
+    def _parse_tier_from_entitlement_ids(
         self,
-        entitlements: dict,
+        entitlement_ids: list | None,
     ) -> SubscriptionTier:
-        """Parse subscription tier from RevenueCat entitlements."""
-        # Check if user has 'Guesstimate Pro' entitlement active
-        if entitlements and 'Guesstimate Pro' in entitlements:
-            pro_entitlement = entitlements['Guesstimate Pro']
-            if pro_entitlement.get('is_active', False):
-                return SubscriptionTier.PRO
+        """Parse subscription tier from RevenueCat entitlement_ids.
+
+        RevenueCat webhook payloads include entitlement_ids as a flat list
+        of active entitlement identifiers, not a nested dict structure.
+        """
+        if entitlement_ids and 'Guesstimate Pro' in entitlement_ids:
+            return SubscriptionTier.PRO
         return SubscriptionTier.FREE
 
     async def _handle_transfer_event(self, event: dict) -> None:
@@ -83,11 +84,9 @@ class SubscriptionService:
                 )
                 continue
 
-            # Get subscriber info to check current entitlements
-            subscriber = event.get('subscriber', {})
-            entitlements = subscriber.get('entitlements', {})
-            tier = self._parse_tier_from_entitlements(entitlements)
-
+            # Get entitlement_ids from webhook payload (flat list)
+            entitlement_ids = event.get('entitlement_ids', [])
+            tier = self._parse_tier_from_entitlement_ids(entitlement_ids)
             is_active = tier == SubscriptionTier.PRO
 
             # Upsert subscription for the receiving user
@@ -182,51 +181,49 @@ class SubscriptionService:
             )
             return
 
-        # Parse subscription details from customer_info
-        customer_info = event.get('subscriber', {})
-        entitlements = customer_info.get('entitlements', {})
-        tier = self._parse_tier_from_entitlements(entitlements)
+        # Parse subscription tier from entitlement_ids (flat list in webhook)
+        entitlement_ids = event.get('entitlement_ids', [])
+        tier = self._parse_tier_from_entitlement_ids(entitlement_ids)
 
-        # Get product info from active entitlements
-        product_id = None
+        # Get product info directly from webhook event fields
+        product_id = event.get('product_id')
         platform = None
         expires_at = None
         original_purchase_date = None
         is_active = tier == SubscriptionTier.PRO
 
-        if is_active and entitlements.get('Guesstimate Pro'):
-            pro_entitlement = entitlements['Guesstimate Pro']
-            product_id = pro_entitlement.get('product_identifier')
-            expires_at_str = pro_entitlement.get('expires_date')
-            if expires_at_str:
-                try:
-                    # Parse ISO format datetime
-                    expires_at = datetime.fromisoformat(
-                        expires_at_str.replace('Z', '+00:00'),
-                    )
-                except (ValueError, AttributeError):
-                    logger.warning(
-                        'Failed to parse expires_at: %s',
-                        expires_at_str,
-                    )
+        # Get platform from store field in event
+        store = event.get('store')
+        if store:
+            platform = self._parse_platform(store)
 
-            # Get platform from store
-            store = pro_entitlement.get('store')
-            if store:
-                platform = self._parse_platform(store)
+        # Parse expiration timestamp (ms since epoch)
+        expiration_at_ms = event.get('expiration_at_ms')
+        if expiration_at_ms:
+            try:
+                expires_at = datetime.fromtimestamp(
+                    expiration_at_ms / 1000.0,
+                    tz=datetime.now().astimezone().tzinfo,
+                )
+            except (ValueError, OSError):
+                logger.warning(
+                    'Failed to parse expiration_at_ms: %s',
+                    expiration_at_ms,
+                )
 
-            # Get original purchase date
-            original_purchase_date_str = pro_entitlement.get('original_purchase_date')
-            if original_purchase_date_str:
-                try:
-                    original_purchase_date = datetime.fromisoformat(
-                        original_purchase_date_str.replace('Z', '+00:00'),
-                    )
-                except (ValueError, AttributeError):
-                    logger.warning(
-                        'Failed to parse original_purchase_date: %s',
-                        original_purchase_date_str,
-                    )
+        # Parse original purchase timestamp (ms since epoch)
+        purchased_at_ms = event.get('purchased_at_ms')
+        if purchased_at_ms:
+            try:
+                original_purchase_date = datetime.fromtimestamp(
+                    purchased_at_ms / 1000.0,
+                    tz=datetime.now().astimezone().tzinfo,
+                )
+            except (ValueError, OSError):
+                logger.warning(
+                    'Failed to parse purchased_at_ms: %s',
+                    purchased_at_ms,
+                )
 
         # Upsert subscription record
         assert user.id is not None, 'User ID should be set after retrieval'
