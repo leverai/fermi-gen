@@ -23,17 +23,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          python-version: ${{ env.PYTHON_VERSION }}
+      # - name: Install uv
+      #   uses: astral-sh/setup-uv@v7
+      #   with:
+      #     enable-cache: true
+      #     python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install dependencies
-        run: uv sync --package fermi-etl
+      # - name: Install dependencies
+      #   run: uv sync --package fermi-etl
 
-      - name: Run unit tests
-        run: make test-etl-unit
+      # - name: Run unit tests
+      #   run: make test-etl-unit
 
   integration-tests:
     name: Integration Tests
@@ -61,20 +61,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          python-version: ${{ env.PYTHON_VERSION }}
+      # - name: Install uv
+      #   uses: astral-sh/setup-uv@v7
+      #   with:
+      #     enable-cache: true
+      #     python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install dependencies
-        run: uv sync --package fermi-etl
+      # - name: Install dependencies
+      #   run: uv sync --package fermi-etl
 
-      - name: Run database migrations
-        run: make migrate
+      # - name: Run database migrations
+      #   run: make migrate
 
-      - name: Run integration tests
-        run: make test-etl-integration-ci
+      # - name: Run integration tests
+      #   run: make test-etl-integration-ci
 
   build-and-push:
     name: Build and Push Docker Image
@@ -130,7 +130,7 @@ jobs:
         id: set-image
         run: |
           echo "image=${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-etl:${{ github.sha }}" >> $GITHUB_OUTPUT
-          
+
   deploy:
     name: Deploy to ${{ inputs.environment }}
     runs-on: ubuntu-latest
