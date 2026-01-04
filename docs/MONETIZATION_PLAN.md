@@ -182,6 +182,58 @@ Proposed additions:
 
 ---
 
+## RevenueCat Paywall Configuration
+
+The paywall screen dynamically loads content from RevenueCat offering metadata. Configure the following JSON in your RevenueCat dashboard under **Products → Offerings → [Offering] → Metadata**.
+
+### Benefits Schema
+
+```json
+{
+  "benefits": [
+    {
+      "name": "Daily Guess",
+      "free": {"exists": true, "full": true, "info": "Full Archive"},
+      "pro": {"exists": true, "full": false, "info": "Only Today's"}
+    },
+    {
+      "name": "Hosted Parties",
+      "free": {"exists": true, "full": false, "info": "2 per Week"},
+      "pro": {"exists": true, "full": true, "info": "Unlimited"}
+    },
+    {
+      "name": "Party Guests",
+      "free": {"exists": true, "full": false, "info": "Up to 4"},
+      "pro": {"exists": true, "full": false, "info": "Up to 20"}
+    },
+    {
+      "name": "No Ads",
+      "free": {"exists": true, "full": true, "info": ""},
+      "pro": {"exists": true, "full": true, "info": ""}
+    }
+  ],
+  "popular_package": "$rc_annual",
+  "promo_text": "Lifetime Offer Ending Soon!"
+}
+```
+
+### Benefit Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Display name shown in center column |
+| `exists` | bool | Whether this tier has the benefit |
+| `full` | bool | Whether this tier has full access (true) or limited (false) |
+| `info` | string | Optional text shown below the icon |
+
+### Visual Indicators
+
+- `exists=true, full=true` → Green checkmark ✓
+- `exists=true, full=false` → Gray dash —
+- `exists=false` → Red X ✗
+
+---
+
 ## Implementation Recommendations
 
 ### Phase 1: Launch (Early Adopter Funding)
