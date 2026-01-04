@@ -249,6 +249,23 @@ API keys are injected via `--dart-define` at build time:
 6. On success, entitlements are immediately active (RevenueCat handles receipt validation)
 7. RevenueCat sends webhook to backend to sync subscription status to database
 
+#### Critical: Firebase UID Sync Requirement
+
+**`SubscriptionService.login(firebaseUid)` must be called after every auth state change** to ensure purchases are attributed to the correct user. This includes:
+
+| Event | Location | Why |
+|-------|----------|-----|
+| Anonymous sign-in | `main.dart:_ensureAuthenticated()` | Initial app launch |
+| `UserCreated` | `app_router.dart:_buildSignInScreen()` | New account via email/Google |
+| `SignedIn` | `app_router.dart:_buildSignInScreen()` | Returning user sign-in |
+| `CredentialLinked` | `app_router.dart:_buildSignInScreen()` | Anonymous → permanent upgrade |
+| `CredentialLinked` | `app_router.dart:_buildUpgradeAccountScreen()` | Upgrade from settings |
+| `SignedIn` | `app_router.dart:_buildUpgradeAccountScreen()` | Sign-in from upgrade screen |
+
+**Failure to call `login()` after credential linking** will cause purchases to be attributed to the anonymous RevenueCat user ID instead of the Firebase UID, breaking webhook user lookups.
+
+The `login()` method is safe to call multiple times with the same UID (RevenueCat handles this gracefully).
+
 #### Paywall Screen
 
 `PaywallScreen` (`lib/screens/paywall_screen.dart`) displays available subscription packages:
