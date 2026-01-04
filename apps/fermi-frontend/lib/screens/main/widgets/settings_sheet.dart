@@ -175,9 +175,10 @@ class _SettingsSheetState extends State<SettingsSheet> {
                         widget.subscriptionTier,
                         style: AppFont.primaryTextStyle(
                           context,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: widget.isAnonymous
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: widget.isAnonymous ||
+                                  widget.subscriptionTier == 'FREE'
                               ? appTheme.borderMuted
                               : appTheme.primary,
                         ),
