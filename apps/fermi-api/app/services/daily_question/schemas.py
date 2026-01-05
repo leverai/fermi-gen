@@ -54,7 +54,7 @@ class DQSubmitResponse(BaseModel):
     """Response for POST /daily_question/answer."""
 
     submitted: bool
-    score: float | None = None
+    score: float
     message: str | None = None
 
 

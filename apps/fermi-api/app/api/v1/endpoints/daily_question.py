@@ -8,7 +8,9 @@ from fastapi.responses import HTMLResponse
 from fermi_core.units import Locale
 from fermi_db.models.user import User
 from google.cloud.firestore_v1.async_client import AsyncClient
+from opentelemetry import trace
 
+import app.logging.attributes as api_attrs
 from app.api.v1.auth_deps import get_current_user
 from app.api.v1.dependencies import (
     get_daily_question_service,
@@ -39,10 +41,15 @@ async def start_question(
     User has 30 seconds (or until window end, whichever is sooner) to answer.
     The DQ must be ACTIVE (12PM - 2AM UTC) for users to start.
     """
-    return await dq_service.start_question(
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, start_question.__qualname__)
+
+    result = await dq_service.start_question(
         user_firebase_uid=current_user.firebase_uid,
         firestore_client=firestore_client,
     )
+
+    return result
 
 
 @router.post('/answer', response_model=DQSubmitResponse)
@@ -57,11 +64,17 @@ async def submit_answer(
     Must be called within the answer deadline (30s + 5s grace after starting,
     or before window end + 20s grace, whichever is sooner).
     """
-    return await dq_service.submit_answer(
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, submit_answer.__qualname__)
+    span.set_attribute(api_attrs.QUERY_PARAMS, f'answer={payload.answer}')
+
+    result = await dq_service.submit_answer(
         user_firebase_uid=current_user.firebase_uid,
         answer=payload.answer,
         firestore_client=firestore_client,
     )
+
+    return result
 
 
 @router.get('/results', response_model=DQResultsResponse)
@@ -74,10 +87,15 @@ async def get_results(
     Only available after the DQ is CLOSED (after 2AM UTC next day).
     Returns user's score, rank, and leaderboard.
     """
-    return await dq_service.get_results(
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, get_results.__qualname__)
+
+    result = await dq_service.get_results(
         user_firebase_uid=current_user.firebase_uid,
         user_locale=Locale(current_user.locale),
     )
+
+    return result
 
 
 @router.get('/results/{question_date}', response_model=DQResultsResponse)
@@ -95,6 +113,10 @@ async def get_results_for_date(
     Use this to view results for past daily questions.
     Only available for CLOSED DQs.
     """
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, get_results_for_date.__qualname__)
+    span.set_attribute(api_attrs.QUERY_PARAMS, f'question_date={question_date}')
+
     parsed_date = datetime.strptime(question_date, '%Y-%m-%d').date()  # noqa: DTZ007
     return await dq_service.get_results_for_date(
         user_firebase_uid=current_user.firebase_uid,
@@ -113,6 +135,9 @@ async def get_archive_week(
     Returns a lightweight response with dates and participation status.
     Use this for the main screen DQ carousel.
     """
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, get_archive_week.__qualname__)
+
     return await dq_service.get_lite_archive_week(
         user_firebase_uid=current_user.firebase_uid,
     )
@@ -130,6 +155,10 @@ async def get_archive_month(
     Returns a lightweight response with dates and participation status.
     Use this for the archive calendar sheet.
     """
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, get_archive_month.__qualname__)
+    span.set_attribute(api_attrs.QUERY_PARAMS, f'year={year}, month={month}')
+
     return await dq_service.get_lite_archive_month(
         user_firebase_uid=current_user.firebase_uid,
         year=year,
@@ -159,6 +188,9 @@ async def close_and_schedule_dq(
         dq_service: Daily Question service (injected).
 
     """
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, close_and_schedule_dq.__qualname__)
+
     return await dq_service.close_active_and_schedule_new_dq(
         firestore_client=firestore_client,
     )
@@ -180,6 +212,9 @@ async def activate_dq(
         dq_service: Daily Question service (injected).
 
     """
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, activate_dq.__qualname__)
+
     await dq_service.activate_scheduled_dq(
         request=request,
         firestore_client=firestore_client,
@@ -199,6 +234,10 @@ async def invite_to_dq(
     Returns HTML that attempts to open the app with a deep link,
     with fallback to app stores if the app is not installed.
     """
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, invite_to_dq.__qualname__)
+    span.set_attribute(api_attrs.QUERY_PARAMS, f'question_date={question_date}')
+
     # TODO: Make these configurable
     play_store_url = (
         'https://play.google.com/store/apps/details?id=tech.leverai.guesstimate'

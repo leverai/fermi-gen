@@ -2,6 +2,9 @@
 
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
+from opentelemetry import trace
+
+import app.logging.attributes as api_attrs
 
 router = APIRouter()
 
@@ -270,4 +273,7 @@ html = """
 @router.get('/account-deletion', response_class=HTMLResponse)
 async def get_account_deletion_instructions() -> HTMLResponse:
     """Serve the account deletion instructions HTML page."""
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, get_account_deletion_instructions.__qualname__)
+
     return HTMLResponse(content=html, status_code=200)

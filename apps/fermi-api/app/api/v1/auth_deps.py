@@ -9,10 +9,13 @@ from fermi_db.repositories.user_repository import UserRepository
 from fermi_db.session import get_session
 from jose import jwt
 from jose.exceptions import ExpiredSignatureError, JWTClaimsError, JWTError
+from opentelemetry import trace
+from opentelemetry.trace import Status, StatusCode
 from pydantic import ValidationError
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
+import app.logging.attributes as api_attrs
 from app.core.config import settings
 from app.schemas.auth import TokenPayload
 
@@ -31,6 +34,7 @@ async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
 ) -> User:
     """Get the current user from a token."""
+    span = trace.get_current_span()
     try:
         payload = await run_in_threadpool(
             jwt.decode,  # type: ignore[arg-type]
@@ -40,18 +44,24 @@ async def get_current_user(
         )
         token_data = TokenPayload(**payload)
     except ExpiredSignatureError as exc:
+        span.set_status(Status(StatusCode.ERROR))
+        span.record_exception(exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Token has expired',
             headers={'WWW-Authenticate': 'Bearer'},
         ) from exc
     except JWTError as exc:
+        span.set_status(Status(StatusCode.ERROR))
+        span.record_exception(exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Could not validate signature',
             headers={'WWW-Authenticate': 'Bearer'},
         ) from exc
     except (JWTClaimsError, ValidationError) as exc:
+        span.set_status(Status(StatusCode.ERROR))
+        span.record_exception(exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Invalid claims',
@@ -59,17 +69,29 @@ async def get_current_user(
         ) from exc
 
     if not token_data.user_id:
+        span.set_status(Status(StatusCode.ERROR))
+        exception = ValueError('Missing claims in token')
+        span.record_exception(exception)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Missing claims in token',
             headers={'WWW-Authenticate': 'Bearer'},
-        )
+        ) from exception
+    span.set_attribute(api_attrs.USER_ID, token_data.user_id)
 
     user = await user_repo.get_by_id(token_data.user_id)
     if user is None:
+        span.set_status(Status(StatusCode.ERROR))
+        exception = ValueError('User not found')
+        span.record_exception(exception)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='User not found',
             headers={'WWW-Authenticate': 'Bearer'},
-        )
+        ) from exception
+    assert user.id is not None
+
+    # Enrich span with authenticated user info
+    span.set_attribute(api_attrs.FIREBASE_UID, user.firebase_uid)
+
     return user

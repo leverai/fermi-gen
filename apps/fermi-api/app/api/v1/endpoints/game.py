@@ -6,7 +6,9 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import HTMLResponse
 from fermi_db.models.user import User
 from google.cloud.firestore_v1.async_client import AsyncClient
+from opentelemetry import trace
 
+import app.logging.attributes as api_attrs
 from app.api.v1.auth_deps import get_current_user
 from app.api.v1.dependencies import get_firestore_client, get_game_service
 from app.schemas.endpoints import (
@@ -34,6 +36,12 @@ async def create_game(
     game_service: Annotated[GameService, Depends(get_game_service)],
 ) -> IdModel:
     """Create a new game."""
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, create_game.__qualname__)
+    span.set_attribute(
+        api_attrs.QUERY_PARAMS,
+        payload.model_dump_json(exclude_none=True),
+    )
     return await game_service.create_game(
         request=request,
         payload=payload,
@@ -52,6 +60,9 @@ async def start_game(
     game_service: Annotated[GameService, Depends(get_game_service)],
 ) -> IdModel:
     """Start a game. Only the host can start the game."""
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, start_game.__qualname__)
+    span.set_attribute(api_attrs.GAME_ID, payload.resource_id)
     return await game_service.start_game(
         payload=payload,
         background_tasks=background_tasks,
@@ -69,6 +80,9 @@ async def next_question(
     game_service: Annotated[GameService, Depends(get_game_service)],
 ) -> IdModel:
     """Move to the next question. Only the host can trigger this."""
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, next_question.__qualname__)
+    span.set_attribute(api_attrs.GAME_ID, payload.resource_id)
     return await game_service.next_question(
         payload=payload,
         background_tasks=background_tasks,
@@ -86,6 +100,9 @@ async def end_game(
     game_service: Annotated[GameService, Depends(get_game_service)],
 ) -> IdModel:
     """End a game. Only the host can end the game."""
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, end_game.__qualname__)
+    span.set_attribute(api_attrs.GAME_ID, payload.resource_id)
     return await game_service.end_game(
         payload=payload,
         background_tasks=background_tasks,
@@ -103,6 +120,9 @@ async def join_game(
     game_service: Annotated[GameService, Depends(get_game_service)],
 ) -> IdModel:
     """Join a game."""
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, join_game.__qualname__)
+    span.set_attribute(api_attrs.GAME_ID, payload.resource_id)
     return await game_service.join_game(
         payload=payload,
         background_tasks=background_tasks,
@@ -120,6 +140,10 @@ async def add_bots(
     game_service: Annotated[GameService, Depends(get_game_service)],
 ) -> IdModel:
     """Add bots to a game. Only the host can add bots."""
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, add_bots.__qualname__)
+    span.set_attribute(api_attrs.GAME_ID, payload.resource_id)
+    span.set_attribute(api_attrs.QUERY_PARAMS, payload.model_dump_json())
     return await game_service.add_bots(
         request=request,
         game_id=payload.resource_id,
@@ -138,6 +162,10 @@ async def answer_question(
     game_service: Annotated[GameService, Depends(get_game_service)],
 ) -> IdModel:
     """Submit an answer for the current question."""
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, answer_question.__qualname__)
+    span.set_attribute(api_attrs.GAME_ID, payload.resource_id)
+    span.set_attribute(api_attrs.QUERY_PARAMS, payload.model_dump_json())
     return await game_service.submit_answer(
         payload=payload,
         background_tasks=background_tasks,
@@ -155,6 +183,10 @@ async def remove_player(
     game_service: Annotated[GameService, Depends(get_game_service)],
 ) -> IdModel:
     """Remove a player from a game."""
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, remove_player.__qualname__)
+    span.set_attribute(api_attrs.GAME_ID, payload.resource_id)
+    span.set_attribute(api_attrs.QUERY_PARAMS, payload.model_dump_json())
     return await game_service.remove_player(
         payload=payload,
         background_tasks=background_tasks,
@@ -171,6 +203,9 @@ async def get_player_stats(
     game_service: Annotated[GameService, Depends(get_game_service)],
 ) -> GetPlayerStatsResponse:
     """Get a player's stats."""
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, get_player_stats.__qualname__)
+    span.set_attribute(api_attrs.QUERY_PARAMS, payload.model_dump_json())
     return await game_service.get_player_stats(
         payload=payload,
         request=request,
@@ -184,12 +219,17 @@ async def get_game_config(
     game_service: Annotated[GameService, Depends(get_game_service)],
 ) -> GameConfigResponse:
     """Get the game config."""
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, get_game_config.__qualname__)
     return await game_service.get_game_config(request)
 
 
 @router.get('/invite/{game_id}', response_class=HTMLResponse)
 async def invite_player(game_id: str) -> HTMLResponse:
     """Deep link trampoline for game invites."""
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, invite_player.__qualname__)
+    span.set_attribute(api_attrs.GAME_ID, game_id)
     # TODO: Make this configurable
     play_store_url = (
         'https://play.google.com/store/apps/details?id=tech.leverai.guesstimate'
