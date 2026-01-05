@@ -57,6 +57,7 @@ class MainButton extends StatefulWidget {
     this.isLoading = false,
     this.iconAssetPath,
     this.label,
+    this.customLabel,
     this.controller,
   });
 
@@ -79,6 +80,9 @@ class MainButton extends StatefulWidget {
 
   /// Optional predefined label to display in the center of the button.
   final MainButtonLabel? label;
+
+  /// Optional custom label text. When set, overrides the enum-based label.
+  final String? customLabel;
 
   /// Optional controller to programmatically trigger the press animation.
   final MainButtonController? controller;
@@ -158,7 +162,7 @@ class _MainButtonState extends State<MainButton>
     final double borderRadius = appTheme.borderRadius;
 
     return Opacity(
-      opacity: _isEnabled ? 1.0 : 0.4,
+      opacity: _isEnabled ? 1.0 : 0.6,
       child: SizedBox(
         width: double.infinity,
         height: buttonHeight,
@@ -227,11 +231,12 @@ class _MainButtonState extends State<MainButton>
                               ),
                             // Show content when not loading
                             if (!widget.isLoading) ...[
-                              // Optional label centered
-                              if (widget.label != null)
+                              // Custom label or predefined label centered
+                              if (widget.customLabel != null ||
+                                  widget.label != null)
                                 Center(
                                   child: Text(
-                                    widget.label!.text,
+                                    widget.customLabel ?? widget.label!.text,
                                     textAlign: TextAlign.center,
                                     style: AppFont.primaryTextStyle(context,
                                             fontSize: 14,
