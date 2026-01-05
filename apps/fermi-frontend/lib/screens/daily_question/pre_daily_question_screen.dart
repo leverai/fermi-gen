@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -15,7 +16,11 @@ import 'package:fermi_frontend/screens/daily_question/daily_question_screen.dart
 /// Displays the date and duration information, and provides a "Start" button
 /// to proceed to the actual DQ screen. This prepares users before they begin
 /// the timed question.
-class PreDailyQuestionScreen extends StatelessWidget {
+///
+/// When the user taps Start, a 3-second countdown begins showing "Starting in X"
+/// on the button. When the countdown completes, the user is navigated to the
+/// DQ screen. The back/leave button cancels the countdown.
+class PreDailyQuestionScreen extends StatefulWidget {
   /// The DQ date in YYYY-MM-DD format.
   final String questionDate;
 
@@ -30,8 +35,28 @@ class PreDailyQuestionScreen extends StatelessWidget {
     this.fromInvite = false,
   });
 
+  @override
+  State<PreDailyQuestionScreen> createState() => _PreDailyQuestionScreenState();
+}
+
+class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
+  /// Countdown seconds remaining. null = not in countdown state.
+  int? _countdownSeconds;
+
+  /// Timer for the countdown.
+  Timer? _countdownTimer;
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
   void _handleLeave(BuildContext context) {
-    if (fromInvite) {
+    // Cancel any active countdown
+    _cancelCountdown();
+
+    if (widget.fromInvite) {
       // From invite link - go to main screen
       context.go('/main');
     } else {
@@ -44,15 +69,63 @@ class PreDailyQuestionScreen extends StatelessWidget {
     }
   }
 
-  void _handleStart(BuildContext context) {
-    // Use pushReplacement so PreDailyQuestionScreen is removed from the stack.
-    // This ensures that when the user leaves DailyQuestionScreen, they go to
-    // main screen instead of back to pre-DQ screen.
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => const DailyQuestionScreen(),
-      ),
-    );
+  void _cancelCountdown() {
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
+    if (_countdownSeconds != null) {
+      setState(() {
+        _countdownSeconds = null;
+      });
+    }
+  }
+
+  void _handleStart() {
+    // Start the countdown
+    setState(() {
+      _countdownSeconds = 3;
+    });
+
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        _countdownSeconds = _countdownSeconds! - 1;
+      });
+
+      if (_countdownSeconds! <= 0) {
+        timer.cancel();
+        _navigateToDailyQuestion();
+      }
+    });
+  }
+
+  void _navigateToDailyQuestion() {
+    if (!mounted) return;
+
+    if (widget.fromInvite) {
+      // For go_router managed pages, we can't use pushReplacement (page-based
+      // routes don't support imperative replacement). Instead, push DQ on top.
+      // When user leaves DQ, DailyQuestionScreen._navigateToMain() calls
+      // context.go('/main') which clears the entire stack properly.
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              DailyQuestionScreen(questionDate: widget.questionDate),
+        ),
+      );
+    } else {
+      // For Navigator-pushed routes, pushReplacement removes pre-DQ from stack
+      // so back navigation goes to main, not pre-DQ.
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) =>
+              DailyQuestionScreen(questionDate: widget.questionDate),
+        ),
+      );
+    }
   }
 
   @override
@@ -61,9 +134,11 @@ class PreDailyQuestionScreen extends StatelessWidget {
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
     // Parse the date
-    final date = DateTime.parse(questionDate);
+    final date = DateTime.parse(widget.questionDate);
     final dateFormat = DateFormat('MMMM d, yyyy');
     final formattedDate = dateFormat.format(date);
+
+    final bool isCountingDown = _countdownSeconds != null;
 
     return ResponsiveContainer(
       backgroundColor: appTheme.bg,
@@ -146,8 +221,12 @@ class PreDailyQuestionScreen extends StatelessWidget {
                           SizedBox(
                             width: 200,
                             child: MainButton(
-                              onPressed: () => _handleStart(context),
-                              label: MainButtonLabel.start,
+                              onPressed: isCountingDown ? null : _handleStart,
+                              label:
+                                  isCountingDown ? null : MainButtonLabel.start,
+                              customLabel: isCountingDown
+                                  ? 'Starting in $_countdownSeconds'
+                                  : null,
                             ),
                           ),
                           const SizedBox(height: 40),
