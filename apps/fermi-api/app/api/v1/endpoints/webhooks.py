@@ -12,7 +12,10 @@ from fastapi import (
 )
 from fermi_db.repositories.subscription_repository import SubscriptionRepository
 from fermi_db.repositories.user_repository import UserRepository
+from opentelemetry import trace
+from opentelemetry.trace import Status, StatusCode
 
+import app.logging.attributes as api_attrs
 from app.api.v1.dependencies import (
     get_subscription_repository,
     get_user_repository,
@@ -78,13 +81,24 @@ async def revenuecat_webhook(
     - EXPIRATION
     - PRODUCT_CHANGE
     """
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, revenuecat_webhook.__qualname__)
+
     try:
-        event = await request.json()
+        payload = await request.json()
     except Exception as exc:
+        span.set_status(Status(StatusCode.ERROR))
+        span.record_exception(exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Invalid JSON payload',
         ) from exc
+
+    # Enrich span with webhook info
+    event_data = payload.get('event', payload)
+    span.set_attribute(api_attrs.WEBHOOK_EVENT_TYPE, event_data.get('type', ''))
+    span.set_attribute(api_attrs.WEBHOOK_APP_USER_ID, event_data.get('app_user_id', ''))
+    span.set_attribute(api_attrs.WEBHOOK_PRODUCT_ID, event_data.get('product_id', ''))
 
     # Create subscription service with repositories
     subscription_service = SubscriptionService(
@@ -93,6 +107,11 @@ async def revenuecat_webhook(
     )
 
     # Handle the webhook event
-    await subscription_service.handle_webhook_event(event)
+    try:
+        await subscription_service.handle_webhook_event(payload)
+    except Exception as ex:
+        span.set_status(Status(StatusCode.ERROR))
+        span.record_exception(ex)
+        raise
 
     return status.HTTP_200_OK

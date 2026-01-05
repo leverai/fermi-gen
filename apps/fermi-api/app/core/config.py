@@ -45,5 +45,9 @@ class Settings(BaseSettings):
     # Premium bypass patterns (for testing/reviewers)
     premium_bypass_patterns: list[str] = []
 
+    # Logging
+    log_level: str = 'INFO'
+    log_format: str = 'auto'  # 'json', 'text', or 'auto' (auto-detect)
+
 
 settings = Settings()

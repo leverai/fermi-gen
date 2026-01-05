@@ -13,7 +13,12 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.api import api_router
 from app.core.config import settings
+from app.logging.otel import instrument_fastapi
+from app.logging.setup import setup_api_logging
 from app.version import __version__
+
+# Initialize structured logging and OpenTelemetry before anything else
+setup_api_logging()
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +59,9 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+# Instrument with OpenTelemetry for automatic tracing
+instrument_fastapi(app)
 
 # Define the origins that are allowed to make requests.
 # For development, you can allow all origins with ["*"].
