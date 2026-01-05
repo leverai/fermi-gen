@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:fermi_frontend/services/subscription_service.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -100,10 +101,31 @@ class _PaywallScreenState extends State<PaywallScreen> {
   String? _promoText;
   String? _popularPackageId;
 
+  final ScrollController _scrollController = ScrollController();
+  bool _showBottomBorder = true; // Show by default
+
   @override
   void initState() {
     super.initState();
     _loadOfferings();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    // Hide border only when at the very bottom (no more content to scroll up into view)
+    final showBorder = _scrollController.position.extentAfter > 0;
+    if (showBorder != _showBottomBorder) {
+      setState(() {
+        _showBottomBorder = showBorder;
+      });
+    }
   }
 
   Future<void> _loadOfferings() async {
@@ -133,6 +155,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
         _offerings = offerings;
         _isLoading = false;
       });
+
+      // Check scroll state after the next frame to see if we reached the bottom or content is small
+      WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to load subscription options';
@@ -276,33 +301,17 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
     return Scaffold(
       backgroundColor: appTheme.bg,
-      appBar: AppBar(
-        backgroundColor: appTheme.bg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.close, color: appTheme.text),
-          onPressed: () => Navigator.of(context).pop(false),
-        ),
-        title: Text(
-          'Upgrade to PRO',
-          style: AppFont.primaryTextStyle(
-            context,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: appTheme.text,
-          ),
-        ),
-        centerTitle: true,
+      body: SafeArea(
+        child: _isLoading
+            ? Center(
+                child: CircularProgressIndicator(color: appTheme.primary),
+              )
+            : _errorMessage != null && _offerings == null
+                ? _buildErrorState(appTheme)
+                : _offerings?.current == null
+                    ? _buildNoOfferingsState(appTheme)
+                    : _buildPaywallContent(appTheme),
       ),
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(color: appTheme.primary),
-            )
-          : _errorMessage != null && _offerings == null
-              ? _buildErrorState(appTheme)
-              : _offerings?.current == null
-                  ? _buildNoOfferingsState(appTheme)
-                  : _buildPaywallContent(appTheme),
     );
   }
 
@@ -366,10 +375,58 @@ class _PaywallScreenState extends State<PaywallScreen> {
       children: [
         Expanded(
           child: SingleChildScrollView(
+            controller: _scrollController,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Custom header with close button
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      Transform.translate(
+                        offset: const Offset(-8, 0),
+                        child: IconButton(
+                          icon: Icon(Icons.close, color: appTheme.text),
+                          onPressed: () => Navigator.of(context).pop(false),
+                        ),
+                      ),
+                      const Spacer(),
+                    ],
+                  ),
+                ),
+                // Logo and title
+                Center(
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: appTheme.bgLight,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        child: SvgPicture.asset(
+                          'assets/icons/logo-fg.svg',
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Upgrade to PRO',
+                        style: AppFont.primaryTextStyle(
+                          context,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: appTheme.text,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+
                 // Promo text banner
                 if (_promoText != null) ...[
                   _buildPromoBanner(appTheme),
@@ -474,9 +531,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
       ),
       child: Column(
         children: [
-          // Header row: FREE | (empty center) | PRO
+          // Header row: (empty for names) | FREE | PRO
           Row(
             children: [
+              const Expanded(flex: 3, child: SizedBox()),
               Expanded(
                 flex: 2,
                 child: Text(
@@ -490,7 +548,6 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   ),
                 ),
               ),
-              const Expanded(flex: 3, child: SizedBox()),
               Expanded(
                 flex: 2,
                 child: Container(
@@ -523,17 +580,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // FREE column - icon and info
-                  Expanded(
-                    flex: 2,
-                    child: _buildBenefitCell(appTheme, benefit.free),
-                  ),
-                  // Center column - benefit name
+                  // Left column - benefit name
                   Expanded(
                     flex: 3,
                     child: Text(
                       benefit.name,
-                      textAlign: TextAlign.center,
                       style: AppFont.primaryTextStyle(
                         context,
                         fontSize: 13,
@@ -541,6 +592,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         color: appTheme.text,
                       ),
                     ),
+                  ),
+                  // FREE column - icon and info
+                  Expanded(
+                    flex: 2,
+                    child: _buildBenefitCell(appTheme, benefit.free),
                   ),
                   // PRO column - icon and info
                   Expanded(
@@ -909,9 +965,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
       ),
       decoration: BoxDecoration(
         color: appTheme.bg,
-        border: Border(
-          top: BorderSide(color: appTheme.borderMuted, width: 1),
-        ),
+        border: _showBottomBorder
+            ? Border(
+                top: BorderSide(color: appTheme.borderMuted, width: 1),
+              )
+            : null,
       ),
       child: _buildActionButton(
         appTheme: appTheme,
