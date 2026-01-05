@@ -45,8 +45,10 @@ class PreDailyQuestionScreen extends StatelessWidget {
   }
 
   void _handleStart(BuildContext context) {
-    // Navigate to DailyQuestionScreen to start the question
-    Navigator.of(context).push(
+    // Use pushReplacement so PreDailyQuestionScreen is removed from the stack.
+    // This ensures that when the user leaves DailyQuestionScreen, they go to
+    // main screen instead of back to pre-DQ screen.
+    Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => const DailyQuestionScreen(),
       ),

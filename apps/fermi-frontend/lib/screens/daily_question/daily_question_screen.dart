@@ -395,8 +395,9 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
   /// Navigate to main screen, handling both Navigator-pushed and GoRouter cases.
   void _navigateToMain() {
     if (!mounted) return;
-    // Pop this screen from Navigator if it was pushed (e.g., from PreDailyQuestionScreen)
-    // This ensures we dismiss the Navigator-pushed screen before GoRouter navigation
+    // Pop this screen from Navigator if it was pushed via MaterialPageRoute.
+    // Since PreDailyQuestionScreen uses pushReplacement(), popping will go
+    // directly to MainScreen, not back to the pre-DQ screen.
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     }
