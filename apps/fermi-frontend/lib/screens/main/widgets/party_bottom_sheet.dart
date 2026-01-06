@@ -36,7 +36,7 @@ void showPartyBottomSheet({
                   padding: EdgeInsets.fromLTRB(
                       16.0, 0, 16.0, MediaQuery.of(context).viewPadding.bottom),
                   decoration: BoxDecoration(
-                    color: appTheme.bgLight,
+                    color: appTheme.bg,
                     borderRadius:
                         const BorderRadius.vertical(top: Radius.circular(16)),
                     boxShadow: [
@@ -78,12 +78,12 @@ void showPartyBottomSheet({
                                 context,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
-                                color: appTheme.text,
+                                color: appTheme.textMuted,
                               ),
                             ),
                             IconButton(
                               icon: Icon(Icons.keyboard_arrow_down,
-                                  color: appTheme.text, size: 32),
+                                  color: appTheme.borderMuted, size: 32),
                               onPressed: () => Navigator.of(context).pop(),
                             ),
                           ],
@@ -104,7 +104,7 @@ void showPartyBottomSheet({
                           context,
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
-                          color: appTheme.textMuted,
+                          color: appTheme.text,
                         ),
                         textAlign: TextAlign.left,
                       ),

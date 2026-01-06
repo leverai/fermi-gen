@@ -84,7 +84,7 @@ class SelectorWidget extends StatelessWidget {
     // Wrap in container with styling
     final container = Container(
       decoration: BoxDecoration(
-        color: appTheme.bg,
+        color: appTheme.bgDark,
         borderRadius: BorderRadius.circular(12), // High radius for pill shape
       ),
       padding: const EdgeInsets.all(2), // 2px padding on all sides
@@ -153,7 +153,7 @@ class SelectorWidget extends StatelessWidget {
         height: _chipHeight,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? appTheme.bgLight : Colors.transparent,
+          color: isSelected ? appTheme.bg : Colors.transparent,
           borderRadius: BorderRadius.circular(11),
         ),
         child: Row(

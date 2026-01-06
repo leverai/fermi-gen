@@ -120,7 +120,7 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
             context,
             fontSize: 12,
             fontWeight: FontWeight.w400,
-            color: appTheme.textMuted,
+            color: appTheme.text,
           ),
         ),
         const SizedBox(height: 16),
@@ -167,7 +167,7 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
       height: _inputBoxHeight,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: appTheme.bgLight,
+        color: appTheme.bgDark,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: appTheme.borderMuted, width: 1),
       ),

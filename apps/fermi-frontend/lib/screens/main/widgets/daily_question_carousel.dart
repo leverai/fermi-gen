@@ -227,7 +227,7 @@ class DailyQuestionCarousel extends StatelessWidget {
       },
       enablePushDown: false,
       decoration: BoxDecoration(
-        color: appTheme.bgDark,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(appTheme.borderRadius),
       ),
       child: SizedBox(
@@ -237,7 +237,7 @@ class DailyQuestionCarousel extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.calendar_month, color: appTheme.text),
+              Icon(Icons.calendar_month, color: appTheme.primaryMuted),
               const SizedBox(height: 8),
               Text(
                 'Archive',
@@ -245,7 +245,7 @@ class DailyQuestionCarousel extends StatelessWidget {
                   context,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: appTheme.text,
+                  color: appTheme.primaryMuted,
                 ).copyWith(letterSpacing: 0.5),
               ),
             ],

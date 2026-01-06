@@ -46,7 +46,7 @@ class ScalePainter extends CustomPainter {
 
     // Paint for ticks
     final tickPaint = Paint()
-      ..color = appTheme.borderMuted
+      ..color = appTheme.textMuted
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round;
 
@@ -69,7 +69,7 @@ class ScalePainter extends CustomPainter {
       // We want dots at i + 1/9, i + 2/9 ... i + 8/9
       if (i < 15) {
         final dotPaint = Paint()
-          ..color = appTheme.bgDark
+          ..color = appTheme.textMuted.withAlpha(50)
           ..style = PaintingStyle.fill;
 
         for (int j = 1; j <= 8; j++) {

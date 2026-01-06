@@ -428,11 +428,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                         child: IconButton(
                           onPressed: _toggleSettings,
                           splashColor: Colors.transparent,
-                          highlightColor: appTheme.text.withOpacity(0.1),
+                          highlightColor: appTheme.borderMuted,
                           icon: SvgPicture.asset(
                             'assets/icons/gear.svg',
                             colorFilter: ColorFilter.mode(
-                                appTheme.text, BlendMode.srcIn),
+                                appTheme.border, BlendMode.srcIn),
                             width: 36,
                             height: 36,
                           ),
