@@ -210,6 +210,91 @@ class DQLeaderboardEntry {
   }
 }
 
+/// Response from POST /post_take/{date}/answer with immediate results.
+class DQPostTakeResultsResponse {
+  final bool submitted;
+  final double score;
+  final int rank;
+  final int totalParticipants;
+  final String questionDate;
+  final String questionText;
+  final AnswerValue correctAnswer;
+  final AnswerValue userAnswer;
+  final List<DQLeaderboardEntry> leaderboard;
+  final String? paragraph;
+
+  DQPostTakeResultsResponse({
+    required this.submitted,
+    required this.score,
+    required this.rank,
+    required this.totalParticipants,
+    required this.questionDate,
+    required this.questionText,
+    required this.correctAnswer,
+    required this.userAnswer,
+    required this.leaderboard,
+    this.paragraph,
+  });
+
+  factory DQPostTakeResultsResponse.fromJson(Map<String, dynamic> json) {
+    // Parse correct answer
+    final correctAnswerJson = json['correct_answer'] as Map<String, dynamic>;
+    final correctAnswerNumber = (correctAnswerJson['number'] as num).toDouble();
+    String correctAnswerUnit = '';
+    if (correctAnswerJson['unit'] != null) {
+      final unitInfo = correctAnswerJson['unit'] as Map<String, dynamic>;
+      correctAnswerUnit = (unitInfo['abbreviation'] as String?) ?? '';
+    }
+    final correctAnswer =
+        decomposeNumber(correctAnswerNumber, correctAnswerUnit);
+
+    // Parse user answer
+    final userAnswerJson = json['user_answer'] as Map<String, dynamic>;
+    final userAnswerNumber = (userAnswerJson['number'] as num).toDouble();
+    String userAnswerUnit = '';
+    if (userAnswerJson['unit'] != null) {
+      final unitInfo = userAnswerJson['unit'] as Map<String, dynamic>;
+      userAnswerUnit = (unitInfo['abbreviation'] as String?) ?? '';
+    }
+    final userAnswer = decomposeNumber(userAnswerNumber, userAnswerUnit);
+
+    // Parse leaderboard
+    final leaderboardJson = json['leaderboard'] as List? ?? [];
+    final leaderboard = leaderboardJson
+        .map((e) => DQLeaderboardEntry.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    return DQPostTakeResultsResponse(
+      submitted: json['submitted'] as bool,
+      score: (json['score'] as num).toDouble(),
+      rank: json['rank'] as int,
+      totalParticipants: json['total_participants'] as int,
+      questionDate: json['question_date'] as String,
+      questionText: json['question_text'] as String,
+      correctAnswer: correctAnswer,
+      userAnswer: userAnswer,
+      leaderboard: leaderboard,
+      paragraph: json['paragraph'] as String?,
+    );
+  }
+
+  /// Convert to DQResultsResponse for use in existing result display code.
+  DQResultsResponse toDQResultsResponse() {
+    return DQResultsResponse(
+      questionDate: questionDate,
+      questionUid: '', // Not included in post-take response
+      questionText: questionText,
+      correctAnswer: correctAnswer,
+      userAnswer: userAnswer,
+      userScore: score,
+      userRank: rank,
+      totalParticipants: totalParticipants,
+      leaderboard: leaderboard,
+      paragraph: paragraph,
+    );
+  }
+}
+
 class DailyQuestionService {
   final ApiService _api;
 
@@ -307,5 +392,34 @@ class DailyQuestionService {
     //     '[DQService] Results response: ${response.statusCode} - ${response.body}');
     final data = _decodeOkJson(response);
     return DQResultsResponse.fromJson(data);
+  }
+
+  /// Start a post-take for a closed daily question.
+  Future<DQQuestionResponse> startPostTake(String questionDate) async {
+    final response =
+        await _api.post('/daily_question/post_take/$questionDate/start', {});
+    final data = _decodeOkJson(response);
+    return DQQuestionResponse.fromJson(data);
+  }
+
+  /// Submit an answer for a post-take and get immediate results.
+  Future<DQPostTakeResultsResponse> submitPostTakeAnswer(
+    String questionDate,
+    AnswerValue answer,
+    DateTime startedAt,
+  ) async {
+    final absoluteNumber = composeNumber(answer);
+    final response = await _api.post(
+      '/daily_question/post_take/$questionDate/answer',
+      {
+        'answer': {
+          'number': absoluteNumber,
+          'unit': answer.unit,
+        },
+        'started_at': startedAt.toUtc().toIso8601String(),
+      },
+    );
+    final data = _decodeOkJson(response);
+    return DQPostTakeResultsResponse.fromJson(data);
   }
 }

@@ -29,10 +29,15 @@ class PreDailyQuestionScreen extends StatefulWidget {
   /// If false, back/leave button uses Navigator.pop().
   final bool fromInvite;
 
+  /// Whether this is a post-take (taking an older closed DQ).
+  /// If true, uses post-take API endpoints.
+  final bool isPostTake;
+
   const PreDailyQuestionScreen({
     super.key,
     required this.questionDate,
     this.fromInvite = false,
+    this.isPostTake = false,
   });
 
   @override
@@ -112,8 +117,10 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
       // context.go('/main') which clears the entire stack properly.
       Navigator.of(context, rootNavigator: true).push(
         MaterialPageRoute(
-          builder: (_) =>
-              DailyQuestionScreen(questionDate: widget.questionDate),
+          builder: (_) => DailyQuestionScreen(
+            questionDate: widget.questionDate,
+            isPostTake: widget.isPostTake,
+          ),
         ),
       );
     } else {
@@ -121,8 +128,10 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
       // so back navigation goes to main, not pre-DQ.
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) =>
-              DailyQuestionScreen(questionDate: widget.questionDate),
+          builder: (_) => DailyQuestionScreen(
+            questionDate: widget.questionDate,
+            isPostTake: widget.isPostTake,
+          ),
         ),
       );
     }

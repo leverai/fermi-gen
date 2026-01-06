@@ -124,14 +124,14 @@ class LobbyScreen extends StatelessWidget {
                                   botCount: botsToInvite,
                                   iconOnly: true,
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 24),
                               ],
                               if (onShare != null) ...[
                                 ShareButton(
                                   onPressed: onShare!,
                                   iconOnly: true,
                                 ),
-                                const SizedBox(height: 24),
+                                const SizedBox(height: 48),
                               ],
                             ],
                           ),

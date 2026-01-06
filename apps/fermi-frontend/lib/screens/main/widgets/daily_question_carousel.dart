@@ -153,18 +153,34 @@ class DailyQuestionCarousel extends StatelessWidget {
                       onTapCallback = null;
                     }
                   } else {
-                    // Past dates: always RESULTS_READY (all past DQs are closed)
-                    displayStatus = 'RESULTS_READY';
-                    onTapCallback = () {
-                      controller.markResultsSeen(date);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => DailyQuestionScreen(
-                            questionDate: date,
+                    // Past dates: check if user participated
+                    if (participated) {
+                      // User participated - show results
+                      displayStatus = 'RESULTS_READY';
+                      onTapCallback = () {
+                        controller.markResultsSeen(date);
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => DailyQuestionScreen(
+                              questionDate: date,
+                            ),
                           ),
-                        ),
-                      );
-                    };
+                        );
+                      };
+                    } else {
+                      // User hasn't participated - allow post-take
+                      displayStatus = 'POST_TAKE';
+                      onTapCallback = () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => PreDailyQuestionScreen(
+                              questionDate: date,
+                              isPostTake: true,
+                            ),
+                          ),
+                        );
+                      };
+                    }
                   }
 
                   return Align(
