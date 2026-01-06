@@ -315,6 +315,8 @@ class DailyQuestionService:
         user_firebase_uid: str,
         question_date: datetime.date,
         user_locale: Locale = Locale.US,
+        *,
+        include_post_takes: bool = True,
     ) -> DQResultsResponse:
         """Get results for a completed daily question.
 
@@ -324,6 +326,7 @@ class DailyQuestionService:
             user_locale: The user's preferred locale (US or EU). Used to
                 convert the correct answer to locale-appropriate units for
                 users who did not participate.
+            include_post_takes: If False, exclude post-take entries from leaderboard.
 
         Returns:
             Results response with user rank and leaderboard.
@@ -375,6 +378,7 @@ class DailyQuestionService:
         leaderboard_entries = await self._db.dq_answers.get_leaderboard(
             dq.id,
             limit=10,
+            include_post_takes=include_post_takes,
         )
 
         # Extract unique Firebase UIDs from leaderboard entries
@@ -808,7 +812,7 @@ class DailyQuestionService:
 
         leaderboard = [
             DQLeaderboardEntry(
-                rank=entry.rank or i,
+                rank=i,
                 player=DQPlayer(
                     display_name=users_map.get(entry.user_firebase_uid, {}).get(
                         'display_name',

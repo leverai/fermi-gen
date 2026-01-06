@@ -109,6 +109,11 @@ async def get_results_for_date(
         pattern=r'^\d{4}-\d{2}-\d{2}$',
         description='Date in YYYY-MM-DD format',
     ),
+    *,
+    include_post_takes: bool = Query(
+        default=True,
+        description='Include post-take entries in leaderboard',
+    ),
 ) -> DQResultsResponse:
     """Get results for a specific daily question by date.
 
@@ -117,13 +122,17 @@ async def get_results_for_date(
     """
     span = trace.get_current_span()
     span.set_attribute(api_attrs.ACTION, get_results_for_date.__qualname__)
-    span.set_attribute(api_attrs.QUERY_PARAMS, f'question_date={question_date}')
+    span.set_attribute(
+        api_attrs.QUERY_PARAMS,
+        f'question_date={question_date}, include_post_takes={include_post_takes}',
+    )
 
     parsed_date = datetime.strptime(question_date, '%Y-%m-%d').date()  # noqa: DTZ007
     return await dq_service.get_results_for_date(
         user_firebase_uid=current_user.firebase_uid,
         question_date=parsed_date,
         user_locale=Locale(current_user.locale),
+        include_post_takes=include_post_takes,
     )
 
 

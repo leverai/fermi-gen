@@ -68,6 +68,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
   bool _isLoading = false;
   String? _error;
   bool _isExpanded = false;
+  bool _showAll = true; // Whether to include post-takers in leaderboard
 
   // Timer for countdown
   Timer? _countdownTimer;
@@ -219,8 +220,10 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
     });
 
     try {
-      final results =
-          await widget.service!.getResultsForDate(widget.questionDate);
+      final results = await widget.service!.getResultsForDate(
+        widget.questionDate,
+        includePostTakes: _showAll,
+      );
       if (mounted) {
         setState(() {
           _results = results;
@@ -395,6 +398,42 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
               ],
             ),
           ),
+          // Query row with Show All checkbox (only when results are ready)
+          if (enabled)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Text(
+                    'Show All',
+                    style: AppFont.secondaryTextStyle(
+                      context,
+                      fontSize: 12,
+                      color: appTheme.textMuted,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: Checkbox(
+                      value: _showAll,
+                      activeColor: appTheme.secondary,
+                      checkColor: appTheme.bgLight,
+                      onChanged: (value) {
+                        setState(() {
+                          _showAll = value ?? true;
+                        });
+                        _loadResults();
+                      },
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );

@@ -111,23 +111,30 @@ class DailyQuestionAnswerRepository(BaseRepository):
         self,
         daily_question_id: int,
         limit: int = 100,
+        *,
+        include_post_takes: bool = True,
     ) -> list[DailyQuestionAnswer]:
         """Get the leaderboard for a daily question.
 
         Args:
             daily_question_id: The ID of the daily question.
             limit: Maximum number of entries to return.
+            include_post_takes: If False, exclude post-take entries.
 
         Returns:
             List of answers ordered by score (descending).
 
         """
-        statement = (
-            select(DailyQuestionAnswer)
-            .where(DailyQuestionAnswer.daily_question_id == daily_question_id)
-            .order_by(DailyQuestionAnswer.score.desc())  # type: ignore
-            .limit(limit)
+        statement = select(DailyQuestionAnswer).where(
+            DailyQuestionAnswer.daily_question_id == daily_question_id,
         )
+        if not include_post_takes:
+            statement = statement.where(
+                DailyQuestionAnswer.is_post_take == False,  # noqa: E712
+            )
+        statement = statement.order_by(
+            DailyQuestionAnswer.score.desc(),  # type: ignore
+        ).limit(limit)
         result = await self.session.exec(statement)
         return list(result.all())
 
