@@ -33,7 +33,12 @@ class DailyQuestionScreen extends StatefulWidget {
   /// If null, shows today's active DQ.
   final String? questionDate;
 
-  const DailyQuestionScreen({super.key, this.questionDate});
+  /// Whether this is a post-take (taking an older closed DQ).
+  /// If true, uses post-take API endpoints.
+  final bool isPostTake;
+
+  const DailyQuestionScreen(
+      {super.key, this.questionDate, this.isPostTake = false});
 
   @override
   State<DailyQuestionScreen> createState() => _DailyQuestionScreenState();
@@ -50,6 +55,9 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       _effectiveDate; // Frozen on init to prevent changing when controller updates
   AnswerValue _currentAnswer =
       const AnswerValue(number: 1, orderOfMagnitude: '', unit: '');
+
+  // For post-take: track when user started to send with submission
+  DateTime? _postTakeStartedAt;
 
   // Unit selection state
   String _currentLocale = 'US';
@@ -90,6 +98,12 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
 
     // Determine if this is a past date view (not today)
     _isPastDate = effectiveDate != null && effectiveDate != todayDate;
+
+    // Handle post-take flow (taking an older closed DQ)
+    if (widget.isPostTake) {
+      await _startPostTakeQuestion();
+      return;
+    }
 
     if (_isPastDate) {
       // For past dates, load results to display QuestionAnswerCard with user's answer
@@ -156,6 +170,47 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
           // print('[DQ] WARNING: Deadline already passed! Cannot start timer.');
           _timeLeft = Duration.zero;
         }
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        context.go('/main');
+      }
+    }
+  }
+
+  /// Start a post-take for a closed daily question.
+  Future<void> _startPostTakeQuestion() async {
+    final authService = context.read<AuthService>();
+    final service = context.read<DailyQuestionService>();
+
+    try {
+      final effectiveDate = _effectiveDate;
+      if (effectiveDate == null) {
+        throw Exception('No date available for post-take');
+      }
+
+      final question = await service.startPostTake(effectiveDate);
+
+      // Get user's locale preference, default to 'US'
+      final userLocale = authService.locale ?? 'US';
+
+      // Track when user started for submission deadline validation
+      final startedAt = DateTime.now().toUtc();
+
+      setState(() {
+        _question = question;
+        _isLoading = false;
+        _currentLocale = userLocale;
+        _postTakeStartedAt = startedAt;
+
+        // Initialize unit options from question
+        _initializeUnits(question.units, userLocale);
+
+        // Start Timer (30 seconds for post-take)
+        _timeLeft = Duration(seconds: question.secondsToAnswer.toInt());
+        _startTimer();
       });
     } catch (e) {
       if (mounted) {
@@ -277,6 +332,12 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       return;
     }
 
+    // Handle post-take submission differently
+    if (widget.isPostTake) {
+      await _submitPostTake();
+      return;
+    }
+
     final controller = context.read<DailyQuestionController>();
     try {
       // print('[DQ] Submitting answer to backend...');
@@ -304,6 +365,55 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       }
     } catch (e) {
       // print('[DQ] Error submitting answer: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error submitting: $e')));
+      }
+    }
+  }
+
+  /// Submit a post-take answer and get immediate results.
+  Future<void> _submitPostTake() async {
+    final service = context.read<DailyQuestionService>();
+    final effectiveDate = _effectiveDate;
+    final startedAt = _postTakeStartedAt;
+
+    if (effectiveDate == null || startedAt == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Missing post-take data')),
+      );
+      return;
+    }
+
+    try {
+      // Translate abbreviation to ID before submitting
+      final unitId = _currentAnswer.unit.isNotEmpty
+          ? (_unitAbbreviationToId[_currentAnswer.unit] ?? _currentAnswer.unit)
+          : '';
+      final answerToSubmit = _currentAnswer.copyWith(unit: unitId);
+
+      final response = await service.submitPostTakeAnswer(
+        effectiveDate,
+        answerToSubmit,
+        startedAt,
+      );
+
+      if (mounted) {
+        _timer?.cancel();
+        setState(() {
+          _isSubmitted = true;
+          // Convert post-take response to standard results format
+          _resultsData = response.toDQResultsResponse();
+          _currentAnswer = response.userAnswer;
+          _submittedWithoutQuestion = false; // Show question card with reveal
+        });
+        // Hide unit tape indicators
+        _unitTapeController.setRevealed(
+            true, const Duration(milliseconds: 600));
+        // Signal MainScreen to refresh stats
+        context.read<AuthService>().shouldRefreshStats = true;
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error submitting: $e')));

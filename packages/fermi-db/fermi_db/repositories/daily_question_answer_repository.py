@@ -222,3 +222,29 @@ class DailyQuestionAnswerRepository(BaseRepository):
         )
         result = await self.session.exec(statement)
         return result.one() or 0
+
+    async def compute_rank_for_score(
+        self,
+        daily_question_id: int,
+        score: float,
+    ) -> int:
+        """Compute the rank for a given score without storing it.
+
+        Used for post-take to dynamically compute rank based on existing scores.
+        Rank = count of answers with higher score + 1.
+
+        Args:
+            daily_question_id: The ID of the daily question.
+            score: The score to compute rank for.
+
+        Returns:
+            The computed rank (1 = highest).
+
+        """
+        statement = select(func.count(DailyQuestionAnswer.id)).where(
+            DailyQuestionAnswer.daily_question_id == daily_question_id,
+            DailyQuestionAnswer.score > score,
+        )
+        result = await self.session.exec(statement)
+        higher_count = result.one() or 0
+        return higher_count + 1

@@ -30,12 +30,14 @@ from app.services.daily_question.schemas import (
     DQLeaderboardEntry,
     DQLiteArchiveResponse,
     DQPlayer,
+    DQPostTakeResultsResponse,
     DQQuestionData,
     DQQuestionResponse,
     DQResultsResponse,
     DQSubmitResponse,
 )
 from app.services.daily_question.timing import (
+    ANSWER_TIMEOUT_S,
     get_answer_deadline,
     get_dq_date_for_utc,
     get_window_for_date_utc,
@@ -343,6 +345,18 @@ class DailyQuestionService:
                 detail='Results are not yet available for this question.',
             )
 
+        # Block non-participants from viewing results
+        assert dq.id is not None
+        has_answered = await self._db.dq_answers.has_user_answered(
+            dq.id,
+            user_firebase_uid,
+        )
+        if not has_answered:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail='You must take this question before viewing results.',
+            )
+
         # Get the question
         assert dq.id is not None
         fermi = await self._db.fermi.get_by_uid(dq.question_uid)
@@ -566,6 +580,294 @@ class DailyQuestionService:
         return DQLiteArchiveResponse(
             items=items,
             today=today.strftime('%Y-%m-%d'),
+        )
+
+    async def start_post_take_question(
+        self,
+        user_firebase_uid: str,
+        question_date: datetime.date,
+    ) -> DQQuestionResponse:
+        """Start a post-take for a closed daily question.
+
+        Allows users to take older DQs they haven't participated in.
+        No Firestore session is created - timing is handled via frontend.
+
+        Args:
+            user_firebase_uid: The user's Firebase UID.
+            question_date: The date of the DQ to take.
+
+        Returns:
+            The question response with deadline info.
+
+        Raises:
+            HTTPException: If DQ not found, not closed, or user already answered.
+
+        """
+        now_utc = utcnow_naive()
+
+        # Get the DQ for the requested date
+        dq = await self._db.daily_questions.get_dq_for_date(question_date)
+        if not dq:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f'No daily question found for {question_date}.',
+            )
+
+        # Only allow post-take for CLOSED DQs
+        if dq.status == DailyQuestionStatus.SCHEDULED:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail='This daily question has not been activated yet.',
+            )
+        if dq.status == DailyQuestionStatus.ACTIVE:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail='Use the regular /start endpoint for active questions.',
+            )
+
+        # Check if user already answered
+        assert dq.id is not None
+        has_answered = await self._db.dq_answers.has_user_answered(
+            dq.id,
+            user_firebase_uid,
+        )
+        if has_answered:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail='You have already taken this question.',
+            )
+
+        # Get the question from fermi table
+        fermi = await self._db.fermi.get_by_uid(dq.question_uid)
+        if not fermi:
+            logger.error(
+                'Fermi question not found for DQ %s (uid=%s)',
+                dq.id,
+                dq.question_uid,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail='Question data not found.',
+            )
+
+        # Calculate deadline (30s from now for post-take)
+        answer_deadline_utc = now_utc + datetime.timedelta(seconds=ANSWER_TIMEOUT_S)
+
+        logger.info(
+            'User %s started post-take for %s, deadline: %s',
+            user_firebase_uid,
+            question_date,
+            answer_deadline_utc,
+        )
+
+        # Get unit family for dimensional questions
+        units = None
+        if fermi.unit:
+            try:
+                units = get_unit_family(fermi.unit)
+            except ValueError:
+                logger.warning('Unknown unit for DQ: %s', fermi.unit)
+
+        return DQQuestionResponse(
+            question=DQQuestionData(
+                question_uid=str(fermi.uid),
+                text=fermi.text,
+                category=fermi.category,
+                difficulty=fermi.difficulty,
+                units=units,
+            ),
+            answer_deadline_utc=answer_deadline_utc.isoformat() + 'Z',
+            seconds_to_answer=ANSWER_TIMEOUT_S,
+        )
+
+    async def submit_post_take_answer(
+        self,
+        user_firebase_uid: str,
+        question_date: datetime.date,
+        answer: AnswerBare,
+        started_at: datetime.datetime,
+        user_locale: Locale = Locale.US,
+    ) -> DQPostTakeResultsResponse:
+        """Submit an answer for a post-take and get immediate results.
+
+        Args:
+            user_firebase_uid: The user's Firebase UID.
+            question_date: The date of the DQ.
+            answer: The user's answer.
+            started_at: When the user started (from frontend).
+            user_locale: The user's preferred locale.
+
+        Returns:
+            Immediate results with score, rank, and leaderboard.
+
+        Raises:
+            HTTPException: If deadline passed, DQ not found, or user already answered.
+
+        """
+        now_utc = utcnow_naive()
+
+        # Get the DQ
+        dq = await self._db.daily_questions.get_dq_for_date(question_date)
+        if not dq:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f'No daily question found for {question_date}.',
+            )
+
+        if dq.status != DailyQuestionStatus.CLOSED:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail='Post-take is only available for closed questions.',
+            )
+
+        # Check deadline (started_at + 30s + grace)
+        answer_deadline = started_at + datetime.timedelta(seconds=ANSWER_TIMEOUT_S)
+        if not is_within_ad_grace(now_utc, answer_deadline):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail='Answer deadline has passed.',
+            )
+
+        # Check if user already answered
+        assert dq.id is not None
+        has_answered = await self._db.dq_answers.has_user_answered(
+            dq.id,
+            user_firebase_uid,
+        )
+        if has_answered:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail='You have already taken this question.',
+            )
+
+        # Get the question for scoring
+        fermi = await self._db.fermi.get_by_uid(dq.question_uid)
+        if not fermi:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail='Question data not found.',
+            )
+
+        # Compute score
+        correct_answer: AnswerBare = {
+            'number': fermi.number,
+            'unit': fermi.unit,
+        }
+        score = self._scoring.calculate_score(answer, correct_answer)
+
+        # Increment XP based on score
+        xp_increment = int(score // 100)
+        if xp_increment > 0:
+            await self._db.users.increment_xp(user_firebase_uid, xp_increment)
+
+        # Compute rank dynamically before storing (count of higher scores + 1)
+        rank = await self._db.dq_answers.compute_rank_for_score(dq.id, score)
+
+        # Store answer in database
+        await self._db.dq_answers.submit_answer(
+            daily_question_id=dq.id,
+            user_firebase_uid=user_firebase_uid,
+            answer_number=answer['number'],
+            answer_unit=answer.get('unit'),
+            score=score,
+            started_at=started_at,
+            submitted_at=now_utc,
+        )
+        await self._db.session.commit()
+
+        logger.info(
+            'User %s post-take submitted for %s, score: %s, rank: %s',
+            user_firebase_uid,
+            question_date,
+            score,
+            rank,
+        )
+
+        # Build response with results
+        total_participants = await self._db.dq_answers.count_participants(dq.id)
+
+        # Get leaderboard
+        leaderboard_entries = await self._db.dq_answers.get_leaderboard(dq.id, limit=10)
+        firebase_uids = [entry.user_firebase_uid for entry in leaderboard_entries]
+        users_map: dict[str, dict[str, str | None]] = {}
+        if firebase_uids:
+            users = await self._db.users.get_by_firebase_uids(firebase_uids)
+            users_map = {
+                user.firebase_uid: {
+                    'display_name': user.display_name,
+                    'avatar_url': user.picture,
+                }
+                for user in users
+            }
+
+        leaderboard = [
+            DQLeaderboardEntry(
+                rank=entry.rank or i,
+                player=DQPlayer(
+                    display_name=users_map.get(entry.user_firebase_uid, {}).get(
+                        'display_name',
+                    ),
+                    avatar_url=users_map.get(entry.user_firebase_uid, {}).get(
+                        'avatar_url',
+                    ),
+                )
+                if entry.user_firebase_uid in users_map
+                else None,
+                score=entry.score,
+                time_taken_s=entry.time_taken_s,
+            )
+            for i, entry in enumerate(leaderboard_entries, 1)
+        ]
+
+        # Build user answer with unit info
+        user_unit_info = None
+        if answer.get('unit'):
+            try:
+                user_unit_info = get_unit_info(answer['unit'])
+            except ValueError:
+                pass
+        user_answer_dq = DQAnswer(
+            number=answer['number'],
+            unit=user_unit_info,
+        )
+
+        # Build correct answer in user's unit
+        if answer.get('unit'):
+            converted = convert_answer_to_user_unit(
+                answer['unit'],
+                {'number': fermi.number, 'unit': fermi.unit},
+            )
+            correct_answer_dq = DQAnswer(
+                number=converted['number'],
+                unit=get_unit_info(converted['unit']),
+            )
+        elif fermi.unit:
+            try:
+                target_unit = swap_unit_to_locale(fermi.unit, user_locale)
+                converted = convert_answer_to_user_unit(
+                    target_unit,
+                    {'number': fermi.number, 'unit': fermi.unit},
+                )
+                correct_answer_dq = DQAnswer(
+                    number=converted['number'],
+                    unit=get_unit_info(converted['unit']),
+                )
+            except ValueError:
+                correct_answer_dq = DQAnswer(number=fermi.number, unit=None)
+        else:
+            correct_answer_dq = DQAnswer(number=fermi.number, unit=None)
+
+        return DQPostTakeResultsResponse(
+            submitted=True,
+            score=score,
+            rank=rank,
+            total_participants=total_participants,
+            question_date=question_date.strftime('%Y-%m-%d'),
+            question_text=fermi.text,
+            correct_answer=correct_answer_dq,
+            user_answer=user_answer_dq,
+            leaderboard=leaderboard,
+            paragraph=fermi.snippet,
         )
 
     async def close_active_and_schedule_new_dq(

@@ -135,3 +135,33 @@ class DQEndResponse(BaseModel):
     participants_ranked: int
     next_date: str | None = None  # YYYY-MM-DD, None if no questions available
     next_question_uid: str | None = None
+
+
+class DQPostTakeAnswerRequest(BaseModel):
+    """Request for POST /post_take/{date}/answer.
+
+    Frontend sends started_at timestamp so backend can validate deadline
+    without needing Firestore session storage.
+    """
+
+    answer: AnswerBare
+    started_at: datetime  # When question was displayed to user
+
+
+class DQPostTakeResultsResponse(BaseModel):
+    """Response for POST /post_take/{date}/answer.
+
+    Returns immediate results after post-take submission, including
+    dynamically computed rank based on existing scores.
+    """
+
+    submitted: bool
+    score: float
+    rank: int
+    total_participants: int
+    question_date: str  # YYYY-MM-DD
+    question_text: str
+    correct_answer: DQAnswer
+    user_answer: DQAnswer
+    leaderboard: list[DQLeaderboardEntry]
+    paragraph: str | None = None

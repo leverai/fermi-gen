@@ -20,6 +20,8 @@ from app.services.daily_question.schemas import (
     DQAnswerRequest,
     DQEndResponse,
     DQLiteArchiveResponse,
+    DQPostTakeAnswerRequest,
+    DQPostTakeResultsResponse,
     DQQuestionResponse,
     DQResultsResponse,
     DQSubmitResponse,
@@ -163,6 +165,65 @@ async def get_archive_month(
         user_firebase_uid=current_user.firebase_uid,
         year=year,
         month=month,
+    )
+
+
+@router.post('/post_take/{question_date}/start', response_model=DQQuestionResponse)
+async def start_post_take(
+    current_user: Annotated[User, Depends(get_current_user)],
+    dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
+    question_date: str = Path(
+        ...,
+        pattern=r'^\d{4}-\d{2}-\d{2}$',
+        description='Date in YYYY-MM-DD format',
+    ),
+) -> DQQuestionResponse:
+    """Start a post-take for a closed daily question.
+
+    Post-take allows users to take older DQs they haven't participated in.
+    The DQ must be CLOSED (not SCHEDULED or ACTIVE).
+    """
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, start_post_take.__qualname__)
+    span.set_attribute(api_attrs.QUERY_PARAMS, f'question_date={question_date}')
+
+    parsed_date = datetime.strptime(question_date, '%Y-%m-%d').date()  # noqa: DTZ007
+    return await dq_service.start_post_take_question(
+        user_firebase_uid=current_user.firebase_uid,
+        question_date=parsed_date,
+    )
+
+
+@router.post(
+    '/post_take/{question_date}/answer',
+    response_model=DQPostTakeResultsResponse,
+)
+async def submit_post_take_answer(
+    payload: DQPostTakeAnswerRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
+    question_date: str = Path(
+        ...,
+        pattern=r'^\d{4}-\d{2}-\d{2}$',
+        description='Date in YYYY-MM-DD format',
+    ),
+) -> DQPostTakeResultsResponse:
+    """Submit an answer for a post-take and get immediate results.
+
+    Returns score, rank, and full results immediately after submission.
+    Must be submitted within 30s + grace period of started_at.
+    """
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, submit_post_take_answer.__qualname__)
+    span.set_attribute(api_attrs.QUERY_PARAMS, f'question_date={question_date}')
+
+    parsed_date = datetime.strptime(question_date, '%Y-%m-%d').date()  # noqa: DTZ007
+    return await dq_service.submit_post_take_answer(
+        user_firebase_uid=current_user.firebase_uid,
+        question_date=parsed_date,
+        answer=payload.answer,
+        started_at=payload.started_at,
+        user_locale=Locale(current_user.locale),
     )
 
 

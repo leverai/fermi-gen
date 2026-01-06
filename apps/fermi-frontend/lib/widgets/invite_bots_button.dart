@@ -67,7 +67,7 @@ class _InviteBotsButtonState extends State<InviteBotsButton> {
             boxShadow: [
               if (!_isPressed && isEnabled)
                 BoxShadow(
-                  color: appTheme.shadowColor,
+                  color: appTheme.secondaryMuted,
                   offset: appTheme.shadowOffset,
                 ),
             ]),

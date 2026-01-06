@@ -299,23 +299,39 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
                               mainController.refreshInBackground();
                             });
                           } else {
-                            // Past date or closed - show unified screen with results
-                            // Capture controller and navigator before async gap to avoid lint warning
+                            // Past date or closed - check if user participated
                             final mainController = widget.mainScreenController;
                             final navigator = Navigator.of(context);
                             navigator.pop();
-                            navigator
-                                .push(
-                              MaterialPageRoute(
-                                builder: (_) => DailyQuestionScreen(
-                                  questionDate: dateStr,
+
+                            if (participated) {
+                              // User participated - show results
+                              navigator
+                                  .push(
+                                MaterialPageRoute(
+                                  builder: (_) => DailyQuestionScreen(
+                                    questionDate: dateStr,
+                                  ),
                                 ),
-                              ),
-                            )
-                                .then((_) {
-                              // Refresh stats when returning from DQ screen
-                              mainController.refreshInBackground();
-                            });
+                              )
+                                  .then((_) {
+                                mainController.refreshInBackground();
+                              });
+                            } else {
+                              // User hasn't participated - allow post-take
+                              navigator
+                                  .push(
+                                MaterialPageRoute(
+                                  builder: (_) => PreDailyQuestionScreen(
+                                    questionDate: dateStr,
+                                    isPostTake: true,
+                                  ),
+                                ),
+                              )
+                                  .then((_) {
+                                mainController.refreshInBackground();
+                              });
+                            }
                           }
                         }
                       : null,
