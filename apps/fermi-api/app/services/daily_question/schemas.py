@@ -72,6 +72,7 @@ class DQLeaderboardEntry(BaseModel):
     player: DQPlayer | None
     score: float
     time_taken_s: float
+    is_post_take: bool = False
 
 
 class DQAnswer(BaseModel):
@@ -91,6 +92,7 @@ class DQResultsResponse(BaseModel):
     user_answer: DQAnswer | None
     user_score: float | None
     user_rank: int | None
+    user_is_post_take: bool = False
     total_participants: int
     leaderboard: list[DQLeaderboardEntry]
     paragraph: str | None = None

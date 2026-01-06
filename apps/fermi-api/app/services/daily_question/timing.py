@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 UTC_TZ = ZoneInfo('UTC')
 
 # DQ window constants (in UTC hours)
-DQ_DAY_START_HOUR = 2  # 2 AM UTC - when the DQ "day" starts
+DQ_DAY_START_HOUR = 4  # 2 AM UTC - when the DQ "day" starts
 DQ_WINDOW_OPEN_HOUR = 12  # 12 PM UTC - when DQ becomes ACTIVE
 
 # Deadline constants (in seconds)

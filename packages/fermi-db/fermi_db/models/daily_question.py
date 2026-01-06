@@ -62,3 +62,4 @@ class DailyQuestionAnswer(SQLModel, table=True):
     )
     time_taken_s: float
     rank: int | None = None  # Populated after window closes
+    is_post_take: bool = Field(default=False)  # True if answered after DQ closed

@@ -509,6 +509,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
         ),
         score: results.userScore!,
         timeTakenS: 0, // Not displayed
+        isPostTake: results.userIsPostTake,
       );
       entries.add(_buildLeaderboardRow(userEntry, true));
     }
@@ -546,7 +547,11 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
               style: AppFont.secondaryTextStyle(
                 context,
                 fontWeight: FontWeight.w700,
-                color: isCurrentUser ? appTheme.primary : appTheme.text,
+                color: isCurrentUser
+                    ? appTheme.primary
+                    : entry.isPostTake
+                        ? appTheme.danger
+                        : appTheme.text,
               ),
             ),
           ),
@@ -569,14 +574,30 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
           const SizedBox(width: 8),
           // Name
           Expanded(
-            child: Text(
-              isCurrentUser ? '$displayName (You)' : displayName,
-              style: AppFont.secondaryTextStyle(
-                context,
-                color: appTheme.text,
-                fontWeight: isCurrentUser ? FontWeight.w600 : FontWeight.normal,
-              ),
-              overflow: TextOverflow.ellipsis,
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    isCurrentUser ? '$displayName (You)' : displayName,
+                    style: AppFont.secondaryTextStyle(
+                      context,
+                      color: appTheme.text,
+                      fontWeight:
+                          isCurrentUser ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                // Post-take indicator
+                if (entry.isPostTake) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.timer_outlined,
+                    size: 14,
+                    color: appTheme.danger,
+                  ),
+                ],
+              ],
             ),
           ),
           // Score

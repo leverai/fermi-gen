@@ -412,6 +412,12 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
             true, const Duration(milliseconds: 600));
         // Signal MainScreen to refresh stats
         context.read<AuthService>().shouldRefreshStats = true;
+
+        // Refresh archive to update participation status and mark as seen
+        // Since results are shown immediately after post-take, mark as seen
+        final controller = context.read<DailyQuestionController>();
+        controller.markResultsSeen(effectiveDate);
+        await controller.refreshArchiveAndSubscribe();
       }
     } catch (e) {
       if (mounted) {
@@ -763,7 +769,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
-          Icons.check_circle_outline,
+          Icons.check_circle_outline_rounded,
           size: 64,
           color: appTheme.success,
         ),

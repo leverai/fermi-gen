@@ -103,6 +103,7 @@ class DQResultsResponse {
   final AnswerValue? userAnswer;
   final double? userScore;
   final int? userRank;
+  final bool userIsPostTake;
   final int totalParticipants;
   final List<DQLeaderboardEntry> leaderboard;
   final String? paragraph;
@@ -115,6 +116,7 @@ class DQResultsResponse {
     this.userAnswer,
     this.userScore,
     this.userRank,
+    this.userIsPostTake = false,
     required this.totalParticipants,
     required this.leaderboard,
     this.paragraph,
@@ -161,6 +163,7 @@ class DQResultsResponse {
           ? (json['user_score'] as num).toDouble()
           : null,
       userRank: json['user_rank'] as int?,
+      userIsPostTake: json['user_is_post_take'] as bool? ?? false,
       totalParticipants: json['total_participants'] as int,
       leaderboard: leaderboard,
       paragraph: json['paragraph'] as String?,
@@ -190,12 +193,14 @@ class DQLeaderboardEntry {
   final DQPlayer? player;
   final double score;
   final double timeTakenS;
+  final bool isPostTake;
 
   DQLeaderboardEntry({
     required this.rank,
     this.player,
     required this.score,
     required this.timeTakenS,
+    this.isPostTake = false,
   });
 
   factory DQLeaderboardEntry.fromJson(Map<String, dynamic> json) {
@@ -206,6 +211,7 @@ class DQLeaderboardEntry {
           : null,
       score: (json['score'] as num).toDouble(),
       timeTakenS: (json['time_taken_s'] as num).toDouble(),
+      isPostTake: json['is_post_take'] as bool? ?? false,
     );
   }
 }
@@ -288,6 +294,7 @@ class DQPostTakeResultsResponse {
       userAnswer: userAnswer,
       userScore: score,
       userRank: rank,
+      userIsPostTake: true, // Post-take results are always from a post-take
       totalParticipants: totalParticipants,
       leaderboard: leaderboard,
       paragraph: paragraph,
