@@ -374,12 +374,25 @@ class DailyQuestionService:
                 detail='Question data not found.',
             )
 
-        # Get leaderboard
-        leaderboard_entries = await self._db.dq_answers.get_leaderboard(
-            dq.id,
-            limit=10,
-            include_post_takes=include_post_takes,
-        )
+        # Get leaderboard - use dynamic ranking when including post-takes
+        if include_post_takes:
+            # Dynamic rank computation using DENSE_RANK
+            leaderboard_with_ranks = (
+                await self._db.dq_answers.get_leaderboard_with_ranks(
+                    dq.id,
+                    limit=10,
+                )
+            )
+            leaderboard_entries = [entry for entry, _ in leaderboard_with_ranks]
+            entry_ranks = {entry.id: rank for entry, rank in leaderboard_with_ranks}
+        else:
+            # Pre-take only - use stored ranks
+            leaderboard_entries = await self._db.dq_answers.get_leaderboard(
+                dq.id,
+                limit=10,
+                include_post_takes=False,
+            )
+            entry_ranks = {entry.id: entry.rank for entry in leaderboard_entries}
 
         # Extract unique Firebase UIDs from leaderboard entries
         firebase_uids = [entry.user_firebase_uid for entry in leaderboard_entries]
@@ -399,7 +412,7 @@ class DailyQuestionService:
         # Construct leaderboard with player info
         leaderboard = [
             DQLeaderboardEntry(
-                rank=i if include_post_takes else entry.rank,
+                rank=entry_ranks.get(entry.id) or 0,
                 player=DQPlayer(
                     display_name=users_map.get(entry.user_firebase_uid, {}).get(
                         'display_name',
@@ -413,8 +426,9 @@ class DailyQuestionService:
                 score=entry.score,
                 time_taken_s=entry.time_taken_s,
                 is_post_take=entry.is_post_take,
+                is_current_user=entry.user_firebase_uid == user_firebase_uid,
             )
-            for i, entry in enumerate(leaderboard_entries, 1)
+            for entry in leaderboard_entries
         ]
 
         # Get user's answer and rank, if any
@@ -437,10 +451,19 @@ class DailyQuestionService:
                 number=user_answer.answer_number,
                 unit=user_unit_info,
             )
-            user_rank = await self._db.dq_answers.get_user_rank(
-                dq.id,
-                user_firebase_uid,
-            )
+            # Compute user rank:
+            # - If include_post_takes=true or user is post-taker: compute dynamically
+            # - Otherwise: use stored rank
+            if include_post_takes or user_answer.is_post_take:
+                user_rank = await self._db.dq_answers.compute_user_rank_dynamically(
+                    dq.id,
+                    user_firebase_uid,
+                )
+            else:
+                user_rank = await self._db.dq_answers.get_user_rank(
+                    dq.id,
+                    user_firebase_uid,
+                )
 
         # Get correct answer in user's unit (if any)
         if user_answer and user_answer.answer_unit:
@@ -796,9 +819,12 @@ class DailyQuestionService:
         # Build response with results
         total_participants = await self._db.dq_answers.count_participants(dq.id)
 
-        # Get leaderboard
-        leaderboard_entries = await self._db.dq_answers.get_leaderboard(dq.id, limit=10)
-        firebase_uids = [entry.user_firebase_uid for entry in leaderboard_entries]
+        # Get leaderboard with dynamic ranks
+        leaderboard_with_ranks = await self._db.dq_answers.get_leaderboard_with_ranks(
+            dq.id,
+            limit=10,
+        )
+        firebase_uids = [entry.user_firebase_uid for entry, _ in leaderboard_with_ranks]
         users_map: dict[str, dict[str, str | None]] = {}
         if firebase_uids:
             users = await self._db.users.get_by_firebase_uids(firebase_uids)
@@ -812,7 +838,7 @@ class DailyQuestionService:
 
         leaderboard = [
             DQLeaderboardEntry(
-                rank=i,
+                rank=computed_rank,
                 player=DQPlayer(
                     display_name=users_map.get(entry.user_firebase_uid, {}).get(
                         'display_name',
@@ -826,8 +852,9 @@ class DailyQuestionService:
                 score=entry.score,
                 time_taken_s=entry.time_taken_s,
                 is_post_take=entry.is_post_take,
+                is_current_user=entry.user_firebase_uid == user_firebase_uid,
             )
-            for i, entry in enumerate(leaderboard_entries, 1)
+            for entry, computed_rank in leaderboard_with_ranks
         ]
 
         # Build user answer with unit info

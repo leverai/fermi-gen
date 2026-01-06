@@ -197,7 +197,7 @@ class DailyQuestionAnswerRepository(BaseRepository):
         rank_query = (
             select(
                 DailyQuestionAnswer.id,
-                func.rank()
+                func.dense_rank()
                 .over(order_by=DailyQuestionAnswer.score.desc())  # type: ignore
                 .label('new_rank'),
             )
@@ -255,6 +255,88 @@ class DailyQuestionAnswerRepository(BaseRepository):
         statement = select(func.count(DailyQuestionAnswer.id)).where(
             DailyQuestionAnswer.daily_question_id == daily_question_id,
             DailyQuestionAnswer.score > score,
+        )
+        result = await self.session.exec(statement)
+        higher_count = result.one() or 0
+        return higher_count + 1
+
+    async def get_leaderboard_with_ranks(
+        self,
+        daily_question_id: int,
+        limit: int = 100,
+    ) -> list[tuple[DailyQuestionAnswer, int]]:
+        """Get leaderboard with dynamically computed DENSE_RANK.
+
+        Used when include_post_takes=true to compute ranks on-the-fly
+        including all participants (pre-takers and post-takers).
+
+        Args:
+            daily_question_id: The ID of the daily question.
+            limit: Maximum number of entries to return.
+
+        Returns:
+            List of (answer, rank) tuples ordered by score descending.
+
+        """
+        # Build subquery with DENSE_RANK
+        ranked_subq = (
+            select(
+                DailyQuestionAnswer,
+                func.dense_rank()
+                .over(order_by=DailyQuestionAnswer.score.desc())  # type: ignore
+                .label('computed_rank'),
+            )
+            .where(DailyQuestionAnswer.daily_question_id == daily_question_id)
+            .subquery()
+        )
+
+        # Select from subquery with limit
+        # We need to reconstruct the model from subquery columns
+        statement = (
+            select(DailyQuestionAnswer, ranked_subq.c.computed_rank)
+            .join(
+                ranked_subq,
+                DailyQuestionAnswer.id == ranked_subq.c.id,  # type: ignore
+            )
+            .order_by(ranked_subq.c.computed_rank)
+            .limit(limit)
+        )
+        result = await self.session.exec(statement)
+        return [(row[0], row[1]) for row in result.all()]
+
+    async def compute_user_rank_dynamically(
+        self,
+        daily_question_id: int,
+        user_firebase_uid: str,
+    ) -> int | None:
+        """Compute a user's rank dynamically using DENSE_RANK.
+
+        Used when the stored rank may not be accurate (e.g., post-takers
+        or when include_post_takes=true changes the ranking).
+
+        Args:
+            daily_question_id: The ID of the daily question.
+            user_firebase_uid: The user's Firebase UID.
+
+        Returns:
+            The user's rank (1 = highest), or None if user hasn't answered.
+
+        """
+        # Get user's score first
+        user_answer = await self.get_user_answer(
+            daily_question_id,
+            user_firebase_uid,
+        )
+        if not user_answer:
+            return None
+
+        # Count distinct scores higher than user's score + 1
+        # DENSE_RANK: rank = count of distinct higher scores + 1
+        statement = select(
+            func.count(func.distinct(DailyQuestionAnswer.score)),
+        ).where(
+            DailyQuestionAnswer.daily_question_id == daily_question_id,
+            DailyQuestionAnswer.score > user_answer.score,
         )
         result = await self.session.exec(statement)
         higher_count = result.one() or 0
