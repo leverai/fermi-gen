@@ -399,7 +399,7 @@ class DailyQuestionService:
         # Construct leaderboard with player info
         leaderboard = [
             DQLeaderboardEntry(
-                rank=entry.rank or i,
+                rank=i if include_post_takes else entry.rank,
                 player=DQPlayer(
                     display_name=users_map.get(entry.user_firebase_uid, {}).get(
                         'display_name',
