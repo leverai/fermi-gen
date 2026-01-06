@@ -23,6 +23,8 @@ class DailyQuestionAnswerRepository(BaseRepository):
         score: float,
         started_at: datetime.datetime,
         submitted_at: datetime.datetime,
+        *,
+        is_post_take: bool = False,
     ) -> DailyQuestionAnswer:
         """Submit an answer for a daily question.
 
@@ -34,6 +36,7 @@ class DailyQuestionAnswerRepository(BaseRepository):
             score: The computed score.
             started_at: When the user started the question (UTC).
             submitted_at: When the answer was submitted (UTC).
+            is_post_take: True if this is a post-take (answered after window closed).
 
         Returns:
             The created DailyQuestionAnswer.
@@ -52,6 +55,7 @@ class DailyQuestionAnswerRepository(BaseRepository):
             started_at=started_at,
             submitted_at=submitted_at,
             time_taken_s=time_taken_s,
+            is_post_take=is_post_take,
         )
         self.session.add(answer)
         await self.session.flush()

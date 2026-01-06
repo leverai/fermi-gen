@@ -408,6 +408,7 @@ class DailyQuestionService:
                 else None,
                 score=entry.score,
                 time_taken_s=entry.time_taken_s,
+                is_post_take=entry.is_post_take,
             )
             for i, entry in enumerate(leaderboard_entries, 1)
         ]
@@ -488,6 +489,7 @@ class DailyQuestionService:
             user_answer=user_answer_dq,
             user_score=user_answer.score if user_answer else None,
             user_rank=user_rank,
+            user_is_post_take=user_answer.is_post_take if user_answer else False,
             total_participants=total_participants,
             leaderboard=leaderboard,
             paragraph=fermi.snippet,
@@ -760,7 +762,10 @@ class DailyQuestionService:
         if xp_increment > 0:
             await self._db.users.increment_xp(user_firebase_uid, xp_increment)
 
-        # Compute rank dynamically before storing (count of higher scores + 1)
+        # Compute rank dynamically before storing (count of higher scores + 1).
+        # NOTE: This only computes the new participant's rank. Existing participants'
+        # stored ranks are NOT re-computed. This is intentional—post-take modifies
+        # historical leaderboards but avoids expensive rank recalculation.
         rank = await self._db.dq_answers.compute_rank_for_score(dq.id, score)
 
         # Store answer in database
@@ -772,6 +777,7 @@ class DailyQuestionService:
             score=score,
             started_at=started_at,
             submitted_at=now_utc,
+            is_post_take=True,
         )
         await self._db.session.commit()
 
@@ -815,6 +821,7 @@ class DailyQuestionService:
                 else None,
                 score=entry.score,
                 time_taken_s=entry.time_taken_s,
+                is_post_take=entry.is_post_take,
             )
             for i, entry in enumerate(leaderboard_entries, 1)
         ]
