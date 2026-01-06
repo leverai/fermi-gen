@@ -516,8 +516,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
 
     // Build top 10 entries
     for (final entry in top10) {
-      final isCurrentUser = userRank != null && entry.rank == userRank;
-      entries.add(_buildLeaderboardRow(entry, isCurrentUser));
+      entries.add(_buildLeaderboardRow(entry, entry.isCurrentUser));
     }
 
     // Add user's entry if they participated but aren't in top 10
@@ -549,6 +548,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
         score: results.userScore!,
         timeTakenS: 0, // Not displayed
         isPostTake: results.userIsPostTake,
+        isCurrentUser: true,
       );
       entries.add(_buildLeaderboardRow(userEntry, true));
     }

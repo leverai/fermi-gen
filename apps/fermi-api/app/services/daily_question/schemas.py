@@ -73,6 +73,7 @@ class DQLeaderboardEntry(BaseModel):
     score: float
     time_taken_s: float
     is_post_take: bool = False
+    is_current_user: bool = False
 
 
 class DQAnswer(BaseModel):
