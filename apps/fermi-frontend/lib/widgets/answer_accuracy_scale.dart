@@ -422,7 +422,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                                   BoxShadow(
                                     color:
                                         // ignore: deprecated_member_use
-                                        appTheme.shadowColor.withOpacity(0.1),
+                                        appTheme.textMuted.withOpacity(0.1),
                                     blurRadius: 2,
                                     offset: const Offset(0, 2),
                                   ),

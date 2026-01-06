@@ -21,7 +21,7 @@ class _ShareButtonState extends State<ShareButton> {
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
     // Use secondary color as requested
-    final backgroundColor = appTheme.info;
+    final backgroundColor = appTheme.secondary;
     // Use a contrasting text color. Since secondary is vibrant/dark, white or bgLight usually works well.
     final foregroundColor = appTheme.bgLight;
 

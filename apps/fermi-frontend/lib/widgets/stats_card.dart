@@ -27,7 +27,7 @@ class StatsCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: appTheme.secondary,
+              color: appTheme.primaryMuted,
               offset: appTheme.shadowOffset,
               blurRadius: 0,
               spreadRadius: 0,
@@ -35,7 +35,7 @@ class StatsCard extends StatelessWidget {
           ],
         ),
         child: Material(
-          color: appTheme.primaryMuted,
+          color: appTheme.primary,
           borderRadius: BorderRadius.circular(24),
           child: InkWell(
             onTap: onTap,
@@ -99,7 +99,7 @@ class _StatItem extends StatelessWidget {
             context,
             fontSize: 28,
             fontWeight: FontWeight.w300,
-            color: appTheme.text,
+            color: appTheme.bgLight,
           ),
         ),
         const SizedBox(height: 4),
@@ -109,7 +109,7 @@ class _StatItem extends StatelessWidget {
             context,
             fontSize: 12,
             fontWeight: FontWeight.w300,
-            color: appTheme.textMuted,
+            color: appTheme.bg,
           ).copyWith(
             letterSpacing: 0.5,
           ),
@@ -139,15 +139,14 @@ class _RankItem extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         SizedBox(
-          width: 24,
+          width: 28,
           height: 40,
           child: SvgPicture.network(
             rank.picture,
             placeholderBuilder: (context) => Icon(
               Icons.military_tech,
               size: 24,
-              // ignore: deprecated_member_use
-              color: appTheme.textMuted,
+              color: appTheme.bg,
             ),
           ),
         ),
@@ -158,7 +157,7 @@ class _RankItem extends StatelessWidget {
             context,
             fontSize: 12,
             fontWeight: FontWeight.w300,
-            color: appTheme.textMuted,
+            color: appTheme.bg,
           ).copyWith(
             letterSpacing: 0.5,
           ),

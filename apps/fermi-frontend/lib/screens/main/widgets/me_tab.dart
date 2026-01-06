@@ -57,7 +57,7 @@ class MeTab extends StatelessWidget {
             padding: const EdgeInsets.all(12.0),
             boxShadow: [
               BoxShadow(
-                color: appTheme.secondary,
+                color: appTheme.primaryMuted,
                 offset: appTheme.shadowOffset,
               ),
             ],

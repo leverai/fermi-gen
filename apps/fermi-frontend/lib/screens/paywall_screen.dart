@@ -492,7 +492,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: appTheme.warning,
+        color: appTheme.secondary,
         borderRadius: BorderRadius.circular(appTheme.borderRadius),
       ),
       child: Row(
@@ -787,7 +787,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: appTheme.warning,
+                            color: appTheme.secondary,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(

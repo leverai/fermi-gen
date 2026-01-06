@@ -188,7 +188,7 @@ class _MainButtonState extends State<MainButton>
                   child: Container(
                     height: buttonHeight,
                     decoration: BoxDecoration(
-                      color: appTheme.shadowColor,
+                      color: appTheme.primaryMuted,
                       borderRadius: BorderRadius.circular(borderRadius),
                     ),
                   ),
