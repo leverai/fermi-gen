@@ -123,7 +123,7 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
                   right: 16,
                   child: IconButton(
                     icon: Icon(Icons.keyboard_arrow_down,
-                        color: appTheme.text, size: 32),
+                        color: appTheme.borderMuted, size: 32),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
@@ -160,7 +160,7 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
-          icon: Icon(Icons.chevron_left, color: appTheme.text),
+          icon: Icon(Icons.chevron_left, color: appTheme.border),
           onPressed: () => _changeMonth(-1),
         ),
         SizedBox(
@@ -177,7 +177,7 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
           ),
         ),
         IconButton(
-          icon: Icon(Icons.chevron_right, color: appTheme.text),
+          icon: Icon(Icons.chevron_right, color: appTheme.border),
           onPressed: () => _changeMonth(1),
         ),
       ],

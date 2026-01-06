@@ -24,12 +24,7 @@ class AuthScreen extends StatelessWidget {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    // Define the standardized border for neubrutalism
     final inputBorder = OutlineInputBorder(
-      borderSide: BorderSide(
-        color: appTheme.border,
-        width: appTheme.borderWidth,
-      ),
       borderRadius: BorderRadius.circular(appTheme.borderRadius),
     );
 
@@ -38,7 +33,7 @@ class AuthScreen extends StatelessWidget {
       scaffoldBackgroundColor: appTheme.bg,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: appTheme.bgLight,
+        fillColor: appTheme.bgDark,
         // Borders
         border: inputBorder,
         enabledBorder: inputBorder,
@@ -61,10 +56,11 @@ class AuthScreen extends StatelessWidget {
           ),
         ),
         // Text styles
-        labelStyle: TextStyle(color: appTheme.textMuted),
-        hintStyle: TextStyle(color: appTheme.textMuted.withOpacity(0.5)),
+        labelStyle: TextStyle(color: appTheme.text),
+        hintStyle: TextStyle(color: appTheme.textMuted),
         contentPadding: const EdgeInsets.all(16),
       ),
+      brightness: Brightness.dark,
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: appTheme.primary,
@@ -107,14 +103,17 @@ class AuthScreen extends StatelessWidget {
               fontWeight: FontWeight.bold,
               fontSize: 24,
             ),
-            bodyMedium: TextStyle(
-              color: appTheme.text,
-            ),
+            bodyLarge: TextStyle(color: appTheme.text),
+            bodyMedium: TextStyle(color: appTheme.textMuted),
+            bodySmall: TextStyle(color: appTheme.textMuted),
+            titleMedium: TextStyle(color: appTheme.text),
+            titleSmall: TextStyle(color: appTheme.textMuted),
+            labelLarge: TextStyle(color: appTheme.textMuted),
           ),
       colorScheme: Theme.of(context).colorScheme.copyWith(
             primary: appTheme.primary,
             error: appTheme.danger,
-            surface: appTheme.bg,
+            surface: appTheme.text,
           ),
     );
 
@@ -148,7 +147,7 @@ class AuthScreen extends StatelessWidget {
             ),
             // Leave Button
             LeaveButtonOverlay(
-              iconColor: appTheme.text,
+              iconColor: appTheme.border,
               splashColor: appTheme.primary.withOpacity(0.2),
               onPressed: onLeave ?? () => Navigator.of(context).maybePop(),
             ),

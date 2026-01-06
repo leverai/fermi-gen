@@ -372,7 +372,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: enabled ? appTheme.border : appTheme.borderMuted,
+              color: appTheme.borderMuted,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -390,7 +390,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
                     _isExpanded
                         ? Icons.keyboard_arrow_down
                         : Icons.keyboard_arrow_up,
-                    color: appTheme.text,
+                    color: appTheme.borderMuted,
                     size: 32,
                   ),
                   onPressed: _toggleSheet,

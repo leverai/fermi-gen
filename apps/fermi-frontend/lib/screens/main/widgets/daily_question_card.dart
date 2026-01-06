@@ -145,7 +145,9 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
     final decoration = BoxDecoration(
       color: widget.isToday
           ? appTheme.primary
-          : (widget.participated ? appTheme.primary : appTheme.bgLight),
+          : (widget.participated
+              ? appTheme.primary.withAlpha(100)
+              : appTheme.primary),
       borderRadius: BorderRadius.circular(appTheme.borderRadius),
       boxShadow: widget.isToday
           ? [] // No shadow for today's card
@@ -173,7 +175,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                         context,
                         fontSize: 24,
                         fontWeight: FontWeight.w800,
-                        color: widget.isToday ? appTheme.bg : appTheme.text,
+                        color: appTheme.text,
                       ),
                     ),
                     Text(
@@ -182,9 +184,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                         context,
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
-                        color: widget.isToday
-                            ? appTheme.bgDark
-                            : appTheme.borderMuted,
+                        color: appTheme.text.withAlpha(140),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -197,8 +197,9 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                         context,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color:
-                            widget.participated ? appTheme.bg : appTheme.text,
+                        color: widget.participated
+                            ? appTheme.text.withAlpha(100)
+                            : appTheme.text,
                       ),
                     ),
                 ],
@@ -223,7 +224,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                             context,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: appTheme.bg,
+                            color: appTheme.text,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -237,7 +238,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                                 context,
                                 fontSize: 32,
                                 fontWeight: FontWeight.w700,
-                                color: appTheme.bg,
+                                color: appTheme.text,
                                 height: 1.0,
                               ),
                             ),
@@ -248,7 +249,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                                 context,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: appTheme.bg,
+                                color: appTheme.text,
                               ),
                             ),
                           ],
@@ -281,7 +282,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                 context,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: appTheme.primaryMuted,
+                color: appTheme.primaryMuted.withAlpha(100),
               ),
             ),
           ),
@@ -344,8 +345,6 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
 
   Widget _buildStatusButton(BuildContext context, AppTheme appTheme) {
     String buttonText;
-    Color bgColor;
-    Color textColor;
 
     // For ACTIVE/SUBMITTED, show "Ends in: X" timer
     if ((widget.status == 'ACTIVE' || widget.status == 'SUBMITTED') &&
@@ -353,16 +352,10 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
         widget.isToday) {
       final remaining = _formatRemainingTime(_timeUntilEnd);
       buttonText = remaining;
-      bgColor = appTheme.bgLight.withOpacity(0.8);
-      textColor = appTheme.primary;
     } else {
       switch (widget.status) {
         case 'PENDING':
           buttonText = 'PENDING';
-          bgColor = widget.isToday
-              ? appTheme.bg.withOpacity(0.7)
-              : appTheme.borderMuted.withOpacity(0.3);
-          textColor = appTheme.primary;
           break;
         case 'NOT_STARTED':
           // Show "Starts in: X" timer if windowStart is available
@@ -372,21 +365,12 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
           } else {
             buttonText = 'SOON';
           }
-          bgColor = widget.isToday
-              ? appTheme.bg.withOpacity(0.7)
-              : appTheme.borderMuted.withOpacity(0.3);
-          textColor = appTheme.primary;
           break;
         case 'RESULTS_READY':
           buttonText = 'RESULTS';
-          bgColor =
-              widget.isToday ? appTheme.bg : appTheme.primary.withOpacity(0.1);
-          textColor = appTheme.primary;
           break;
         default:
           buttonText = widget.status;
-          bgColor = appTheme.borderMuted;
-          textColor = appTheme.primary;
       }
     }
 
@@ -395,7 +379,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
     return Container(
       height: 28,
       decoration: BoxDecoration(
-        color: bgColor.withOpacity(0.7),
+        color: appTheme.primaryMuted,
         borderRadius: BorderRadius.circular(appTheme.borderRadius / 2),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -406,9 +390,10 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
           if (showTimerIcon) ...[
             SvgPicture.asset(
               'assets/icons/timer.svg',
-              width: 12,
-              height: 12,
-              colorFilter: ColorFilter.mode(appTheme.primary, BlendMode.srcIn),
+              width: 14,
+              height: 14,
+              colorFilter: ColorFilter.mode(
+                  appTheme.text.withAlpha(140), BlendMode.srcIn),
             ),
             const SizedBox(width: 4),
           ],
@@ -416,9 +401,9 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
             buttonText,
             style: AppFont.secondaryTextStyle(
               context,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: textColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: appTheme.text.withAlpha(140),
             ).copyWith(letterSpacing: 0.3),
           ),
         ],

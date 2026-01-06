@@ -420,9 +420,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                                 borderRadius: BorderRadius.circular(4),
                                 boxShadow: [
                                   BoxShadow(
-                                    color:
-                                        // ignore: deprecated_member_use
-                                        appTheme.textMuted.withOpacity(0.1),
+                                    color: appTheme.primaryMuted.withAlpha(100),
                                     blurRadius: 2,
                                     offset: const Offset(0, 2),
                                   ),

@@ -88,12 +88,12 @@ class _SettingsSheetState extends State<SettingsSheet> {
                     context,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: appTheme.text,
+                    color: appTheme.textMuted,
                   ),
                 ),
                 IconButton(
                   icon: Icon(Icons.keyboard_arrow_down,
-                      color: appTheme.text, size: 32),
+                      color: appTheme.borderMuted, size: 32),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -179,7 +179,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
                           fontWeight: FontWeight.w400,
                           color: widget.isAnonymous ||
                                   widget.subscriptionTier == 'FREE'
-                              ? appTheme.borderMuted
+                              ? appTheme.textMuted
                               : appTheme.primary,
                         ),
                       ),
@@ -272,7 +272,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
                 context,
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: appTheme.borderMuted,
+                color: appTheme.textMuted,
               ).copyWith(
                 letterSpacing: 0.5,
               ),
@@ -316,7 +316,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
     bool isDisabled = false,
   }) {
     final Color textColor = isDisabled
-        ? appTheme.borderMuted
+        ? appTheme.border
         : isDestructive
             ? appTheme.danger
             : appTheme.text;
@@ -386,7 +386,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
             context,
             fontSize: 12,
             fontWeight: isUS ? FontWeight.w600 : FontWeight.w400,
-            color: isUS ? appTheme.primary : appTheme.borderMuted,
+            color: isUS ? appTheme.primary : appTheme.textMuted,
           ),
         ),
         const SizedBox(width: 8),
