@@ -89,8 +89,8 @@ class AppTheme extends ThemeExtension<AppTheme> {
       borderMuted: const HSLColor.fromAHSL(1.0, 78, 0.21, 0.5).toColor(),
 
       // Brand - Vibrant Purple
-      primary: const HSLColor.fromAHSL(1.0, 128, 0.36, 0.61).toColor(),
-      primaryMuted: const HSLColor.fromAHSL(1.0, 128, 0.36, 0.81).toColor(),
+      primary: const HSLColor.fromAHSL(1.0, 146, .43, .3).toColor(),
+      primaryMuted: const HSLColor.fromAHSL(1.0, 146, .43, .5).toColor(),
 
       // Secondary - Vibrant Teal
       secondary: const HSLColor.fromAHSL(1.0, 349, .93, 0.68).toColor(),
@@ -99,7 +99,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
       // Semantic
       danger: const HSLColor.fromAHSL(1.0, 349, .93, 0.68).toColor(),
       warning: const HSLColor.fromAHSL(1.0, 49.73, 1.0, 0.7137).toColor(),
-      success: const HSLColor.fromAHSL(1.0, 128, 0.36, 0.61).toColor(),
+      success: const HSLColor.fromAHSL(1.0, 146, .43, .3).toColor(),
       info: const HSLColor.fromAHSL(1.0, 292, 0.2, 0.52).toColor(),
 
       // Rank Colors
