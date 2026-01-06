@@ -5,7 +5,6 @@ Full start→answer→results flow requires seeding ACTIVE DQ data.
 """
 
 from collections.abc import Callable
-from typing import Any
 
 from fastapi.testclient import TestClient
 
@@ -132,3 +131,25 @@ def test_answer_returns_409_without_starting(
 
     # Should be 404 (no DQ) or 409 (must start first)
     assert resp.status_code in (404, 409)
+
+
+def test_results_accepts_include_post_takes_param(
+    api_client: TestClient,
+    get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
+) -> None:
+    """GET /daily_question/results/{date} accepts include_post_takes param."""
+    headers = get_api_auth_headers(
+        'dq-filter-user@example.com',
+        'password123',
+        'FilterUser',
+    )
+
+    # Test with include_post_takes=false - endpoint should accept param
+    # Will return 404 since no DQ exists, but should not error on param
+    resp = api_client.get(
+        '/api/v1/daily_question/results/2020-01-01?include_post_takes=false',
+        headers=headers,
+    )
+
+    # Should be 404 (not 422 for invalid param)
+    assert resp.status_code == 404

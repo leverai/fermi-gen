@@ -392,11 +392,13 @@ class DailyQuestionService {
   }
 
   /// Get results for a specific past daily question by date.
-  Future<DQResultsResponse> getResultsForDate(String questionDate) async {
-    // print('[DQService] Calling getResultsForDate for $questionDate...');
-    final response = await _api.get('/daily_question/results/$questionDate');
-    // print(
-    //     '[DQService] Results response: ${response.statusCode} - ${response.body}');
+  Future<DQResultsResponse> getResultsForDate(
+    String questionDate, {
+    bool includePostTakes = true,
+  }) async {
+    final queryParam = includePostTakes ? '' : '?include_post_takes=false';
+    final response =
+        await _api.get('/daily_question/results/$questionDate$queryParam');
     final data = _decodeOkJson(response);
     return DQResultsResponse.fromJson(data);
   }
