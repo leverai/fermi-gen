@@ -101,7 +101,6 @@ class LobbyScreen extends StatelessWidget {
                               ),
                             ),
                             child: _CenterCallout(
-                              color: appTheme.info,
                               isHost: isHost,
                               onStart: onStart,
                               startEnabled: startEnabled,
@@ -163,14 +162,12 @@ class LobbyScreen extends StatelessWidget {
 
 class _CenterCallout extends StatefulWidget {
   const _CenterCallout({
-    required this.color,
     this.isHost = false,
     required this.onStart,
     required this.startEnabled,
     this.createdAt,
   });
 
-  final Color color;
   final bool isHost;
   final VoidCallback onStart;
   final bool startEnabled;

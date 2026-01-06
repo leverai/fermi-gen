@@ -75,32 +75,31 @@ class AppTheme extends ThemeExtension<AppTheme> {
   factory AppTheme.defaultTheme() {
     return AppTheme(
       // Backgrounds
-      bgDark: const HSLColor.fromAHSL(1.0, 177, 0.08, 0.89).toColor(),
-      bg: const HSLColor.fromAHSL(1.0, 177, 0.08, 0.94).toColor(),
-      bgLight: const HSLColor.fromAHSL(1.0, 177, 1.0, 1.0).toColor(),
+      bgDark: const HSLColor.fromAHSL(1.0, 128, 0.36, 0.87).toColor(),
+      bg: const HSLColor.fromAHSL(1.0, 128, 0.36, 0.95).toColor(),
+      bgLight: const HSLColor.fromAHSL(1.0, 128, 0.36, 0.99).toColor(),
 
       // Text
-      text: const HSLColor.fromAHSL(1.0, 78, 0.19, 0.14).toColor(),
-      textMuted: const HSLColor.fromAHSL(1.0, 78, 0.19, 0.3).toColor(),
+      text: const HSLColor.fromAHSL(1.0, 78, 0.71, 0.03).toColor(),
+      textMuted: const HSLColor.fromAHSL(1.0, 78, 0.71, 0.2).toColor(),
 
       // UI Elements
       highlight: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 0.0).toColor(),
-      border: const HSLColor.fromAHSL(1.0, 78, 0.19, 0.14).toColor(),
-      borderMuted: const HSLColor.fromAHSL(1.0, 177, 0.04, 0.61).toColor(),
+      border: const HSLColor.fromAHSL(1.0, 78, 0.71, 0.03).toColor(),
+      borderMuted: const HSLColor.fromAHSL(1.0, 78, 0.21, 0.5).toColor(),
 
       // Brand - Vibrant Purple
-      primary: const HSLColor.fromAHSL(1.0, 175.75, 0.5595, 0.5549).toColor(),
-      primaryMuted:
-          const HSLColor.fromAHSL(1.0, 175.75, 0.5595, 0.7549).toColor(),
+      primary: const HSLColor.fromAHSL(1.0, 128, 0.36, 0.61).toColor(),
+      primaryMuted: const HSLColor.fromAHSL(1.0, 128, 0.36, 0.81).toColor(),
 
       // Secondary - Vibrant Teal
-      secondary: const HSLColor.fromAHSL(1.0, 292, 0.2, 0.52).toColor(),
-      secondaryMuted: const HSLColor.fromAHSL(1.0, 292, 0.2, 0.72).toColor(),
+      secondary: const HSLColor.fromAHSL(1.0, 349, .93, 0.68).toColor(),
+      secondaryMuted: const HSLColor.fromAHSL(1.0, 349, .93, 0.88).toColor(),
 
       // Semantic
-      danger: const HSLColor.fromAHSL(1.0, 0.0, .38, 0.66).toColor(),
+      danger: const HSLColor.fromAHSL(1.0, 349, .93, 0.68).toColor(),
       warning: const HSLColor.fromAHSL(1.0, 49.73, 1.0, 0.7137).toColor(),
-      success: const HSLColor.fromAHSL(1.0, 175.75, 0.5595, 0.5549).toColor(),
+      success: const HSLColor.fromAHSL(1.0, 128, 0.36, 0.61).toColor(),
       info: const HSLColor.fromAHSL(1.0, 292, 0.2, 0.52).toColor(),
 
       // Rank Colors
@@ -109,7 +108,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
       bronze: const HSLColor.fromAHSL(1.0, 30, 0.7, 0.50).toColor(),
 
       // Shadow
-      shadowColor: const HSLColor.fromAHSL(1.0, 78, 0.19, 0.14).toColor(),
+      shadowColor: const HSLColor.fromAHSL(1.0, 78, 0.71, 0.03).toColor(),
     );
   }
 
