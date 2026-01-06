@@ -65,7 +65,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
     required this.gold,
     required this.silver,
     required this.bronze,
-    this.borderWidth = 3.0,
+    this.borderWidth = 1.0,
     this.borderRadius = 12.0,
     this.shadowOffset = const Offset(4, 4),
     this.shadowColor = Colors.black,
