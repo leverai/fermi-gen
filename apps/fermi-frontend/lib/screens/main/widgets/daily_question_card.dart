@@ -320,7 +320,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
           context,
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: appTheme.bgLight,
+          color: appTheme.text.withAlpha(140),
         ),
       );
     }
@@ -333,7 +333,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
           context,
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: appTheme.primaryMuted,
+          color: appTheme.text.withAlpha(140),
         ),
       );
     }
@@ -394,8 +394,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
               'assets/icons/timer.svg',
               width: 14,
               height: 14,
-              colorFilter: ColorFilter.mode(
-                  appTheme.text.withAlpha(140), BlendMode.srcIn),
+              colorFilter: ColorFilter.mode(appTheme.primary, BlendMode.srcIn),
             ),
             const SizedBox(width: 4),
           ],

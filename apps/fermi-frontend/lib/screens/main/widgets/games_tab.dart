@@ -173,7 +173,7 @@ class GamesTab extends StatelessWidget {
                   context,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: appTheme.bgLight,
+                  color: appTheme.text.withAlpha(140),
                 ),
               ),
             ),
