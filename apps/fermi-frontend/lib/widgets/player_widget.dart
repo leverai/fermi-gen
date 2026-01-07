@@ -479,6 +479,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         ringProgress: 0.0, // Inverts to a full ring
         isSelf: widget.isSelf,
         isHost: widget.playerState.isHost,
+        rank: widget.showRankIcons ? widget.rankOverride : null,
         child: avatarContent,
       );
     }
@@ -493,6 +494,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
           ringProgress: ringProgress,
           isSelf: widget.isSelf,
           isHost: widget.playerState.isHost,
+          rank: widget.showRankIcons ? widget.rankOverride : null,
           child: child!,
         );
       },

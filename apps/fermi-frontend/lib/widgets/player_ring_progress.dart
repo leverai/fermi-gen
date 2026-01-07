@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
+import 'package:fermi_frontend/models/rank.dart';
 import 'player_widget.dart';
 
 /// A circular progress ring that wraps player avatar content.
@@ -20,6 +21,7 @@ class PlayerRingProgress extends StatelessWidget {
     required this.ringProgress,
     required this.isSelf,
     required this.isHost,
+    this.rank,
   });
 
   final Widget child;
@@ -27,6 +29,7 @@ class PlayerRingProgress extends StatelessWidget {
   final double ringProgress; // 0.0-1.0 from tracker
   final bool isSelf;
   final bool isHost;
+  final Rank? rank;
 
   // Ring dimensions
   static const double avatarSize = 70.0;
@@ -86,10 +89,23 @@ class PlayerRingProgress extends StatelessWidget {
   }
 
   Color _getRingColor(AppTheme appTheme) {
+    // If rank is set, use rank color (gold/silver/bronze)
+    if (rank != null) {
+      switch (rank!) {
+        case Rank.first:
+          return appTheme.gold;
+        case Rank.second:
+          return appTheme.silver;
+        case Rank.third:
+          return appTheme.bronze;
+      }
+    }
+
+    // Default logic for self/others based on ring state
     switch (ringState) {
       case RingState.countdown:
         // Ring color: self uses info, others use border
-        return isSelf ? appTheme.secondary : appTheme.borderMuted;
+        return isSelf ? appTheme.secondary : appTheme.bgLight;
 
       case RingState.completed:
         // Completed: self uses info, others use success (green)
@@ -97,7 +113,7 @@ class PlayerRingProgress extends StatelessWidget {
 
       case RingState.review:
         // Ring color: self uses info, others use border
-        return isSelf ? appTheme.secondary : appTheme.borderMuted;
+        return isSelf ? appTheme.secondary : appTheme.bgLight;
     }
   }
 }
