@@ -587,9 +587,9 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
 
     if (_isLoading) {
       return ResponsiveContainer(
-        backgroundColor: appTheme.bg,
+        backgroundColor: appTheme.bgDark,
         child: Scaffold(
-          backgroundColor: appTheme.bg,
+          backgroundColor: appTheme.bgDark,
           body: const Center(child: CircularProgressIndicator()),
         ),
       );
@@ -599,9 +599,9 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     // If still loading or no data available, show loading state.
     if (_isPastDate && _question == null && _resultsData == null) {
       return ResponsiveContainer(
-        backgroundColor: appTheme.bg,
+        backgroundColor: appTheme.bgDark,
         child: Scaffold(
-          backgroundColor: appTheme.bg,
+          backgroundColor: appTheme.bgDark,
           body: const Center(child: CircularProgressIndicator()),
         ),
       );
@@ -613,9 +613,9 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     // No question loaded and no results data and not submitted - can't display anything
     if (!hasQuestionData && !_submittedWithoutQuestion) {
       return ResponsiveContainer(
-        backgroundColor: appTheme.bg,
+        backgroundColor: appTheme.bgDark,
         child: Scaffold(
-          backgroundColor: appTheme.bg,
+          backgroundColor: appTheme.bgDark,
           body: Stack(
             children: [
               _buildBackButton(appTheme),
@@ -652,7 +652,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
     final authService = context.read<AuthService>();
 
     return ResponsiveContainer(
-      backgroundColor: appTheme.bg,
+      backgroundColor: appTheme.bgDark,
       child: PopScope(
         canPop: false,
         onPopInvokedWithResult: (bool didPop, dynamic result) {
@@ -660,7 +660,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
           _handleLeave();
         },
         child: Scaffold(
-          backgroundColor: appTheme.bg,
+          backgroundColor: appTheme.bgDark,
           body: Stack(
             children: [
               // Main content

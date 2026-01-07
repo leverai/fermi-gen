@@ -22,6 +22,7 @@ import 'package:fermi_frontend/screens/lobby/lobby_screen_controller.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
+import 'package:fermi_frontend/theme/app_theme.dart';
 
 /// Creates and configures the app's GoRouter instance.
 ///
@@ -249,7 +250,8 @@ class AppRouter {
       EmailAuthProvider(),
       GoogleProvider(clientId: ''),
     ];
-
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
     return AuthScreen(
       providers: providers,
       actions: [
@@ -305,9 +307,9 @@ class AppRouter {
           if (!context.mounted) return;
           if (ok) {
             scaffoldMessengerKey.currentState?.showSnackBar(
-              const SnackBar(
-                content: Text('Account created successfully!'),
-                backgroundColor: Colors.green,
+              SnackBar(
+                content: const Text('Account created successfully!'),
+                backgroundColor: appTheme.success,
               ),
             );
             SharedPreferences.getInstance()
@@ -352,6 +354,8 @@ class AppRouter {
       GoogleProvider(clientId: ''),
     ];
 
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
     return AuthScreen(
       providers: providers,
       actions: [
@@ -365,9 +369,9 @@ class AppRouter {
           if (!context.mounted) return;
           if (ok) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Account created successfully!'),
-                backgroundColor: Colors.green,
+              SnackBar(
+                content: const Text('Account created successfully!'),
+                backgroundColor: appTheme.success,
               ),
             );
             context.pop();

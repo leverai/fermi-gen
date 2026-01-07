@@ -108,7 +108,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
       bronze: const HSLColor.fromAHSL(1.0, 30, 0.7, 0.50).toColor(),
 
       // Shadow
-      shadowColor: const HSLColor.fromAHSL(.4, 144, 0.21, 0.72).toColor(),
+      shadowColor: const HSLColor.fromAHSL(1.0, 90, 0.01, 0.10).toColor(),
     );
   }
 
