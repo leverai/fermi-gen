@@ -491,7 +491,7 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                       if (_isValidParagraph())
                         SizedBox(
                           height: kQuestionAnswerCardAnswerRowHeight - 8,
-                          width: 30,
+                          width: 50,
                           child: WalkthroughButton(
                             size: 18,
                             spinDuration: const Duration(milliseconds: 600),

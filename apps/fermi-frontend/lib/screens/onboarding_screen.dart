@@ -372,37 +372,20 @@ class _TutorialDialog extends StatelessWidget {
     return StyledDialog(
       message: message,
       secondaryMessage: secondaryMessage,
-      primaryButtonLabel: stepIndex == totalSteps
-          ? 'Done! ($stepIndex/$totalSteps)'
-          : 'Next ($stepIndex/$totalSteps)',
+      primaryButtonLabel: stepIndex == totalSteps ? 'Done!' : 'Next',
       primaryButtonColor: foregroundColor,
       onPrimaryPressed: onNext,
       secondaryButtonLabel: 'Skip',
       onSecondaryPressed: onSkip,
       showAsDialog: false, // Used as content widget, not standalone dialog
-      primaryButtonWidget: RichText(
-        text: TextSpan(
-          children: [
-            TextSpan(
-              text: stepIndex == totalSteps ? 'Done! ' : 'Next ',
-              style: AppFont.primaryTextStyle(
-                context,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: appTheme.bgLight,
-              ).copyWith(letterSpacing: 0.2),
-            ),
-            TextSpan(
-              text: '($stepIndex/$totalSteps)',
-              style: AppFont.primaryTextStyle(
-                context,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: appTheme.bgLight,
-              ).copyWith(letterSpacing: 0.2),
-            ),
-          ],
-        ),
+      leftWidget: Text(
+        '($stepIndex/$totalSteps)',
+        style: AppFont.primaryTextStyle(
+          context,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: appTheme.textMuted,
+        ).copyWith(letterSpacing: 0.2),
       ),
     );
   }

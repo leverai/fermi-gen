@@ -162,10 +162,10 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            'E.g. Christmas',
+            'E.g. How many X in Y, Christmas',
             style: AppFont.primaryTextStyle(
               context,
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.w400,
               color: appTheme.borderMuted,
             ),
