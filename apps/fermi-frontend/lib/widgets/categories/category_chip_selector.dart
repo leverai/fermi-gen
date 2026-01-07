@@ -263,7 +263,7 @@ class CategoryChip extends StatelessWidget {
     // Background alpha: low for unselected, higher for selected
     final bgColor = isSelected
         ? color.withAlpha((255 * 0.35).round())
-        : color.withAlpha((255 * 0.08).round());
+        : color.withAlpha((255 * 0.12).round());
 
     return Material(
       color: Colors.transparent,

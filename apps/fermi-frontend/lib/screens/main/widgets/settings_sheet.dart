@@ -93,7 +93,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
                 ),
                 IconButton(
                   icon: Icon(Icons.keyboard_arrow_down,
-                      color: appTheme.borderMuted, size: 32),
+                      color: appTheme.border, size: 32),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -177,10 +177,11 @@ class _SettingsSheetState extends State<SettingsSheet> {
                           context,
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
-                          color: widget.isAnonymous ||
-                                  widget.subscriptionTier == 'FREE'
-                              ? appTheme.textMuted
-                              : appTheme.primary,
+                          color: widget.isAnonymous
+                              ? appTheme.bgDark
+                              : widget.subscriptionTier == 'FREE'
+                                  ? appTheme.textMuted
+                                  : appTheme.primary,
                         ),
                       ),
                       onTap: widget.isAnonymous
@@ -272,7 +273,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
                 context,
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: appTheme.textMuted,
+                color: appTheme.border,
               ).copyWith(
                 letterSpacing: 0.5,
               ),
@@ -316,7 +317,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
     bool isDisabled = false,
   }) {
     final Color textColor = isDisabled
-        ? appTheme.border
+        ? appTheme.bgDark
         : isDestructive
             ? appTheme.danger
             : appTheme.text;
@@ -403,7 +404,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
             context,
             fontSize: 12,
             fontWeight: !isUS ? FontWeight.w600 : FontWeight.w400,
-            color: !isUS ? appTheme.primary : appTheme.borderMuted,
+            color: !isUS ? appTheme.primary : appTheme.textMuted,
           ),
         ),
       ],

@@ -447,8 +447,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                         child: Opacity(
                           opacity: 0.5,
                           child: IconButton(
-                            icon: Icon(Icons.help_outline,
-                                color: appTheme.borderMuted),
+                            icon: Icon(Icons.help_outline, color: appTheme.bg),
                             tooltip: 'Launch Onboarding Tutorial',
                             onPressed: () {
                               context.push('/onboarding');
@@ -464,7 +463,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   onTap: _onBottomNavTapped,
                   backgroundColor: appTheme.bg,
                   selectedItemColor: appTheme.text,
-                  unselectedItemColor: appTheme.borderMuted,
+                  unselectedItemColor: appTheme.textMuted,
                   showSelectedLabels: true,
                   showUnselectedLabels: true,
                   items: [

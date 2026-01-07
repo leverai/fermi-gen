@@ -131,7 +131,7 @@ class _ProfileSheetState extends State<ProfileSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
-        color: appTheme.bgLight,
+        color: appTheme.bg,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         boxShadow: [
           BoxShadow(
@@ -175,7 +175,7 @@ class _ProfileSheetState extends State<ProfileSheet> {
                             context,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: appTheme.textMuted,
+                            color: appTheme.text,
                           ),
                         ),
                       ),
@@ -185,12 +185,12 @@ class _ProfileSheetState extends State<ProfileSheet> {
                     context,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: appTheme.text,
+                    color: appTheme.textMuted,
                   ),
                 ),
                 IconButton(
                   icon: Icon(Icons.keyboard_arrow_down,
-                      color: appTheme.text, size: 32),
+                      color: appTheme.borderMuted, size: 32),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -213,7 +213,7 @@ class _ProfileSheetState extends State<ProfileSheet> {
                   },
                   decoration: InputDecoration(
                     filled: true,
-                    fillColor: appTheme.bg,
+                    fillColor: appTheme.bgDark,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(
