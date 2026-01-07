@@ -70,7 +70,7 @@ class _WalkthroughButtonState extends State<WalkthroughButton>
           borderRadius: BorderRadius.circular(100),
           child: Container(
             decoration: BoxDecoration(
-              color: appTheme.primaryMuted.withAlpha(70),
+              color: appTheme.warning.withAlpha(20),
               borderRadius: BorderRadius.circular(100),
             ),
             child: Row(
@@ -78,7 +78,7 @@ class _WalkthroughButtonState extends State<WalkthroughButton>
               mainAxisSize: MainAxisSize.max,
               children: [
                 AnimatedSparkles(
-                  color: appTheme.primary,
+                  color: appTheme.warning,
                   size: widget.size,
                   duration: widget.sparkleDuration,
                 ),

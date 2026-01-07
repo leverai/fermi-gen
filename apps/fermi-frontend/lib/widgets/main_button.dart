@@ -155,7 +155,6 @@ class _MainButtonState extends State<MainButton>
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
     final Color buttonFaceColor = appTheme.primary;
-    final Color iconFgColor = appTheme.bg;
 
     // Use fixed height of 48px
     const double buttonHeight = 48.0;
@@ -224,7 +223,7 @@ class _MainButtonState extends State<MainButton>
                             if (_isPressed)
                               Container(
                                 decoration: BoxDecoration(
-                                  color: appTheme.text.withOpacity(0.2),
+                                  color: appTheme.textMuted,
                                   borderRadius:
                                       BorderRadius.circular(borderRadius),
                                 ),
@@ -241,31 +240,9 @@ class _MainButtonState extends State<MainButton>
                                     style: AppFont.primaryTextStyle(context,
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
-                                            color: appTheme.bgLight,
+                                            color: appTheme.text,
                                             decoration: TextDecoration.none)
                                         .copyWith(letterSpacing: 1.5),
-                                  ),
-                                ),
-                              // Optional custom icon (fallback behavior from earlier API)
-                              if (widget.label == null &&
-                                  widget.iconAssetPath != null)
-                                Center(
-                                  child: ColorFiltered(
-                                    colorFilter: ColorFilter.mode(
-                                      iconFgColor,
-                                      BlendMode.srcIn,
-                                    ),
-                                    child: Image.asset(
-                                      widget.iconAssetPath!,
-                                      width: 24,
-                                      height: 24,
-                                      errorBuilder:
-                                          (context, error, stackTrace) => Icon(
-                                        Icons.space_bar,
-                                        color: iconFgColor,
-                                        size: 24,
-                                      ),
-                                    ),
                                   ),
                                 ),
                             ],
@@ -281,7 +258,7 @@ class _MainButtonState extends State<MainButton>
                             width: 12,
                             height: 12,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.3),
+                              color: appTheme.textMuted,
                               shape: BoxShape.circle,
                             ),
                             child: const Center(

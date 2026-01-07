@@ -89,8 +89,8 @@ class _RanksScreenState extends State<RanksScreen> {
 
             // Leave Button
             LeaveButtonOverlay(
-              iconColor: appTheme.text,
-              splashColor: appTheme.textMuted.withOpacity(0.2),
+              iconColor: appTheme.border,
+              splashColor: appTheme.borderMuted,
               onPressed: () => Navigator.of(context).pop(),
             ),
 

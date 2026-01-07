@@ -313,7 +313,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
       context,
       fontSize: 14,
       fontWeight: FontWeight.w600,
-      color: appTheme.bgLight,
+      color: appTheme.text,
     );
 
     final labelTextStyle = AppFont.secondaryTextStyle(
@@ -392,14 +392,6 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                             border:
                                 Border.all(color: appTheme.bgLight, width: 1),
                             borderRadius: BorderRadius.circular(4),
-                            boxShadow: [
-                              BoxShadow(
-                                // ignore: deprecated_member_use
-                                color: appTheme.secondary.withAlpha(100),
-                                blurRadius: 0,
-                                offset: const Offset(2, 2),
-                              ),
-                            ],
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,

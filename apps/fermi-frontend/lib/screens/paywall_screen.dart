@@ -385,7 +385,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       Transform.translate(
                         offset: const Offset(-8, 0),
                         child: IconButton(
-                          icon: Icon(Icons.close, color: appTheme.text),
+                          icon: Icon(Icons.close, color: appTheme.border),
                           onPressed: () => Navigator.of(context).pop(false),
                         ),
                       ),
