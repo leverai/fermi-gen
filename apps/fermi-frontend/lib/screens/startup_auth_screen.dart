@@ -61,7 +61,7 @@ class StartupAuthScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Guess with logic, not facts.',
+                'Forget the facts. It\'s Not Trivia!',
                 style: AppFont.primaryTextStyle(
                   context,
                   fontSize: 18,
@@ -147,7 +147,7 @@ class StartupAuthScreen extends StatelessWidget {
                       context,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: appTheme.bgLight,
+                      color: appTheme.text,
                     ),
                   ),
                 ),
@@ -174,7 +174,7 @@ class StartupAuthScreen extends StatelessWidget {
                       context,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: appTheme.text,
+                      color: appTheme.textMuted,
                     ),
                   ),
                 ),

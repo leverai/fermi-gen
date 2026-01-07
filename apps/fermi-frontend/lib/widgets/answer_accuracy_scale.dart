@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
+import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/utils/answer_format.dart';
 import 'package:fermi_frontend/utils/om_constants.dart';
@@ -301,6 +302,27 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
 
     final userLogValue = _getSliderValue(userAnswer);
 
+    final userTextStyle = AppFont.secondaryTextStyle(
+      context,
+      fontSize: 12,
+      fontWeight: FontWeight.bold,
+      color: appTheme.text,
+    );
+
+    final correctTextStyle = AppFont.secondaryTextStyle(
+      context,
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+      color: appTheme.bgLight,
+    );
+
+    final labelTextStyle = AppFont.secondaryTextStyle(
+      context,
+      fontSize: 10,
+      fontWeight: FontWeight.w300,
+      color: appTheme.border.withAlpha(160),
+    );
+
     // Clip correct log value to 0..18 range for the circle position
     // But we use the raw value for the text
     double? correctLogValue;
@@ -341,6 +363,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                       revealProgress: _animation.value,
                       appTheme: appTheme,
                       revealedColor: widget.revealedColor,
+                      labelTextStyle: labelTextStyle,
                       otherPlayersLogValues: widget.otherPlayersAnswers?.map(
                               (id, ans) =>
                                   MapEntry(id, _getSliderValue(ans))) ??
@@ -372,7 +395,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                             boxShadow: [
                               BoxShadow(
                                 // ignore: deprecated_member_use
-                                color: appTheme.secondary,
+                                color: appTheme.secondary.withAlpha(100),
                                 blurRadius: 0,
                                 offset: const Offset(2, 2),
                               ),
@@ -390,11 +413,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                               ],
                               Text(
                                 _formatAnswerText(userAnswer),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: appTheme.text,
-                                ),
+                                style: userTextStyle,
                               ),
                             ],
                           ),
@@ -427,11 +446,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                                 ]),
                             child: Text(
                               _formatAnswerText(widget.revealedAnswer!),
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: appTheme.bgLight,
-                              ),
+                              style: correctTextStyle,
                             ),
                           ),
                         ),

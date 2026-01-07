@@ -106,7 +106,11 @@ class AppFont extends ThemeExtension<AppFont> {
     final String fontFamily = ext?.secondaryFamily ?? 'Jura';
 
     if (useGoogle) {
-      final letterSpacing = fontSize == 12 ? 0.5 : null;
+      final letterSpacing = fontSize == 12
+          ? 0.5
+          : fontSize == 10
+              ? 1.0
+              : null;
       return GoogleFonts.getFont(
         fontFamily,
         fontSize: fontSize,

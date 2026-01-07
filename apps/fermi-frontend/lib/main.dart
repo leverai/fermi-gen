@@ -19,8 +19,6 @@ import 'package:fermi_frontend/services/subscription_service.dart';
 import 'package:fermi_frontend/services/local_settings_service.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
-import 'package:fermi_frontend/state/theme_config_service.dart';
-import 'package:fermi_frontend/state/theme_config_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 import 'package:fermi_frontend/routing/app_router.dart';
@@ -130,7 +128,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  late final ThemeConfigService _themeConfigService;
   late final DeepLinkService _deepLinkService;
   final AuthService _authService = AuthService();
   late final AuthStateNotifier _authStateNotifier;
@@ -146,8 +143,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _themeConfigService = ThemeConfigService();
-    _themeConfigService.addListener(_onThemeChanged);
     _authStateNotifier = AuthStateNotifier();
     _subscriptionService = SubscriptionService();
     _subscriptionService.initialize(); // Initialize RevenueCat early
@@ -227,8 +222,6 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void dispose() {
-    _themeConfigService.removeListener(_onThemeChanged);
-    _themeConfigService.dispose();
     _deepLinkService.dispose();
     super.dispose();
   }
@@ -311,14 +304,9 @@ class _MyAppState extends State<MyApp> {
     _appRouter.router.go('/dq/$questionDate');
   }
 
-  void _onThemeChanged() {
-    setState(() {});
-  }
-
   @override
   Widget build(BuildContext context) {
-    final AppTheme appTheme = _themeConfigService.computeTheme();
-
+    final AppTheme appTheme = AppTheme.defaultTheme();
     return MultiProvider(
       providers: [
         Provider<AuthService>.value(value: _authService),
@@ -327,19 +315,16 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider.value(value: _dailyQuestionController),
         Provider<DailyQuestionService>.value(value: _dailyQuestionService),
       ],
-      child: ThemeConfigProvider(
-        service: _themeConfigService,
-        child: MaterialApp.router(
-          debugShowCheckedModeBanner: false,
-          scaffoldMessengerKey: _appScaffoldMessengerKey,
-          theme: ThemeData(
-            extensions: <ThemeExtension<dynamic>>[
-              appTheme,
-              const AppFont(),
-            ],
-          ),
-          routerConfig: _appRouter.router,
+      child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
+        scaffoldMessengerKey: _appScaffoldMessengerKey,
+        theme: ThemeData(
+          extensions: <ThemeExtension<dynamic>>[
+            appTheme,
+            const AppFont(),
+          ],
         ),
+        routerConfig: _appRouter.router,
       ),
     );
   }

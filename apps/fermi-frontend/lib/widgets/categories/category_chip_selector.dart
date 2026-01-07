@@ -118,7 +118,7 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
           'Type categories:',
           style: AppFont.primaryTextStyle(
             context,
-            fontSize: 12,
+            fontSize: 14,
             fontWeight: FontWeight.w400,
             color: appTheme.text,
           ),
@@ -132,7 +132,7 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
           'or select:',
           style: AppFont.primaryTextStyle(
             context,
-            fontSize: 12,
+            fontSize: 14,
             fontWeight: FontWeight.w400,
             color: appTheme.textMuted,
           ),
