@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:fermi_frontend/providers/subscription_provider.dart';
+import 'package:fermi_frontend/services/subscription_service.dart';
+import 'package:fermi_frontend/screens/paywall_screen.dart';
 import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -85,6 +89,15 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
   }
 
   void _handleStart() {
+    // Feature gating: post-take requires Pro subscription
+    if (widget.isPostTake) {
+      final subscriptionProvider = context.read<SubscriptionProvider>();
+      if (!subscriptionProvider.isPro) {
+        _showPaywall();
+        return;
+      }
+    }
+
     // Start the countdown
     setState(() {
       _countdownSeconds = 3;
@@ -103,6 +116,22 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
       if (_countdownSeconds! <= 0) {
         timer.cancel();
         _navigateToDailyQuestion();
+      }
+    });
+  }
+
+  void _showPaywall() {
+    final subscriptionService = context.read<SubscriptionService>();
+    Navigator.of(context)
+        .push(
+      MaterialPageRoute(
+        builder: (_) => PaywallScreen(subscriptionService: subscriptionService),
+      ),
+    )
+        .then((purchased) {
+      if (purchased == true) {
+        // Refresh subscription state after successful purchase
+        context.read<SubscriptionProvider>().refresh();
       }
     });
   }

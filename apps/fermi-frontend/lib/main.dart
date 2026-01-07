@@ -18,6 +18,7 @@ import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/services/subscription_service.dart';
 import 'package:fermi_frontend/services/local_settings_service.dart';
 import 'package:fermi_frontend/services/notification_service.dart';
+import 'package:fermi_frontend/providers/subscription_provider.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:provider/provider.dart';
@@ -136,6 +137,7 @@ class _MyAppState extends State<MyApp> {
   final AuthService _authService = AuthService();
   late final AuthStateNotifier _authStateNotifier;
   late final SubscriptionService _subscriptionService;
+  late final SubscriptionProvider _subscriptionProvider;
   late final ApiService _apiService;
   late final PreloadService _preloadService;
   late final DailyQuestionService _dailyQuestionService;
@@ -150,6 +152,7 @@ class _MyAppState extends State<MyApp> {
     _authStateNotifier = AuthStateNotifier();
     _subscriptionService = SubscriptionService();
     _subscriptionService.initialize(); // Initialize RevenueCat early
+    _subscriptionProvider = SubscriptionProvider(_subscriptionService);
     _apiService = ApiService(authService: _authService);
     _dailyQuestionService = DailyQuestionService(api: _apiService);
     _dqFirestoreService = DQFirestoreService();
@@ -194,6 +197,7 @@ class _MyAppState extends State<MyApp> {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           await _subscriptionService.login(user.uid);
+          await _subscriptionProvider.refresh();
         }
         // Start preloading data in the background
         _preloadService.preload();
@@ -206,6 +210,7 @@ class _MyAppState extends State<MyApp> {
           debugPrint(
               'Anonymous sign-in succeeded but token exchange failed. User can still use the app.');
           await _subscriptionService.login(user.uid);
+          await _subscriptionProvider.refresh();
           _preloadService.preload();
         } else {
           // Actual sign-in failure
@@ -219,6 +224,7 @@ class _MyAppState extends State<MyApp> {
       }
       // Sync user ID with RevenueCat
       await _subscriptionService.login(currentUser.uid);
+      await _subscriptionProvider.refresh();
       // Start preloading immediately
       _preloadService.preload();
     }
@@ -315,6 +321,7 @@ class _MyAppState extends State<MyApp> {
         Provider<AuthService>.value(value: _authService),
         Provider<ApiService>.value(value: _apiService),
         Provider<SubscriptionService>.value(value: _subscriptionService),
+        ChangeNotifierProvider.value(value: _subscriptionProvider),
         ChangeNotifierProvider.value(value: _dailyQuestionController),
         Provider<DailyQuestionService>.value(value: _dailyQuestionService),
       ],
