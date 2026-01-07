@@ -485,7 +485,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
     final leaderboardEntries = _buildLeaderboardEntries(results);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -635,7 +635,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
                   const SizedBox(width: 4),
                   Icon(
                     Icons.timer_outlined,
-                    size: 12,
+                    size: 18,
                     color: appTheme.danger,
                   ),
                 ],

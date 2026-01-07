@@ -379,7 +379,9 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
     return Container(
       height: 28,
       decoration: BoxDecoration(
-        color: appTheme.primaryMuted,
+        color: buttonText == 'RESULTS'
+            ? appTheme.warning
+            : appTheme.highlight.withAlpha(200),
         borderRadius: BorderRadius.circular(appTheme.borderRadius / 2),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -403,7 +405,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
               context,
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: appTheme.text.withAlpha(140),
+              color: appTheme.primary,
             ).copyWith(letterSpacing: 0.3),
           ),
         ],
