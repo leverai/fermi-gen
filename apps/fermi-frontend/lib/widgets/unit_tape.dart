@@ -531,9 +531,7 @@ class _UnitTapeState extends State<UnitTape>
                   child: Icon(
                     Icons.keyboard_arrow_left,
                     size: 16.0,
-                    color: leftArrowActive
-                        ? appTheme.secondary
-                        : appTheme.secondaryMuted,
+                    color: leftArrowActive ? appTheme.secondary : appTheme.bg,
                   ),
                 ),
               ),
@@ -601,9 +599,7 @@ class _UnitTapeState extends State<UnitTape>
                   child: Icon(
                     Icons.keyboard_arrow_right,
                     size: 16.0,
-                    color: rightArrowActive
-                        ? appTheme.secondary
-                        : appTheme.secondaryMuted,
+                    color: rightArrowActive ? appTheme.secondary : appTheme.bg,
                   ),
                 ),
               ),

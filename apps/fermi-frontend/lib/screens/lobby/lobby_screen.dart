@@ -105,6 +105,7 @@ class LobbyScreen extends StatelessWidget {
                               onStart: onStart,
                               startEnabled: startEnabled,
                               createdAt: createdAt,
+                              onShare: onShare,
                             ),
                           );
                         }),
@@ -121,13 +122,6 @@ class LobbyScreen extends StatelessWidget {
                                 InviteBotsButton(
                                   onPressed: onInviteBots!,
                                   botCount: botsToInvite,
-                                  iconOnly: true,
-                                ),
-                                const SizedBox(height: 24),
-                              ],
-                              if (onShare != null) ...[
-                                ShareButton(
-                                  onPressed: onShare!,
                                   iconOnly: true,
                                 ),
                                 const SizedBox(height: 48),
@@ -166,12 +160,14 @@ class _CenterCallout extends StatefulWidget {
     required this.onStart,
     required this.startEnabled,
     this.createdAt,
+    this.onShare,
   });
 
   final bool isHost;
   final VoidCallback onStart;
   final bool startEnabled;
   final DateTime? createdAt;
+  final VoidCallback? onShare;
 
   @override
   State<_CenterCallout> createState() => _CenterCalloutState();
@@ -285,7 +281,6 @@ class _CenterCalloutState extends State<_CenterCallout>
       ),
     );
 
-    // Private lobby: show share button and optionally bot button for host
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -293,6 +288,16 @@ class _CenterCalloutState extends State<_CenterCallout>
           autoStartLabel,
           const SizedBox(height: 4),
           timerText,
+          if (widget.onShare != null) ...[
+            const SizedBox(height: 48),
+            SizedBox(
+              width: 200,
+              child: ShareButton(
+                onPressed: widget.onShare!,
+                iconOnly: false,
+              ),
+            ),
+          ],
         ],
       ),
     );

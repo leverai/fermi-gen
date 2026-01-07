@@ -61,29 +61,29 @@ class _WalkthroughButtonState extends State<WalkthroughButton>
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    return RotationTransition(
-      turns: _spinAnimation,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: widget.onTap,
-          borderRadius: BorderRadius.circular(100),
-          child: Container(
-            decoration: BoxDecoration(
-              color: appTheme.warning.withAlpha(20),
-              borderRadius: BorderRadius.circular(100),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                AnimatedSparkles(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(100),
+        child: Container(
+          decoration: BoxDecoration(
+            color: appTheme.warning.withAlpha(20),
+            borderRadius: BorderRadius.circular(100),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              RotationTransition(
+                turns: _spinAnimation,
+                child: AnimatedSparkles(
                   color: appTheme.warning,
                   size: widget.size,
                   duration: widget.sparkleDuration,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

@@ -311,7 +311,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
 
     final correctTextStyle = AppFont.secondaryTextStyle(
       context,
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: FontWeight.w600,
       color: appTheme.text,
     );

@@ -30,6 +30,7 @@ class StyledDialog extends StatelessWidget {
     this.onSecondaryPressed,
     this.showAsDialog = true,
     this.primaryButtonWidget,
+    this.leftWidget,
   });
 
   /// Primary message text displayed at the top of the dialog.
@@ -62,6 +63,9 @@ class StyledDialog extends StatelessWidget {
   /// If provided, this will be used instead of `primaryButtonLabel`.
   /// Useful for custom formatting like step counters with `RichText`.
   final Widget? primaryButtonWidget;
+
+  /// Optional widget to display on the far left of the button row.
+  final Widget? leftWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -148,6 +152,10 @@ class StyledDialog extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                if (leftWidget != null) ...[
+                  leftWidget!,
+                  const Spacer(),
+                ],
                 // Secondary button (if provided)
                 if (secondaryButtonLabel != null && onSecondaryPressed != null)
                   SizedBox(
@@ -172,7 +180,8 @@ class StyledDialog extends StatelessWidget {
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                               ).copyWith(
-                                  letterSpacing: 0.2, color: appTheme.text),
+                                  letterSpacing: 0.2,
+                                  color: appTheme.textMuted),
                             ),
                           ),
                         ),
@@ -213,7 +222,7 @@ class StyledDialog extends StatelessWidget {
                             context,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: appTheme.bgLight, // Contrast text
+                            color: appTheme.text, // Contrast text
                           ).copyWith(letterSpacing: 0.2),
                         ),
                   ),
