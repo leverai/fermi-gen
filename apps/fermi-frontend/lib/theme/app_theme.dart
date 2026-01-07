@@ -84,7 +84,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
       // UI Elements
       highlight: const HSLColor.fromAHSL(1.0, 144, 0.1, 0.82).toColor(),
       border: const HSLColor.fromAHSL(1.0, 144, 0.05, 0.52).toColor(),
-      borderMuted: const HSLColor.fromAHSL(1.0, 144, 0.05, 0.22).toColor(),
+      borderMuted: const HSLColor.fromAHSL(1.0, 144, 0.05, 0.32).toColor(),
 
       // Brand - Vibrant Purple
       primary: const HSLColor.fromAHSL(1.0, 144, 0.21, 0.49).toColor(),

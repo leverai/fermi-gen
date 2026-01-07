@@ -237,15 +237,15 @@ class DailyQuestionCarousel extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.calendar_month, color: appTheme.primaryMuted),
+              Icon(Icons.calendar_month, color: appTheme.primary),
               const SizedBox(height: 8),
               Text(
                 'Archive',
                 style: AppFont.primaryTextStyle(
                   context,
                   fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: appTheme.primaryMuted,
+                  fontWeight: FontWeight.w400,
+                  color: appTheme.primary,
                 ).copyWith(letterSpacing: 0.5),
               ),
             ],
