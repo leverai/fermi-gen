@@ -265,17 +265,8 @@ class _PlayerScoreState extends State<PlayerScore>
 
   Color _getBackgroundColor(AppTheme appTheme) {
     if (widget.backgroundColor != null) return widget.backgroundColor!;
-
-    switch (widget.rank) {
-      case Rank.first:
-        return appTheme.gold;
-      case Rank.second:
-        return appTheme.silver;
-      case Rank.third:
-        return appTheme.bronze;
-      case null:
-        return appTheme.bgLight;
-    }
+    // Always use static background (rank coloring moved to ring)
+    return appTheme.bgLight;
   }
 
   @override
@@ -342,7 +333,7 @@ class _PlayerScoreState extends State<PlayerScore>
                                 context,
                                 fontWeight: FontWeight.w400,
                                 fontSize: 10.0,
-                                color: appTheme.textMuted,
+                                color: appTheme.highlight,
                               ),
                             ),
                           ),
