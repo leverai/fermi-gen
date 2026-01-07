@@ -265,7 +265,7 @@ class AuthScreen extends StatelessWidget {
             // Leave Button
             LeaveButtonOverlay(
               iconColor: appTheme.border,
-              splashColor: appTheme.primary.withOpacity(0.2),
+              splashColor: appTheme.border,
               onPressed: onLeave ?? () => Navigator.of(context).maybePop(),
             ),
           ],

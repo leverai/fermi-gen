@@ -107,7 +107,7 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: appTheme.borderMuted,
+              color: appTheme.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -123,7 +123,7 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
                   right: 16,
                   child: IconButton(
                     icon: Icon(Icons.keyboard_arrow_down,
-                        color: appTheme.borderMuted, size: 32),
+                        color: appTheme.border, size: 32),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),

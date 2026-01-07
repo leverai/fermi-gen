@@ -663,7 +663,7 @@ class _UnitSelectorSheet extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: appTheme.borderMuted,
+                  color: appTheme.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -733,7 +733,7 @@ class _UnitSelectorSheet extends StatelessWidget {
                         right: 0,
                         child: IconButton(
                           icon: Icon(Icons.keyboard_arrow_down,
-                              color: appTheme.text, size: 32),
+                              color: appTheme.border, size: 32),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                       ),
