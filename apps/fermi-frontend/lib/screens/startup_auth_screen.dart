@@ -61,7 +61,7 @@ class StartupAuthScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Forget the facts. It\'s Not Trivia!',
+                'Forget Memorization. It\'s Not Trivia!',
                 style: AppFont.primaryTextStyle(
                   context,
                   fontSize: 18,

@@ -214,7 +214,7 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
 
                           // Subtitle
                           Text(
-                            'Estimate the unknown.\nReady?',
+                            'Put your thinking hat on.\nReady?',
                             textAlign: TextAlign.center,
                             style: AppFont.primaryTextStyle(
                               context,

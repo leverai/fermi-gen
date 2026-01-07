@@ -123,18 +123,33 @@ class DailyQuestionCarousel extends StatelessWidget {
                     } else if (status == 'CLOSED') {
                       final resultsReady = todayDocument?.resultsReady ?? false;
                       if (resultsReady) {
-                        // Results are ready - navigate to unified screen
-                        displayStatus = 'RESULTS_READY';
-                        onTapCallback = () {
-                          controller.markResultsSeen(date);
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => DailyQuestionScreen(
-                                questionDate: date,
+                        if (participated) {
+                          // User participated - show results
+                          displayStatus = 'RESULTS_READY';
+                          onTapCallback = () {
+                            controller.markResultsSeen(date);
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => DailyQuestionScreen(
+                                  questionDate: date,
+                                ),
                               ),
-                            ),
-                          );
-                        };
+                            );
+                          };
+                        } else {
+                          // User hasn't participated - allow post-take
+                          displayStatus = 'POST_TAKE';
+                          onTapCallback = () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => PreDailyQuestionScreen(
+                                  questionDate: date,
+                                  isPostTake: true,
+                                ),
+                              ),
+                            );
+                          };
+                        }
                       } else {
                         // Results pending - disable navigation
                         displayStatus = 'PENDING';
