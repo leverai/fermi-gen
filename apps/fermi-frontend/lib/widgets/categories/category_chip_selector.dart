@@ -149,7 +149,7 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
       decoration: BoxDecoration(
         color: appTheme.bgDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: appTheme.borderMuted, width: 1),
+        border: Border.all(color: appTheme.border, width: 1),
       ),
       child: _buildPlaceholder(appTheme),
     );

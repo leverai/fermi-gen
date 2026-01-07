@@ -142,7 +142,7 @@ class GamesTab extends StatelessWidget {
                           context,
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
-                          color: appTheme.text,
+                          color: appTheme.bg,
                         ),
                       ),
                       Text(
@@ -151,7 +151,7 @@ class GamesTab extends StatelessWidget {
                           context,
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
-                          color: appTheme.text.withAlpha(140),
+                          color: appTheme.bg.withAlpha(200),
                         ),
                       ),
                     ],
@@ -160,7 +160,7 @@ class GamesTab extends StatelessWidget {
                 Icon(
                   Icons.grid_view_rounded,
                   size: 48,
-                  color: appTheme.text.withAlpha(140),
+                  color: appTheme.bg,
                 )
               ],
             ),
@@ -173,7 +173,7 @@ class GamesTab extends StatelessWidget {
                   context,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: appTheme.text.withAlpha(140),
+                  color: appTheme.bg.withAlpha(200),
                 ),
               ),
             ),

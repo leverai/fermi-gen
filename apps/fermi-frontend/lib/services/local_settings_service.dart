@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service to handle local settings storage using SharedPreferences.
@@ -13,10 +13,13 @@ class LocalSettingsService {
 
   // Keys
   static const String _keySoundEnabled = 'sound_enabled';
+  static const String _keyThemeMode = 'theme_mode';
 
   // State
   late final SharedPreferences _prefs;
   final ValueNotifier<bool> soundEnabled = ValueNotifier<bool>(true);
+  final ValueNotifier<ThemeMode> themeMode =
+      ValueNotifier<ThemeMode>(ThemeMode.system);
 
   bool _isInitialized = false;
 
@@ -32,13 +35,22 @@ class LocalSettingsService {
       // Load values
       soundEnabled.value = _prefs.getBool(_keySoundEnabled) ?? true;
 
+      final String? savedThemeMode = _prefs.getString(_keyThemeMode);
+      if (savedThemeMode != null) {
+        themeMode.value = ThemeMode.values.firstWhere(
+          (e) => e.name == savedThemeMode,
+          orElse: () => ThemeMode.system,
+        );
+      }
+
       _isInitialized = true;
       debugPrint(
-          'LocalSettingsService: Initialized. Sound enabled: ${soundEnabled.value}');
+          'LocalSettingsService: Initialized. Sound enabled: ${soundEnabled.value}, Theme: ${themeMode.value}');
     } catch (e) {
       debugPrint('LocalSettingsService: Error initializing: $e');
       // Fallback to default values if initialization fails
       soundEnabled.value = true;
+      themeMode.value = ThemeMode.system;
     }
   }
 
@@ -49,5 +61,14 @@ class LocalSettingsService {
     soundEnabled.value = enabled;
     await _prefs.setBool(_keySoundEnabled, enabled);
     debugPrint('LocalSettingsService: Sound set to $enabled');
+  }
+
+  /// Set theme mode and save to disk.
+  Future<void> setThemeMode(ThemeMode mode) async {
+    if (!_isInitialized) await initialize();
+
+    themeMode.value = mode;
+    await _prefs.setString(_keyThemeMode, mode.name);
+    debugPrint('LocalSettingsService: Theme set to $mode');
   }
 }

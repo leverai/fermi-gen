@@ -154,6 +154,37 @@ class _SettingsSheetState extends State<SettingsSheet> {
                       },
                       trailing: _buildUnitSystemToggle(context, appTheme),
                     ),
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      indent: 24,
+                      color: appTheme.bg,
+                    ),
+                    _buildSettingsRow(
+                      context,
+                      appTheme,
+                      label: 'Theme',
+                      icon: Icons.brightness_6,
+                      showSplash: false,
+                      onTap: () {
+                        // Cycle through modes: System -> Light -> Dark -> System
+                        final current =
+                            LocalSettingsService.instance.themeMode.value;
+                        final next = current == ThemeMode.system
+                            ? ThemeMode.light
+                            : current == ThemeMode.light
+                                ? ThemeMode.dark
+                                : ThemeMode.system;
+                        LocalSettingsService.instance.setThemeMode(next);
+                      },
+                      trailing: ValueListenableBuilder<ThemeMode>(
+                        valueListenable:
+                            LocalSettingsService.instance.themeMode,
+                        builder: (context, mode, _) {
+                          return _buildThemeToggle(context, appTheme, mode);
+                        },
+                      ),
+                    ),
                   ],
                 ),
                 // Account Section
@@ -409,5 +440,14 @@ class _SettingsSheetState extends State<SettingsSheet> {
         ),
       ],
     );
+  }
+
+  Widget _buildThemeToggle(
+      BuildContext context, AppTheme appTheme, ThemeMode mode) {
+    return mode == ThemeMode.system
+        ? const Icon(Icons.brightness_6)
+        : mode == ThemeMode.light
+            ? const Icon(Icons.wb_sunny)
+            : const Icon(Icons.brightness_2);
   }
 }
