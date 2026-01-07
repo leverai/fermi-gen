@@ -70,7 +70,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: appTheme.borderMuted,
+              color: appTheme.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),

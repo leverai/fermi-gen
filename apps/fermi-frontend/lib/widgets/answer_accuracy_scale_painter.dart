@@ -13,6 +13,7 @@ class ScalePainter extends CustomPainter {
     required this.revealProgress,
     required this.appTheme,
     required this.revealedColor,
+    required this.labelTextStyle,
     this.otherPlayersLogValues = const <String, double>{},
     this.otherPlayersAvatars = const <String, String?>{},
   });
@@ -22,6 +23,7 @@ class ScalePainter extends CustomPainter {
   final double revealProgress;
   final AppTheme appTheme;
   final Color? revealedColor;
+  final TextStyle labelTextStyle;
   final Map<String, double> otherPlayersLogValues;
   final Map<String, String?> otherPlayersAvatars;
 
@@ -98,27 +100,23 @@ class ScalePainter extends CustomPainter {
         String? label;
         switch (i) {
           case 3:
-            label = 'K';
+            label = 'Thousand';
             break;
           case 6:
-            label = 'M';
+            label = 'Million';
             break;
           case 9:
-            label = 'B';
+            label = 'Billion';
             break;
           case 12:
-            label = 'T';
+            label = 'Trillion';
             break;
         }
 
         if (label != null) {
           final textSpan = TextSpan(
             text: label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: appTheme.border,
-            ),
+            style: labelTextStyle,
           );
           final textPainter = TextPainter(
             text: textSpan,
@@ -209,6 +207,7 @@ class ScalePainter extends CustomPainter {
         oldDelegate.revealProgress != revealProgress ||
         oldDelegate.appTheme != appTheme ||
         oldDelegate.revealedColor != revealedColor ||
+        oldDelegate.labelTextStyle != labelTextStyle ||
         oldDelegate.otherPlayersLogValues != otherPlayersLogValues;
     // removed otherPlayersAvatars check
   }

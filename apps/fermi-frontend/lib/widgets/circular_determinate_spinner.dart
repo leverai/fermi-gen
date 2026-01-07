@@ -24,7 +24,7 @@ class CircularDeterminateSpinner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = Theme.of(context).extension<AppTheme>();
-    final Color defaultFg = appTheme!.info;
+    final Color defaultFg = appTheme!.primary;
     final Color fg = color ?? defaultFg;
     return SizedBox(
       width: size,
