@@ -282,7 +282,7 @@ class _StringTapeState extends State<StringTape> {
                     height: widget.itemExtent,
                     decoration: BoxDecoration(
                       color: appTheme.secondary,
-                      borderRadius: BorderRadius.zero,
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Opacity(
                       opacity: 0, // Hide the text, we only need it for sizing

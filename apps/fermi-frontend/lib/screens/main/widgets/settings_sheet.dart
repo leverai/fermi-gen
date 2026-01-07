@@ -88,7 +88,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
                     context,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: appTheme.textMuted,
+                    color: appTheme.text,
                   ),
                 ),
                 IconButton(

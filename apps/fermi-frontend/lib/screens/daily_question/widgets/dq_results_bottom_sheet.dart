@@ -331,7 +331,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
           context,
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: appTheme.textMuted,
+          color: appTheme.text,
         ),
       );
     } else {
@@ -372,7 +372,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: appTheme.borderMuted,
+              color: appTheme.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -390,7 +390,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
                     _isExpanded
                         ? Icons.keyboard_arrow_down
                         : Icons.keyboard_arrow_up,
-                    color: appTheme.borderMuted,
+                    color: appTheme.border,
                     size: 32,
                   ),
                   onPressed: _toggleSheet,

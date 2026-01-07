@@ -79,7 +79,7 @@ void showPartyBottomSheet({
                                 context,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
-                                color: appTheme.textMuted,
+                                color: appTheme.text,
                               ),
                             ),
                             IconButton(
@@ -91,6 +91,7 @@ void showPartyBottomSheet({
                         ),
                       ),
                       // Category chip selector
+                      const SizedBox(height: 8),
                       CategoryChipSelector(
                         categories: items,
                         initialSelectedIndices:
