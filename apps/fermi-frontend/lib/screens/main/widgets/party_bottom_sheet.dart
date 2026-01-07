@@ -4,7 +4,8 @@ import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/screens/main/widgets/primary_cta.dart';
 import 'package:fermi_frontend/widgets/selector_widget.dart';
-import 'package:fermi_frontend/widgets/categories/category_chip_selector.dart';
+import 'package:fermi_frontend/widgets/categories/category_chip_selector.dart'
+    show CategoryChipItem, CategoryChipSelector, AllChip;
 
 /// Shows a modal bottom sheet for configuring party game settings.
 ///
@@ -98,15 +99,23 @@ void showPartyBottomSheet({
                         startColor: HSLColor.fromColor(appTheme.primary),
                       ),
                       const SizedBox(height: 24),
-                      Text(
-                        'Select difficulty:',
-                        style: AppFont.primaryTextStyle(
-                          context,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                          color: appTheme.text,
-                        ),
-                        textAlign: TextAlign.left,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Choose difficulty:',
+                            style: AppFont.primaryTextStyle(
+                              context,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: appTheme.text,
+                            ),
+                          ),
+                          AllChip(
+                            isSelected: controller.selectedDifficulty == null,
+                            onTap: () => controller.selectDifficulty(null),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       SelectorWidget(

@@ -125,50 +125,58 @@ class GamesTab extends StatelessWidget {
           boxShadow: const [], // No shadow for Party card
         ),
         padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Party',
-                    style: AppFont.primaryTextStyle(
-                      context,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: appTheme.text,
-                    ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Party',
+                        style: AppFont.primaryTextStyle(
+                          context,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: appTheme.text,
+                        ),
+                      ),
+                      Text(
+                        'Play a round with friends.',
+                        style: AppFont.primaryTextStyle(
+                          context,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: appTheme.text.withAlpha(140),
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    'Play a round with friends.',
-                    style: AppFont.primaryTextStyle(
-                      context,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: appTheme.text.withAlpha(140),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Tap to play',
-                    style: AppFont.primaryTextStyle(
-                      context,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: appTheme.text.withAlpha(140),
-                    ),
-                  ),
-                ],
+                ),
+                Icon(
+                  Icons.grid_view_rounded,
+                  size: 48,
+                  color: appTheme.text.withAlpha(140),
+                )
+              ],
+            ),
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Text(
+                'Tap to play',
+                style: AppFont.primaryTextStyle(
+                  context,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: appTheme.bgLight,
+                ),
               ),
             ),
-            Icon(
-              Icons.grid_view_rounded,
-              size: 48,
-              color: appTheme.text.withAlpha(140),
-            )
           ],
         ),
       ),

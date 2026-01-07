@@ -18,7 +18,7 @@ class CategoryChipItem {
 /// Features:
 /// - Two sections: input box (Coming Soon) and chip selection area
 /// - Selected chips appear in the input box area
-/// - Unselected chips appear in the "Or select:" area
+/// - Unselected chips appear in the "Or choose:" area
 /// - Fixed container height regardless of selection state
 /// - Uses hue-incrementing color system for chip colors
 class CategoryChipSelector extends StatefulWidget {
@@ -41,7 +41,6 @@ class CategoryChipSelector extends StatefulWidget {
 
 class _CategoryChipSelectorState extends State<CategoryChipSelector> {
   late Set<int> _selectedIndices;
-  final ScrollController _scrollController = ScrollController();
 
   // Fixed height for consistent layout
   static const double _inputBoxHeight = 48.0;
@@ -53,18 +52,10 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
   }
 
   @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
   void didUpdateWidget(CategoryChipSelector oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialSelectedIndices != widget.initialSelectedIndices) {
       _selectedIndices = Set<int>.from(widget.initialSelectedIndices);
-      // Also scroll to end if external selection changes? Maybe safest.
-      _scrollToEnd();
     }
   }
 
@@ -80,18 +71,6 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
     ).toColor();
   }
 
-  void _scrollToEnd() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
   void _toggleSelection(int index) {
     setState(() {
       if (_selectedIndices.contains(index)) {
@@ -101,7 +80,17 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
       }
     });
     widget.onSelectionChanged?.call(Set<int>.from(_selectedIndices));
-    _scrollToEnd();
+  }
+
+  void _selectAll() {
+    // "All" means no specific selection - clear all
+    if (_selectedIndices.isNotEmpty) {
+      setState(() {
+        _selectedIndices.clear();
+      });
+      widget.onSelectionChanged?.call(Set<int>.from(_selectedIndices));
+    }
+    // If already empty (All selected), do nothing - cannot uncheck
   }
 
   @override
@@ -127,15 +116,24 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
         // Input box area with selected chips
         _buildInputBoxArea(appTheme),
         const SizedBox(height: 24),
-        // "Or select:" label
-        Text(
-          'or select:',
-          style: AppFont.primaryTextStyle(
-            context,
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            color: appTheme.textMuted,
-          ),
+        // "Or select:" label with "All" checkbox right-aligned
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'or choose:',
+              style: AppFont.primaryTextStyle(
+                context,
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: appTheme.text,
+              ),
+            ),
+            AllChip(
+              isSelected: _selectedIndices.isEmpty,
+              onTap: _selectAll,
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         // Chip selection area
@@ -145,40 +143,15 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
   }
 
   Widget _buildInputBoxArea(AppTheme appTheme) {
-    final selectedChips = <Widget>[];
-
-    for (int i = 0; i < widget.categories.length; i++) {
-      if (_selectedIndices.contains(i)) {
-        selectedChips.add(
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: CategoryChip(
-              label: widget.categories[i].title,
-              color: _getCategoryColor(i),
-              isSelected: true,
-              onTap: () => _toggleSelection(i),
-            ),
-          ),
-        );
-      }
-    }
-
     return Container(
       height: _inputBoxHeight,
       width: double.infinity,
       decoration: BoxDecoration(
         color: appTheme.bgDark,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: appTheme.borderMuted, width: 1),
       ),
-      child: selectedChips.isEmpty
-          ? _buildPlaceholder(appTheme)
-          : SingleChildScrollView(
-              controller: _scrollController,
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-              child: Row(children: selectedChips),
-            ),
+      child: _buildPlaceholder(appTheme),
     );
   }
 
@@ -222,8 +195,8 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
         return CategoryChip(
           label: widget.categories[index].title,
           color: color,
-          isSelected: isSelected, // Pass actual selection state for opacity
-          showCheckmark: false, // Never show checkmark in this area
+          isSelected: isSelected,
+          showCheckmark: false,
           onTap: () => _toggleSelection(index),
         );
       }),
@@ -269,7 +242,7 @@ class CategoryChip extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         splashColor: isSelected
             ? Colors.transparent
             : color.withAlpha((255 * 0.3).round()),
@@ -281,7 +254,7 @@ class CategoryChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -301,6 +274,73 @@ class CategoryChip extends StatelessWidget {
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
                   color: isSelected ? appTheme.text : appTheme.textMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A special "All" chip that indicates all items are selected (none filtered).
+///
+/// Features:
+/// - When selected (checked): textMuted color, no interaction feedback
+/// - When unselected: text color, clickable to select all
+/// - Clicking when selected does nothing
+class AllChip extends StatelessWidget {
+  final bool isSelected;
+  final VoidCallback? onTap;
+
+  static const double _height = 20.0;
+
+  const AllChip({
+    super.key,
+    required this.isSelected,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+
+    // Color based on selection state per requirements:
+    // - checked (isSelected): textMuted (disabled appearance)
+    // - unchecked (!isSelected): text (active appearance)
+    final contentColor =
+        isSelected ? appTheme.textMuted.withAlpha(160) : appTheme.text;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: isSelected ? null : onTap, // Only clickable when unchecked
+        borderRadius: BorderRadius.circular(8),
+        splashColor:
+            isSelected ? Colors.transparent : appTheme.text.withAlpha(30),
+        highlightColor:
+            isSelected ? Colors.transparent : appTheme.text.withAlpha(15),
+        child: Container(
+          height: _height,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                size: 16,
+                color: contentColor,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'All',
+                style: AppFont.primaryTextStyle(
+                  context,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  color: contentColor,
                 ),
               ),
             ],

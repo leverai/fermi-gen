@@ -320,7 +320,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
           context,
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: appTheme.primaryMuted,
+          color: appTheme.bgLight,
         ),
       );
     }
