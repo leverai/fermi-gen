@@ -169,7 +169,7 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
                     padding: const EdgeInsets.all(8.0),
                     child: IconButton(
                       icon: Icon(Icons.chevron_left,
-                          color: appTheme.text, size: 32),
+                          color: appTheme.border, size: 32),
                       onPressed: () => _handleLeave(context),
                       tooltip: 'Leave',
                     ),

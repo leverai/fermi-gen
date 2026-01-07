@@ -35,13 +35,13 @@ class StatsCard extends StatelessWidget {
           ],
         ),
         child: Material(
-          color: appTheme.primary,
+          color: appTheme.bg,
           borderRadius: BorderRadius.circular(24),
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(24),
             // ignore: deprecated_member_use
-            splashColor: appTheme.bgLight.withOpacity(0.3),
+            splashColor: appTheme.highlight.withOpacity(0.3),
             // ignore: deprecated_member_use
             // highlightColor: appTheme.bgLight.withOpacity(0.1),
             child: Padding(
@@ -99,7 +99,7 @@ class _StatItem extends StatelessWidget {
             context,
             fontSize: 28,
             fontWeight: FontWeight.w300,
-            color: appTheme.bgLight,
+            color: appTheme.text,
           ),
         ),
         const SizedBox(height: 4),
@@ -109,7 +109,7 @@ class _StatItem extends StatelessWidget {
             context,
             fontSize: 12,
             fontWeight: FontWeight.w300,
-            color: appTheme.bg,
+            color: appTheme.textMuted,
           ).copyWith(
             letterSpacing: 0.5,
           ),
@@ -146,7 +146,7 @@ class _RankItem extends StatelessWidget {
             placeholderBuilder: (context) => Icon(
               Icons.military_tech,
               size: 24,
-              color: appTheme.bg,
+              color: appTheme.textMuted,
             ),
           ),
         ),
@@ -157,7 +157,7 @@ class _RankItem extends StatelessWidget {
             context,
             fontSize: 12,
             fontWeight: FontWeight.w300,
-            color: appTheme.bg,
+            color: appTheme.textMuted,
           ).copyWith(
             letterSpacing: 0.5,
           ),

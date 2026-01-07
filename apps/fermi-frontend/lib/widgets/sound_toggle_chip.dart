@@ -23,7 +23,7 @@ class SoundToggleChip extends StatelessWidget {
           context,
           fontSize: 12,
           fontWeight: FontWeight.w400,
-          color: isOn ? appTheme.primary : appTheme.borderMuted,
+          color: isOn ? appTheme.primary : appTheme.secondary,
         ),
       ),
     );

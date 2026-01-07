@@ -84,13 +84,13 @@ class AppTheme extends ThemeExtension<AppTheme> {
       textMuted: const HSLColor.fromAHSL(1.0, 30, 0.11, 0.6).toColor(),
 
       // UI Elements
-      highlight: const HSLColor.fromAHSL(1.0, 144, 0.21, 0.82).toColor(),
-      border: const HSLColor.fromAHSL(1.0, 144, 0.21, 0.52).toColor(),
-      borderMuted: const HSLColor.fromAHSL(1.0, 144, 0.21, 0.22).toColor(),
+      highlight: const HSLColor.fromAHSL(1.0, 144, 0.1, 0.82).toColor(),
+      border: const HSLColor.fromAHSL(1.0, 144, 0.05, 0.52).toColor(),
+      borderMuted: const HSLColor.fromAHSL(1.0, 144, 0.05, 0.22).toColor(),
 
       // Brand - Vibrant Purple
       primary: const HSLColor.fromAHSL(1.0, 144, 0.21, 0.49).toColor(),
-      primaryMuted: const HSLColor.fromAHSL(1.0, 144, 0.21, 0.39).toColor(),
+      primaryMuted: const HSLColor.fromAHSL(1.0, 144, 0.21, 0.30).toColor(),
 
       // Secondary - Vibrant Teal
       secondary: const HSLColor.fromAHSL(1.0, 4, .71, 0.62).toColor(),

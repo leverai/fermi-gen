@@ -561,7 +561,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       context,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: appTheme.bgDark,
+                      color: appTheme.text,
                     ),
                   ),
                 ),
@@ -730,12 +730,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? appTheme.primaryMuted : appTheme.bg,
+          color: isSelected ? appTheme.primary : appTheme.bg,
           borderRadius: BorderRadius.circular(appTheme.borderRadius),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: appTheme.primary,
+                    color: appTheme.primaryMuted,
                     offset: appTheme.shadowOffset,
                     blurRadius: 0,
                   ),
@@ -751,13 +751,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? appTheme.primary : appTheme.borderMuted,
+                  color: isSelected ? appTheme.text : appTheme.borderMuted,
                   width: 2,
                 ),
-                color: isSelected ? appTheme.primary : Colors.transparent,
+                color: isSelected ? appTheme.text : Colors.transparent,
               ),
               child: isSelected
-                  ? Icon(Icons.check, size: 16, color: appTheme.bgLight)
+                  ? Icon(Icons.check, size: 16, color: appTheme.bg)
                   : null,
             ),
             const SizedBox(width: 12),
@@ -775,11 +775,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           context,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: isSelected ? appTheme.bgDark : appTheme.text,
+                          color: appTheme.text,
                         ),
                       ),
                       if (isPopular) ...[
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 12),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 2),
@@ -799,12 +799,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         ),
                       ],
                       if (savingsPercent != null) ...[
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 12),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: appTheme.success,
+                            color: appTheme.warning,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -813,7 +813,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                               context,
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: appTheme.bgLight,
+                              color: appTheme.bg,
                             ),
                           ),
                         ),
@@ -837,8 +837,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       style: AppFont.primaryTextStyle(
                         context,
                         fontSize: 12,
-                        color:
-                            isSelected ? appTheme.bgLight : appTheme.textMuted,
+                        color: appTheme.text.withAlpha(150),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -857,7 +856,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     context,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: isSelected ? appTheme.bgDark : appTheme.text,
+                    color: appTheme.text,
                   ),
                 ),
                 if (billingPeriod != null)
@@ -866,7 +865,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     style: AppFont.primaryTextStyle(
                       context,
                       fontSize: 12,
-                      color: isSelected ? appTheme.bgLight : appTheme.textMuted,
+                      color: appTheme.text.withAlpha(150),
                     ),
                   ),
               ],
@@ -946,7 +945,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
         style: AppFont.primaryTextStyle(
           context,
           fontSize: 11,
-          color: appTheme.textMuted,
+          color: appTheme.borderMuted,
           height: 1.4,
         ),
       ),
@@ -1019,7 +1018,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     context,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: isPrimary ? appTheme.bgLight : appTheme.text,
+                    color: isPrimary
+                        ? appTheme.text
+                        : appTheme.text.withAlpha(150),
                   ),
                 ),
         ),
