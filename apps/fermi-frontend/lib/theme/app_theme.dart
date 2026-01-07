@@ -109,6 +109,58 @@ class AppTheme extends ThemeExtension<AppTheme> {
     );
   }
 
+  /// Light theme with inverted colors
+  factory AppTheme.lightTheme() {
+    return AppTheme(
+      // Backgrounds (Swapped: bgLight becomes inverted bgDark, etc.)
+      // Old bgDark (0.10) inverted -> 0.90 -> becomes bgLight
+      // Old bgLight (0.24) inverted -> 0.76 -> becomes bgDark
+      bgLight: const HSLColor.fromAHSL(1.0, 90, 0.01, 0.90).toColor(),
+      bg: const HSLColor.fromAHSL(1.0, 90, 0.01, 0.83).toColor(),
+      bgDark: const HSLColor.fromAHSL(1.0, 90, 0.01, 0.76).toColor(),
+
+      // Text (Inverted)
+      text: const HSLColor.fromAHSL(1.0, 40, 0.93, 0.03).toColor(),
+      textMuted: const HSLColor.fromAHSL(1.0, 30, 0.11, 0.4).toColor(),
+
+      // UI Elements (Inverted)
+      highlight: const HSLColor.fromAHSL(1, 90, 0.01, 0.83).toColor(),
+      border: const HSLColor.fromAHSL(1, 90, 0.01, 0.53).toColor(),
+      borderMuted: const HSLColor.fromAHSL(1, 90, 0.01, 0.63).toColor(),
+
+      // Brand - Vibrant Purple (Kept same hue/sat, inverted lightness? Or kept same?)
+      // Usually brand colors are kept similar but adjusted for contrast.
+      // Let's invert lightness for now as per instruction "subtraction the L in HSL from 1".
+      primary:
+          const HSLColor.fromAHSL(1.0, 144, 0.21, 0.51).toColor(), // 1 - 0.49
+      primaryMuted:
+          const HSLColor.fromAHSL(1.0, 144, 0.21, 0.70).toColor(), // 1 - 0.30
+
+      // Secondary - Vibrant Teal
+      secondary: const HSLColor.fromAHSL(1.0, 354, .82, 0.66).toColor(),
+      secondaryMuted: const HSLColor.fromAHSL(1.0, 354, .82, 0.56).toColor(),
+
+      // Semantic
+      danger:
+          const HSLColor.fromAHSL(1.0, 354, .82, 0.66).toColor(), // 1 - 0.62
+      warning:
+          const HSLColor.fromAHSL(1.0, 53, 1.0, 0.70).toColor(), // 1 - 0.70
+      success:
+          const HSLColor.fromAHSL(1.0, 144, 0.21, 0.51).toColor(), // 1 - 0.49
+
+      // Rank Colors (Inverted)
+      gold: const HSLColor.fromAHSL(1.0, 48, 1.0, 0.50)
+          .toColor(), // 0.5 inverted is 0.5
+      silver:
+          const HSLColor.fromAHSL(1.0, 210, 0.1, 0.25).toColor(), // 1 - 0.75
+      bronze: const HSLColor.fromAHSL(1.0, 30, 0.7, 0.50)
+          .toColor(), // 0.5 inverted is 0.5
+
+      // Shadow - Kept dark for depth
+      shadowColor: const HSLColor.fromAHSL(1.0, 90, 0.01, 0.10).toColor(),
+    );
+  }
+
   @override
   AppTheme copyWith({
     Color? bgDark,

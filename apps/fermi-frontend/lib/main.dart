@@ -17,6 +17,7 @@ import 'package:fermi_frontend/services/deep_link_service.dart';
 import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/services/subscription_service.dart';
 import 'package:fermi_frontend/services/local_settings_service.dart';
+import 'package:fermi_frontend/services/notification_service.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:provider/provider.dart';
@@ -47,6 +48,9 @@ Future<void> main() async {
 
     // Initialize local settings early
     await LocalSettingsService.instance.initialize();
+
+    // Initialize push notifications (Android only)
+    await NotificationService.instance.initialize();
 
     if (useEmulators) {
       const String configuredAuthHost =
@@ -306,7 +310,6 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    final AppTheme appTheme = AppTheme.defaultTheme();
     return MultiProvider(
       providers: [
         Provider<AuthService>.value(value: _authService),
@@ -315,16 +318,30 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider.value(value: _dailyQuestionController),
         Provider<DailyQuestionService>.value(value: _dailyQuestionService),
       ],
-      child: MaterialApp.router(
-        debugShowCheckedModeBanner: false,
-        scaffoldMessengerKey: _appScaffoldMessengerKey,
-        theme: ThemeData(
-          extensions: <ThemeExtension<dynamic>>[
-            appTheme,
-            const AppFont(),
-          ],
-        ),
-        routerConfig: _appRouter.router,
+      child: ValueListenableBuilder<ThemeMode>(
+        valueListenable: LocalSettingsService.instance.themeMode,
+        builder: (context, themeMode, _) {
+          return MaterialApp.router(
+            debugShowCheckedModeBanner: false,
+            scaffoldMessengerKey: _appScaffoldMessengerKey,
+            themeMode: themeMode,
+            theme: ThemeData(
+              brightness: Brightness.light,
+              extensions: <ThemeExtension<dynamic>>[
+                AppTheme.lightTheme(),
+                const AppFont(),
+              ],
+            ),
+            darkTheme: ThemeData(
+              brightness: Brightness.dark,
+              extensions: <ThemeExtension<dynamic>>[
+                AppTheme.defaultTheme(),
+                const AppFont(),
+              ],
+            ),
+            routerConfig: _appRouter.router,
+          );
+        },
       ),
     );
   }

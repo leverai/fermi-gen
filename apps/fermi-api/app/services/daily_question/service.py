@@ -44,6 +44,10 @@ from app.services.daily_question.timing import (
     is_within_ad_grace,
     seconds_until,
 )
+from app.services.notification import (
+    send_dq_activated_notification,
+    send_dq_results_ready_notification,
+)
 from app.services.scoring import ScoringService
 
 if TYPE_CHECKING:
@@ -1009,6 +1013,9 @@ class DailyQuestionService:
         except Exception:
             logger.exception('Failed to set results_ready for %s', question_date)
 
+        # Step 5: Send push notification
+        send_dq_results_ready_notification()
+
         return question_date.strftime('%Y-%m-%d'), participants_ranked
 
     async def _schedule_new_dq_for_date(
@@ -1141,6 +1148,9 @@ class DailyQuestionService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail='Failed to set active for %s',
             ) from exc
+
+        # Send push notification
+        send_dq_activated_notification()
 
     async def activate_scheduled_dq(
         self,

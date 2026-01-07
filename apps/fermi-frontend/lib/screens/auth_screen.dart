@@ -112,10 +112,6 @@ class AuthScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(appTheme.borderRadius),
-            // side: BorderSide(
-            //   color: appTheme.border,
-            //   width: appTheme.borderWidth,
-            // ),
           ),
           shadowColor: appTheme.shadowColor,
         ),

@@ -139,6 +139,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
     final dayFormat = DateFormat('d');
     final monthFormat = DateFormat('MMM');
     final weekdayFormat = DateFormat('EEEE');
+    final weekdayShortFormat = DateFormat('EEE');
 
     final isDisabled = widget.onTap == null;
 
@@ -175,7 +176,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                         context,
                         fontSize: 24,
                         fontWeight: FontWeight.w800,
-                        color: appTheme.text,
+                        color: appTheme.bg,
                       ),
                     ),
                     Text(
@@ -184,7 +185,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                         context,
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
-                        color: appTheme.text.withAlpha(140),
+                        color: appTheme.bg.withAlpha(200),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -192,14 +193,14 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                   // For non-today cards, show weekday at the top
                   if (!widget.isToday)
                     Text(
-                      weekdayFormat.format(widget.date),
+                      weekdayShortFormat.format(widget.date),
                       style: AppFont.primaryTextStyle(
                         context,
-                        fontSize: 14,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: widget.participated
-                            ? appTheme.text.withAlpha(100)
-                            : appTheme.text,
+                            ? appTheme.bg.withAlpha(100)
+                            : appTheme.bg,
                       ),
                     ),
                 ],
@@ -224,7 +225,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                             context,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: appTheme.text,
+                            color: appTheme.bg,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -238,7 +239,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                                 context,
                                 fontSize: 32,
                                 fontWeight: FontWeight.w700,
-                                color: appTheme.text,
+                                color: appTheme.bg,
                                 height: 1.0,
                               ),
                             ),
@@ -249,7 +250,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                                 context,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: appTheme.text,
+                                color: appTheme.bg,
                               ),
                             ),
                           ],
@@ -282,7 +283,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                 context,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: appTheme.primaryMuted.withAlpha(100),
+                color: appTheme.bg.withAlpha(100),
               ),
             ),
           ),
@@ -320,7 +321,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
           context,
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: appTheme.text.withAlpha(140),
+          color: appTheme.bg.withAlpha(200),
         ),
       );
     }
@@ -333,7 +334,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
           context,
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: appTheme.text.withAlpha(140),
+          color: appTheme.bg.withAlpha(200),
         ),
       );
     }
@@ -381,7 +382,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
       decoration: BoxDecoration(
         color: buttonText == 'RESULTS'
             ? appTheme.warning
-            : appTheme.highlight.withAlpha(200),
+            : appTheme.primaryMuted.withAlpha(200),
         borderRadius: BorderRadius.circular(appTheme.borderRadius / 2),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
