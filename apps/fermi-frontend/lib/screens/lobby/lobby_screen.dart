@@ -146,7 +146,7 @@ class LobbyScreen extends StatelessWidget {
                   ),
                   LeaveButtonOverlay(
                     iconColor: appTheme.border,
-                    splashColor: appTheme.border,
+                    splashColor: appTheme.borderMuted,
                     onPressed:
                         onLeave ?? () => Navigator.of(context).maybePop(),
                   ),

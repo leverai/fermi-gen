@@ -220,7 +220,7 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
                               context,
                               fontSize: 20,
                               fontWeight: FontWeight.w400,
-                              color: appTheme.text,
+                              color: appTheme.textMuted,
                               height: 1.4,
                             ),
                           ),

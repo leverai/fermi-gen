@@ -399,6 +399,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
             ),
           ),
           // Query row with Show All checkbox (only when results are ready)
+          const SizedBox(height: 20),
           if (enabled)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -531,7 +532,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
               context,
               color: Theme.of(context).extension<AppTheme>()?.textMuted ??
                   AppTheme.defaultTheme().textMuted,
-              fontSize: 16,
+              fontSize: 12,
             ),
             textAlign: TextAlign.center,
           ),
@@ -584,8 +585,9 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
             child: Text(
               '#${entry.rank}',
               style: AppFont.secondaryTextStyle(
+                fontSize: 12,
                 context,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 color: isCurrentUser
                     ? appTheme.primary
                     : entry.isPostTake
@@ -619,6 +621,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
                   child: Text(
                     isCurrentUser ? '$displayName (You)' : displayName,
                     style: AppFont.secondaryTextStyle(
+                      fontSize: 12,
                       context,
                       color: appTheme.text,
                       fontWeight:
@@ -632,7 +635,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
                   const SizedBox(width: 4),
                   Icon(
                     Icons.timer_outlined,
-                    size: 14,
+                    size: 12,
                     color: appTheme.danger,
                   ),
                 ],
@@ -643,6 +646,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
           Text(
             '${entry.score.toStringAsFixed(0)} pts',
             style: AppFont.secondaryTextStyle(
+              fontSize: 12,
               context,
               fontWeight: FontWeight.w600,
               color: appTheme.primary,

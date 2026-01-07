@@ -815,7 +815,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         children: [
           // Back button
           IconButton(
-            icon: Icon(Icons.arrow_back, color: appTheme.text),
+            icon: Icon(Icons.arrow_back, color: appTheme.border),
             onPressed: _handleLeave,
             tooltip: 'Leave',
           ),

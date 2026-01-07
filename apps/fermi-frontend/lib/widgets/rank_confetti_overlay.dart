@@ -47,8 +47,6 @@ class _RankConfettiOverlayState extends State<RankConfettiOverlay> {
     [900, 2], // Right (simultaneous sides)
     [1500, 0], // Center
     [2200, 1], // Left
-    [2200, 2], // Right
-    [3000, 0], // Final center burst
   ];
 
   @override
@@ -142,15 +140,15 @@ class _RankConfettiOverlayState extends State<RankConfettiOverlay> {
     switch (rank) {
       case 1:
         rankColor = theme.gold;
-        particles = 25;
+        particles = 10;
         break;
       case 2:
         rankColor = theme.silver;
-        particles = 20;
+        particles = 7;
         break;
       case 3:
         rankColor = theme.bronze;
-        particles = 15;
+        particles = 5;
         break;
       default:
         rankColor = Colors.grey;
@@ -181,9 +179,9 @@ class _RankConfettiOverlayState extends State<RankConfettiOverlay> {
   double _getBlastDirectionForPosition(int position) {
     switch (position) {
       case 1:
-        return -pi / 3; // Top-right
+        return -.45 * pi; // Top-right
       case 2:
-        return -2 * pi / 3; // Top-left
+        return -.55 * pi; // Top-left
       default:
         return -pi / 2; // Straight up
     }
@@ -212,7 +210,7 @@ class _RankConfettiOverlayState extends State<RankConfettiOverlay> {
               particleDrag: 0.015,
               emissionFrequency: 1.0, // 100% - emit all particles immediately
               numberOfParticles: config.numberOfParticles,
-              gravity: 0.1,
+              gravity: 0.05,
               shouldLoop: false,
               colors: config.colors,
               maxBlastForce: burst.position == 0 ? 60 : 80,

@@ -23,7 +23,7 @@ class _ShareButtonState extends State<ShareButton> {
     // Use secondary color as requested
     final backgroundColor = appTheme.secondary;
     // Use a contrasting text color. Since secondary is vibrant/dark, white or bgLight usually works well.
-    final foregroundColor = appTheme.bgLight;
+    final foregroundColor = appTheme.text;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
