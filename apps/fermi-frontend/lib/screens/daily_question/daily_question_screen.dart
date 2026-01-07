@@ -173,6 +173,14 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       });
     } catch (e) {
       if (mounted) {
+        final errorMsg = e.toString().toLowerCase();
+        // Handle race condition: DQ transitioned from ACTIVE to CLOSED while navigating.
+        // If backend says "not yet active", the DQ was closed - retry as post-take.
+        if (errorMsg.contains('not yet active') ||
+            errorMsg.contains('window is closed')) {
+          await _startPostTakeQuestion();
+          return;
+        }
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error: $e')));
         context.go('/main');
