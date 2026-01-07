@@ -286,7 +286,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
         builder: (context, scrollController) {
           return Container(
             decoration: BoxDecoration(
-              color: appTheme.bgLight,
+              color: appTheme.bg,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(16),
               ),
