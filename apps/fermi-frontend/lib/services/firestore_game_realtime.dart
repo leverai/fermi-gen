@@ -44,6 +44,9 @@ class FirestoreGameRealtime implements GameRealtime {
   // Controllers to allow re-emitting on locale changes
   final Map<String, StreamController<RevealedQuestion>> _revealedControllers =
       <String, StreamController<RevealedQuestion>>{};
+  // Track subscriptions for revealedQuestion streams to prevent leaks
+  final Map<String, StreamSubscription> _baseStreamSubscriptions =
+      <String, StreamSubscription>{};
   // Cache unit ID to abbreviation mapping per question for converting other players' answers
   final Map<String, Map<String, String>> _unitIdToAbbreviationByQuestion =
       <String, Map<String, String>>{};
@@ -199,6 +202,10 @@ class FirestoreGameRealtime implements GameRealtime {
   @override
   Stream<RevealedQuestion> revealedQuestion(String gameId, int questionIndex) {
     final String key = '$gameId:$questionIndex';
+
+    // Cancel existing subscription for this key if it exists
+    _baseStreamSubscriptions[key]?.cancel();
+
     final controller = _revealedControllers.putIfAbsent(
         key, () => StreamController<RevealedQuestion>.broadcast());
 
@@ -218,7 +225,8 @@ class FirestoreGameRealtime implements GameRealtime {
       baseStream = col.where('revealed', isEqualTo: true).limit(1).snapshots();
     }
 
-    baseStream.where((qs) => qs.docs.isNotEmpty).listen((qs) {
+    // Store the subscription to prevent leaks
+    _baseStreamSubscriptions[key] = baseStream.where((qs) => qs.docs.isNotEmpty).listen((qs) {
       final Map<String, dynamic> raw = qs.docs.first.data();
       _lastQuestionRawByKey[key] = raw;
       controller.add(_mapQuestionDocToRevealed(raw, key));
@@ -647,5 +655,26 @@ class FirestoreGameRealtime implements GameRealtime {
       category: category,
       myVoteVerdict: myVoteVerdict,
     );
+  }
+
+  /// Dispose all subscriptions and close all controllers to prevent memory leaks.
+  void dispose() {
+    // Cancel all base stream subscriptions
+    for (final sub in _baseStreamSubscriptions.values) {
+      sub.cancel();
+    }
+    _baseStreamSubscriptions.clear();
+
+    // Close all StreamControllers (guard against double-dispose)
+    for (final controller in _revealedControllers.values) {
+      if (!controller.isClosed) {
+        controller.close();
+      }
+    }
+    _revealedControllers.clear();
+
+    // Clear caches
+    _lastQuestionRawByKey.clear();
+    _unitIdToAbbreviationByQuestion.clear();
   }
 }

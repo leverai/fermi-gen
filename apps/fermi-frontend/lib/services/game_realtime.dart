@@ -52,6 +52,10 @@ abstract class GameRealtime {
   Future<void> downvoteQuestion(String questionUid);
   Future<void> deDownvoteQuestion(String questionUid);
   Future<void> setUserLocale(String locale) async {}
+
+  /// Dispose resources and cancel subscriptions.
+  /// Should be called when the adapter is no longer needed.
+  void dispose() {}
 }
 
 /// Thin compatibility shim around existing demo-only GameEvents to align with

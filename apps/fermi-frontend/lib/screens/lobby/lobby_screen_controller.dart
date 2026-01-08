@@ -153,6 +153,7 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
   @override
   void dispose() {
     _sub?.cancel();
+    widget.realtime.dispose();
     super.dispose();
   }
 
