@@ -37,9 +37,14 @@ class AnswerSubmissionHandler {
     final state = stateManager.getQuestionState(currentIndex);
     if (state == null) return;
 
-    // Wait for unit maps if not available yet
-    if (state.unitAbbreviationToId.isEmpty && state.units.isNotEmpty) {
-      // Unit maps not ready yet, queue submission
+    // Wait for question data to load (questionText is populated by _handleQuestion)
+    if (state.questionText.isEmpty) {
+      onError('Please wait for question to load...');
+      return;
+    }
+
+    // If question has units, wait for unit maps to be ready
+    if (state.units.isNotEmpty && state.unitAbbreviationToId.isEmpty) {
       onError('Please wait for question to load...');
       return;
     }
