@@ -44,6 +44,29 @@ async def update_profile(
     span.set_attribute(api_attrs.ACTION, update_profile.__qualname__)
     span.set_attribute(api_attrs.QUERY_PARAMS, payload.model_dump_json())
     assert current_user.id is not None
+
+    # Validate avatar is unlocked for user's level
+    if payload.avatar_url and '/static/avatars/' in payload.avatar_url:
+        from fastapi import HTTPException
+
+        from app.services.avatars import AVATARS, get_avatar_unlock_level
+
+        # Extract filename from URL
+        # e.g., "http://x/static/avatars/foo.svg" -> "foo.svg"
+        filename = payload.avatar_url.split('/static/avatars/')[-1]
+        if filename in AVATARS:
+            xp_level = await user_service.get_xp_level(current_user.firebase_uid)
+            user_level = xp_level['level']
+            required_level = get_avatar_unlock_level(filename)
+            if user_level < required_level:
+                raise HTTPException(
+                    status_code=403,
+                    detail=(
+                        f'Avatar requires level {required_level}, '
+                        f'you are level {user_level}'
+                    ),
+                )
+
     await user_service.update_user_profile(
         user_id=current_user.id,
         display_name=payload.display_name,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
+import 'package:fermi_frontend/models/avatar_info.dart';
 import 'package:http/http.dart' as http;
 import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/player_stats.dart';
@@ -343,12 +344,15 @@ class ApiService {
     }
   }
 
-  Future<List<String>> getAvatars() async {
+  Future<List<AvatarInfo>> getAvatars() async {
     try {
       final resp = await _authGet('/assets/avatars');
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
-        return List<String>.from(data['avatars']);
+        final List<dynamic> avatarsList = data['avatars'];
+        return avatarsList
+            .map((json) => AvatarInfo.fromJson(json as Map<String, dynamic>))
+            .toList();
       } else {
         final error = _extractErrorMessage(resp);
         throw Exception('Failed to load avatars: $error');

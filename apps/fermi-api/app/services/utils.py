@@ -1,7 +1,5 @@
 """Utility functions for the database repositories."""
 
-import os
-import random
 import re
 from typing import TYPE_CHECKING, Any
 
@@ -36,9 +34,10 @@ def _extract_animal_name_from_svgrepo_avatar(filename: str) -> str:
 
 
 def _get_random_avatar_path() -> str:
-    """Get a random avatar path relative to `static`."""
-    avatar_paths = [f'avatars/{name}' for name in os.listdir('static/avatars/')]
-    return random.choice(avatar_paths)
+    """Get a random avatar path relative to `static` from level-1 pool."""
+    from app.services.avatars import get_random_level_1_avatar
+
+    return f'avatars/{get_random_level_1_avatar()}'
 
 
 def enrich_firebase_claims(
@@ -51,20 +50,23 @@ def enrich_firebase_claims(
         firebase_claims['picture'] = str(
             request.url_for('static', path=avatar_path),
         )
-
-        if not firebase_claims.get('name'):
-            avatar_name = os.path.basename(avatar_path)
-            animal_name = _extract_animal_name_from_svgrepo_avatar(avatar_name)
-            player_name = randomname.generate(
-                f'adj/{random.choice(randomname.ADJECTIVES)}',
-                animal_name,
-            )
-            player_name = player_name.replace('-', ' ').title()
-            # Limit to 2 words
-            player_name = ' '.join(player_name.split(' ')[:2])
-            firebase_claims['name'] = player_name
-
     if not firebase_claims.get('name'):
-        firebase_claims['name'] = randomname.get_name()
+        firebase_claims['name'] = randomname.get_name(
+            adj=(
+                'food',
+                'character',
+                'age',
+                'materials',
+                'linguistics',
+                'complexity',
+                'emotions',
+                'appearance',
+                'speed',
+                'physics',
+                'algorithms',
+            ),
+            noun=randomname.NOUNS,
+            sep=' ',
+        ).title()
 
     return firebase_claims

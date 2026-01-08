@@ -17,7 +17,6 @@ from fermi_db.models.user import User
 from fermi_db.repositories.subscription_repository import SubscriptionRepository
 from fermi_db.session import get_session
 from opentelemetry import trace
-from opentelemetry.trace import Status, StatusCode
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import app.logging.attributes as api_attrs
@@ -69,22 +68,17 @@ async def verify_token(
             firebase_token=credentials.credentials,
         )
     except InvalidFirebaseTokenError as exc:
-        span.set_status(Status(StatusCode.ERROR))
-        span.record_exception(exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Invalid authentication credentials',
             headers={'WWW-Authenticate': 'Bearer'},
         ) from exc
     if auth_result is None:
-        span.set_status(Status(StatusCode.ERROR))
-        exception = HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Invalid authentication credentials',
             headers={'WWW-Authenticate': 'Bearer'},
         )
-        span.record_exception(exception)
-        raise exception
 
     user, token = auth_result
     assert user.id is not None, 'User ID should be set after authentication'
@@ -134,8 +128,6 @@ async def refresh_token(
             token_str=credentials.credentials,
         )
     except Exception as exc:  # broad: map to 401 to avoid information leaks
-        span.set_status(Status(StatusCode.ERROR))
-        span.record_exception(exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Invalid authentication credentials',

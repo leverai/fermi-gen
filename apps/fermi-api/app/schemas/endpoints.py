@@ -189,7 +189,20 @@ class UpdateUserProfileRequest(BaseModel):
         raise ValueError('Avatar URL must be an internal asset or valid HTTPS URL')
 
 
+class AvatarInfo(BaseModel):
+    """Avatar info with unlock level."""
+
+    url: str
+    """Full URL to the avatar asset."""
+
+    unlock_level: int
+    """Level required to unlock this avatar."""
+
+    unlocked: bool
+    """Whether this avatar is unlocked for the requesting user."""
+
+
 class GetAvatarsResponse(BaseModel):
     """Response model for getting avatars."""
 
-    avatars: list[str]
+    avatars: list[AvatarInfo]
