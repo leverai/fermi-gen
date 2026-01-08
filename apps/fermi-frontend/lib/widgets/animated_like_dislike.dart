@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:like_button/like_button.dart';
 import 'package:intl/intl.dart';
@@ -30,49 +31,16 @@ class AnimatedLikeDislike extends StatefulWidget {
   State<AnimatedLikeDislike> createState() => _AnimatedLikeDislikeState();
 }
 
-class _AnimatedLikeDislikeState extends State<AnimatedLikeDislike>
-    with SingleTickerProviderStateMixin {
+class _AnimatedLikeDislikeState extends State<AnimatedLikeDislike> {
   late VoteState _state;
   late int _likes;
   static final NumberFormat _compactNumberFormat = NumberFormat.compact();
-  late AnimationController _animationController;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
     _state = widget.voteState;
     _likes = widget.likeCount;
-
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 400),
-      vsync: this,
-    );
-
-    // Slide animation: fall down when appearing, shoot up when disappearing
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, -0.5), // Start above
-      end: Offset.zero, // End at normal position
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    ));
-
-    // Fade animation
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOut,
-      reverseCurve: Curves.easeIn,
-    ));
-
-    if (widget.visible) {
-      _animationController.forward();
-    }
   }
 
   @override
@@ -80,289 +48,135 @@ class _AnimatedLikeDislikeState extends State<AnimatedLikeDislike>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.voteState != widget.voteState) _state = widget.voteState;
     if (oldWidget.likeCount != widget.likeCount) _likes = widget.likeCount;
+  }
 
-    if (oldWidget.visible != widget.visible) {
-      if (widget.visible) {
-        _animationController.forward();
-      } else {
-        _animationController.reverse();
+  Future<bool?> _onUpvoteButtonTapped(bool isLiked) async {
+    if (isLiked) {
+      // Was liked, now unliking
+      setState(() {
+        _state = VoteState.none;
+        _likes = (_likes - 1).clamp(0, 1 << 31);
+      });
+      await widget.onDeUpvote();
+      return false;
+    } else {
+      // Was not liked, now liking
+      final wasDownvoted = _state == VoteState.downvoted;
+      setState(() {
+        _state = VoteState.upvoted;
+        _likes += 1;
+      });
+
+      if (wasDownvoted) {
+        await widget.onDeDownvote();
       }
+      await widget.onUpvote();
+      return true;
+    }
+  }
+
+  Future<bool?> _onDownvoteButtonTapped(bool isLiked) async {
+    if (isLiked) {
+      // Was downvoted, now removing downvote
+      setState(() {
+        _state = VoteState.none;
+      });
+      await widget.onDeDownvote();
+      return false;
+    } else {
+      // Was not downvoted, now downvoting
+      final wasUpvoted = _state == VoteState.upvoted;
+      setState(() {
+        _state = VoteState.downvoted;
+        if (wasUpvoted) {
+          _likes = (_likes - 1).clamp(0, 1 << 31);
+        }
+      });
+
+      if (wasUpvoted) {
+        await widget.onDeUpvote();
+      }
+      await widget.onDownvote();
+      return true;
     }
   }
 
   @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    if (!widget.visible) return const SizedBox.shrink();
+
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+    final isUpvoted = _state == VoteState.upvoted;
+    final isDownvoted = _state == VoteState.downvoted;
 
-    // Target colors based on state
-    final Color targetThumbUpColor = appTheme.border;
-    final Color targetThumbDownColor = appTheme.border;
-    final Color targetTextColor = _state == VoteState.upvoted
-        ? appTheme.border
-        : _state == VoteState.downvoted
-            ? appTheme.border
-            : appTheme.border;
-    final Color separatorColor = appTheme.borderMuted;
-
-    final bool upLiked = _state == VoteState.upvoted;
-    final bool downLiked = _state == VoteState.downvoted;
-
-    return SlideTransition(
-      position: _slideAnimation,
-      child: FadeTransition(
-        opacity: _fadeAnimation,
-        child: _AnimatedColors(
-          thumbUpColor: targetThumbUpColor,
-          thumbDownColor: targetThumbDownColor,
-          textColor: targetTextColor,
-          separatorColor: separatorColor,
-          child: Builder(builder: (context) {
-            final colors = _AnimatedColors.of(context);
-            return Container(
-              height: 24, // 20% larger than 38
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(100),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        LikeButton(
+          size: 24,
+          isLiked: isUpvoted,
+          likeCount: _likes,
+          countBuilder: (int? count, bool isLiked, String text) {
+            return Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: Text(
+                count == null ? "0" : _compactNumberFormat.format(count),
+                style: AppFont.secondaryTextStyle(
+                  context,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w300,
+                  color: appTheme.border,
+                  decoration: TextDecoration.none,
+                ).copyWith(
+                  letterSpacing: 0.0,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  LikeButton(
-                    size: 24, // Controls both icon size and animation
-                    isLiked: upLiked,
-                    animationDuration: const Duration(milliseconds: 800),
-                    bubblesSize: 60, // Larger bubbles for more visibility
-                    circleSize: 30, // Larger circle animation
-                    likeBuilder: (bool isLiked) => Container(
-                      decoration: isLiked
-                          ? BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  // ignore: deprecated_member_use
-                                  color: colors.thumbUpColor.withOpacity(0.2),
-                                  blurRadius: 14,
-                                  spreadRadius: 0,
-                                ),
-                              ],
-                            )
-                          : null,
-                      child: Icon(
-                        isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
-                        color: colors.thumbUpColor,
-                        // Size controlled by LikeButton's size parameter
-                      ),
-                    ),
-                    likeCount: _likes,
-                    likeCountAnimationType: LikeCountAnimationType.all,
-                    likeCountAnimationDuration:
-                        const Duration(milliseconds: 400),
-                    countBuilder: (count, isLiked, text) => Padding(
-                      padding: const EdgeInsets.only(left: 10),
-                      child: Text(
-                        _compactNumberFormat.format(count ?? 0),
-                        style: AppFont.secondaryTextStyle(
-                          context,
-                          fontSize: 17, // 20% larger than 14
-                          fontWeight: FontWeight.w300,
-                          color: colors.textColor,
-                          decoration: TextDecoration.none,
-                        ).copyWith(
-                          letterSpacing: 0.0,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ),
-                    onTap: (bool isLiked) async {
-                      if (_state == VoteState.upvoted) {
-                        await widget.onDeUpvote();
-                        setState(() {
-                          _state = VoteState.none;
-                          _likes = (_likes - 1).clamp(0, 1 << 31);
-                        });
-                        return false;
-                      }
-                      if (_state == VoteState.downvoted) {
-                        await widget.onDeDownvote();
-                      }
-                      await widget.onUpvote();
-                      setState(() {
-                        _state = VoteState.upvoted;
-                        _likes += 1;
-                      });
-                      return true;
-                    },
-                    bubblesColor: BubblesColor(
-                      dotPrimaryColor: appTheme.border,
-                      // ignore: deprecated_member_use
-                      dotSecondaryColor: appTheme.border.withOpacity(0.8),
-                      // ignore: deprecated_member_use
-                      dotThirdColor: appTheme.border.withOpacity(0.6),
-                      // ignore: deprecated_member_use
-                      dotLastColor: appTheme.border.withOpacity(0.4),
-                    ),
-                    circleColor: CircleColor(
-                      // ignore: deprecated_member_use
-                      start: appTheme.border.withOpacity(0.3),
-                      // ignore: deprecated_member_use
-                      end: appTheme.border.withOpacity(0.8),
-                    ),
-                  ),
-                  const SizedBox(width: 12), // 20% larger
-                  Container(
-                    width: 1,
-                    height: 24, // 20% larger than 20
-                    color: colors.separatorColor,
-                  ),
-                  const SizedBox(width: 12), // 20% larger
-                  LikeButton(
-                    size: 24, // Controls both icon size and animation
-                    isLiked: downLiked,
-                    animationDuration: const Duration(milliseconds: 800),
-                    bubblesSize: 60, // Larger bubbles for more visibility
-                    circleSize: 30, // Larger circle animation
-                    likeBuilder: (bool isLiked) => Container(
-                      decoration: isLiked
-                          ? BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  // ignore: deprecated_member_use
-                                  color: colors.thumbDownColor.withOpacity(0.2),
-                                  blurRadius: 14,
-                                  spreadRadius: 0,
-                                ),
-                              ],
-                            )
-                          : null,
-                      child: Transform.rotate(
-                        angle: 3.14159, // flip thumb up to mimic thumb down
-                        child: Icon(
-                          isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
-                          color: colors.thumbDownColor,
-                          // Size controlled by LikeButton's size parameter
-                        ),
-                      ),
-                    ),
-                    likeCount: null,
-                    onTap: (bool isLiked) async {
-                      if (_state == VoteState.downvoted) {
-                        await widget.onDeDownvote();
-                        setState(() => _state = VoteState.none);
-                        return false;
-                      }
-                      if (_state == VoteState.upvoted) {
-                        await widget.onDeUpvote();
-                        setState(() => _likes = (_likes - 1).clamp(0, 1 << 31));
-                      }
-                      await widget.onDownvote();
-                      setState(() => _state = VoteState.downvoted);
-                      return true;
-                    },
-                    bubblesColor: BubblesColor(
-                      dotPrimaryColor: appTheme.border,
-                      // ignore: deprecated_member_use
-                      dotSecondaryColor: appTheme.border.withOpacity(0.8),
-                      // ignore: deprecated_member_use
-                      dotThirdColor: appTheme.border.withOpacity(0.6),
-                      // ignore: deprecated_member_use
-                      dotLastColor: appTheme.border.withOpacity(0.4),
-                    ),
-                    circleColor: CircleColor(
-                      // ignore: deprecated_member_use
-                      start: appTheme.border.withOpacity(0.3),
-                      // ignore: deprecated_member_use
-                      end: appTheme.border.withOpacity(0.8),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ),
-      ),
-    );
-  }
-}
-
-/// Widget that animates color transitions for the like/dislike buttons
-class _AnimatedColors extends StatelessWidget {
-  final Color thumbUpColor;
-  final Color thumbDownColor;
-  final Color textColor;
-  final Color separatorColor;
-  final Widget child;
-
-  const _AnimatedColors({
-    required this.thumbUpColor,
-    required this.thumbDownColor,
-    required this.textColor,
-    required this.separatorColor,
-    required this.child,
-  });
-
-  static _AnimatedColorsData of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<_AnimatedColorsData>()!;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<Color?>(
-      tween: ColorTween(end: thumbUpColor),
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeInOut,
-      builder: (context, animatedThumbUpColor, _) {
-        return TweenAnimationBuilder<Color?>(
-          tween: ColorTween(end: thumbDownColor),
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeInOut,
-          builder: (context, animatedThumbDownColor, _) {
-            return TweenAnimationBuilder<Color?>(
-              tween: ColorTween(end: textColor),
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeInOut,
-              builder: (context, animatedTextColor, _) {
-                return _AnimatedColorsData(
-                  thumbUpColor: animatedThumbUpColor ?? thumbUpColor,
-                  thumbDownColor: animatedThumbDownColor ?? thumbDownColor,
-                  textColor: animatedTextColor ?? textColor,
-                  separatorColor: separatorColor,
-                  child: child,
-                );
-              },
             );
           },
-        );
-      },
+          likeBuilder: (bool isLiked) {
+            return Icon(
+              isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+              color: isLiked ? appTheme.primary : appTheme.border,
+              size: 24,
+            );
+          },
+          bubblesColor: BubblesColor(
+            dotPrimaryColor: appTheme.primary,
+            dotSecondaryColor: appTheme.primaryMuted,
+          ),
+          circleColor: CircleColor(
+            start: appTheme.primary.withOpacity(0.3),
+            end: appTheme.primary,
+          ),
+          onTap: _onUpvoteButtonTapped,
+        ),
+        const SizedBox(width: 12),
+        Container(width: 1, height: 24, color: appTheme.borderMuted),
+        const SizedBox(width: 12),
+        LikeButton(
+          size: 24,
+          isLiked: isDownvoted,
+          likeCount: null,
+          likeBuilder: (bool isLiked) {
+            return Icon(
+              isLiked ? Icons.thumb_down : Icons.thumb_down_outlined,
+              color: isLiked ? appTheme.danger : appTheme.border,
+              size: 24,
+            );
+          },
+          bubblesColor: BubblesColor(
+            dotPrimaryColor: appTheme.danger,
+            dotSecondaryColor: appTheme.danger.withOpacity(0.5),
+          ),
+          circleColor: CircleColor(
+            start: appTheme.danger.withOpacity(0.3),
+            end: appTheme.danger,
+          ),
+          onTap: _onDownvoteButtonTapped,
+        ),
+      ],
     );
-  }
-}
-
-class _AnimatedColorsData extends InheritedWidget {
-  final Color thumbUpColor;
-  final Color thumbDownColor;
-  final Color textColor;
-  final Color separatorColor;
-
-  const _AnimatedColorsData({
-    required this.thumbUpColor,
-    required this.thumbDownColor,
-    required this.textColor,
-    required this.separatorColor,
-    required super.child,
-  });
-
-  @override
-  bool updateShouldNotify(_AnimatedColorsData oldWidget) {
-    return oldWidget.thumbUpColor != thumbUpColor ||
-        oldWidget.thumbDownColor != thumbDownColor ||
-        oldWidget.textColor != textColor ||
-        oldWidget.separatorColor != separatorColor;
   }
 }
