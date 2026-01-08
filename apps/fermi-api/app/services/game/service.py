@@ -11,7 +11,6 @@ from app.schemas.endpoints import (
     GameConfigResponse,
     GameCreateRequest,
     GameRemovePlayerRequest,
-    GetPlayerStatsRequest,
     GetPlayerStatsResponse,
     IdModel,
     PlayerStats,
@@ -409,19 +408,19 @@ class GameService:
 
     async def get_player_stats(
         self,
-        payload: GetPlayerStatsRequest,
+        player_id: str,
         request: Request | None = None,
     ) -> GetPlayerStatsResponse:
         """Get a player's stats."""
         raw_stats = await self._db_gateway.get_player_stats(
-            player_id=payload.player_id,
+            player_id=player_id,
         )
         rank = get_rank_for_percentile(
             avg_percentile=raw_stats['average_percentile'],
             request=request,
         )
         return GetPlayerStatsResponse(
-            player_id=payload.player_id,
+            player_id=player_id,
             stats=PlayerStats(
                 total_party_games=raw_stats['total_party_games'],
                 total_daily_guesses=raw_stats['total_daily_guesses'],

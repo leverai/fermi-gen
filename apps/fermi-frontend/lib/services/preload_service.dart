@@ -54,9 +54,7 @@ class PreloadService {
 
       // Fetch stats if we have a user ID
       if (auth.firebaseUid != null) {
-        _cachedStats = await api.getPlayerStatsTyped(
-          playerId: auth.firebaseUid!,
-        );
+        _cachedStats = await api.getPlayerStatsTyped();
       }
     } catch (e) {
       debugPrint('PreloadService: Preload failed: $e');

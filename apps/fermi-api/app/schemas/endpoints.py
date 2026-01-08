@@ -88,12 +88,6 @@ class GameRemovePlayerRequest(IdModel):
     player_id: str
 
 
-class GetPlayerStatsRequest(BaseModel):
-    """Request model for getting a player's stats."""
-
-    player_id: str
-
-
 class PlayerStats(BaseModel):
     """Player stats."""
 
