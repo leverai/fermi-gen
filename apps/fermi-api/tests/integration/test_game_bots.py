@@ -10,7 +10,6 @@ import uuid
 from collections.abc import Callable
 from typing import Any
 
-import pytest
 from fastapi.testclient import TestClient
 
 
@@ -278,7 +277,9 @@ def test_bot_answers_appear_in_players_results(
 
     # Query the correct answer to get the expected unit
     answer_doc = get_answer_doc(game_id, question_uid)
-    expected_unit = answer_doc.get('unit')  # None for dimensionless, str for dimensional
+    expected_unit = answer_doc.get(
+        'unit',
+    )  # None for dimensionless, str for dimensional
 
     # Human submits answer with matching unit type
     api_client.post(
@@ -308,6 +309,94 @@ def test_bot_answers_appear_in_players_results(
         assert 'answer' in bot_result
         assert 'number' in bot_result['answer']
         assert 'score' in bot_result
+
+
+def _wait_revealed(
+    get_players_results_doc: Callable[[str, str], dict[str, Any]],
+    game_id: str,
+    question_uid: str,
+    *,
+    timeout_s: float = 10.0,
+) -> dict[str, Any]:
+    """Wait until players_results.revealed is True."""
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        doc = get_players_results_doc(game_id, question_uid)
+        if doc and doc.get('revealed') is True:
+            return doc
+        time.sleep(0.1)
+    raise AssertionError('players_results was not revealed in time')
+
+
+def test_bot_last_to_answer_reveals_results(
+    api_client: TestClient,
+    get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
+    create_private_game: Callable[[dict[str, str]], str],
+    get_firestore_doc: Callable[[str], dict[str, Any]],
+    get_players_results_doc: Callable[[str, str], dict[str, Any]],
+    get_answer_doc: Callable[[str, str], dict[str, Any]],
+) -> None:
+    """When bot answers last, players_results.revealed should become True.
+
+    This tests the fix for the bug where revealed=True was never set when
+    a bot was the last player to answer, causing the frontend to remain
+    stuck in a waiting state.
+    """
+    host_headers = get_api_auth_headers(
+        'dev.user+bot-last-reveal@example.com',
+        'password123',
+        'BotLastReveal',
+    )
+    game_id = create_private_game(host_headers, n_questions=1)
+    _wait_ready(get_firestore_doc, game_id)
+
+    # Add 1 bot
+    api_client.post(
+        '/api/v1/game/add_bots',
+        json={'resource_id': game_id, 'bot_ids': ['bot-gpt51']},
+        headers=host_headers,
+    )
+    time.sleep(0.5)
+
+    # Start game
+    api_client.post(
+        '/api/v1/game/start',
+        json={'resource_id': game_id},
+        headers=host_headers,
+    )
+    game_doc = _wait_started(get_firestore_doc, game_id)
+    question_uid = game_doc['question_uid']
+
+    # Query the correct answer to get the expected unit
+    answer_doc = get_answer_doc(game_id, question_uid)
+    expected_unit = answer_doc.get('unit')
+
+    # Human answers first (quickly before bots)
+    api_client.post(
+        '/api/v1/game/answer',
+        json={'resource_id': game_id, 'answer': {'number': 100, 'unit': expected_unit}},
+        headers=host_headers,
+    )
+
+    # Wait for bot to answer (bot will be last since human already answered)
+    _wait_all_answered(get_firestore_doc, game_id)
+
+    # Verify players_results is revealed (this is the key assertion)
+    players_results = _wait_revealed(
+        get_players_results_doc,
+        game_id,
+        question_uid,
+        timeout_s=5.0,
+    )
+    assert players_results['revealed'] is True
+
+    # Verify game state transitioned to finished
+    game_doc = get_firestore_doc(game_id)
+    # State 6 = QUESTION_LAST_FINISHED, State 8 = GAME_FINISHED
+    # Both are valid - game may auto-finish after last question
+    assert game_doc['state'] in (6, 8), (
+        f'Expected state 6 or 8, got {game_doc["state"]}'
+    )
 
 
 # @pytest.mark.skip
@@ -354,7 +443,9 @@ def test_bot_answers_not_archived_to_answer_events(
 
     # Query the correct answer to get the expected unit
     answer_doc = get_answer_doc(game_id, question_uid)
-    expected_unit = answer_doc.get('unit')  # None for dimensionless, str for dimensional
+    expected_unit = answer_doc.get(
+        'unit',
+    )  # None for dimensionless, str for dimensional
 
     # Human answers with matching unit type
     api_client.post(
@@ -445,7 +536,9 @@ def test_bot_answers_not_added_to_user_history(
 
     # Query the correct answer to get the expected unit
     answer_doc = get_answer_doc(game_id, question_uid)
-    expected_unit = answer_doc.get('unit')  # None for dimensionless, str for dimensional
+    expected_unit = answer_doc.get(
+        'unit',
+    )  # None for dimensionless, str for dimensional
 
     api_client.post(
         '/api/v1/game/answer',
@@ -532,12 +625,17 @@ def test_e2e_game_with_bots_completes_successfully(
         game_doc = get_firestore_doc(game_id)
         question_uid = game_doc['question_uid']
         answer_doc = get_answer_doc(game_id, question_uid)
-        expected_unit = answer_doc.get('unit')  # None for dimensionless, str for dimensional
+        expected_unit = answer_doc.get(
+            'unit',
+        )  # None for dimensionless, str for dimensional
 
         # Human answers with matching unit type
         api_client.post(
             '/api/v1/game/answer',
-            json={'resource_id': game_id, 'answer': {'number': 100, 'unit': expected_unit}},
+            json={
+                'resource_id': game_id,
+                'answer': {'number': 100, 'unit': expected_unit},
+            },
             headers=host_headers,
         )
 
