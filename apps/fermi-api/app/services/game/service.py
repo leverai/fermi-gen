@@ -1,5 +1,6 @@
 """Game service."""
 
+import logging
 import uuid
 from typing import TYPE_CHECKING, Optional
 
@@ -454,3 +455,47 @@ class GameService:
             user_firebase_uid=user_firebase_uid,
             verdict=verdict,
         )
+
+    async def cleanup_finished_games(
+        self,
+        firestore_client: 'AsyncClient',
+        *,
+        max_games: int = 100,
+    ) -> int:
+        """Delete finished/aborted games and their subcollections.
+
+        Games with state >= 8 (GAME_FINISHED or GAME_ABORTED) are eligible
+        for deletion. Subcollections (questions, answers, players_results)
+        are deleted before the parent game document.
+
+        Args:
+            firestore_client: Firestore async client.
+            max_games: Maximum number of games to delete in this call.
+
+        Returns:
+            Number of games deleted.
+
+        """
+        logger = logging.getLogger(__name__)
+        games_ref = firestore_client.collection('games')
+
+        # Query for finished/aborted games (state >= 8)
+        query = games_ref.where('state', '>=', 8).limit(max_games)
+        game_docs = [doc async for doc in query.stream()]
+
+        deleted_count = 0
+        for game_doc in game_docs:
+            game_ref = games_ref.document(game_doc.id)
+
+            # Delete subcollection documents
+            for subcollection_name in ('questions', 'answers', 'players_results'):
+                subcollection_ref = game_ref.collection(subcollection_name)
+                async for sub_doc in subcollection_ref.stream():
+                    await sub_doc.reference.delete()
+
+            # Delete the game document itself
+            await game_ref.delete()
+            deleted_count += 1
+
+        logger.info('Deleted %d finished/aborted games', deleted_count)
+        return deleted_count
