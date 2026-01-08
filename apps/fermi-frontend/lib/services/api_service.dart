@@ -6,18 +6,22 @@ import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/player_stats.dart';
 import 'package:fermi_frontend/utils/env.dart';
 import 'package:fermi_frontend/utils/om_constants.dart';
+import 'package:fermi_frontend/services/tracing_service.dart';
 
 class ApiService {
   final String _apiBaseUrl;
   final AuthService authService;
   final http.Client client;
+  final TracingService _tracing;
 
   ApiService({
     required this.authService,
     http.Client? client,
     String? apiBaseUrl,
+    TracingService? tracing,
   })  : client = client ?? http.Client(),
-        _apiBaseUrl = apiBaseUrl ?? resolveApiBaseUrlOrThrow();
+        _apiBaseUrl = apiBaseUrl ?? resolveApiBaseUrlOrThrow(),
+        _tracing = tracing ?? TracingService.instance;
 
   // --- Auth-aware request helpers ---
   Future<http.Response> get(String path) => _authGet(path);
@@ -28,9 +32,11 @@ class ApiService {
     final String? token = authService.accessToken;
     if (token == null) throw Exception('User is not authorized');
     final Uri uri = Uri.parse('$_apiBaseUrl$path');
+    final String traceparent = _tracing.generateTraceparent();
     http.Response resp = await client.get(uri, headers: {
       'Authorization': 'Bearer $token',
       'Accept': 'application/json',
+      'traceparent': traceparent,
     });
     if (resp.statusCode == 401) {
       final bool refreshed = await authService.refreshAccessToken();
@@ -40,6 +46,7 @@ class ApiService {
       resp = await client.get(uri, headers: {
         'Authorization': 'Bearer $newToken',
         'Accept': 'application/json',
+        'traceparent': traceparent,
       });
     }
     return resp;
@@ -49,12 +56,14 @@ class ApiService {
     final String? token = authService.accessToken;
     if (token == null) throw Exception('User is not authorized');
     final Uri uri = Uri.parse('$_apiBaseUrl$path');
+    final String traceparent = _tracing.generateTraceparent();
     http.Response resp = await client.post(
       uri,
       headers: {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
         'Content-Type': 'application/json',
+        'traceparent': traceparent,
       },
       body: jsonEncode(body),
     );
@@ -69,6 +78,7 @@ class ApiService {
           'Authorization': 'Bearer $newToken',
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'traceparent': traceparent,
         },
         body: jsonEncode(body),
       );

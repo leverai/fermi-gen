@@ -50,6 +50,37 @@ void main() {
       // ASSERT - verified by expect in MockClient callback
     });
 
+    test('should include traceparent header for cross-service tracing',
+        () async {
+      // ARRANGE
+      final mockClient = MockClient((request) async {
+        // Verify traceparent header exists and follows W3C format
+        final traceparent = request.headers['traceparent'];
+        expect(traceparent, isNotNull);
+
+        // Format: version-traceId-parentId-flags (e.g., 00-xxx-xxx-01)
+        final parts = traceparent!.split('-');
+        expect(parts.length, 4, reason: 'traceparent should have 4 parts');
+        expect(parts[0], '00', reason: 'version should be 00');
+        expect(parts[1].length, 32, reason: 'traceId should be 32 hex chars');
+        expect(parts[2].length, 16, reason: 'parentId should be 16 hex chars');
+        expect(parts[3], '01', reason: 'flags should be 01 (sampled)');
+
+        return http.Response('{"resource_id": "game-123"}', 200);
+      });
+
+      final apiService = ApiService(
+        authService: mockAuthService,
+        client: mockClient,
+        apiBaseUrl: 'http://test-api',
+      );
+
+      // ACT
+      await apiService.createGame();
+
+      // ASSERT - verified by expect in MockClient callback
+    });
+
     test('should refresh token on 401 response', () async {
       // ARRANGE
       int callCount = 0;
