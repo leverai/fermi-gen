@@ -17,3 +17,4 @@ AUTH_RATE_LIMIT = '10/minute'  # Auth endpoints
 GAME_CREATE_RATE_LIMIT = '10/minute'  # Game creation
 DQ_START_RATE_LIMIT = '5/minute'  # DQ start
 ASSETS_RATE_LIMIT = '10/minute'  # Assets endpoints
+GAME_CLEANUP_RATE_LIMIT = '5/minute'  # Game cleanup (internal job)
