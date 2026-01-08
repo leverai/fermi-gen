@@ -1,5 +1,6 @@
 """Pydantic models for endpoints-related requests and responses."""
 
+import re
 from enum import StrEnum
 from typing import TypeAlias
 
@@ -9,7 +10,7 @@ from fermi_db.schemas import (
     QuestionCategory,
     QuestionDifficulty,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 RequestDifficulty: TypeAlias = QuestionDifficulty | None
 """Requested difficulty."""
@@ -159,8 +160,33 @@ class SetLocaleRequest(BaseModel):
 class UpdateUserProfileRequest(BaseModel):
     """Request model for updating a user's profile."""
 
-    display_name: str | None = None
-    avatar_url: str | None = None
+    display_name: str | None = Field(default=None, max_length=50)
+    avatar_url: str | None = Field(default=None, max_length=500)
+
+    @field_validator('display_name')
+    @classmethod
+    def validate_display_name(cls, v: str | None) -> str | None:
+        """Validate display name contains only safe characters."""
+        if v is None:
+            return v
+        # Allow alphanumeric, spaces, and common punctuation (-, _, ., ')
+        if not re.match(r'^[\w\s\-_.\']+$', v, re.UNICODE):
+            raise ValueError('Display name contains invalid characters')
+        return v.strip()
+
+    @field_validator('avatar_url')
+    @classmethod
+    def validate_avatar_url(cls, v: str | None) -> str | None:
+        """Validate avatar URL is safe (internal asset or HTTPS URL)."""
+        if v is None:
+            return v
+        # Allow relative paths starting with /static/avatars/ (internal)
+        # or absolute URLs with https scheme (OAuth providers like Google)
+        if v.startswith('/static/avatars/'):
+            return v
+        if v.startswith('https://') or v.startswith('http://localhost'):
+            return v
+        raise ValueError('Avatar URL must be an internal asset or valid HTTPS URL')
 
 
 class GetAvatarsResponse(BaseModel):

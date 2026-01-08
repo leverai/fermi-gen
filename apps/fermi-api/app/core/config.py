@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str = 'secret'  # noqa: S105
     jwt_algorithm: str = 'HS256'
     jwt_exp: datetime.timedelta = datetime.timedelta(minutes=30)
+    jwt_max_refresh_age: datetime.timedelta = datetime.timedelta(days=30)
 
     # Emulators - Optional in production, required for local dev
     firestore_emulator_host: str | None = '127.0.0.1:8080'

@@ -333,7 +333,7 @@ class _PlayerScoreState extends State<PlayerScore>
                                 context,
                                 fontWeight: FontWeight.w400,
                                 fontSize: 10.0,
-                                color: appTheme.highlight,
+                                color: appTheme.textMuted,
                               ),
                             ),
                           ),
