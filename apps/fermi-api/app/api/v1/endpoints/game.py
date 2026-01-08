@@ -11,6 +11,7 @@ from opentelemetry import trace
 import app.logging.attributes as api_attrs
 from app.api.v1.auth_deps import get_current_user
 from app.api.v1.dependencies import get_firestore_client, get_game_service
+from app.api.v1.rate_limit import GAME_CREATE_RATE_LIMIT, limiter
 from app.schemas.endpoints import (
     AddBotsRequest,
     GameAnswerRequest,
@@ -27,6 +28,7 @@ router = APIRouter()
 
 
 @router.post('/create', response_model=IdModel)
+@limiter.limit(GAME_CREATE_RATE_LIMIT)
 async def create_game(
     request: Request,
     payload: GameCreateRequest,
