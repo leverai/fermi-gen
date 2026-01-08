@@ -192,12 +192,16 @@ _QUANTITY_SYSTEM_UNITS_MAP: dict[str, dict[Locale, list[UnitInfo]]] = {
     # Data size (not regional; mirror)
     'DATA_SIZE': {
         Locale.US: [
+            _UNITS[BIT],
+            _UNITS[BYTE],
             _UNITS[KILOBYTE],
             _UNITS[MEGABYTE],
             _UNITS[GIGABYTE],
             _UNITS[TERABYTE],
         ],
         Locale.EU: [
+            _UNITS[BIT],
+            _UNITS[BYTE],
             _UNITS[KILOBYTE],
             _UNITS[MEGABYTE],
             _UNITS[GIGABYTE],
