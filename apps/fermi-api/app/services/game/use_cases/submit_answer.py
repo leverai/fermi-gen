@@ -9,7 +9,9 @@ case returns a minimal flag to allow callers to schedule post-commit actions.
 from typing import TYPE_CHECKING, TypedDict, cast
 
 from fastapi import HTTPException, status
+from opentelemetry import trace
 
+import app.logging.attributes as attrs
 from app.schemas.game import AnswersProgress, GamePlayer, GameState
 from app.services.game.errors import NotFoundError, StateConflictError
 from app.services.game.repositories.game_repo import GameRepository
@@ -83,7 +85,14 @@ class SubmitAnswerUseCase:
                     detail='Game not found',
                 )
 
+            # Set OTel attributes after successful read
+            span = trace.get_current_span()
+            state = GameState(int(data['state']))
+            span.set_attribute(attrs.GAME_STATE, state.name)
+            players = cast(dict[str, GamePlayer], data.get('players', {}))
+            span.set_attribute(attrs.GAME_PLAYER_COUNT, len(players))
             question_uid = cast(str, data['question_uid'])
+            span.set_attribute(attrs.GAME_QUESTION_UID, question_uid)
             correct_answer_doc = await self._repo.get_correct_answer(
                 game_ref=game_ref,
                 question_uid=question_uid,
@@ -122,7 +131,6 @@ class SubmitAnswerUseCase:
                     detail=str(err),
                 ) from err
 
-            state = GameState(int(data['state']))
             next_state = state
             if all_answered:
                 # Combine previously submitted scores with current player's score
