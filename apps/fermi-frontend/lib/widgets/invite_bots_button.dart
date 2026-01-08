@@ -33,12 +33,24 @@ class _InviteBotsButtonState extends State<InviteBotsButton> {
     // Button is disabled if it was already used or if explicitly disabled
     final isEnabled = widget.enabled && !_hasInvitedBots;
 
-    // Use secondary color as requested
-    final backgroundColor = isEnabled ? appTheme.bgLight : appTheme.bg;
-    // Use a contrasting text color. Since secondary is vibrant/dark, white or bgLight usually works well.
-    final foregroundColor = isEnabled ? appTheme.warning : appTheme.borderMuted;
+    // Design tokens
+    // Using 'bg' (surface) for face to contrast with 'bgDark' background of Lobby
+    // Using 'border' for the outline
+    // Using 'borderMuted' for the hard shadow
+    final Color faceColor = appTheme.bg;
+    final Color borderColor =
+        isEnabled ? appTheme.border : appTheme.borderMuted.withOpacity(0.5);
+    final Color shadowColor = appTheme.borderMuted;
+    final Color iconColor = isEnabled ? appTheme.text : appTheme.textMuted;
 
-    const buttonLabel = 'Invite bots';
+    // Shadow offset calculation (mimics MainButton's hard shadow)
+    final double xOffset = _isPressed ? appTheme.shadowOffset.dx : 0;
+    final double yOffset = _isPressed ? appTheme.shadowOffset.dy : 0;
+    final double shadowX = _isPressed ? 0 : appTheme.shadowOffset.dx;
+    final double shadowY = _isPressed ? 0 : appTheme.shadowOffset.dy;
+
+    final buttonLabel =
+        'Add ${widget.botCount} Bot${widget.botCount > 1 ? 's' : ''}';
 
     return GestureDetector(
       onTapDown: isEnabled ? (_) => setState(() => _isPressed = true) : null,
@@ -52,58 +64,66 @@ class _InviteBotsButtonState extends State<InviteBotsButton> {
             }
           : null,
       onTapCancel: isEnabled ? () => setState(() => _isPressed = false) : null,
-      onTap: null, // Handled in onTapUp
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
-        transform: Matrix4.translationValues(
-          _isPressed ? appTheme.shadowOffset.dx : 0,
-          _isPressed ? appTheme.shadowOffset.dy : 0,
-          0,
-        ),
-        decoration: BoxDecoration(
-            color: backgroundColor,
-            shape: BoxShape.rectangle,
+      child: MouseRegion(
+        cursor: isEnabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeOut,
+          // Move the button down-right when pressed
+          transform: Matrix4.translationValues(xOffset, yOffset, 0),
+          decoration: BoxDecoration(
+            color: faceColor,
+            shape: BoxShape.rectangle, // Always rectangle with radius, even for icon
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: borderColor,
+              width: 2.0, // Thicker border for Neubrutalism feel
+            ),
             boxShadow: [
-              if (!_isPressed && isEnabled)
-                BoxShadow(
-                  color: appTheme.warning.withAlpha(70),
-                  offset: appTheme.shadowOffset,
-                ),
-            ]),
-        padding: widget.iconOnly
-            ? EdgeInsets.zero
-            : const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        width: widget.iconOnly ? 64 : null,
-        height: widget.iconOnly ? 52 : null,
-        child: Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SvgPicture.asset(
-                'assets/icons/add_bot.svg',
-                width: 24,
-                height: 24,
-                colorFilter: ColorFilter.mode(
-                  foregroundColor,
-                  BlendMode.srcIn,
-                ),
+              // Hard shadow (blurRadius: 0)
+              BoxShadow(
+                color: shadowColor,
+                offset: Offset(shadowX, shadowY),
+                blurRadius: 0,
               ),
-              if (!widget.iconOnly) ...[
-                const SizedBox(width: 8),
-                Text(
-                  buttonLabel,
-                  style: TextStyle(
-                    color: foregroundColor,
-                    fontFamily: AppFont.primaryOf(context),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 1,
+            ],
+          ),
+          padding: widget.iconOnly
+              ? EdgeInsets.zero // Centered by fixed size
+              : const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+          // Fixed height 52 to match large touch targets, or 48 to match MainButton
+          // MainButton is 48. Let's use 48 for consistency.
+          height: 48,
+          width: widget.iconOnly ? 48 : null,
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SvgPicture.asset(
+                  'assets/icons/add_bot.svg',
+                  width: 20, // Slightly smaller icon inside the 48px box
+                  height: 20,
+                  colorFilter: ColorFilter.mode(
+                    iconColor,
+                    BlendMode.srcIn,
                   ),
                 ),
+                if (!widget.iconOnly) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    buttonLabel,
+                    style: TextStyle(
+                      color: iconColor,
+                      fontFamily: AppFont.primaryOf(context),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

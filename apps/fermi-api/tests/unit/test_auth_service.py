@@ -3,6 +3,7 @@
 # ruff: noqa: D103
 from __future__ import annotations
 
+from datetime import UTC
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -10,7 +11,7 @@ import pytest
 from jose import jwt
 
 from app.services.auth import AuthService, _get_emulator_claims
-from app.services.errors import InvalidFirebaseTokenError
+from app.services.errors import InvalidFirebaseTokenError, TokenTooOldError
 
 
 class _FakeUserRepo:
@@ -247,3 +248,143 @@ async def test_authenticate_user_non_emulator_success(
     decoded = jwt.get_unverified_claims(token.access_token)
     assert decoded['user_id'] == 'u-db'
     assert 'exp' in decoded
+    assert 'iat' in decoded  # Verify iat claim is included
+
+
+@pytest.mark.asyncio
+async def test_refresh_access_token_with_valid_age_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that tokens within the max refresh age can be refreshed."""
+    from datetime import datetime, timedelta
+
+    from app.core.config import settings
+
+    # Create a token that's 10 days old (within 30 day limit)
+    fake_user = SimpleNamespace(id=1)
+    fake_repo = _FakeUserRepo()
+    fake_repo.user = fake_user
+
+    async def _fake_get_by_id(user_id: int) -> Any:
+        return fake_user
+
+    class _FakeUserRepoWithGetById:
+        async def get_by_id(self, user_id: int) -> Any:
+            return await _fake_get_by_id(user_id)
+
+    fake_session = _FakeSession(_FakeUserRepoWithGetById())  # pyright: ignore[reportArgumentType]
+
+    # Create a token with iat claim 10 days ago
+    ten_days_ago = datetime.now(UTC) - timedelta(days=10)
+    token_payload = {
+        'user_id': 1,
+        'iat': ten_days_ago,
+        'exp': datetime.now(UTC) + timedelta(minutes=30),
+    }
+    old_token = jwt.encode(
+        token_payload,
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+
+    svc = AuthService()
+    monkeypatch.setattr(
+        'app.services.auth.UserRepository',
+        lambda _: _FakeUserRepoWithGetById(),
+    )
+
+    # Should succeed - token is within max refresh age
+    user, new_token = await svc.refresh_access_token(
+        cast(Any, fake_session),
+        old_token,
+    )
+    assert user.id == 1
+    assert new_token.access_token != old_token
+
+
+@pytest.mark.asyncio
+async def test_refresh_access_token_too_old_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that tokens older than max refresh age are rejected."""
+    from datetime import datetime, timedelta
+
+    from app.core.config import settings
+
+    # Create a token that's 31 days old (exceeds 30 day limit)
+    fake_user = SimpleNamespace(id=1)
+
+    class _FakeUserRepoWithGetById:
+        async def get_by_id(self, user_id: int) -> Any:
+            return fake_user
+
+    fake_session = _FakeSession(_FakeUserRepoWithGetById())  # pyright: ignore[reportArgumentType]
+
+    # Create a token with iat claim 31 days ago
+    thirty_one_days_ago = datetime.now(UTC) - timedelta(days=31)
+    token_payload = {
+        'user_id': 1,
+        'iat': thirty_one_days_ago,
+        'exp': datetime.now(UTC) + timedelta(minutes=30),
+    }
+    old_token = jwt.encode(
+        token_payload,
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+
+    svc = AuthService()
+    monkeypatch.setattr(
+        'app.services.auth.UserRepository',
+        lambda _: _FakeUserRepoWithGetById(),
+    )
+
+    # Should raise TokenTooOldError
+    with pytest.raises(TokenTooOldError):
+        await svc.refresh_access_token(
+            cast(Any, fake_session),
+            old_token,
+        )
+
+
+@pytest.mark.asyncio
+async def test_refresh_access_token_without_iat_allowed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that tokens without iat claim are allowed for backward compatibility."""
+    from datetime import datetime, timedelta
+
+    from app.core.config import settings
+
+    fake_user = SimpleNamespace(id=1)
+
+    class _FakeUserRepoWithGetById:
+        async def get_by_id(self, user_id: int) -> Any:
+            return fake_user
+
+    fake_session = _FakeSession(_FakeUserRepoWithGetById())  # pyright: ignore[reportArgumentType]
+
+    # Create a token without iat claim (old format)
+    token_payload = {
+        'user_id': 1,
+        'exp': datetime.now(UTC) + timedelta(minutes=30),
+    }
+    old_token = jwt.encode(
+        token_payload,
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+
+    svc = AuthService()
+    monkeypatch.setattr(
+        'app.services.auth.UserRepository',
+        lambda _: _FakeUserRepoWithGetById(),
+    )
+
+    # Should succeed - backward compatibility for tokens without iat
+    user, new_token = await svc.refresh_access_token(
+        cast(Any, fake_session),
+        old_token,
+    )
+    assert user.id == 1
+    assert new_token.access_token != old_token

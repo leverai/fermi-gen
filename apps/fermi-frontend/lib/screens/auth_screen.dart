@@ -68,10 +68,10 @@ class AuthScreen extends StatelessWidget {
 
     // Create a specific theme for the auth UI to force the look
     final authTheme = Theme.of(context).copyWith(
-      scaffoldBackgroundColor: appTheme.bgDark,
+      scaffoldBackgroundColor: appTheme.bg,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0XFF0D0D0C),
+        fillColor: appTheme.bgDark,
         // Borders
         border: inputBorder,
         enabledBorder: inputBorder.copyWith(
