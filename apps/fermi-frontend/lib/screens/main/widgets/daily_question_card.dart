@@ -193,7 +193,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
                   // For non-today cards, show weekday at the top
                   if (!widget.isToday)
                     Text(
-                      weekdayShortFormat.format(widget.date),
+                      weekdayShortFormat.format(widget.date).toUpperCase(),
                       style: AppFont.primaryTextStyle(
                         context,
                         fontSize: 16,
@@ -395,7 +395,8 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
               'assets/icons/timer.svg',
               width: 14,
               height: 14,
-              colorFilter: ColorFilter.mode(appTheme.primary, BlendMode.srcIn),
+              colorFilter: ColorFilter.mode(
+                  appTheme.warning.withAlpha(140), BlendMode.srcIn),
             ),
             const SizedBox(width: 4),
           ],
@@ -404,8 +405,8 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
             style: AppFont.secondaryTextStyle(
               context,
               fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: appTheme.primary,
+              fontWeight: FontWeight.w800,
+              color: appTheme.warning.withAlpha(140),
             ).copyWith(letterSpacing: 0.3),
           ),
         ],

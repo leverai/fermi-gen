@@ -793,7 +793,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Waiting for results...',
+          'Come back later for results.',
           style: AppFont.secondaryTextStyle(
             context,
             color: appTheme.textMuted,

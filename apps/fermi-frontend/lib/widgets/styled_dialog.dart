@@ -165,7 +165,7 @@ class StyledDialog extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(12),
-                        splashColor: appTheme.text.withOpacity(0.2),
+                        splashColor: appTheme.highlight.withOpacity(0.2),
                         highlightColor: Colors
                             .transparent, // optional: avoids the grey hold highlight
                         onTap: onSecondaryPressed,
@@ -222,7 +222,7 @@ class StyledDialog extends StatelessWidget {
                             context,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: appTheme.text, // Contrast text
+                            color: appTheme.bgLight, // Contrast text
                           ).copyWith(letterSpacing: 0.2),
                         ),
                   ),
