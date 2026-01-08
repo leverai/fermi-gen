@@ -21,6 +21,18 @@ This document describes the architecture, design decisions, and internal working
   - [Low Level](#low-level)
   - [Example Walkthrough](#example-walkthrough)
   - [Additional Logic](#additional-logic)
+- [Daily Question Mode](#daily-question-mode)
+  - [Architecture](#architecture)
+  - [Workflow](#workflow)
+  - [Service Layer](#service-layer)
+  - [API Endpoints](#api-endpoints)
+  - [Post-Take Feature](#post-take-feature)
+  - [Results and Leaderboard](#results-and-leaderboard)
+  - [Push Notifications](#push-notifications)
+  - [Invite/Share Deep Links](#inviteshare-deep-links)
+  - [Firestore Schema](#firestore-schema)
+  - [Key Differences from Party Mode](#key-differences-from-party-mode)
+  - [Scheduled Jobs](#scheduled-jobs)
 - [Design Decisions](#design-decisions)
 
 ---
@@ -516,18 +528,146 @@ Located in `app/services/daily_question/`:
 
 ### API Endpoints
 
-| Endpoint | Purpose |
-|----------|---------|
-| `POST /daily_question/start` | Start question, returns deadline (only when ACTIVE) |
-| `POST /daily_question/answer` | Submit answer within deadline |
-| `GET /daily_question/results` | Get today's results (only when CLOSED) |
-| `GET /daily_question/results/{date}` | Get results for a specific date |
-| `GET /daily_question/archive/week` | Lite archive for carousel (past 7 days + today) |
-| `GET /daily_question/archive/month?year=&month=` | Lite archive for calendar view |
-| `POST /daily_question/close_and_schedule` | End today's DQ and schedule the next one. This is invoked by a scheduled job at 2AM UTC. |
-| `POST /daily_question/activate` | Activate the scheduled DQ for this date. This is invoked by a scheduled job at 12PM UTC. |
+**User-Facing Endpoints** (require authentication):
 
-The frontend gets DQ status (NOT_STARTED/ACTIVE/CLOSED) by subscribing to the Firestore document, not via API.
+| Endpoint | Method | Purpose | Request/Response |
+|----------|--------|---------|------------------|
+| `/daily_question/start` | POST | Start question, returns deadline (only when ACTIVE) | Response: `DQQuestionResponse` |
+| `/daily_question/answer` | POST | Submit answer within deadline | Request: `DQAnswerRequest`, Response: `DQSubmitResponse` |
+| `/daily_question/results` | GET | Get today's results (only when CLOSED) | Response: `DQResultsResponse` |
+| `/daily_question/results/{date}` | GET | Get results for a specific date | Query: `include_post_takes` (default: true), Response: `DQResultsResponse` |
+| `/daily_question/archive/week` | GET | Lite archive for carousel (past 7 days + today) | Response: `DQLiteArchiveResponse` |
+| `/daily_question/archive/month` | GET | Lite archive for calendar view | Query: `year`, `month`, Response: `DQLiteArchiveResponse` |
+| `/daily_question/post_take/{date}/start` | POST | Start a post-take for a closed DQ | Response: `DQQuestionResponse` |
+| `/daily_question/post_take/{date}/answer` | POST | Submit post-take answer and get immediate results | Request: `DQPostTakeAnswerRequest`, Response: `DQPostTakeResultsResponse` |
+| `/daily_question/invite/{date}` | GET | Deep link trampoline for DQ invites | Returns HTML that opens app or falls back to app stores |
+
+**Scheduler-Only Endpoints** (no authentication, protected by Cloud Run IAM):
+
+| Endpoint | Method | Purpose | When Called |
+|----------|--------|---------|-------------|
+| `/daily_question/close_and_schedule` | POST | End today's DQ and schedule the next one | Cloud Scheduler at 2AM UTC |
+| `/daily_question/activate` | POST | Activate the scheduled DQ for this date | Cloud Scheduler at 12PM UTC |
+
+**Note**: The frontend gets DQ status (NOT_STARTED/ACTIVE/CLOSED) by subscribing to the Firestore document, not via API.
+
+All request/response schemas are defined in `app/services/daily_question/schemas.py`.
+
+### Post-Take Feature
+
+Post-take allows users to take past daily questions they missed. This feature will be limited to PRO subscribers in the future.
+
+**Key Differences from Live Participation:**
+
+- **No Firestore Session**: Post-take doesn't create a `user_sessions` document. The frontend tracks `started_at` locally and sends it with the answer.
+- **Immediate Results**: Post-take submissions return results immediately (`DQPostTakeResultsResponse`) instead of waiting for the DQ to close.
+- **Dynamic Ranking**: Post-take entries use dynamic rank computation (DENSE_RANK) since they're added after ranks are computed.
+- **Leaderboard Integration**: Post-take entries appear in leaderboards with `is_post_take=true` flag. They can be filtered out using `include_post_takes=false` query parameter.
+
+**Workflow:**
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant Database
+
+    Note over User,Database: User selects past DQ from archive
+    User->>Frontend: Tap past DQ card
+    Frontend->>Backend: POST /post_take/{date}/start
+    Backend->>Database: Check DQ exists and is CLOSED
+    Backend->>Database: Verify user hasn't answered
+    Backend-->>Frontend: Question + 30s deadline
+    Frontend->>Frontend: Start local timer
+
+    Note over User,Database: User submits answer
+    User->>Frontend: Enter answer
+    Frontend->>Backend: POST /post_take/{date}/answer<br/>{answer, started_at}
+    Backend->>Backend: Validate deadline (started_at + 30s + grace)
+    Backend->>Backend: Score answer
+    Backend->>Backend: Compute dynamic rank
+    Backend->>Database: Store answer (is_post_take=true)
+    Backend->>Database: Increment XP (score // 100)
+    Backend-->>Frontend: Immediate results + leaderboard
+```
+
+**Restrictions:**
+
+- Only available for CLOSED DQs (not SCHEDULED or ACTIVE)
+- Users cannot post-take a DQ they've already participated in
+- Deadline is fixed at 30 seconds from `started_at` (no window end consideration)
+
+### Results and Leaderboard
+
+**Results Access Gating:**
+
+Users must have participated in a DQ to view its results. The backend checks `daily_question_answers` table and returns `403 Forbidden` if the user hasn't answered.
+
+**Ranking System:**
+
+- **Pre-take entries**: Ranks are computed and stored during the close/schedule job (2AM UTC) using DENSE_RANK to handle ties correctly.
+- **Post-take entries**: Ranks are computed dynamically using DENSE_RANK when requested, since they're added after initial ranking.
+- **Tie Handling**: Multiple users with the same score receive the same rank (e.g., two users with rank 1, next user gets rank 3).
+
+**Leaderboard Display:**
+
+- Top 10 entries are returned by default
+- Each entry includes:
+  - `rank`: User's rank (1-indexed)
+  - `player`: Display name and avatar URL
+  - `score`: User's score
+  - `time_taken_s`: Time from start to submission
+  - `is_post_take`: Whether this was a post-take entry
+  - `is_current_user`: Whether this is the requesting user's entry
+
+**XP Increment:**
+
+Users receive XP based on their score: `xp_increment = score // 100`. This applies to both live participation and post-take submissions.
+
+**Unit Conversion:**
+
+Results display answers in the user's preferred unit system:
+- If user participated: Correct answer converted to user's submitted unit
+- If user didn't participate: Correct answer converted to user's locale (US/EU) base unit
+
+### Push Notifications
+
+The Daily Question feature sends two types of push notifications:
+
+1. **DQ Activated Notification** (`send_dq_activated_notification()`):
+   - Sent when DQ becomes ACTIVE (12PM UTC)
+   - Notifies users that today's question is available
+   - Triggered in `DailyQuestionService._activate_scheduled_dq_for_date()`
+
+2. **DQ Results Ready Notification** (`send_dq_results_ready_notification()`):
+   - Sent when results are ready (2AM UTC after close/schedule job)
+   - Notifies users who participated that results are available
+   - Triggered in `DailyQuestionService._close_dq_for_date()`
+
+Both notifications are sent via the notification service (`app/services/notification.py`).
+
+### Invite/Share Deep Links
+
+The DQ feature supports sharing via deep links that open the app directly to a specific daily question.
+
+**Trampoline Endpoint:**
+
+`GET /daily_question/invite/{date}` returns an HTML page that:
+- Detects the user's platform (iOS/Android/Other)
+- Attempts to open the app using the appropriate deep link scheme
+- Falls back to app stores if the app is not installed
+
+**Deep Link Format:**
+
+- **Custom Scheme**: `guesstimate://dq/{YYYY-MM-DD}`
+- **Android Intent URI**: `intent://dq/{YYYY-MM-DD}#Intent;scheme=guesstimate;package=tech.leverai.guesstimate;S.browser_fallback_url={play_store_url};end`
+
+**Invite URL Storage:**
+
+When a DQ is activated, the backend generates an invite URL and stores it in the Firestore document's `invite_url` field. The URL can be:
+- A ChottuLink short URL (if `INVITE_URL_BASE` is configured)
+- The API trampoline endpoint (for local development)
 
 ### Firestore Schema
 
@@ -538,9 +678,16 @@ The frontend gets DQ status (NOT_STARTED/ACTIVE/CLOSED) by subscribing to the Fi
   "status": "NOT_STARTED",  // or "ACTIVE" or "CLOSED"
   "window_start": "2025-12-17T12:00:00Z",
   "window_end": "2025-12-18T02:00:00Z",
-  "results_ready": false
+  "results_ready": false,  // Set to true when ranks are computed (2AM UTC)
+  "invite_url": "https://..."  // Added when status becomes ACTIVE (12PM UTC)
 }
 ```
+
+**Field Transitions:**
+
+- `status`: `NOT_STARTED` → `ACTIVE` (at 12PM UTC) → `CLOSED` (at 2AM UTC next day)
+- `results_ready`: `false` → `true` (at 2AM UTC when ranks are computed)
+- `invite_url`: Added when status becomes `ACTIVE` (12PM UTC)
 
 **Subcollection: `daily_questions/{date}/user_sessions/{user_id}`**
 
@@ -578,6 +725,8 @@ Daily Question lifecycle is managed by Cloud Run jobs (triggered by Cloud Schedu
 2. **Activate Job** (12:00 PM UTC):
    - Updates today's DQ status to ACTIVE in database
    - Updates Firestore document (`status=ACTIVE`)
+   - Adds `invite_url` to Firestore document for sharing
+   - Sends push notification to users that DQ is active
 
 ---
 
