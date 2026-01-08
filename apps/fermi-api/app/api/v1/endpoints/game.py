@@ -18,7 +18,6 @@ from app.schemas.endpoints import (
     GameConfigResponse,
     GameCreateRequest,
     GameRemovePlayerRequest,
-    GetPlayerStatsRequest,
     GetPlayerStatsResponse,
     IdModel,
 )
@@ -200,16 +199,15 @@ async def remove_player(
 @router.post('/get_player_stats', response_model=GetPlayerStatsResponse)
 async def get_player_stats(
     request: Request,
-    payload: GetPlayerStatsRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     game_service: Annotated[GameService, Depends(get_game_service)],
 ) -> GetPlayerStatsResponse:
-    """Get a player's stats."""
+    """Get the current user's stats."""
     span = trace.get_current_span()
     span.set_attribute(api_attrs.ACTION, get_player_stats.__qualname__)
-    span.set_attribute(api_attrs.QUERY_PARAMS, payload.model_dump_json())
+    span.set_attribute(api_attrs.FIREBASE_UID, current_user.firebase_uid)
     return await game_service.get_player_stats(
-        payload=payload,
+        player_id=current_user.firebase_uid,
         request=request,
     )
 

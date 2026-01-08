@@ -303,7 +303,7 @@ void main() {
         expect(request.url.path, '/game/get_player_stats');
         expect(request.method, 'POST');
         final body = jsonDecode(request.body);
-        expect(body['player_id'], 'player-123');
+        expect(body, isEmpty); // No player_id in request body anymore
         return http.Response(
           jsonEncode({
             'player_id': 'player-123',
@@ -325,7 +325,7 @@ void main() {
       );
 
       // ACT
-      final stats = await apiService.getPlayerStats(playerId: 'player-123');
+      final stats = await apiService.getPlayerStats();
 
       // ASSERT
       expect(stats, isA<Map<String, dynamic>>());
@@ -369,7 +369,7 @@ void main() {
 
       // ACT & ASSERT
       expect(
-        () => apiService.getPlayerStats(playerId: 'player-123'),
+        () => apiService.getPlayerStats(),
         throwsA(isA<Exception>().having(
           (e) => e.toString(),
           'message',
@@ -395,7 +395,7 @@ void main() {
 
       // ACT & ASSERT
       expect(
-        () => apiService.getPlayerStats(playerId: 'player-123'),
+        () => apiService.getPlayerStats(),
         throwsA(isA<Exception>().having(
           (e) => e.toString(),
           'message',

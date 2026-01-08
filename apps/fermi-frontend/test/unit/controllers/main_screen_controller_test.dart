@@ -93,7 +93,7 @@ void main() {
       );
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
       when(() => mockAuth.firebaseUid).thenReturn('player123');
-      when(() => mockApi.getPlayerStatsTyped(playerId: 'player123'))
+      when(() => mockApi.getPlayerStatsTyped())
           .thenAnswer((_) async => stats);
 
       // ACT
@@ -101,7 +101,7 @@ void main() {
 
       // ASSERT
       expect(controller.playerStatsDto, equals(stats));
-      verify(() => mockApi.getPlayerStatsTyped(playerId: 'player123'))
+      verify(() => mockApi.getPlayerStatsTyped())
           .called(1);
     });
 

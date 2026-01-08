@@ -116,12 +116,9 @@ class ApiService {
     return GameConfig.fromJson(raw);
   }
 
-  Future<Map<String, dynamic>> getPlayerStats(
-      {required String playerId}) async {
+  Future<Map<String, dynamic>> getPlayerStats() async {
     try {
-      final response = await _authPost('/game/get_player_stats', {
-        'player_id': playerId,
-      });
+      final response = await _authPost('/game/get_player_stats', {});
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -136,9 +133,8 @@ class ApiService {
     }
   }
 
-  Future<PlayerStatsResponse> getPlayerStatsTyped(
-      {required String playerId}) async {
-    final raw = await getPlayerStats(playerId: playerId);
+  Future<PlayerStatsResponse> getPlayerStatsTyped() async {
+    final raw = await getPlayerStats();
     return PlayerStatsResponse.fromJson(raw);
   }
 

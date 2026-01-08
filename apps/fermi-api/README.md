@@ -351,14 +351,9 @@ Ends the game. This can only be done by the host.
     -   A background task is started to archive the game results to the database.
 
 #### `POST /game/get_player_stats`
-Retrieves a player's statistics.
+Retrieves the current authenticated user's statistics.
 
--   **Request Body:** `GetPlayerStatsRequest`
-    ```json
-    {
-      "player_id": "string"
-    }
-    ```
+-   **Request Body:** None (empty body `{}`). The endpoint automatically uses the authenticated user's Firebase UID from the JWT token.
 -   **Response (200 OK):** `GetPlayerStatsResponse`
     ```json
     {

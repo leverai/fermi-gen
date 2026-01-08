@@ -17,12 +17,10 @@ def test_get_player_stats_shape(
         'password123',
         'StatsUser',
     )
-    # Note: API contract uses a string player_id. For this smoke test we pass a
-    # placeholder string; backend should handle lookup/shape.
-    payload = {'player_id': 'dev.user+stats@example.com'}
+    # Endpoint now uses current_user.firebase_uid automatically, no payload needed
     r = api_client.post(
         '/api/v1/game/get_player_stats',
-        json=payload,
+        json={},
         headers=headers,
     )
     assert r.status_code == 200

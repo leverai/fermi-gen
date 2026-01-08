@@ -112,7 +112,7 @@ class MainScreenController extends ChangeNotifier {
       print('[MainScreenController] Got config, fetching stats...');
       PlayerStatsResponse? stats;
       if (auth.firebaseUid != null) {
-        stats = await api.getPlayerStatsTyped(playerId: auth.firebaseUid!);
+        stats = await api.getPlayerStatsTyped();
         print('[MainScreenController] Got stats');
       }
       _configDto = config;
@@ -159,7 +159,7 @@ class MainScreenController extends ChangeNotifier {
       final GameConfig config = await api.getGameConfigTyped();
       PlayerStatsResponse? stats;
       if (auth.firebaseUid != null) {
-        stats = await api.getPlayerStatsTyped(playerId: auth.firebaseUid!);
+        stats = await api.getPlayerStatsTyped();
       }
 
       // Update data

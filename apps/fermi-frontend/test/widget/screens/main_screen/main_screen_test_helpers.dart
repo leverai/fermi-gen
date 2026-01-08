@@ -93,7 +93,7 @@ Future<void> setupInitializedMainScreen(
   when(() => mockAuth.shouldRefreshStats).thenReturn(false);
   if (withStats) {
     final stats = createTestPlayerStats();
-    when(() => mockApi.getPlayerStatsTyped(playerId: 'test-player'))
+    when(() => mockApi.getPlayerStatsTyped())
         .thenAnswer((_) async => stats);
   }
 
