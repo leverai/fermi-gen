@@ -381,7 +381,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
       height: 28,
       decoration: BoxDecoration(
         color: buttonText == 'RESULTS'
-            ? appTheme.warning
+            ? appTheme.bgLight
             : appTheme.primaryMuted.withAlpha(200),
         borderRadius: BorderRadius.circular(appTheme.borderRadius / 2),
       ),
@@ -395,8 +395,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
               'assets/icons/timer.svg',
               width: 14,
               height: 14,
-              colorFilter: ColorFilter.mode(
-                  appTheme.warning.withAlpha(140), BlendMode.srcIn),
+              colorFilter: ColorFilter.mode(appTheme.bg, BlendMode.srcIn),
             ),
             const SizedBox(width: 4),
           ],
@@ -406,7 +405,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
               context,
               fontSize: 12,
               fontWeight: FontWeight.w800,
-              color: appTheme.warning.withAlpha(140),
+              color: appTheme.bg,
             ).copyWith(letterSpacing: 0.3),
           ),
         ],
