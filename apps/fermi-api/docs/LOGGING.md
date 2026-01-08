@@ -39,6 +39,49 @@ OpenTelemetry provides two complementary signals:
 
 3. **Logs are correlated**: Any `logger.info()` call automatically includes trace/span IDs for correlation in Cloud Logging.
 
+## Cross-Service Tracing (Frontend → Backend)
+
+The Flutter frontend includes a `traceparent` header in all API requests, enabling end-to-end distributed tracing.
+
+### How It Works
+
+1. **Frontend generates trace context**: `TracingService.generateTraceparent()` creates a W3C-compliant header
+2. **Header sent with request**: `ApiService` includes `traceparent` in every HTTP call
+3. **Backend extracts context**: `FastAPIInstrumentor` automatically parses the header
+4. **Spans are linked**: Backend spans become children of the frontend trace
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Frontend (Flutter)                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-abc123-01  │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                              │                                      │
+│                              ▼                                      │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                      HTTP Request                            │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  Backend (FastAPI)                                                  │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ FastAPIInstrumentor extracts traceparent, creates child span │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                              │                                      │
+│                              ▼                                      │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │               Spans exported to Cloud Trace                  │   │
+│  │           (linked to frontend trace ID)                      │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Viewing Cross-Service Traces
+
+In Cloud Trace, search for a trace ID to see all connected spans from both frontend-originated requests and backend processing.
+
 ## Usage Examples
 
 ### Basic Setup in Endpoints
