@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:fermi_frontend/models/avatar_info.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/avatar_widget.dart';
+import 'package:fermi_frontend/widgets/styled_dialog.dart';
 
 class ProfileSheet extends StatefulWidget {
   const ProfileSheet({
@@ -24,7 +26,7 @@ class ProfileSheet extends StatefulWidget {
 
 class _ProfileSheetState extends State<ProfileSheet> {
   late final TextEditingController _nameController;
-  List<String> _avatars = [];
+  List<AvatarInfo> _avatars = [];
   String? _selectedAvatarUrl;
   bool _isLoadingAvatars = true;
   bool _isSaving = false;
@@ -120,6 +122,31 @@ class _ProfileSheetState extends State<ProfileSheet> {
       if (mounted) {
         setState(() => _isSaving = false);
       }
+    }
+  }
+
+  void _showLockedAvatarDialog(int requiredLevel) {
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+    showDialog(
+      context: context,
+      builder: (context) => StyledDialog(
+        message: 'Avatar Locked',
+        secondaryMessage:
+            'This avatar requires level $requiredLevel to unlock. '
+            'Keep playing to level up!',
+        primaryButtonLabel: 'OK',
+        primaryButtonColor: appTheme.primary,
+        onPrimaryPressed: () => Navigator.of(context).pop(),
+      ),
+    );
+  }
+
+  void _onAvatarTap(AvatarInfo avatar) {
+    if (avatar.unlocked) {
+      setState(() => _selectedAvatarUrl = avatar.url);
+    } else {
+      _showLockedAvatarDialog(avatar.unlockLevel);
     }
   }
 
@@ -261,54 +288,121 @@ class _ProfileSheetState extends State<ProfileSheet> {
                       crossAxisCount: 4,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
+                      childAspectRatio: 0.75, // Taller cells for level row
                     ),
                     itemCount: _avatars.length,
                     itemBuilder: (context, index) {
-                      final url = _avatars[index];
-                      final isSelected = _selectedAvatarUrl == url;
+                      final avatar = _avatars[index];
+                      final isSelected = _selectedAvatarUrl == avatar.url;
                       return GestureDetector(
-                        onTap: () => setState(() => _selectedAvatarUrl = url),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            return Stack(
+                        onTap: () => _onAvatarTap(avatar),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Expanded(
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final size = constraints.maxWidth;
+                                  Widget avatarWidget = AvatarWidget(
+                                    imageUrl: avatar.url,
+                                    size: size,
+                                    borderColor: isSelected
+                                        ? appTheme.primary
+                                        : Colors.transparent,
+                                    borderWidth: 2.0,
+                                    padding: const EdgeInsets.all(4.0),
+                                    placeholder: CircularProgressIndicator(
+                                      color: appTheme.primary,
+                                      strokeWidth: 2,
+                                    ),
+                                  );
+
+                                  if (!avatar.unlocked) {
+                                    avatarWidget = Opacity(
+                                      opacity: 0.5,
+                                      child: ColorFiltered(
+                                        colorFilter:
+                                            const ColorFilter.matrix(<double>[
+                                          0.2126,
+                                          0.7152,
+                                          0.0722,
+                                          0,
+                                          0,
+                                          0.2126,
+                                          0.7152,
+                                          0.0722,
+                                          0,
+                                          0,
+                                          0.2126,
+                                          0.7152,
+                                          0.0722,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          1,
+                                          0,
+                                        ]),
+                                        child: avatarWidget,
+                                      ),
+                                    );
+                                  }
+
+                                  return Stack(
+                                    children: [
+                                      avatarWidget,
+                                      if (isSelected)
+                                        Positioned(
+                                          top: 0,
+                                          right: 0,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: BoxDecoration(
+                                              color: appTheme.primary,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: appTheme.bgLight,
+                                                width: 2,
+                                              ),
+                                            ),
+                                            child: Icon(
+                                              Icons.check,
+                                              size: 12,
+                                              color: appTheme.bgLight,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                            // Level row
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                AvatarWidget(
-                                  imageUrl: url,
-                                  size: constraints.maxWidth,
-                                  borderColor: isSelected
-                                      ? appTheme.primary
-                                      : Colors.transparent,
-                                  borderWidth: 2.0,
-                                  padding: const EdgeInsets.all(4.0),
-                                  placeholder: CircularProgressIndicator(
-                                    color: appTheme.primary,
-                                    strokeWidth: 2,
+                                if (!avatar.unlocked) ...[
+                                  Icon(
+                                    Icons.lock,
+                                    size: 10,
+                                    color: appTheme.textMuted,
+                                  ),
+                                  const SizedBox(width: 2),
+                                ],
+                                Text(
+                                  'Level ${avatar.unlockLevel}',
+                                  style: AppFont.primaryTextStyle(
+                                    context,
+                                    fontSize: 10,
+                                    color: appTheme.textMuted,
                                   ),
                                 ),
-                                if (isSelected)
-                                  Positioned(
-                                    top: 0,
-                                    right: 0,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: appTheme.primary,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: appTheme.bgLight,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.check,
-                                        size: 12,
-                                        color: appTheme.bgLight,
-                                      ),
-                                    ),
-                                  ),
                               ],
-                            );
-                          },
+                            ),
+                          ],
                         ),
                       );
                     },
