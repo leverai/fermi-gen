@@ -17,6 +17,7 @@ from app.api.v1.dependencies import (
     get_firestore_client,
     # verify_scheduler_secret,
 )
+from app.api.v1.rate_limit import DQ_START_RATE_LIMIT, limiter
 from app.services.daily_question.schemas import (
     DQAnswerRequest,
     DQEndResponse,
@@ -33,7 +34,9 @@ router = APIRouter()
 
 
 @router.post('/start', response_model=DQQuestionResponse)
+@limiter.limit(DQ_START_RATE_LIMIT)
 async def start_question(
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
@@ -179,7 +182,9 @@ async def get_archive_month(
 
 
 @router.post('/post_take/{question_date}/start', response_model=DQQuestionResponse)
+@limiter.limit(DQ_START_RATE_LIMIT)
 async def start_post_take(
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
     question_date: str = Path(

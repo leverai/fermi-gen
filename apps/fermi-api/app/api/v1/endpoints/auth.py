@@ -26,6 +26,7 @@ from app.api.v1.dependencies import (
     get_auth_service,
     get_subscription_repository,
 )
+from app.api.v1.rate_limit import AUTH_RATE_LIMIT, limiter
 from app.schemas.auth import TokenResponse, UserResponse
 from app.services.auth import AuthService
 from app.services.errors import InvalidFirebaseTokenError
@@ -46,6 +47,7 @@ async def _get_subscription_tier(
 
 
 @router.post('/token', response_model=TokenResponse)
+@limiter.limit(AUTH_RATE_LIMIT)
 async def verify_token(
     request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials, Security(bearer_scheme)],
@@ -107,7 +109,9 @@ async def verify_token(
 
 
 @router.post('/refresh', response_model=TokenResponse)
+@limiter.limit(AUTH_RATE_LIMIT)
 async def refresh_token(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials, Security(bearer_scheme)],
     session: Annotated[AsyncSession, Depends(get_session)],
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
