@@ -182,14 +182,84 @@ When running locally, logs use a human-readable format:
 
 Spans are created but not exported locally.
 
+## Game Service Patterns
+
+The game service follows a layered approach to OTel instrumentation:
+
+### Endpoint Layer
+- Sets request-level attributes: `ACTION`, `GAME_ID`, `USER_ID`
+- Handles exception recording with `span.record_exception()` and `span.set_status()`
+- No business logic attributes here
+
+### Use Case Layer
+- Sets computed attributes after successful Firestore reads
+- Attributes include: `game.state`, `game.player_count`, `game.question_uid`, `game.question_order`
+- Only set attributes that help with debugging and filtering
+
+### Service Layer
+- No OTel instrumentation (pure orchestration)
+- Delegates to use cases and schedules background tasks
+
+### Example: Start Game Flow
+
+```python
+# Endpoint (game.py)
+@router.post('/start', response_model=IdModel)
+async def start_game(payload: IdModel, ...):
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, start_game.__qualname__)
+    span.set_attribute(api_attrs.GAME_ID, payload.resource_id)
+
+    try:
+        return await game_service.start_game(...)
+    except HTTPException:
+        raise  # FastAPI handles these
+    except Exception as ex:
+        span.set_status(Status(StatusCode.ERROR))
+        span.record_exception(ex)
+        raise
+
+# Use Case (start_game.py)
+async def execute(self, *, game_id: str, ...):
+    data = await self._repo.get_game_fields(...)
+    if not data:
+        raise HTTPException(...)
+
+    # Set attributes AFTER successful read
+    span = trace.get_current_span()
+    state = GameState(int(data['state']))
+    span.set_attribute(attrs.GAME_STATE, state.name)
+    span.set_attribute(attrs.GAME_PLAYER_COUNT, len(data.get('players', {})))
+
+    # ... rest of logic
+```
+
+### Available Game Attributes
+
+| Attribute | Set By | When | Example Value |
+|-----------|--------|------|---------------|
+| `game.id` | Endpoint | Request start | `"abc123"` |
+| `game.state` | Use case | After Firestore read | `"LOBBY"`, `"PLAYING"` |
+| `game.player_count` | Use case | After Firestore read | `4` |
+| `game.question_uid` | Use case | After read/reveal | `"q-xyz789"` |
+| `game.question_order` | Use case | During next_question | `2` |
+
+### Key Principles
+
+1. **Endpoints own request data** - IDs from payload, user from auth
+2. **Use cases own computed data** - State, counts after Firestore reads
+3. **No duplicate exception recording** - Only endpoints record exceptions
+4. **Set attributes after reads** - Don't set before validation fails
+
 ## Best Practices
 
 1. **Always add `ACTION`** to identify what the endpoint does
-2. **Add IDs** (game_id, user_id, question_id) for filtering
+2. **Add IDs** (game.id, user.id, question_uid) for filtering
 3. **Add counts** (player_count, score) for analytics
 4. **Don't log sensitive data** (passwords, tokens, PII)
 5. **Use `logger.exception()` for errors** - trace IDs included automatically
 6. **Always handle exceptions** with `span.record_exception()` and `span.set_status()`
+7. **Keep instrumentation simple** - Attributes on HTTP span only, no child spans for background tasks
 
 ## OpenTelemetry Dependencies
 

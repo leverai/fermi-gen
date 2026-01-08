@@ -65,8 +65,20 @@ DQ_DATE: Final = 'dq.date'
 # Game context (Party mode)
 # =============================================================================
 
-GAME_ID: Final = 'game_id'
-"""game unique ID."""
+GAME_ID: Final = 'game.id'
+"""Game unique ID."""
+
+GAME_STATE: Final = 'game.state'
+"""Current game state (e.g., 'LOBBY', 'PLAYING')."""
+
+GAME_PLAYER_COUNT: Final = 'game.player_count'
+"""Number of players in the game."""
+
+GAME_QUESTION_UID: Final = 'game.question_uid'
+"""Current question UID."""
+
+GAME_QUESTION_ORDER: Final = 'game.question_order'
+"""Current question order/number."""
 
 # =============================================================================
 # Webhook context

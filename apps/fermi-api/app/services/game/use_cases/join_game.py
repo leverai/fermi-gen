@@ -11,7 +11,9 @@ from typing import TYPE_CHECKING, TypedDict, cast
 
 from fastapi import HTTPException, status
 from fermi_db.schemas import QuestionDifficulty
+from opentelemetry import trace
 
+import app.logging.attributes as attrs
 from app.schemas.endpoints import QuestionRoundSettings, RequestCategory
 from app.schemas.game import GamePlayer, GameState
 from app.services.game.errors import StateConflictError
@@ -93,8 +95,14 @@ class JoinGameUseCase:
                 detail='Game is full',
             )
 
-        # Update lifecycle state back to not-ready (someone joined)
+        # Set OTel attributes after successful read
+        span = trace.get_current_span()
         state = GameState(int(data['state']))
+        span.set_attribute(attrs.GAME_STATE, state.name)
+        players = cast(dict[str, GamePlayer], data.get('players', {}))
+        span.set_attribute(attrs.GAME_PLAYER_COUNT, len(players))
+
+        # Update lifecycle state back to not-ready (someone joined)
         try:
             self._lifecycle.join_game(
                 game_ref=game_ref,

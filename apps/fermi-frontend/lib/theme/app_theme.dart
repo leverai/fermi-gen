@@ -134,7 +134,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
       primary:
           const HSLColor.fromAHSL(1.0, 144, 0.21, 0.51).toColor(), // 1 - 0.49
       primaryMuted:
-          const HSLColor.fromAHSL(1.0, 144, 0.21, 0.70).toColor(), // 1 - 0.30
+          const HSLColor.fromAHSL(1.0, 144, 0.21, 0.35).toColor(), // 1 - 0.30
 
       // Secondary - Vibrant Teal
       secondary: const HSLColor.fromAHSL(1.0, 354, .82, 0.66).toColor(),
