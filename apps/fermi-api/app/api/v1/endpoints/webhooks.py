@@ -1,5 +1,6 @@
 """Webhook endpoints for external services."""
 
+import logging
 from typing import Annotated, Literal
 
 from fastapi import (
@@ -24,6 +25,7 @@ from app.core.config import settings
 from app.services.subscription import SubscriptionService
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 async def verify_webhook_secret(
@@ -31,8 +33,15 @@ async def verify_webhook_secret(
 ) -> None:
     """Verify RevenueCat webhook authorization header."""
     if not settings.revenuecat_webhook_secret:
-        # If secret is not configured, skip verification (for development)
-        return
+        # Secret not configured - reject request
+        # Set REVENUECAT_WEBHOOK_SECRET env var to enable webhooks
+        logger.error(
+            'REVENUECAT_WEBHOOK_SECRET not configured - rejecting webhook request',
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail='Webhook endpoint not configured',
+        )
 
     if not authorization:
         raise HTTPException(

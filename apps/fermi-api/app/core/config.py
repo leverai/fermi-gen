@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     # RevenueCat
     revenuecat_webhook_secret: str = ''
 
+    # Scheduler authentication (shared secret for Cloud Scheduler endpoints)
+    # Even with OIDC configured at Cloud Run level, this provides defense-in-depth
+    scheduler_secret: str = ''
+
     # Premium bypass patterns (for testing/reviewers)
     premium_bypass_patterns: list[str] = []
 

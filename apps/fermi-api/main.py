@@ -64,15 +64,16 @@ app = create_app()
 instrument_fastapi(app)
 
 # Define the origins that are allowed to make requests.
-# For development, you can allow all origins with ["*"].
-# For production, you should restrict this to your actual frontend's domain.
+# For production, restrict this to your actual frontend's domain.
 origins = [
-    # Allow your deployed Flutter web app
+    # Deployed Flutter web app
     'https://guesstimate-5483f.web.app',
-    'http://localhost',  # Default Flutter web dev port
-    # You might need to add the specific port Flutter is running on,
-    # which can change. Using "*" is easiest for local dev.
-    '*',
+    # Local development
+    'http://localhost',
+    'http://localhost:8080',
+    'http://localhost:3000',
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:3000',
 ]
 
 # Add the CORS middleware to your application

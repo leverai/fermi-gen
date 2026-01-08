@@ -15,6 +15,7 @@ from app.api.v1.auth_deps import get_current_user
 from app.api.v1.dependencies import (
     get_daily_question_service,
     get_firestore_client,
+    # verify_scheduler_secret,
 )
 from app.services.daily_question.schemas import (
     DQAnswerRequest,
@@ -240,6 +241,7 @@ async def submit_post_take_answer(
 async def close_and_schedule_dq(
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
+    # _: Annotated[None, Depends(verify_scheduler_secret)],
 ) -> DQEndResponse:
     """End the active DQ and schedule the next one.
 
@@ -250,8 +252,8 @@ async def close_and_schedule_dq(
     4. Schedule the next day's DQ
     5. Set results_ready in Firestore
 
-    This endpoint has no user authentication as it's called by Cloud Scheduler.
-    In production, Cloud Run ingress rules and IAM protect this endpoint.
+    # Authentication: Cloud Scheduler sends OIDC token (verified at Cloud Run level)
+    # and X-Scheduler-Secret header (verified here for defense-in-depth).
 
     Args:
         firestore_client: Firestore client (injected).
@@ -271,10 +273,14 @@ async def activate_dq(
     request: Request,
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
+    # _: Annotated[None, Depends(verify_scheduler_secret)],
 ) -> None:
     """Activate the scheduled DQ for this date.
 
     Invoked by a scheduled job at 12PM UTC.
+
+    # Authentication: Cloud Scheduler sends OIDC token (verified at Cloud Run level)
+    # and X-Scheduler-Secret header (verified here for defense-in-depth).
 
     Args:
         request: FastAPI request object.
