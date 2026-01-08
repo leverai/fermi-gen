@@ -43,10 +43,18 @@ class StartupAuthScreen extends StatelessWidget {
             children: [
               const Spacer(),
               // Logo
-              Image.asset(
-                'assets/icons/icon-fg.png',
-                height: 180,
+              Container(
                 width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  color: appTheme.bgLight,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Image.asset(
+                  'assets/icons/icon-fg.png',
+                  height: 180,
+                  width: 180,
+                ),
               ),
               const SizedBox(height: 24),
               Text(
