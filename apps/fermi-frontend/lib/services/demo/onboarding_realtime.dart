@@ -202,6 +202,22 @@ class OnboardingRealtime implements GameRealtime {
     // No-op for onboarding
   }
 
+  @override
+  void dispose() {
+    if (!_game.isClosed) {
+      _game.close();
+    }
+    if (!_q.isClosed) {
+      _q.close();
+    }
+    if (!_players.isClosed) {
+      _players.close();
+    }
+    if (!_reveal.isClosed) {
+      _reveal.close();
+    }
+  }
+
   // ========== Helper methods ==========
 
   /// Convert (number, orderOfMagnitude) to absolute value.

@@ -45,6 +45,8 @@ class PreloadService {
         if (auth.accessToken == null) {
           debugPrint(
               'PreloadService: No access token available, skipping preload');
+          // Clear future to allow retry later
+          _preloadFuture = null;
           return;
         }
       }
@@ -58,6 +60,8 @@ class PreloadService {
       }
     } catch (e) {
       debugPrint('PreloadService: Preload failed: $e');
+      // Clear future on failure to allow retries
+      _preloadFuture = null;
       // Don't throw - allow screens to fetch data themselves if preload fails
     }
   }

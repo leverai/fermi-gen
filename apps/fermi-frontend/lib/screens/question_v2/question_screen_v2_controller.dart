@@ -715,6 +715,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
     }
     _bindingsByIndex.clear();
     _playerManager.dispose();
+    realtime.dispose();
     super.dispose();
   }
 }

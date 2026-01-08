@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -16,6 +17,8 @@ class NotificationService {
   static const String _dqTopic = 'dq_notifications';
 
   bool _initialized = false;
+  StreamSubscription<RemoteMessage>? _onMessageSub;
+  StreamSubscription<RemoteMessage>? _onMessageOpenedSub;
 
   /// Initialize FCM and subscribe to DQ notifications topic.
   ///
@@ -49,10 +52,10 @@ class NotificationService {
     debugPrint('NotificationService: Subscribed to $_dqTopic');
 
     // Handle foreground messages (show as snackbar or ignore)
-    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+    _onMessageSub = FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
     // Handle notification taps when app was in background/terminated
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+    _onMessageOpenedSub = FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
 
     // Check if app was opened via notification tap (cold start)
     final initialMessage = await messaging.getInitialMessage();
@@ -78,5 +81,14 @@ class NotificationService {
     );
     // Navigation is handled by deep links or the app's natural flow
     // The user will land on the main screen which shows DQ status
+  }
+
+  /// Dispose subscriptions to prevent memory leaks.
+  /// Should be called when the service is no longer needed (rarely needed for singleton).
+  void dispose() {
+    _onMessageSub?.cancel();
+    _onMessageSub = null;
+    _onMessageOpenedSub?.cancel();
+    _onMessageOpenedSub = null;
   }
 }
