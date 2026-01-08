@@ -271,7 +271,10 @@ class _SettingsSheetState extends State<SettingsSheet> {
                     ],
                   ],
                 ),
-                const SizedBox(height: 48), // Extra space at bottom
+                SizedBox(
+                    height: 48 +
+                        MediaQuery.paddingOf(context)
+                            .bottom), // Extra space at bottom including safe area
               ],
             ),
           ),
