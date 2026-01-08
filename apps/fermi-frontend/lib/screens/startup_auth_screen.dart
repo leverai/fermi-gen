@@ -147,7 +147,7 @@ class StartupAuthScreen extends StatelessWidget {
                       context,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: appTheme.text,
+                      color: appTheme.bg,
                     ),
                   ),
                 ),

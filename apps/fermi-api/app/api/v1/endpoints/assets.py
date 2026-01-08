@@ -7,6 +7,7 @@ from fastapi.security import HTTPBearer
 from opentelemetry import trace
 
 import app.logging.attributes as api_attrs
+from app.api.v1.rate_limit import ASSETS_RATE_LIMIT, limiter
 from app.schemas.endpoints import GetAvatarsResponse
 
 router = APIRouter()
@@ -17,6 +18,7 @@ AVATAR_DIR = ASSETS_DIR / 'avatars'
 
 
 @router.get('/avatars', response_model=GetAvatarsResponse)
+@limiter.limit(ASSETS_RATE_LIMIT)
 async def get_avatars(request: Request) -> GetAvatarsResponse:
     """Return a list of all avatars."""
     # Pre-calculate the base or use url_for for safety

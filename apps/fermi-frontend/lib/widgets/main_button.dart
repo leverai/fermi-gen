@@ -240,7 +240,7 @@ class _MainButtonState extends State<MainButton>
                                     style: AppFont.primaryTextStyle(context,
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
-                                            color: appTheme.text,
+                                            color: appTheme.bg,
                                             decoration: TextDecoration.none)
                                         .copyWith(letterSpacing: 1.5),
                                   ),

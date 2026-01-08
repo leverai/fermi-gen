@@ -16,3 +16,4 @@ limiter = Limiter(key_func=get_remote_address, enabled=_enabled)
 AUTH_RATE_LIMIT = '10/minute'  # Auth endpoints
 GAME_CREATE_RATE_LIMIT = '10/minute'  # Game creation
 DQ_START_RATE_LIMIT = '5/minute'  # DQ start
+ASSETS_RATE_LIMIT = '10/minute'  # Assets endpoints
