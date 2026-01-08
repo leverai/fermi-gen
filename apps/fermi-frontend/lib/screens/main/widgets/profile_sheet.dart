@@ -314,7 +314,7 @@ class _ProfileSheetState extends State<ProfileSheet> {
                     },
                   ),
                 // Extra space at bottom
-                const SizedBox(height: 48),
+                SizedBox(height: 48 + MediaQuery.paddingOf(context).bottom),
               ],
             ),
           ),
