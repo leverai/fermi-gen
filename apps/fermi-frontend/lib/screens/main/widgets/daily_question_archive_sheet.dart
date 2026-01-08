@@ -147,6 +147,7 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
                       )
                     : _buildCalendarGrid(appTheme),
           ),
+          SizedBox(height: 16 + MediaQuery.paddingOf(context).bottom),
         ],
       ),
     );
