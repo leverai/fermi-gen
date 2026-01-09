@@ -15,7 +15,7 @@ import 'package:fermi_frontend/services/subscription_service.dart';
 import 'package:fermi_frontend/screens/main/main_screen.dart';
 import 'package:fermi_frontend/screens/onboarding_screen.dart';
 import 'package:fermi_frontend/screens/auth_screen.dart';
-import 'package:fermi_frontend/screens/startup_auth_screen.dart';
+import 'package:fermi_frontend/screens/welcome_screen.dart';
 import 'package:fermi_frontend/screens/daily_question/daily_question_screen.dart';
 import 'package:fermi_frontend/screens/daily_question/pre_daily_question_screen.dart';
 import 'package:fermi_frontend/screens/lobby/lobby_screen_controller.dart';
@@ -98,10 +98,10 @@ class AppRouter {
           path: '/sign-in',
           builder: (context, state) => _buildSignInScreen(context),
         ),
-        // Startup auth (loading screen)
+        // Welcome screen (first-time users)
         GoRoute(
-          path: '/startup-auth',
-          builder: (context, state) => const StartupAuthScreen(),
+          path: '/welcome',
+          builder: (context, state) => const WelcomeScreen(),
         ),
         // Main screen
         GoRoute(
@@ -184,7 +184,7 @@ class AppRouter {
     if (location == '/onboarding' ||
         location == '/onboarding-test' ||
         location == '/sign-in' ||
-        location == '/startup-auth') {
+        location == '/welcome') {
       return null;
     }
 
@@ -192,13 +192,18 @@ class AppRouter {
     // This prevents redirecting to sign-in on hot-restart before Firebase
     // Auth has restored persisted state
     if (!authStateNotifier.isSettled) {
-      // If already on startup-auth, stay there; otherwise redirect to it
-      return location == '/startup-auth' ? null : '/startup-auth';
+      // If already on welcome, stay there; otherwise redirect to it
+      return location == '/welcome' ? null : '/welcome';
     }
 
     // Always read fresh from SharedPreferences to ensure refresh() picks up changes
     final prefs = await SharedPreferences.getInstance();
+    final welcomeSeen = prefs.getBool('welcome_seen') ?? false;
     final onboardingSeen = prefs.getBool('onboarding_seen') ?? false;
+
+    if (!welcomeSeen) {
+      return '/welcome';
+    }
 
     if (!onboardingSeen) {
       return '/onboarding';

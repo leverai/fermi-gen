@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 import 'package:fermi_frontend/screens/question_v2/question_screen_v2.dart';
@@ -255,9 +256,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   /// onFinish callback). Marks onboarding as seen and navigates to main screen.
   /// User is already authenticated anonymously, so we can go directly to main.
   void _exitOnboarding() async {
-    // Navigate to startup auth screen choice
-    // User is already authenticated anonymously, so we just move to the choice screen
-    context.go('/startup-auth');
+    // Mark onboarding as seen
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_seen', true);
+
+    if (!mounted) return;
+
+    // Refresh router to pick up the preference change and navigate to main
+    GoRouter.of(context).refresh();
+    context.go('/main');
   }
 
   @override
