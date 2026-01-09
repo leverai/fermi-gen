@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
+from fastapi import APIRouter, Depends, Path, Query, Request
 from fastapi.responses import HTMLResponse
 from fermi_core.units import Locale
 from fermi_db.models.user import User
@@ -11,7 +11,7 @@ from google.cloud.firestore_v1.async_client import AsyncClient
 from opentelemetry import trace
 
 import app.logging.attributes as api_attrs
-from app.api.v1.auth_deps import get_authenticated_user, get_current_user
+from app.api.v1.auth_deps import get_authenticated_user, get_current_user, require_pro
 from app.api.v1.authenticated_user import AuthenticatedUser
 from app.api.v1.dependencies import (
     get_daily_question_service,
@@ -204,12 +204,7 @@ async def start_post_take(
     span.set_attribute(api_attrs.ACTION, start_post_take.__qualname__)
     span.set_attribute(api_attrs.QUERY_PARAMS, f'question_date={question_date}')
 
-    # Feature gating: archive access requires Pro subscription
-    if not auth_user.is_pro:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail='Archive access requires Pro subscription',
-        )
+    require_pro(auth_user, 'Archive access')
 
     parsed_date = datetime.strptime(question_date, '%Y-%m-%d').date()  # noqa: DTZ007
     return await dq_service.start_post_take_question(
@@ -242,12 +237,7 @@ async def submit_post_take_answer(
     span.set_attribute(api_attrs.ACTION, submit_post_take_answer.__qualname__)
     span.set_attribute(api_attrs.QUERY_PARAMS, f'question_date={question_date}')
 
-    # Feature gating: archive access requires Pro subscription
-    if not auth_user.is_pro:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail='Archive access requires Pro subscription',
-        )
+    require_pro(auth_user, 'Archive access')
 
     parsed_date = datetime.strptime(question_date, '%Y-%m-%d').date()  # noqa: DTZ007
     return await dq_service.submit_post_take_answer(

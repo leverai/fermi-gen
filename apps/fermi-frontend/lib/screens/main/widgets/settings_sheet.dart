@@ -1,6 +1,9 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:fermi_frontend/main.dart' show useEmulators;
+import 'package:fermi_frontend/providers/subscription_provider.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/unit_system_switch.dart';
@@ -185,6 +188,40 @@ class _SettingsSheetState extends State<SettingsSheet> {
                         },
                       ),
                     ),
+                    // Dev-only: Pro toggle for testing (only visible in emulator mode)
+                    if (useEmulators) ...[
+                      Divider(
+                        height: 1,
+                        thickness: 1,
+                        indent: 24,
+                        color: appTheme.bg,
+                      ),
+                      Consumer<SubscriptionProvider>(
+                        builder: (context, subProvider, _) {
+                          return _buildSettingsRow(
+                            context,
+                            appTheme,
+                            label: 'Dev: Pro Mode',
+                            icon: Icons.developer_mode,
+                            showSplash: false,
+                            onTap: () {
+                              // Toggle: null -> true -> false -> null
+                              final current = subProvider.hasDevOverride
+                                  ? subProvider.isPro
+                                  : null;
+                              final next = current == null
+                                  ? true
+                                  : current == true
+                                      ? false
+                                      : null;
+                              subProvider.setDevOverride(next);
+                            },
+                            trailing: _buildDevProToggle(
+                                context, appTheme, subProvider),
+                          );
+                        },
+                      ),
+                    ],
                   ],
                 ),
                 // Account Section
@@ -452,5 +489,31 @@ class _SettingsSheetState extends State<SettingsSheet> {
         : mode == ThemeMode.light
             ? const Icon(Icons.wb_sunny)
             : const Icon(Icons.brightness_2);
+  }
+
+  /// Builds the dev Pro toggle indicator (Auto / Pro / Free)
+  Widget _buildDevProToggle(
+      BuildContext context, AppTheme appTheme, SubscriptionProvider provider) {
+    final String label;
+    final Color color;
+    if (!provider.hasDevOverride) {
+      label = 'Auto';
+      color = appTheme.textMuted;
+    } else if (provider.isPro) {
+      label = 'Pro';
+      color = appTheme.primary;
+    } else {
+      label = 'Free';
+      color = appTheme.danger;
+    }
+    return Text(
+      label,
+      style: AppFont.primaryTextStyle(
+        context,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: color,
+      ),
+    );
   }
 }

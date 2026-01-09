@@ -315,6 +315,39 @@ For subscriptions, configure:
 - **Sandbox Renewals**: Subscriptions renew every 5 minutes in sandbox mode
 - **No Real Charges**: License tester accounts are never charged
 
+#### Feature Gating
+
+The app uses `SubscriptionProvider` to cache and check Pro status for feature gating.
+
+**SubscriptionProvider** (`lib/providers/subscription_provider.dart`):
+- Caches `isPro` status after checking RevenueCat entitlements
+- Provides `refresh()` method to sync with RevenueCat
+- Called in `main.dart` after auth state changes
+
+**Gating Pattern**:
+```dart
+// In screen build() method:
+Consumer<SubscriptionProvider>(
+  builder: (context, subProvider, _) {
+    if (widget.isPostTake && !subProvider.isPro) {
+      // Show lock icon, gate feature
+    }
+  },
+)
+```
+
+**Currently Gated Features**:
+- **Post-Take Daily Questions**: FREE users see a lock icon on the Start button; tapping opens PaywallScreen
+
+**Local Development Testing**:
+
+When running with `USE_EMULATORS=true`, a "Dev: Pro Mode" toggle appears in Settings (Gameplay section):
+- **Auto**: Uses RevenueCat's actual status (default)
+- **Pro**: Forces `isPro = true` for testing pro features
+- **Free**: Forces `isPro = false` for testing gating UI
+
+This toggle uses `SubscriptionProvider.setDevOverride(bool? isPro)` which only works in emulator mode.
+
 ---
 
 ## Real-time Game State
