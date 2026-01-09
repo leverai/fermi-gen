@@ -142,11 +142,13 @@ class MainScreenController extends ChangeNotifier {
   }
 
   /// Refreshes data in the background without blocking the UI.
-  /// Skips refresh if data was refreshed less than 30 seconds ago.
-  Future<void> refreshInBackground() async {
-    // Debounce: skip if we refreshed recently
+  /// Skips refresh if data was refreshed less than 30 seconds ago,
+  /// unless [force] is true.
+  Future<void> refreshInBackground({bool force = false}) async {
+    // Debounce: skip if we refreshed recently (unless forced)
     final now = DateTime.now();
-    if (_lastRefreshTime != null &&
+    if (!force &&
+        _lastRefreshTime != null &&
         now.difference(_lastRefreshTime!).inSeconds < 30) {
       debugPrint('MainScreenController: Skipping refresh (too soon)');
       return;

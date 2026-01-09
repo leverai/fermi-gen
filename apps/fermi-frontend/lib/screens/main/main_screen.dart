@@ -170,8 +170,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       )
           .then((_) {
         // Refresh stats when returning from Party game
+        // Force refresh to ensure hosting count is accurate
         if (mounted) {
-          _controller.refreshInBackground();
+          _controller.refreshInBackground(force: true);
           context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
         }
       });

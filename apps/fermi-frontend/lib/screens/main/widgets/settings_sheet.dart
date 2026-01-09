@@ -243,7 +243,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
                         widget.subscriptionTier,
                         style: AppFont.primaryTextStyle(
                           context,
-                          fontSize: 12,
+                          fontSize: 14,
                           fontWeight: FontWeight.w400,
                           color: widget.isAnonymous
                               ? appTheme.bgDark
@@ -332,14 +332,14 @@ class _SettingsSheetState extends State<SettingsSheet> {
             title.toUpperCase(),
             style: AppFont.primaryTextStyle(
               context,
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
               color: appTheme.textMuted,
             ),
           ),
           if (email != null)
             Text(
-              email,
+              '${email.substring(0, 3)}***${email.substring(email.length - 3)}',
               style: AppFont.primaryTextStyle(
                 context,
                 fontSize: 12,
@@ -456,8 +456,8 @@ class _SettingsSheetState extends State<SettingsSheet> {
           'Imperial',
           style: AppFont.primaryTextStyle(
             context,
-            fontSize: 12,
-            fontWeight: isUS ? FontWeight.w600 : FontWeight.w400,
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
             color: isUS ? appTheme.primary : appTheme.textMuted,
           ),
         ),
@@ -473,8 +473,8 @@ class _SettingsSheetState extends State<SettingsSheet> {
           'Metric',
           style: AppFont.primaryTextStyle(
             context,
-            fontSize: 12,
-            fontWeight: !isUS ? FontWeight.w600 : FontWeight.w400,
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
             color: !isUS ? appTheme.primary : appTheme.textMuted,
           ),
         ),
@@ -510,8 +510,8 @@ class _SettingsSheetState extends State<SettingsSheet> {
       label,
       style: AppFont.primaryTextStyle(
         context,
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
         color: color,
       ),
     );
