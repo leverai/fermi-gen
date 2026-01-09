@@ -138,7 +138,7 @@ class AuthScreen extends StatelessWidget {
       ),
       textTheme: Theme.of(context).textTheme.copyWith(
             headlineSmall: TextStyle(
-              color: appTheme.text,
+              color: appTheme.bg,
               fontWeight: FontWeight.bold,
               fontSize: 24,
             ),
