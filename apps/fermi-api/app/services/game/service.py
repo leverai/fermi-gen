@@ -132,14 +132,6 @@ class GameService:
         # 5. Commit the batch
         await batch.commit()
 
-        # 6. Record hosting (after successful commit)
-        assert current_user.id is not None
-        await self.record_hosting(
-            user_id=current_user.id,
-            game_id=game_ref.id,
-            hosting_repo=hosting_repo,
-        )
-
         # 5. Fetch questions in the background and set them
         background_tasks.add_task(
             fetch_and_set_questions,
@@ -202,6 +194,7 @@ class GameService:
         background_tasks: BackgroundTasks,
         current_user: 'User',
         firestore_client: 'AsyncClient',
+        hosting_repo: 'PartyHostingRepository',
     ) -> IdModel:
         """Start a game via the use case orchestration.
 
@@ -221,6 +214,13 @@ class GameService:
         result = await use_case.execute(
             game_id=payload.resource_id,
             current_user=current_user,
+        )
+
+        # Record hosting
+        assert current_user.id is not None
+        await hosting_repo.record_hosting(
+            user_id=current_user.id,
+            game_id=payload.resource_id,
         )
 
         # Check for bots and schedule their answer submission
@@ -499,22 +499,6 @@ class GameService:
             difficulties=get_request_difficulties(request),
             user_limits=UserLimits(party_hostings_remaining=hostings_left),
         )
-
-    async def record_hosting(
-        self,
-        user_id: int,
-        game_id: str,
-        hosting_repo: 'PartyHostingRepository',
-    ) -> None:
-        """Record a party game hosting in the database.
-
-        Args:
-            user_id: User's database ID.
-            game_id: Firestore game document ID.
-            hosting_repo: Repository for recording hosting.
-
-        """
-        await hosting_repo.record_hosting(user_id=user_id, game_id=game_id)
 
     async def vote(
         self,
