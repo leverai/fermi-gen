@@ -225,9 +225,6 @@ class _ProfileSheetState extends State<ProfileSheet> {
                 Widget avatarWidget = AvatarWidget(
                   imageUrl: avatar.url,
                   size: size,
-                  borderColor:
-                      isSelected ? appTheme.primary : Colors.transparent,
-                  borderWidth: 2.0,
                   padding: const EdgeInsets.all(4.0),
                   placeholder: CircularProgressIndicator(
                     color: appTheme.primary,
@@ -237,32 +234,8 @@ class _ProfileSheetState extends State<ProfileSheet> {
 
                 if (!avatar.unlocked) {
                   avatarWidget = Opacity(
-                    opacity: 0.5,
-                    child: ColorFiltered(
-                      colorFilter: const ColorFilter.matrix(<double>[
-                        0.2126,
-                        0.7152,
-                        0.0722,
-                        0,
-                        0,
-                        0.2126,
-                        0.7152,
-                        0.0722,
-                        0,
-                        0,
-                        0.2126,
-                        0.7152,
-                        0.0722,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        1,
-                        0,
-                      ]),
-                      child: avatarWidget,
-                    ),
+                    opacity: 0.3,
+                    child: avatarWidget,
                   );
                 }
 

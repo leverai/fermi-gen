@@ -601,7 +601,6 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
           AvatarWidget(
             imageUrl: avatarUrl,
             size: 28,
-            backgroundColor: appTheme.border,
             placeholder: Text(
               displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
               style: AppFont.secondaryTextStyle(
