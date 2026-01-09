@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
@@ -10,10 +11,28 @@ import 'package:fermi_frontend/theme/app_theme.dart';
 
 /// Welcome screen shown to first-time users before the onboarding tutorial.
 ///
-/// Provides a brief introduction to the app with a tutorial question tease,
-/// then navigates to the onboarding tutorial when user taps "Get Started".
-class WelcomeScreen extends StatelessWidget {
+/// Features a sequential reveal of the logo, a storytelling carousel about
+/// Enrico Fermi, and a "Get Started" button.
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen>
+    with TickerProviderStateMixin {
+  late final AnimationController _logoController;
+  late final AnimationController _carouselController;
+  late final AnimationController _buttonController;
+
+  late final Animation<Offset> _logoSlideAnimation;
+  late final Animation<double> _logoFadeAnimation;
+
+  late final Animation<double> _carouselFadeAnimation;
+  late final Animation<double> _buttonFadeAnimation;
+
+  final PageController _pageController = PageController();
 
   Future<void> _getStarted(BuildContext context) async {
     // Mark welcome as seen
@@ -25,6 +44,72 @@ class WelcomeScreen extends StatelessWidget {
       GoRouter.of(context).refresh();
       context.go('/onboarding');
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 1. Logo Animation (0ms - 800ms)
+    _logoController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _logoSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _logoController,
+      curve: Curves.easeOutBack,
+    ));
+
+    _logoFadeAnimation = CurvedAnimation(
+      parent: _logoController,
+      curve: Curves.easeIn,
+    );
+
+    // 2. Carousel Animation (Starts after logo, ~800ms - 1600ms)
+    _carouselController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _carouselFadeAnimation = CurvedAnimation(
+      parent: _carouselController,
+      curve: Curves.easeIn,
+    );
+
+    // 3. Button Animation (Starts after carousel, ~1600ms - 2000ms)
+    _buttonController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _buttonFadeAnimation = CurvedAnimation(
+      parent: _buttonController,
+      curve: Curves.easeIn,
+    );
+
+    // Start Sequence
+    _startAnimationSequence();
+  }
+
+  void _startAnimationSequence() async {
+    await _logoController.forward();
+    await Future.delayed(const Duration(milliseconds: 200));
+    await _carouselController.forward();
+    await Future.delayed(const Duration(milliseconds: 200));
+    _buttonController.forward();
+  }
+
+  @override
+  void dispose() {
+    _logoController.dispose();
+    _carouselController.dispose();
+    _buttonController.dispose();
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -43,78 +128,115 @@ class WelcomeScreen extends StatelessWidget {
               children: [
                 const Spacer(flex: 2),
 
-                // Logo / Icon
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: appTheme.bgLight,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  padding: const EdgeInsets.all(20),
-                  child: SvgPicture.asset(
-                    'assets/icons/logo-fg.svg',
+                // -- Phase 1: Logo & Title --
+                FadeTransition(
+                  opacity: _logoFadeAnimation,
+                  child: SlideTransition(
+                    position: _logoSlideAnimation,
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: appTheme.bgLight,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: const EdgeInsets.all(20),
+                          child: SvgPicture.asset(
+                            'assets/icons/logo-fg.svg',
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        Text(
+                          'Welcome to Guesstimate!',
+                          textAlign: TextAlign.center,
+                          style: AppFont.primaryTextStyle(
+                            context,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            color: appTheme.text,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 40),
 
-                // Title
-                Text(
-                  'Welcome to Guesstimate!',
-                  textAlign: TextAlign.center,
-                  style: AppFont.primaryTextStyle(
-                    context,
-                    fontSize: 32,
-                    fontWeight: FontWeight.w900,
-                    color: appTheme.text,
-                  ),
-                ),
-                const SizedBox(height: 64),
+                const Spacer(flex: 1),
 
-                // Tutorial question tease
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: appTheme.bgLight,
-                    borderRadius: BorderRadius.circular(appTheme.borderRadius),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Ever wondered:',
-                        textAlign: TextAlign.center,
-                        style: AppFont.primaryTextStyle(
-                          context,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: appTheme.textMuted,
+                // -- Phase 2: Carousel --
+                FadeTransition(
+                  opacity: _carouselFadeAnimation,
+                  child: Container(
+                    height: 280, // Fixed height for carousel
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: appTheme.bgLight,
+                      borderRadius:
+                          BorderRadius.circular(appTheme.borderRadius),
+                    ),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: PageView(
+                            controller: _pageController,
+                            children: [
+                              // Slide 1
+                              _buildCarouselSlide(
+                                context: context,
+                                appTheme: appTheme,
+                                imageAsset: 'assets/icons/fermi.png',
+                                text:
+                                    'Nobel prize winner Enrico Fermi was a master of estimation.',
+                              ),
+                              // Slide 2
+                              _buildCarouselSlide(
+                                context: context,
+                                appTheme: appTheme,
+                                icon: Icons.waves, // Placeholder icon
+                                text:
+                                    "He famously estimated the first atomic bomb’s power using flying pieces of paper!",
+                              ),
+                              // Slide 3
+                              _buildCarouselSlide(
+                                context: context,
+                                appTheme: appTheme,
+                                icon: Icons.psychology, // Placeholder icon
+                                text: "Are you ready to tes!",
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'How tall would a stack of one billion \$1 bills be?',
-                        textAlign: TextAlign.center,
-                        style: AppFont.primaryTextStyle(
-                          context,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: appTheme.text,
-                          height: 1.3,
+                        const SizedBox(height: 16),
+                        SmoothPageIndicator(
+                          controller: _pageController,
+                          count: 3,
+                          effect: WormEffect(
+                            dotColor: appTheme.textMuted.withOpacity(0.3),
+                            activeDotColor: appTheme.primary,
+                            dotHeight: 8,
+                            dotWidth: 8,
+                            spacing: 12,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
 
                 const Spacer(flex: 2),
 
-                // Get Started button
-                SizedBox(
-                  width: 200,
-                  child: MainButton(
-                    onPressed: () => _getStarted(context),
-                    label: MainButtonLabel.start,
-                    customLabel: 'Get Started',
+                // -- Phase 3: Button --
+                FadeTransition(
+                  opacity: _buttonFadeAnimation,
+                  child: SizedBox(
+                    width: 200,
+                    child: MainButton(
+                      onPressed: () => _getStarted(context),
+                      label: MainButtonLabel.start,
+                      customLabel: 'Get Started',
+                    ),
                   ),
                 ),
 
@@ -124,6 +246,46 @@ class WelcomeScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCarouselSlide({
+    required BuildContext context,
+    required AppTheme appTheme,
+    required String text,
+    String? imageAsset,
+    IconData? icon,
+  }) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (imageAsset != null)
+          Container(
+            height: 80,
+            width: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              image: DecorationImage(
+                image: AssetImage(imageAsset),
+                fit: BoxFit.cover,
+              ),
+            ),
+          )
+        else if (icon != null)
+          Icon(icon, size: 64, color: appTheme.primary),
+        const SizedBox(height: 24),
+        Text(
+          text,
+          textAlign: TextAlign.center,
+          style: AppFont.primaryTextStyle(
+            context,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: appTheme.text,
+            height: 1.4,
+          ),
+        ),
+      ],
     );
   }
 }

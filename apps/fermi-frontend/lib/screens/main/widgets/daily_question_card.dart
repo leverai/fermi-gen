@@ -327,14 +327,13 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
         : notStarted
             ? 'Soon'
             : 'Tap to play';
-    final textColor = isActive ? appTheme.warning : appTheme.bg.withAlpha(200);
     return Text(
       text,
       style: AppFont.primaryTextStyle(
         context,
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: textColor,
+        color: appTheme.bg.withAlpha(200),
       ),
     );
   }

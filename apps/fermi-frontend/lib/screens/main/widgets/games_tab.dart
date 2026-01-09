@@ -209,7 +209,7 @@ class GamesTab extends StatelessWidget {
                   'Tap to play',
                   style: AppFont.primaryTextStyle(
                     context,
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: appTheme.bg.withAlpha(200),
                   ),
