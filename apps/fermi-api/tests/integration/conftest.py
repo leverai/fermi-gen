@@ -353,6 +353,65 @@ def get_api_auth_headers(
 
 
 @pytest.fixture
+def get_pro_api_auth_headers(
+    api_client: TestClient,
+    create_emulator_user_and_get_token: Callable[[str, str, str], dict[str, Any]],
+) -> Callable[[str, str, str], dict[str, str]]:
+    """Return a factory that creates a Pro user and returns API access token headers.
+
+    The user is created with an active Pro subscription in the database.
+    Use this for testing tier-gated endpoints like post-take.
+    """
+    import asyncio
+
+    from fermi_db.models.subscription import SubscriptionPlatform, SubscriptionTier
+    from fermi_db.repositories.subscription_repository import SubscriptionRepository
+    from fermi_db.repositories.user_repository import UserRepository
+    from sqlmodel.ext.asyncio.session import AsyncSession
+
+    def _make(email: str, password: str, display_name: str) -> dict[str, str]:
+        # First create normal user and get headers
+        token_info = create_emulator_user_and_get_token(email, password, display_name)
+        firebase_token = token_info['idToken']
+        firebase_uid = token_info['localId']
+        resp = api_client.post(
+            '/api/v1/auth/token',
+            headers={'Authorization': f'Bearer {firebase_token}'},
+        )
+        resp.raise_for_status()
+        access_token = resp.json()['access_token']
+
+        # Now add Pro subscription directly to DB
+        # Create a fresh engine to avoid event loop conflicts
+        async def _add_subscription() -> None:
+            db_url = os.environ.get(
+                'DATABASE_URL',
+                'sqlite+aiosqlite:///./guesstimate.db',
+            )
+            engine = create_async_engine(db_url, echo=False)
+            async with AsyncSession(engine) as session:
+                user_repo = UserRepository(session)
+                sub_repo = SubscriptionRepository(session)
+                user = await user_repo.get_by_firebase_uid(firebase_uid)
+                if user and user.id:
+                    await sub_repo.upsert_subscription(
+                        user_id=user.id,
+                        revenuecat_user_id=firebase_uid,
+                        tier=SubscriptionTier.PRO,
+                        product_id='test_pro_subscription',
+                        platform=SubscriptionPlatform.PROMOTIONAL,
+                        is_active=True,
+                    )
+                await session.commit()
+            await engine.dispose()
+
+        asyncio.run(_add_subscription())
+        return {'Authorization': f'Bearer {access_token}'}
+
+    return _make
+
+
+@pytest.fixture
 def get_firestore_doc() -> Callable[[str], dict[str, Any]]:
     """Return a callable that fetches a game document via emulator REST API.
 

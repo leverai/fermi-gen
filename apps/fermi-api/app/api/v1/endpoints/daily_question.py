@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
 from fastapi.responses import HTMLResponse
 from fermi_core.units import Locale
 from fermi_db.models.user import User
@@ -11,7 +11,8 @@ from google.cloud.firestore_v1.async_client import AsyncClient
 from opentelemetry import trace
 
 import app.logging.attributes as api_attrs
-from app.api.v1.auth_deps import get_current_user
+from app.api.v1.auth_deps import get_authenticated_user, get_current_user
+from app.api.v1.authenticated_user import AuthenticatedUser
 from app.api.v1.dependencies import (
     get_daily_question_service,
     get_firestore_client,
@@ -185,7 +186,7 @@ async def get_archive_month(
 @limiter.limit(DQ_START_RATE_LIMIT)
 async def start_post_take(
     request: Request,
-    current_user: Annotated[User, Depends(get_current_user)],
+    auth_user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
     question_date: str = Path(
         ...,
@@ -195,16 +196,24 @@ async def start_post_take(
 ) -> DQQuestionResponse:
     """Start a post-take for a closed daily question.
 
-    Post-take allows users to take older DQs they haven't participated in.
+    Post-take allows Pro users to take older DQs they haven't participated in.
     The DQ must be CLOSED (not SCHEDULED or ACTIVE).
+    Requires Pro subscription.
     """
     span = trace.get_current_span()
     span.set_attribute(api_attrs.ACTION, start_post_take.__qualname__)
     span.set_attribute(api_attrs.QUERY_PARAMS, f'question_date={question_date}')
 
+    # Feature gating: archive access requires Pro subscription
+    if not auth_user.is_pro:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Archive access requires Pro subscription',
+        )
+
     parsed_date = datetime.strptime(question_date, '%Y-%m-%d').date()  # noqa: DTZ007
     return await dq_service.start_post_take_question(
-        user_firebase_uid=current_user.firebase_uid,
+        user_firebase_uid=auth_user.firebase_uid,
         question_date=parsed_date,
     )
 
@@ -215,7 +224,7 @@ async def start_post_take(
 )
 async def submit_post_take_answer(
     payload: DQPostTakeAnswerRequest,
-    current_user: Annotated[User, Depends(get_current_user)],
+    auth_user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
     question_date: str = Path(
         ...,
@@ -227,18 +236,26 @@ async def submit_post_take_answer(
 
     Returns score, rank, and full results immediately after submission.
     Must be submitted within 30s + grace period of started_at.
+    Requires Pro subscription.
     """
     span = trace.get_current_span()
     span.set_attribute(api_attrs.ACTION, submit_post_take_answer.__qualname__)
     span.set_attribute(api_attrs.QUERY_PARAMS, f'question_date={question_date}')
 
+    # Feature gating: archive access requires Pro subscription
+    if not auth_user.is_pro:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Archive access requires Pro subscription',
+        )
+
     parsed_date = datetime.strptime(question_date, '%Y-%m-%d').date()  # noqa: DTZ007
     return await dq_service.submit_post_take_answer(
-        user_firebase_uid=current_user.firebase_uid,
+        user_firebase_uid=auth_user.firebase_uid,
         question_date=parsed_date,
         answer=payload.answer,
         started_at=payload.started_at,
-        user_locale=Locale(current_user.locale),
+        user_locale=Locale(auth_user.locale),
     )
 
 

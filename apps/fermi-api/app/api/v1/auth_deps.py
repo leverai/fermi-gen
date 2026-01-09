@@ -4,7 +4,9 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from fermi_db.models.subscription import SubscriptionTier
 from fermi_db.models.user import User
+from fermi_db.repositories.subscription_repository import SubscriptionRepository
 from fermi_db.repositories.user_repository import UserRepository
 from fermi_db.session import get_session
 from jose import jwt
@@ -16,6 +18,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
 import app.logging.attributes as api_attrs
+from app.api.v1.authenticated_user import AuthenticatedUser
+from app.api.v1.dependencies import get_subscription_repository
 from app.core.config import settings
 from app.schemas.auth import TokenPayload
 
@@ -95,3 +99,26 @@ async def get_current_user(
     span.set_attribute(api_attrs.FIREBASE_UID, user.firebase_uid)
 
     return user
+
+
+async def get_authenticated_user(
+    user: Annotated[User, Depends(get_current_user)],
+    subscription_repo: Annotated[
+        SubscriptionRepository,
+        Depends(get_subscription_repository),
+    ],
+) -> AuthenticatedUser:
+    """Get the current user with their subscription tier.
+
+    Use this dependency instead of get_current_user when you need to check
+    subscription status for feature gating.
+    """
+    assert user.id is not None
+    subscription = await subscription_repo.get_by_user_id(user.id)
+
+    # Determine tier: PRO only if subscription exists and is active
+    tier = SubscriptionTier.FREE
+    if subscription is not None and subscription.is_active:
+        tier = subscription.tier
+
+    return AuthenticatedUser(user=user, tier=tier)
