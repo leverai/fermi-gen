@@ -89,6 +89,19 @@ class _ProfileSheetState extends State<ProfileSheet> {
     return null;
   }
 
+  /// Extract relative path from full avatar URL for backend validation.
+  /// Backend expects paths like /static/avatars/letters/m.svg, not full URLs.
+  String? _extractRelativeAvatarPath(String? url) {
+    if (url == null) return null;
+    const marker = '/static/avatars/';
+    final idx = url.indexOf(marker);
+    if (idx != -1) {
+      return url.substring(idx);
+    }
+    // Already a relative path or external URL, return as-is
+    return url;
+  }
+
   Future<void> _handleSave() async {
     final name = _nameController.text.trim();
     final error = _validateName(name);
@@ -104,9 +117,10 @@ class _ProfileSheetState extends State<ProfileSheet> {
     });
 
     try {
+      final avatarPath = _extractRelativeAvatarPath(_selectedAvatarUrl);
       await widget.apiService.updateUserProfile(
         displayName: name.isNotEmpty ? name : null,
-        avatarUrl: _selectedAvatarUrl,
+        avatarUrl: avatarPath,
       );
       widget.onSave(name.isNotEmpty ? name : null, _selectedAvatarUrl);
       if (mounted) {
@@ -148,6 +162,166 @@ class _ProfileSheetState extends State<ProfileSheet> {
     } else {
       _showLockedAvatarDialog(avatar.unlockLevel);
     }
+  }
+
+  /// Build grouped avatar grids with dividers between groups.
+  List<Widget> _buildGroupedAvatarGrids(AppTheme appTheme) {
+    // Group avatars by their group field
+    final Map<String, List<AvatarInfo>> grouped = {};
+    for (final avatar in _avatars) {
+      grouped.putIfAbsent(avatar.group, () => []).add(avatar);
+    }
+
+    final widgets = <Widget>[];
+    // Explicit group order: letters first (all level 1), then folks, then animals
+    const groupOrder = ['letters', 'folks', 'animals'];
+    final groups = groupOrder.where((g) => grouped.containsKey(g)).toList();
+
+    for (var i = 0; i < groups.length; i++) {
+      final group = groups[i];
+      final avatarsInGroup = grouped[group]!;
+
+      // Add divider between groups (not before first group)
+      if (i > 0) {
+        widgets.add(const SizedBox(height: 16));
+        widgets.add(Divider(color: appTheme.borderMuted, thickness: 1));
+        widgets.add(const SizedBox(height: 16));
+      }
+
+      // Build grid for this group
+      widgets.add(
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 0.75,
+          ),
+          itemCount: avatarsInGroup.length,
+          itemBuilder: (context, index) {
+            return _buildAvatarItem(avatarsInGroup[index], appTheme);
+          },
+        ),
+      );
+    }
+
+    return widgets;
+  }
+
+  /// Build a single avatar item widget.
+  Widget _buildAvatarItem(AvatarInfo avatar, AppTheme appTheme) {
+    final isSelected = _selectedAvatarUrl == avatar.url;
+    return GestureDetector(
+      onTap: () => _onAvatarTap(avatar),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final size = constraints.maxWidth;
+                Widget avatarWidget = AvatarWidget(
+                  imageUrl: avatar.url,
+                  size: size,
+                  borderColor:
+                      isSelected ? appTheme.primary : Colors.transparent,
+                  borderWidth: 2.0,
+                  padding: const EdgeInsets.all(4.0),
+                  placeholder: CircularProgressIndicator(
+                    color: appTheme.primary,
+                    strokeWidth: 2,
+                  ),
+                );
+
+                if (!avatar.unlocked) {
+                  avatarWidget = Opacity(
+                    opacity: 0.5,
+                    child: ColorFiltered(
+                      colorFilter: const ColorFilter.matrix(<double>[
+                        0.2126,
+                        0.7152,
+                        0.0722,
+                        0,
+                        0,
+                        0.2126,
+                        0.7152,
+                        0.0722,
+                        0,
+                        0,
+                        0.2126,
+                        0.7152,
+                        0.0722,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                      ]),
+                      child: avatarWidget,
+                    ),
+                  );
+                }
+
+                return Stack(
+                  children: [
+                    avatarWidget,
+                    if (isSelected)
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: appTheme.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: appTheme.bgLight,
+                              width: 2,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.check,
+                            size: 12,
+                            color: appTheme.bgLight,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+          // Level row
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!avatar.unlocked) ...[
+                Icon(
+                  Icons.lock,
+                  size: 10,
+                  color: appTheme.textMuted,
+                ),
+                const SizedBox(width: 2),
+              ],
+              Text(
+                'Level ${avatar.unlockLevel}',
+                style: AppFont.primaryTextStyle(
+                  context,
+                  fontSize: 10,
+                  color: appTheme.textMuted,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -280,133 +454,7 @@ class _ProfileSheetState extends State<ProfileSheet> {
                 if (_isLoadingAvatars)
                   const Center(child: CircularProgressIndicator())
                 else
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 0.75, // Taller cells for level row
-                    ),
-                    itemCount: _avatars.length,
-                    itemBuilder: (context, index) {
-                      final avatar = _avatars[index];
-                      final isSelected = _selectedAvatarUrl == avatar.url;
-                      return GestureDetector(
-                        onTap: () => _onAvatarTap(avatar),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Expanded(
-                              child: LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final size = constraints.maxWidth;
-                                  Widget avatarWidget = AvatarWidget(
-                                    imageUrl: avatar.url,
-                                    size: size,
-                                    borderColor: isSelected
-                                        ? appTheme.primary
-                                        : Colors.transparent,
-                                    borderWidth: 2.0,
-                                    padding: const EdgeInsets.all(4.0),
-                                    placeholder: CircularProgressIndicator(
-                                      color: appTheme.primary,
-                                      strokeWidth: 2,
-                                    ),
-                                  );
-
-                                  if (!avatar.unlocked) {
-                                    avatarWidget = Opacity(
-                                      opacity: 0.5,
-                                      child: ColorFiltered(
-                                        colorFilter:
-                                            const ColorFilter.matrix(<double>[
-                                          0.2126,
-                                          0.7152,
-                                          0.0722,
-                                          0,
-                                          0,
-                                          0.2126,
-                                          0.7152,
-                                          0.0722,
-                                          0,
-                                          0,
-                                          0.2126,
-                                          0.7152,
-                                          0.0722,
-                                          0,
-                                          0,
-                                          0,
-                                          0,
-                                          0,
-                                          1,
-                                          0,
-                                        ]),
-                                        child: avatarWidget,
-                                      ),
-                                    );
-                                  }
-
-                                  return Stack(
-                                    children: [
-                                      avatarWidget,
-                                      if (isSelected)
-                                        Positioned(
-                                          top: 0,
-                                          right: 0,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              color: appTheme.primary,
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color: appTheme.bgLight,
-                                                width: 2,
-                                              ),
-                                            ),
-                                            child: Icon(
-                                              Icons.check,
-                                              size: 12,
-                                              color: appTheme.bgLight,
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ),
-                            // Level row
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (!avatar.unlocked) ...[
-                                  Icon(
-                                    Icons.lock,
-                                    size: 10,
-                                    color: appTheme.textMuted,
-                                  ),
-                                  const SizedBox(width: 2),
-                                ],
-                                Text(
-                                  'Level ${avatar.unlockLevel}',
-                                  style: AppFont.primaryTextStyle(
-                                    context,
-                                    fontSize: 10,
-                                    color: appTheme.textMuted,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                  ..._buildGroupedAvatarGrids(appTheme),
                 // Extra space at bottom
                 SizedBox(height: 48 + MediaQuery.paddingOf(context).bottom),
               ],

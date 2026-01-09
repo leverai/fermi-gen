@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fermi_frontend/theme/colormap.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
@@ -13,6 +12,7 @@ import 'player_confetti_overlay.dart';
 import 'player_ring_progress.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'question_deadline_progress_tracker.dart';
+import 'avatar_widget.dart';
 
 enum PlayerStatus { waiting, ready, number, answer, none }
 
@@ -397,78 +397,18 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    // Use app theme's bg color for SVG background
-    final Color svgBackgroundColor = appTheme.bgLight;
-
-    // Build the avatar content based on whether it's SVG or raster image
-    Widget avatarContent;
-    final String? avatarUrl = widget.playerState.avatarUrl;
-
-    if (avatarUrl != null && avatarUrl.toLowerCase().endsWith('.svg')) {
-      // Handle SVG images with flutter_svg
-      // Use Container with circular shape and background color (theme fg)
-      // BoxFit.contain ensures the entire square SVG is visible inside the circle
-      avatarContent = Container(
-        width: avatarSize,
-        height: avatarSize,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: svgBackgroundColor,
-        ),
-        child: ClipOval(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: SvgPicture.network(
-              avatarUrl,
-              fit: BoxFit.contain,
-              placeholderBuilder: (context) => Container(
-                color: appTheme.bgLight,
-                child: const Center(
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    } else if (avatarUrl != null) {
-      // Handle raster images (PNG, JPEG, etc.) from network
-      avatarContent = Container(
-        width: avatarSize,
-        height: avatarSize,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          image: DecorationImage(
-            image: NetworkImage(avatarUrl),
-            fit: BoxFit.cover,
-          ),
-        ),
-      );
-    } else {
-      // Handle null avatarUrl - use default user SVG icon
-      avatarContent = Container(
-        width: avatarSize,
-        height: avatarSize,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: svgBackgroundColor,
-        ),
-        child: ClipOval(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: SvgPicture.asset(
-              'assets/icons/user.svg',
-              fit: BoxFit.contain,
-              colorFilter: ColorFilter.mode(
-                // ignore: deprecated_member_use
-                appTheme.bgLight,
-                BlendMode.srcIn,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+    // Use AvatarWidget for consistent avatar rendering across the app.
+    // AvatarWidget handles SVG vs raster detection and animal-group scaling.
+    final avatarContent = AvatarWidget(
+      imageUrl: widget.playerState.avatarUrl,
+      size: avatarSize,
+      backgroundColor: appTheme.bgLight,
+      placeholder: Icon(
+        Icons.person,
+        size: avatarSize * 0.5,
+        color: appTheme.borderMuted,
+      ),
+    );
 
     // If no tracker is provided, we are in a context without a countdown, so we
     // show a static ring for all players. The color will be determined by role.

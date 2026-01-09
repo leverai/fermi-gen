@@ -2,7 +2,7 @@
 
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from fermi_db.models.user import User
 from opentelemetry import trace
 
@@ -35,6 +35,7 @@ async def set_locale(
 
 @router.post('/update_profile')
 async def update_profile(
+    request: Request,
     payload: UpdateUserProfileRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     user_service: Annotated[UserService, Depends(get_user_service)],
@@ -45,19 +46,29 @@ async def update_profile(
     span.set_attribute(api_attrs.QUERY_PARAMS, payload.model_dump_json())
     assert current_user.id is not None
 
+    # Convert relative avatar path to absolute URL if needed
+    # Frontend sends paths like /static/avatars/letters/a.svg
+    # We need to store absolute URLs for the frontend's SvgPicture.network
+    picture_url = payload.avatar_url
+    if picture_url and picture_url.startswith('/static/avatars/'):
+        base_url = str(request.base_url).rstrip('/')
+        picture_url = f'{base_url}{picture_url}'
+
     # Validate avatar is unlocked for user's level
     if payload.avatar_url and '/static/avatars/' in payload.avatar_url:
         from fastapi import HTTPException
 
-        from app.services.avatars import AVATARS, get_avatar_unlock_level
+        from app.services.avatars import get_avatar_unlock_level
 
-        # Extract filename from URL
-        # e.g., "http://x/static/avatars/foo.svg" -> "foo.svg"
-        filename = payload.avatar_url.split('/static/avatars/')[-1]
-        if filename in AVATARS:
+        # Extract filename from URL (may include group subdirectory)
+        # e.g., "http://x/static/avatars/animals/foo.svg" -> "foo.svg"
+        path_after_avatars = payload.avatar_url.split('/static/avatars/')[-1]
+        filename = path_after_avatars.split('/')[-1]  # Get just the filename
+
+        try:
+            required_level = get_avatar_unlock_level(filename)
             xp_level = await user_service.get_xp_level(current_user.firebase_uid)
             user_level = xp_level['level']
-            required_level = get_avatar_unlock_level(filename)
             if user_level < required_level:
                 raise HTTPException(
                     status_code=403,
@@ -66,11 +77,13 @@ async def update_profile(
                         f'you are level {user_level}'
                     ),
                 )
+        except KeyError:
+            pass  # Unknown avatars (e.g., OAuth provider images) are allowed
 
     await user_service.update_user_profile(
         user_id=current_user.id,
         display_name=payload.display_name,
-        picture=payload.avatar_url,
+        picture=picture_url,
     )
     return status.HTTP_200_OK
 
