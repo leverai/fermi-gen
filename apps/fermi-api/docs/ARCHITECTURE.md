@@ -555,7 +555,21 @@ All request/response schemas are defined in `app/services/daily_question/schemas
 
 ### Post-Take Feature
 
-Post-take allows users to take past daily questions they missed. This feature will be limited to PRO subscribers in the future.
+Post-take allows **Pro subscribers only** to take past daily questions they missed.
+
+**Tier Gating:**
+
+The post-take endpoints use `get_authenticated_user` dependency which fetches user and subscription tier in a single JOIN query. Non-Pro users receive `403 Forbidden` with message "Archive access requires Pro subscription".
+
+```python
+# In daily_question.py endpoints
+auth_user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)]
+
+# AuthenticatedUser provides:
+# - auth_user.user: The User model
+# - auth_user.tier: SubscriptionTier (FREE or PRO)
+# - auth_user.is_pro: Convenience property for tier check
+```
 
 **Key Differences from Live Participation:**
 

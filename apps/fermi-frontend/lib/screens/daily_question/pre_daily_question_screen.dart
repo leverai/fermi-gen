@@ -255,17 +255,42 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
                           ),
                           const SizedBox(height: 48),
 
-                          // Start button
-                          SizedBox(
-                            width: 200,
-                            child: MainButton(
-                              onPressed: isCountingDown ? null : _handleStart,
-                              label:
-                                  isCountingDown ? null : MainButtonLabel.start,
-                              customLabel: isCountingDown
-                                  ? 'Starting in $_countdownSeconds'
-                                  : null,
-                            ),
+                          // Start button with optional lock icon for gated post-take
+                          Consumer<SubscriptionProvider>(
+                            builder: (context, subProvider, _) {
+                              final bool isGated =
+                                  widget.isPostTake && !subProvider.isPro;
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (isGated) ...[
+                                    GestureDetector(
+                                      onTap: _showPaywall,
+                                      child: Icon(
+                                        Icons.lock,
+                                        color: appTheme.textMuted,
+                                        size: 24,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                  ],
+                                  SizedBox(
+                                    width: 200,
+                                    child: MainButton(
+                                      onPressed:
+                                          isCountingDown ? null : _handleStart,
+                                      label: isCountingDown
+                                          ? null
+                                          : MainButtonLabel.start,
+                                      customLabel: isCountingDown
+                                          ? 'Starting in $_countdownSeconds'
+                                          : null,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                           const SizedBox(height: 40),
 

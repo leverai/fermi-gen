@@ -7,6 +7,7 @@ from fermi_core import utcnow_naive
 from sqlmodel import delete, select
 
 from fermi_db.models.game import AnswerEvent, QuestionVote, UserQuestionHistory
+from fermi_db.models.subscription import Subscription, SubscriptionTier
 from fermi_db.models.user import User
 from fermi_db.schemas import Locale
 
@@ -21,6 +22,39 @@ class UserRepository(BaseRepository):
     async def get_by_id(self, user_id: int) -> User | None:
         """Fetch a user by their ID."""
         return await self.session.get(User, user_id)
+
+    async def get_user_with_tier(
+        self,
+        user_id: int,
+    ) -> tuple[User, SubscriptionTier] | None:
+        """Fetch a user and their subscription tier in a single query.
+
+        Uses LEFT JOIN to fetch user and subscription together.
+
+        Args:
+            user_id: The user's database ID.
+
+        Returns:
+            Tuple of (User, SubscriptionTier) if user exists, None otherwise.
+            Returns SubscriptionTier.FREE if no active subscription.
+
+        """
+        stmt = (
+            select(User, Subscription)
+            .outerjoin(Subscription, User.id == Subscription.user_id)
+            .where(User.id == user_id)
+        )
+        result = await self.session.exec(stmt)
+        row = result.one_or_none()
+        if row is None:
+            return None
+
+        user, subscription = row
+        # Determine tier: PRO only if subscription exists and is active
+        tier = SubscriptionTier.FREE
+        if subscription is not None and subscription.is_active:
+            tier = subscription.tier
+        return (user, tier)
 
     async def get_by_firebase_uid(self, firebase_uid: str) -> User | None:
         """Fetch a user by their Firebase UID."""
