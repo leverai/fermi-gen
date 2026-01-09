@@ -313,35 +313,30 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
   /// - For other states: nothing (status button handles it)
   Widget _buildBottomRightContent(BuildContext context, AppTheme appTheme) {
     // For ACTIVE or SUBMITTED, show submission status indicator
-    if (widget.status == 'ACTIVE' || widget.status == 'SUBMITTED') {
-      final isSubmitted = widget.status == 'SUBMITTED';
-      return Text(
-        isSubmitted ? 'Submitted ✓' : 'Tap to play',
-        style: AppFont.primaryTextStyle(
-          context,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: appTheme.bg.withAlpha(200),
-        ),
-      );
+    final isSubmitted = widget.status == 'SUBMITTED';
+    final notStarted = widget.status == 'NOT_STARTED';
+    final isActive = widget.status == 'ACTIVE';
+    if (!(isSubmitted || notStarted || isActive)) {
+      // For other states (RESULTS_READY, PENDING), show nothing at bottom right
+      // as the status button at top right handles it
+      return const SizedBox.shrink();
     }
 
-    // For NOT_STARTED, show "SOON"
-    if (widget.status == 'NOT_STARTED') {
-      return Text(
-        'Soon',
-        style: AppFont.primaryTextStyle(
-          context,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: appTheme.bg.withAlpha(200),
-        ),
-      );
-    }
-
-    // For other states (RESULTS_READY, PENDING), show nothing at bottom right
-    // as the status button at top right handles it
-    return const SizedBox.shrink();
+    final text = isSubmitted
+        ? 'Submitted ✓'
+        : notStarted
+            ? 'Soon'
+            : 'Tap to play';
+    final textColor = isActive ? appTheme.warning : appTheme.bg.withAlpha(200);
+    return Text(
+      text,
+      style: AppFont.primaryTextStyle(
+        context,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: textColor,
+      ),
+    );
   }
 
   Widget _buildStatusButton(BuildContext context, AppTheme appTheme) {
