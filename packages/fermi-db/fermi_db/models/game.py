@@ -177,3 +177,21 @@ class QuestionVote(SQLModel, table=True):
         default_factory=utcnow_naive,
         sa_column=sa.Column(sa.TIMESTAMP(timezone=False)),
     )
+
+
+class PartyGameHosting(SQLModel, table=True):
+    """Records party game hosting events for rate limiting.
+
+    Used to track how many party games a user hosts per week for
+    enforcing free tier limits (2/week).
+    """
+
+    __tablename__ = 'party_hostings'  # type: ignore
+
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(index=True, foreign_key='user.id')
+    game_id: str = Field(max_length=255)
+    created_at: datetime.datetime = Field(
+        default_factory=utcnow_naive,
+        index=True,
+    )

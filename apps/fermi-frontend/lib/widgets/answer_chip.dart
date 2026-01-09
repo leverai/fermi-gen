@@ -47,8 +47,6 @@ class AnswerChip extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: appTheme.shadowColor,
-            // spreadRadius: 2,
-            // blurRadius: 0,
             offset: const Offset(2, 2),
           ),
         ],

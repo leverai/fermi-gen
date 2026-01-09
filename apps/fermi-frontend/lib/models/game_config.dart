@@ -1,10 +1,14 @@
+import 'package:fermi_frontend/models/user_limits.dart';
+
 class GameConfig {
   final List<CategoryInfo> categories;
   final List<DifficultyInfo> difficulties;
+  final UserLimits? userLimits;
 
   const GameConfig({
     required this.categories,
     required this.difficulties,
+    this.userLimits,
   });
 
   factory GameConfig.fromJson(Map<String, dynamic> json) {
@@ -20,7 +24,16 @@ class GameConfig {
         .whereType<Map<String, dynamic>>()
         .map(DifficultyInfo.fromJson)
         .toList(growable: false);
-    return GameConfig(categories: cats, difficulties: diffs);
+
+    final userLimitsJson = json['user_limits'] as Map<String, dynamic>?;
+    final userLimits =
+        userLimitsJson != null ? UserLimits.fromJson(userLimitsJson) : null;
+
+    return GameConfig(
+      categories: cats,
+      difficulties: diffs,
+      userLimits: userLimits,
+    );
   }
 }
 

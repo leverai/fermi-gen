@@ -15,6 +15,7 @@ from app.schemas.endpoints import (
     GetPlayerStatsResponse,
     IdModel,
     PlayerStats,
+    UserLimits,
 )
 from app.services.game.errors import ValidationError
 from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
@@ -40,10 +41,14 @@ from app.services.game.writers.questions_writer import GameQuestionsWriter
 if TYPE_CHECKING:
     from fermi_db import DatabaseClient
     from fermi_db.models.user import User
+    from fermi_db.repositories.party_hosting_repository import PartyHostingRepository
     from google.cloud.firestore_v1 import (
         AsyncClient,
         AsyncTransaction,
     )
+
+# Free tier party hosting limit (per calendar week)
+FREE_HOSTING_LIMIT_PER_WEEK = 2
 
 
 class GameService:
@@ -64,18 +69,37 @@ class GameService:
         background_tasks: BackgroundTasks,
         current_user: 'User',
         firestore_client: 'AsyncClient',
+        hosting_repo: 'PartyHostingRepository',
+        *,
+        is_pro: bool = False,
     ) -> IdModel:
         """Create a new game."""
-        # 0. Prepare resources
+        # 0. Check hosting limits
+        assert current_user.id is not None
+        allowed = (
+            True
+            if is_pro
+            else await hosting_repo.get_hostings_remaining(
+                user_id=current_user.id,
+                limit=FREE_HOSTING_LIMIT_PER_WEEK,
+            )
+        )
+        if not allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail='Weekly party hosting limit reached',
+            )
+
+        # 1. Prepare resources
         batch = firestore_client.batch()
 
-        # 1. Create game document
+        # 2. Create game document
         game_ref = await self._lifecycle_writer.create_game(
             games_ref=firestore_client.collection('games'),
             writer=batch,
         )
 
-        # 2. Set players
+        # 3. Set players
         try:
             self._players_writer.set_players(
                 game_ref=game_ref,
@@ -89,7 +113,7 @@ class GameService:
                 detail=str(err),
             ) from err
 
-        # 3. Set misc fields
+        # 4. Set misc fields
         version_uid = str(uuid.uuid4())
         # Use ChottuLink URL if configured, otherwise fall back to API trampoline
 
@@ -105,8 +129,16 @@ class GameService:
         }
         batch.update(game_ref, misc)
 
-        # 4. Commit the batch
+        # 5. Commit the batch
         await batch.commit()
+
+        # 6. Record hosting (after successful commit)
+        assert current_user.id is not None
+        await self.record_hosting(
+            user_id=current_user.id,
+            game_id=game_ref.id,
+            hosting_repo=hosting_repo,
+        )
 
         # 5. Fetch questions in the background and set them
         background_tasks.add_task(
@@ -435,12 +467,54 @@ class GameService:
     async def get_game_config(
         self,
         request: Request | None = None,
+        *,
+        user_id: int | None = None,
+        hosting_repo: 'PartyHostingRepository',
+        is_pro: bool = False,
     ) -> GameConfigResponse:
-        """Get the game config."""
+        """Get the game config.
+
+        Args:
+            request: FastAPI request for building asset URLs.
+            user_id: User's database ID (for personalized limits).
+            is_pro: Whether user has Pro subscription.
+            hosting_repo: Repository for checking hosting limits.
+
+        Returns:
+            Game config including user-specific limits if authenticated.
+
+        """
+        assert user_id is not None
+        hostings_left = (
+            -1
+            if is_pro
+            else await hosting_repo.get_hostings_remaining(
+                user_id=user_id,
+                limit=FREE_HOSTING_LIMIT_PER_WEEK,
+            )
+        )
+
         return GameConfigResponse(
             categories=get_request_categories(),
             difficulties=get_request_difficulties(request),
+            user_limits=UserLimits(party_hostings_remaining=hostings_left),
         )
+
+    async def record_hosting(
+        self,
+        user_id: int,
+        game_id: str,
+        hosting_repo: 'PartyHostingRepository',
+    ) -> None:
+        """Record a party game hosting in the database.
+
+        Args:
+            user_id: User's database ID.
+            game_id: Firestore game document ID.
+            hosting_repo: Repository for recording hosting.
+
+        """
+        await hosting_repo.record_hosting(user_id=user_id, game_id=game_id)
 
     async def vote(
         self,

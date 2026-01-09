@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
+import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/screens/main/widgets/daily_question_carousel.dart';
 import 'package:fermi_frontend/widgets/bounce_effect_wrapper.dart';
 
@@ -9,7 +11,41 @@ import 'package:fermi_frontend/widgets/bounce_effect_wrapper.dart';
 ///
 /// Contains the top bar, welcome message, Daily Question carousel, and Party card.
 class GamesTab extends StatelessWidget {
-  const GamesTab({
+  Widget _buildFreeTierInfo(BuildContext context, AppTheme appTheme) {
+    final controller = context.watch<MainScreenController>();
+    final userLimits = controller.configDto?.userLimits;
+
+    // Don't show anything for Pro users or if limits aren't loaded
+    if (userLimits == null || userLimits.isUnlimited) {
+      return const SizedBox.shrink();
+    }
+
+    final bool canHost = userLimits.canHost;
+    final int remaining = userLimits.partyHostingsRemaining;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          canHost ? Icons.info_outline : Icons.lock_outline,
+          size: 14,
+          color: canHost ? appTheme.bg : appTheme.bg.withAlpha(150),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          canHost ? '$remaining free hostings left' : 'Weekly limit reached',
+          style: AppFont.primaryTextStyle(
+            context,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: canHost ? appTheme.bg : appTheme.bg.withAlpha(150),
+          ),
+        ),
+      ],
+    );
+  }
+
+  GamesTab({
     super.key,
     this.displayName,
     required this.onPartyCardTapped,
@@ -165,17 +201,20 @@ class GamesTab extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Text(
-                'Tap to play',
-                style: AppFont.primaryTextStyle(
-                  context,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: appTheme.bg.withAlpha(200),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildFreeTierInfo(context, appTheme),
+                Text(
+                  'Tap to play',
+                  style: AppFont.primaryTextStyle(
+                    context,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: appTheme.bg.withAlpha(200),
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         ),

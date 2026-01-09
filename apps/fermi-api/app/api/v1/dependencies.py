@@ -5,6 +5,7 @@ from functools import lru_cache
 # from typing import Annotated
 from fastapi import Depends  # , Header, HTTPException, status
 from fermi_db.dal import DatabaseClient
+from fermi_db.repositories.party_hosting_repository import PartyHostingRepository
 from fermi_db.repositories.subscription_repository import SubscriptionRepository
 from fermi_db.repositories.user_repository import UserRepository
 from fermi_db.session import get_session
@@ -77,6 +78,13 @@ def get_subscription_repository(
 ) -> SubscriptionRepository:
     """Get an instance of the SubscriptionRepository."""
     return SubscriptionRepository(session)
+
+
+def get_party_hosting_repository(
+    session: AsyncSession = Depends(get_session),  # noqa: B008
+) -> PartyHostingRepository:
+    """Get an instance of the PartyHostingRepository."""
+    return PartyHostingRepository(session)
 
 
 def get_subscription_service(

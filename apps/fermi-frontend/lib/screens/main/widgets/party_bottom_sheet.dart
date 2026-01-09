@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
-import 'package:fermi_frontend/screens/main/widgets/primary_cta.dart';
+import 'package:fermi_frontend/models/user_limits.dart';
+import 'package:fermi_frontend/screens/paywall_screen.dart';
+import 'package:fermi_frontend/services/subscription_service.dart';
+import 'package:fermi_frontend/widgets/main_button.dart';
+import 'package:provider/provider.dart';
 import 'package:fermi_frontend/widgets/selector_widget.dart';
 import 'package:fermi_frontend/widgets/categories/category_chip_selector.dart'
     show CategoryChipItem, CategoryChipSelector, AllChip;
@@ -18,6 +22,17 @@ void showPartyBottomSheet({
   final AppTheme appTheme =
       Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
+  void showPaywall() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PaywallScreen(
+          subscriptionService:
+              Provider.of<SubscriptionService>(context, listen: false),
+        ),
+      ),
+    );
+  }
+
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
@@ -29,6 +44,8 @@ void showPartyBottomSheet({
             animation: controller,
             builder: (context, _) {
               final items = _buildCategories(controller);
+              final UserLimits? userLimits = controller.configDto?.userLimits;
+              final bool canHost = userLimits?.canHost ?? true;
               return Padding(
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -139,9 +156,15 @@ void showPartyBottomSheet({
                         allowNoSelection: true,
                       ),
                       const SizedBox(height: 24),
-                      PrimaryCta(
-                        isLoading: controller.isSubmitting,
-                        onPressed: onPrimaryAction,
+                      Center(
+                        child: MainButton(
+                          isLoading: controller.isSubmitting,
+                          onPressed: canHost ? onPrimaryAction : showPaywall,
+                          label: canHost ? MainButtonLabel.create : null,
+                          customLabel: canHost ? null : 'Get Unlimited',
+                          iconAssetPath:
+                              canHost ? 'assets/icons/spacebar.svg' : null,
+                        ),
                       ),
                       const SizedBox(height: 24),
                     ],

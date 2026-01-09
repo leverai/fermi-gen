@@ -5,12 +5,18 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import HTMLResponse
 from fermi_db.models.user import User
+from fermi_db.repositories.party_hosting_repository import PartyHostingRepository
 from google.cloud.firestore_v1.async_client import AsyncClient
 from opentelemetry import trace
 
 import app.logging.attributes as api_attrs
-from app.api.v1.auth_deps import get_current_user
-from app.api.v1.dependencies import get_firestore_client, get_game_service
+from app.api.v1.auth_deps import get_authenticated_user, get_current_user
+from app.api.v1.authenticated_user import AuthenticatedUser
+from app.api.v1.dependencies import (
+    get_firestore_client,
+    get_game_service,
+    get_party_hosting_repository,
+)
 from app.api.v1.rate_limit import (
     GAME_CLEANUP_RATE_LIMIT,
     GAME_CREATE_RATE_LIMIT,
@@ -36,9 +42,13 @@ async def create_game(
     request: Request,
     payload: GameCreateRequest,
     background_tasks: BackgroundTasks,
-    current_user: Annotated[User, Depends(get_current_user)],
+    auth_user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     game_service: Annotated[GameService, Depends(get_game_service)],
+    hosting_repo: Annotated[
+        PartyHostingRepository,
+        Depends(get_party_hosting_repository),
+    ],
 ) -> IdModel:
     """Create a new game."""
     span = trace.get_current_span()
@@ -51,8 +61,10 @@ async def create_game(
         request=request,
         payload=payload,
         background_tasks=background_tasks,
-        current_user=current_user,
+        current_user=auth_user.user,
         firestore_client=firestore_client,
+        hosting_repo=hosting_repo,
+        is_pro=auth_user.is_pro,
     )
 
 
@@ -219,13 +231,22 @@ async def get_player_stats(
 @router.get('/config', response_model=GameConfigResponse)
 async def get_game_config(
     request: Request,
-    current_user: Annotated[User, Depends(get_current_user)],
+    auth_user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
     game_service: Annotated[GameService, Depends(get_game_service)],
+    hosting_repo: Annotated[
+        PartyHostingRepository,
+        Depends(get_party_hosting_repository),
+    ],
 ) -> GameConfigResponse:
     """Get the game config."""
     span = trace.get_current_span()
     span.set_attribute(api_attrs.ACTION, get_game_config.__qualname__)
-    return await game_service.get_game_config(request)
+    return await game_service.get_game_config(
+        request,
+        user_id=auth_user.id,
+        hosting_repo=hosting_repo,
+        is_pro=auth_user.is_pro,
+    )
 
 
 @router.get('/invite/{game_id}', response_class=HTMLResponse)
