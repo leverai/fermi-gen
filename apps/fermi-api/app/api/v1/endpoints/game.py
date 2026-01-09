@@ -75,6 +75,10 @@ async def start_game(
     current_user: Annotated[User, Depends(get_current_user)],
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     game_service: Annotated[GameService, Depends(get_game_service)],
+    hosting_repo: Annotated[
+        PartyHostingRepository,
+        Depends(get_party_hosting_repository),
+    ],
 ) -> IdModel:
     """Start a game. Only the host can start the game."""
     span = trace.get_current_span()
@@ -85,6 +89,7 @@ async def start_game(
         background_tasks=background_tasks,
         current_user=current_user,
         firestore_client=firestore_client,
+        hosting_repo=hosting_repo,
     )
 
 

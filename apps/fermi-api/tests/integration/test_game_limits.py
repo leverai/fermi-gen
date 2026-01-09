@@ -23,6 +23,12 @@ def test_free_user_hosting_limit(
         headers=headers,
     )
     assert resp.status_code == 200, f'1st game failed: {resp.text}'
+    resp = api_client.post(
+        '/api/v1/game/start',
+        json={'resource_id': resp.json()['resource_id']},
+        headers=headers,
+    )
+    assert resp.status_code == 200, f'1st game start failed: {resp.text}'
 
     # 2nd game
     resp = api_client.post(
@@ -31,6 +37,12 @@ def test_free_user_hosting_limit(
         headers=headers,
     )
     assert resp.status_code == 200, f'2nd game failed: {resp.text}'
+    resp = api_client.post(
+        '/api/v1/game/start',
+        json={'resource_id': resp.json()['resource_id']},
+        headers=headers,
+    )
+    assert resp.status_code == 200, f'2nd game start failed: {resp.text}'
 
     # 3rd game (Blocked)
     resp = api_client.post(
@@ -38,7 +50,7 @@ def test_free_user_hosting_limit(
         json={'question_round_settings': {'n_questions': 3, 'difficulty': None}},
         headers=headers,
     )
-    assert resp.status_code == 403, f'3rd game should be forbidden: {resp.text}'
+    assert resp.status_code == 403, f'3rd game start should be forbidden: {resp.text}'
     assert 'Weekly party hosting limit reached' in resp.json()['detail']
 
 
