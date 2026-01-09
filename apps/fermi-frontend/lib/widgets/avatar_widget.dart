@@ -11,8 +11,6 @@ class AvatarWidget extends StatelessWidget {
     this.imageUrl,
     this.size = 48.0,
     this.placeholder,
-    this.borderColor,
-    this.borderWidth = 2.0,
     this.backgroundColor,
     this.padding = EdgeInsets.zero,
     this.boxShadow,
@@ -26,12 +24,6 @@ class AvatarWidget extends StatelessWidget {
 
   /// Widget to show when no image URL is provided or while loading.
   final Widget? placeholder;
-
-  /// Optional border color around the avatar.
-  final Color? borderColor;
-
-  /// Border width (default: 2.0).
-  final double borderWidth;
 
   /// Background color of the avatar container.
   final Color? backgroundColor;
@@ -64,9 +56,6 @@ class AvatarWidget extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: backgroundColor,
-        border: borderColor != null
-            ? Border.all(color: borderColor!, width: borderWidth)
-            : null,
         boxShadow: boxShadow,
       ),
       child: Padding(

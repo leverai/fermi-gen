@@ -402,7 +402,6 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     final avatarContent = AvatarWidget(
       imageUrl: widget.playerState.avatarUrl,
       size: avatarSize,
-      backgroundColor: appTheme.bgLight,
       placeholder: Icon(
         Icons.person,
         size: avatarSize * 0.5,

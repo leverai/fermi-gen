@@ -1,5 +1,6 @@
 """Repository for user-related database operations."""
 
+import logging
 from typing import Any
 
 from fermi_core import utcnow_naive
@@ -10,6 +11,8 @@ from fermi_db.models.user import User
 from fermi_db.schemas import Locale
 
 from . import BaseRepository
+
+logger = logging.getLogger(__name__)
 
 
 class UserRepository(BaseRepository):
@@ -109,6 +112,9 @@ class UserRepository(BaseRepository):
         user = await self.session.get(User, user_id)
         if user is None:
             raise ValueError(f'User with id {user_id} not found')
+        if not display_name and not picture:
+            logger.warning('No display_name or picture provided for user %s', user_id)
+            return user
 
         if display_name is not None:
             user.display_name = display_name
