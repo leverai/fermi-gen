@@ -190,7 +190,7 @@ class UpdateUserProfileRequest(BaseModel):
 
 
 class AvatarInfo(BaseModel):
-    """Avatar info with unlock level."""
+    """Avatar info with unlock level and group."""
 
     url: str
     """Full URL to the avatar asset."""
@@ -200,6 +200,9 @@ class AvatarInfo(BaseModel):
 
     unlocked: bool
     """Whether this avatar is unlocked for the requesting user."""
+
+    group: str
+    """Avatar group (e.g., 'animals', 'letters', 'folks')."""
 
 
 class GetAvatarsResponse(BaseModel):

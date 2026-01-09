@@ -45,6 +45,10 @@ class AvatarWidget extends StatelessWidget {
   bool get _isSvg =>
       imageUrl != null && imageUrl!.toLowerCase().endsWith('.svg');
 
+  /// Detect if URL is for an animals group avatar (needs scaling to avoid clipping)
+  bool get _isAnimalsGroup =>
+      imageUrl != null && imageUrl!.contains('/animals/');
+
   Widget get _defaultPlaceholder => Icon(
         Icons.person,
         size: size * 0.6,
@@ -71,23 +75,31 @@ class AvatarWidget extends StatelessWidget {
           child: imageUrl == null
               ? Center(child: placeholderWidget)
               : (_isSvg
-                  ? _buildSvgImage(placeholderWidget)
+                  ? _buildSvgImage(placeholderWidget,
+                      applyScaling: _isAnimalsGroup)
                   : _buildRasterImage(placeholderWidget)),
         ),
       ),
     );
   }
 
-  Widget _buildSvgImage(Widget placeholderWidget) {
+  Widget _buildSvgImage(Widget placeholderWidget, {bool applyScaling = true}) {
+    final svgWidget = SvgPicture.network(
+      imageUrl!,
+      fit: BoxFit.contain,
+      placeholderBuilder: (context) => Center(child: placeholderWidget),
+    );
+
+    if (!applyScaling) {
+      return svgWidget;
+    }
+
     // Scale down to fit the square SVG inside the circle (1/sqrt(2) approx 0.707)
+    // This is needed for animal avatars to prevent clipping
     return FractionallySizedBox(
       widthFactor: 0.707,
       heightFactor: 0.707,
-      child: SvgPicture.network(
-        imageUrl!,
-        fit: BoxFit.contain,
-        placeholderBuilder: (context) => Center(child: placeholderWidget),
-      ),
+      child: svgWidget,
     );
   }
 

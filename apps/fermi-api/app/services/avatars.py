@@ -1,64 +1,106 @@
-"""Avatar registry with level gating.
+"""Avatar registry with level gating and grouping.
 
-This module defines all available avatars and their unlock levels.
+This module defines all available avatars organized by group with their unlock levels.
 """
 
 import random
+from enum import StrEnum
 
-# Avatar filenames mapped to their unlock level.
-# Level 1 avatars are available immediately to new players.
-# Other levels are placeholders - adjust as needed.
-AVATARS: dict[str, int] = {
-    # Level 1 - Starter animals
-    'animal-bear-fur-svgrepo-com.svg': 1,
-    'animal-cachorro-dog-svgrepo-com.svg': 1,
-    'animal-duck-ducks-svgrepo-com.svg': 1,
-    'animal-elefante-elephant-svgrepo-com.svg': 1,
-    'animal-girafa-giraffe-svgrepo-com.svg': 1,
-    'animal-leao-lion-svgrepo-com.svg': 1,
-    'animal-tiger-tigers-svgrepo-com.svg': 1,
-    # Distributed across levels 2-100 (adjust as needed)
-    'animals-christmas-deer-svgrepo-com.svg': 5,
-    'animals-otter-svgrepo-com.svg': 8,
-    'animals-philippine-tarsier-svgrepo-com.svg': 12,
-    'animals-rat-svgrepo-com.svg': 15,
-    'anteater-svgrepo-com.svg': 18,
-    'bee-svgrepo-com.svg': 22,
-    'beetle-svgrepo-com.svg': 25,
-    'bird-svgrepo-com (1).svg': 28,
-    'bird-svgrepo-com (2).svg': 32,
-    'bird-svgrepo-com (3).svg': 35,
-    'bird-svgrepo-com (4).svg': 38,
-    'bird-svgrepo-com.svg': 42,
-    'butterfly-animals-svgrepo-com.svg': 45,
-    'butterfly-svgrepo-com.svg': 48,
-    'cheetah-svgrepo-com.svg': 52,
-    'chipmunk-svgrepo-com.svg': 55,
-    'crocodile-svgrepo-com.svg': 58,
-    'elephant-svgrepo-com.svg': 62,
-    'giraffe-svgrepo-com.svg': 65,
-    'ladybug-svgrepo-com.svg': 68,
-    'llama-svgrepo-com.svg': 72,
-    'moose-svgrepo-com.svg': 75,
-    'ostrich-svgrepo-com.svg': 78,
-    'owl-svgrepo-com.svg': 82,
-    'panther-svgrepo-com.svg': 85,
-    'porcupine-wild-life-svgrepo-com.svg': 88,
-    'sheep-2-svgrepo-com.svg': 90,
-    'siberian-husky-svgrepo-com.svg': 92,
-    'spider-svgrepo-com.svg': 95,
-    'toucan-svgrepo-com.svg': 97,
-    'whale-animals-svgrepo-com.svg': 100,
+
+class AvatarGroup(StrEnum):
+    """Avatar group/category enum."""
+
+    ANIMALS = 'animals'
+    LETTERS = 'letters'
+    FOLKS = 'folks'
+
+
+# Avatar groups: dict mapping group -> (filename -> unlock_level)
+# Each group corresponds to a subdirectory under static/avatars/
+AVATAR_GROUPS: dict[AvatarGroup, dict[str, int]] = {
+    AvatarGroup.LETTERS: {
+        'a.svg': 1,
+        'b.svg': 1,
+        'c.svg': 1,
+        'd.svg': 1,
+        'e.svg': 1,
+        'f.svg': 1,
+        'g.svg': 1,
+        'h.svg': 1,
+        'i.svg': 1,
+        'j.svg': 1,
+        'k.svg': 1,
+        'l.svg': 1,
+        'm.svg': 1,
+        'n.svg': 1,
+        'o.svg': 1,
+        'p.svg': 1,
+        'q.svg': 1,
+        'r.svg': 1,
+        's.svg': 1,
+        't.svg': 1,
+        'u.svg': 1,
+        'v.svg': 1,
+        'w.svg': 1,
+        'x.svg': 1,
+        'y.svg': 1,
+        'z.svg': 1,
+    },
+    AvatarGroup.ANIMALS: {
+        # Level 1 - Starter animals
+        'toucan.svg': 3,
+        'beetle.svg': 3,
+        'bird2.svg': 6,
+        'bird3.svg': 6,
+        'moose.svg': 9,
+        # Higher Levels
+        'sloth.svg': 12,
+        'ladybug.svg': 15,
+        'panther.svg': 18,
+        'porcupine.svg': 18,
+        'bee.svg': 21,
+        'cheetah.svg': 24,
+        'owl.svg': 27,
+        'deer.svg': 30,
+        'flamingo.svg': 33,
+        'bird.svg': 36,
+        'fox.svg': 39,
+    },
+    AvatarGroup.FOLKS: {
+        'two.svg': 5,
+        'three.svg': 5,
+        'four.svg': 5,
+        'five.svg': 5,
+        'six.svg': 5,
+        'seven.svg': 5,
+        'eight.svg': 5,
+        'nine.svg': 5,
+        'ten.svg': 5,
+    },
 }
 
 
-def get_level_1_avatars() -> list[str]:
-    """Return list of avatar filenames available at level 1."""
-    return [name for name, level in AVATARS.items() if level == 1]
+def get_all_avatars() -> dict[str, tuple[AvatarGroup, int]]:
+    """Return all avatars as filename -> (group, unlock_level)."""
+    result: dict[str, tuple[AvatarGroup, int]] = {}
+    for group, avatars in AVATAR_GROUPS.items():
+        for filename, level in avatars.items():
+            result[filename] = (group, level)
+    return result
 
 
-def get_random_level_1_avatar() -> str:
-    """Return a random avatar filename from level 1 pool."""
+def get_level_1_avatars() -> list[tuple[AvatarGroup, str]]:
+    """Return list of (group, filename) tuples available at level 1."""
+    result: list[tuple[AvatarGroup, str]] = []
+    for group, avatars in AVATAR_GROUPS.items():
+        for filename, level in avatars.items():
+            if level == 1:
+                result.append((group, filename))
+    return result
+
+
+def get_random_level_1_avatar() -> tuple[AvatarGroup, str]:
+    """Return a random (group, filename) from level 1 pool."""
     return random.choice(get_level_1_avatars())
 
 
@@ -75,7 +117,29 @@ def get_avatar_unlock_level(filename: str) -> int:
         KeyError: If the avatar filename is not in the registry.
 
     """
-    return AVATARS[filename]
+    for avatars in AVATAR_GROUPS.values():
+        if filename in avatars:
+            return avatars[filename]
+    raise KeyError(f'Avatar not found: {filename}')
+
+
+def get_avatar_group(filename: str) -> AvatarGroup:
+    """Get the group for an avatar.
+
+    Args:
+        filename: Avatar filename.
+
+    Returns:
+        The group this avatar belongs to.
+
+    Raises:
+        KeyError: If the avatar filename is not in the registry.
+
+    """
+    for group, avatars in AVATAR_GROUPS.items():
+        if filename in avatars:
+            return group
+    raise KeyError(f'Avatar not found: {filename}')
 
 
 def is_avatar_unlocked(filename: str, user_level: int) -> bool:
@@ -89,4 +153,7 @@ def is_avatar_unlocked(filename: str, user_level: int) -> bool:
         True if the user can use this avatar.
 
     """
-    return user_level >= AVATARS.get(filename, 1)
+    try:
+        return user_level >= get_avatar_unlock_level(filename)
+    except KeyError:
+        return True  # Unknown avatars default to unlocked
