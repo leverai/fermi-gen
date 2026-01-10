@@ -213,6 +213,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       MaterialPageRoute(
         builder: (_) => PaywallScreen(
           subscriptionService: subscriptionService,
+          isAnonymous: widget.authService.isAnonymous,
+          onAuthRequired: () {
+            Navigator.of(context).pop(); // Close paywall
+            context.push('/upgrade-account');
+          },
         ),
       ),
     );
@@ -386,6 +391,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                     context: context,
                                     controller: _controller,
                                     onPrimaryAction: _onPrimaryAction,
+                                    isAnonymous: widget.authService.isAnonymous,
+                                    onAuthRequired: () {
+                                      Navigator.of(context)
+                                          .pop(); // Close paywall
+                                      Navigator.of(context)
+                                          .pop(); // Close party sheet
+                                      context.push('/upgrade-account');
+                                    },
                                   ),
                                 ),
                               ),

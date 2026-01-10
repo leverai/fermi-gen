@@ -245,20 +245,15 @@ class _SettingsSheetState extends State<SettingsSheet> {
                           context,
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
-                          color: widget.isAnonymous
-                              ? appTheme.bgDark
-                              : widget.subscriptionTier == 'FREE'
-                                  ? appTheme.textMuted
-                                  : appTheme.primary,
+                          color: widget.subscriptionTier == 'FREE'
+                              ? appTheme.textMuted
+                              : appTheme.primary,
                         ),
                       ),
-                      onTap: widget.isAnonymous
-                          ? null
-                          : () {
-                              Navigator.of(context).pop();
-                              widget.onUpgradeSubscription?.call();
-                            },
-                      isDisabled: widget.isAnonymous,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        widget.onUpgradeSubscription?.call();
+                      },
                     ),
                     Divider(
                       height: 1,

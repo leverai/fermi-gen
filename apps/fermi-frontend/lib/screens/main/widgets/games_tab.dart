@@ -33,7 +33,9 @@ class GamesTab extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Text(
-          canHost ? '$remaining free hostings left' : 'Weekly limit reached',
+          canHost
+              ? '$remaining free hostings left this week'
+              : 'Weekly limit reached',
           style: AppFont.primaryTextStyle(
             context,
             fontSize: 12,

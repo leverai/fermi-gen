@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/providers/subscription_provider.dart';
@@ -122,10 +123,18 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
 
   void _showPaywall() {
     final subscriptionService = context.read<SubscriptionService>();
+    final isAnonymous = FirebaseAuth.instance.currentUser?.isAnonymous ?? false;
     Navigator.of(context)
         .push(
       MaterialPageRoute(
-        builder: (_) => PaywallScreen(subscriptionService: subscriptionService),
+        builder: (_) => PaywallScreen(
+          subscriptionService: subscriptionService,
+          isAnonymous: isAnonymous,
+          onAuthRequired: () {
+            Navigator.of(context).pop(); // Close paywall
+            context.push('/upgrade-account');
+          },
+        ),
       ),
     )
         .then((purchased) {

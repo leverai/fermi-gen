@@ -77,12 +77,23 @@ class Benefit {
 /// - Shows FREE vs PRO comparison table
 /// - Displays pricing, savings, and promotional badges
 /// - Supports introductory offers (free trials) when configured
+/// - Payment gating: anonymous users are redirected to auth before purchase
 class PaywallScreen extends StatefulWidget {
   final SubscriptionService subscriptionService;
+
+  /// Whether the current user is anonymous (not registered).
+  /// If true, attempting to purchase will trigger [onAuthRequired].
+  final bool isAnonymous;
+
+  /// Called when an anonymous user attempts to purchase.
+  /// Should navigate to the auth/registration screen.
+  final VoidCallback? onAuthRequired;
 
   const PaywallScreen({
     super.key,
     required this.subscriptionService,
+    this.isAnonymous = false,
+    this.onAuthRequired,
   });
 
   @override
@@ -221,6 +232,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
   }
 
   Future<void> _purchasePackage(Package package) async {
+    // Payment gating: require registration before purchase
+    if (widget.isAnonymous) {
+      widget.onAuthRequired?.call();
+      return;
+    }
+
     setState(() {
       _isPurchasing = true;
       _errorMessage = null;
