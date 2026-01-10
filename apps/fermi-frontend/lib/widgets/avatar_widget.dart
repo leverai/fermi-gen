@@ -75,7 +75,7 @@ class AvatarWidget extends StatelessWidget {
   Widget _buildSvgImage(Widget placeholderWidget, {bool applyScaling = true}) {
     final svgWidget = SvgPicture.network(
       imageUrl!,
-      fit: BoxFit.contain,
+      fit: BoxFit.cover,
       placeholderBuilder: (context) => Center(child: placeholderWidget),
     );
 

@@ -53,6 +53,7 @@ class MeTab extends StatelessWidget {
           AvatarWidget(
             imageUrl: avatarUrl,
             size: 120,
+            backgroundColor: appTheme.bgLight,
             boxShadow: [
               BoxShadow(
                 color: appTheme.primaryMuted,
