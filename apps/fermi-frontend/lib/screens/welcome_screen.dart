@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -187,6 +188,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                 context: context,
                                 appTheme: appTheme,
                                 imageAsset: 'assets/icons/fermi.png',
+                                lottieAsset: 'assets/lotties/Windblow.json',
                                 textSpan: TextSpan(
                                   style: AppFont.primaryTextStyle(
                                     context,
@@ -222,6 +224,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                 context: context,
                                 appTheme: appTheme,
                                 imageAsset: 'assets/icons/Colombus.png',
+                                lottieAsset:
+                                    'assets/lotties/boat steering.json',
                                 textSpan: TextSpan(
                                   style: AppFont.primaryTextStyle(
                                     context,
@@ -328,22 +332,42 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     required AppTheme appTheme,
     required TextSpan textSpan,
     String? imageAsset,
+    String? lottieAsset,
     IconData? icon,
   }) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (imageAsset != null)
-          Container(
-            height: 80,
-            width: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              image: DecorationImage(
-                image: AssetImage(imageAsset),
-                fit: BoxFit.cover,
-              ),
-            ),
+        if (imageAsset != null || lottieAsset != null)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              if (imageAsset != null)
+                Container(
+                  height: 80,
+                  width: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    image: DecorationImage(
+                      image: AssetImage(imageAsset),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              if (imageAsset != null && lottieAsset != null)
+                const SizedBox(width: 16),
+              if (lottieAsset != null)
+                ClipOval(
+                  child: SizedBox(
+                    height: 80,
+                    width: 80,
+                    child: Lottie.asset(
+                      lottieAsset,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+            ],
           )
         else if (icon != null)
           Icon(icon, size: 64, color: appTheme.primary),
