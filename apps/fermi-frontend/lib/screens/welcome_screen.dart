@@ -92,14 +92,21 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       curve: Curves.easeIn,
     );
 
-    // Start Sequence
-    _startAnimationSequence();
+    // Start Carousel
+    _carouselController.forward();
   }
 
-  void _startAnimationSequence() async {
+  void _onPageChanged(int index) {
+    if (index == 2) {
+      _startLateAnimationSequence();
+    }
+  }
+
+  void _startLateAnimationSequence() async {
+    // Only start if not already playing or completed
+    if (_logoController.isAnimating || _logoController.isCompleted) return;
+
     await _logoController.forward();
-    await Future.delayed(const Duration(milliseconds: 200));
-    await _carouselController.forward();
     await Future.delayed(const Duration(milliseconds: 200));
     _buttonController.forward();
   }
@@ -182,13 +189,11 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         Expanded(
                           child: PageView(
                             controller: _pageController,
+                            onPageChanged: _onPageChanged,
                             children: [
                               // Slide 1: Fermi's estimation
-                              _buildCarouselSlide(
-                                context: context,
+                              _buildFermiSlide(
                                 appTheme: appTheme,
-                                imageAsset: 'assets/icons/fermi.png',
-                                lottieAsset: 'assets/lotties/Windblow.json',
                                 textSpan: TextSpan(
                                   style: AppFont.primaryTextStyle(
                                     context,
@@ -220,12 +225,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                 ),
                               ),
                               // Slide 2: Columbus comparison
-                              _buildCarouselSlide(
-                                context: context,
+                              _buildColumbusSlide(
                                 appTheme: appTheme,
-                                imageAsset: 'assets/icons/Colombus.png',
-                                lottieAsset:
-                                    'assets/lotties/boat steering.json',
                                 textSpan: TextSpan(
                                   style: AppFont.primaryTextStyle(
                                     context,
@@ -258,8 +259,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                 ),
                               ),
                               // Slide 3: Call to action
-                              _buildCarouselSlide(
-                                context: context,
+                              _buildIconSlide(
                                 appTheme: appTheme,
                                 icon: Icons.psychology,
                                 textSpan: TextSpan(
@@ -271,15 +271,15 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                     height: 1.4,
                                   ),
                                   children: [
-                                    const TextSpan(text: 'How do '),
+                                    const TextSpan(text: 'What about '),
                                     TextSpan(
-                                      text: 'you',
+                                      text: 'YOU',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w900,
                                         color: appTheme.primary,
                                       ),
                                     ),
-                                    const TextSpan(text: ' compare?'),
+                                    const TextSpan(text: ' ?'),
                                   ],
                                 ),
                               ),
@@ -327,50 +327,127 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     );
   }
 
-  Widget _buildCarouselSlide({
-    required BuildContext context,
+  /// Builds slide 1: Fermi with overlay Windblow animation.
+  Widget _buildFermiSlide({
     required AppTheme appTheme,
     required TextSpan textSpan,
-    String? imageAsset,
-    String? lottieAsset,
-    IconData? icon,
+  }) {
+    return Stack(
+      children: [
+        // Main content (avatar + text)
+        Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              height: 80,
+              width: 80,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                  image: AssetImage('assets/icons/fermi.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            RichText(
+              textAlign: TextAlign.center,
+              text: textSpan,
+            ),
+          ],
+        ),
+        // Full-screen Windblow overlay, centered
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Center(
+              child: Lottie.asset(
+                'assets/lotties/Windblow.json',
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Builds slide 2: Columbus with compass in top-right corner.
+  Widget _buildColumbusSlide({
+    required AppTheme appTheme,
+    required TextSpan textSpan,
+  }) {
+    return Stack(
+      children: [
+        // Main content (avatar + text), horizontally centered
+        Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              height: 80,
+              width: 80,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                  image: AssetImage('assets/icons/Colombus.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            RichText(
+              textAlign: TextAlign.center,
+              text: textSpan,
+            ),
+          ],
+        ),
+        // Compass in top-right corner
+        Positioned(
+          top: 0,
+          right: 0,
+          child: IgnorePointer(
+            child: SizedBox(
+              height: 48 + 24,
+              width: 48 + 24,
+              child: Lottie.asset(
+                'assets/lotties/boat steering.json',
+                fit: BoxFit.contain,
+                delegates: LottieDelegates(
+                  values: [
+                    // Background white elements -> bgLight
+                    ValueDelegate.color(
+                      const ['**', 'Fill 1'],
+                      value: appTheme.bgLight,
+                    ),
+                    // North needle (green) -> primary
+                    ValueDelegate.color(
+                      const ['Layer 6 Outlines', 'Group 1', '**'],
+                      value: appTheme.primary,
+                    ),
+                    // South needle (red) -> secondary
+                    ValueDelegate.color(
+                      const ['Layer 6 Outlines', 'Group 2', '**'],
+                      value: appTheme.secondary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Builds slide 3: Simple icon + text slide.
+  Widget _buildIconSlide({
+    required AppTheme appTheme,
+    required IconData icon,
+    required TextSpan textSpan,
   }) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (imageAsset != null || lottieAsset != null)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              if (imageAsset != null)
-                Container(
-                  height: 80,
-                  width: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: AssetImage(imageAsset),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              if (imageAsset != null && lottieAsset != null)
-                const SizedBox(width: 16),
-              if (lottieAsset != null)
-                ClipOval(
-                  child: SizedBox(
-                    height: 80,
-                    width: 80,
-                    child: Lottie.asset(
-                      lottieAsset,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-            ],
-          )
-        else if (icon != null)
-          Icon(icon, size: 64, color: appTheme.primary),
+        Icon(icon, size: 64, color: appTheme.primary),
         const SizedBox(height: 24),
         RichText(
           textAlign: TextAlign.center,
