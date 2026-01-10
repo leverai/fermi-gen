@@ -152,6 +152,9 @@ class FirestoreGameRealtime implements GameRealtime {
       final Timestamp? createdAtTs = data['created_at'] as Timestamp?;
       final DateTime? createdAt = createdAtTs?.toDate();
 
+      // Parse max_players for tier-based limits
+      final int? maxPlayers = (data['max_players'] as num?)?.toInt();
+
       return GameSnapshot(
         state: state,
         isHost: isHost,
@@ -164,6 +167,7 @@ class FirestoreGameRealtime implements GameRealtime {
         currentQuestionUid: currentQuestionUid,
         questionUids: _questionUidsByGame[gameId] ?? const <String>[],
         createdAt: createdAt,
+        maxPlayers: maxPlayers,
       );
     });
   }
@@ -226,7 +230,8 @@ class FirestoreGameRealtime implements GameRealtime {
     }
 
     // Store the subscription to prevent leaks
-    _baseStreamSubscriptions[key] = baseStream.where((qs) => qs.docs.isNotEmpty).listen((qs) {
+    _baseStreamSubscriptions[key] =
+        baseStream.where((qs) => qs.docs.isNotEmpty).listen((qs) {
       final Map<String, dynamic> raw = qs.docs.first.data();
       _lastQuestionRawByKey[key] = raw;
       controller.add(_mapQuestionDocToRevealed(raw, key));

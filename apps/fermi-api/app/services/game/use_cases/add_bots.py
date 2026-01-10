@@ -11,7 +11,6 @@ from fastapi import HTTPException, status
 
 from app.schemas.game import GamePlayer, GameState
 from app.services.game.bots import BOT_IDS, BOTS
-from app.services.game.writers.players_writer import MAX_PLAYERS
 
 if TYPE_CHECKING:
     from fastapi import Request
@@ -84,7 +83,7 @@ class AddBotsUseCase:
         # Read game data
         data = await self._repo.get_game_fields(
             game_ref,
-            fields=['host', 'players', 'state'],
+            fields=['host', 'players', 'state', 'max_players'],
         )
         if not data:
             raise HTTPException(
@@ -107,7 +106,8 @@ class AddBotsUseCase:
                 detail='Can only add bots in lobby state',
             )
 
-        # Validate player count
+        # Validate player count using game's max_players
+        max_players = int(data['max_players'])
         players = cast(dict[str, GamePlayer], data['players'])
         existing_bot_ids = {pid for pid in players if pid in BOT_IDS}
         human_count = len(players) - len(existing_bot_ids)
@@ -122,8 +122,8 @@ class AddBotsUseCase:
 
         # Check max players limit
         total_after_add = human_count + len(existing_bot_ids) + len(bot_ids)
-        if total_after_add > MAX_PLAYERS:
-            available_slots = MAX_PLAYERS - human_count - len(existing_bot_ids)
+        if total_after_add > max_players:
+            available_slots = max_players - human_count - len(existing_bot_ids)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f'Adding {len(bot_ids)} bots would exceed max players. '
@@ -151,7 +151,7 @@ class AddBotsUseCase:
             batch.update(game_ref, {f'players.{bot_id}': bot_player})
 
         # Update full flag if needed
-        batch.update(game_ref, {'full': total_after_add >= MAX_PLAYERS})
+        batch.update(game_ref, {'full': total_after_add >= max_players})
 
         await batch.commit()
 

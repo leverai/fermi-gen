@@ -268,8 +268,21 @@ class _MyAppState extends State<MyApp> {
       _appRouter.router.go('/lobby/$gameId');
     } catch (e) {
       debugPrint('MyApp: Failed to join game: $e');
+      // Provide friendly error messages for common join failures
+      String message;
+      final errorStr = e.toString();
+      if (errorStr.contains('Game is full')) {
+        message = 'This game is full. Ask the host for a new invite!';
+      } else if (errorStr.contains('not found') || errorStr.contains('404')) {
+        message = 'Game not found. The invite link may have expired.';
+      } else if (errorStr.contains('already started') ||
+          errorStr.contains('Game has already')) {
+        message = 'This game has already started.';
+      } else {
+        message = 'Failed to join game. Please try again.';
+      }
       _appScaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(content: Text('Failed to join game: $e')),
+        SnackBar(content: Text(message)),
       );
     }
   }

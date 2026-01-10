@@ -24,6 +24,7 @@ class LobbyScreen extends StatelessWidget {
     this.onInviteBots,
     this.botsToInvite = 0,
     this.createdAt,
+    this.maxPlayers,
   });
 
   final List<PlayerState> players;
@@ -37,6 +38,7 @@ class LobbyScreen extends StatelessWidget {
   final VoidCallback? onInviteBots;
   final int botsToInvite;
   final DateTime? createdAt;
+  final int? maxPlayers;
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +108,8 @@ class LobbyScreen extends StatelessWidget {
                               startEnabled: startEnabled,
                               createdAt: createdAt,
                               onShare: onShare,
+                              playerCount: players.length,
+                              maxPlayers: maxPlayers,
                             ),
                           );
                         }),
@@ -161,6 +165,8 @@ class _CenterCallout extends StatefulWidget {
     required this.startEnabled,
     this.createdAt,
     this.onShare,
+    required this.playerCount,
+    this.maxPlayers,
   });
 
   final bool isHost;
@@ -168,6 +174,8 @@ class _CenterCallout extends StatefulWidget {
   final bool startEnabled;
   final DateTime? createdAt;
   final VoidCallback? onShare;
+  final int playerCount;
+  final int? maxPlayers;
 
   @override
   State<_CenterCallout> createState() => _CenterCalloutState();
@@ -298,6 +306,19 @@ class _CenterCalloutState extends State<_CenterCallout>
               ),
             ),
           ],
+          if (widget.maxPlayers != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Text(
+                '${widget.playerCount}/${widget.maxPlayers} players',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Barlow',
+                  fontSize: 14,
+                  color: appTheme.textMuted,
+                ),
+              ),
+            ),
         ],
       ),
     );

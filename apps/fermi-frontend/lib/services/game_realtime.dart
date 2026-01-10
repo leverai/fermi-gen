@@ -81,6 +81,7 @@ class GameSnapshot {
   final String? currentQuestionUid; // from game doc 'question_uid'
   final List<String> questionUids; // from game doc 'question_uids'
   final DateTime? createdAt; // from game doc 'created_at' for timer sync
+  final int? maxPlayers; // from game doc 'max_players' for tier-based limits
 
   const GameSnapshot({
     required this.state,
@@ -94,6 +95,7 @@ class GameSnapshot {
     this.currentQuestionUid,
     this.questionUids = const <String>[],
     this.createdAt,
+    this.maxPlayers,
   });
 }
 

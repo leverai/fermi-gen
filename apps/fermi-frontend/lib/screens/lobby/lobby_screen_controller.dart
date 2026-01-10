@@ -36,9 +36,6 @@ class LobbyScreenController extends StatefulWidget {
 }
 
 class _LobbyScreenControllerState extends State<LobbyScreenController> {
-  // Backend enforces max 8 players per game
-  static const int _maxPlayers = 8;
-
   StreamSubscription<GameSnapshot>? _sub;
   List<PlayerState> _players = const <PlayerState>[];
   bool _isHost = false;
@@ -48,6 +45,7 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
   GameSessionController? _session;
   int _botsToInvite = 0;
   DateTime? _createdAt;
+  int? _maxPlayers;
 
   @override
   void initState() {
@@ -67,9 +65,12 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
         _isLobbyReady = snapshot.state == GameState.lobbyReady;
         _joinUrl = snapshot.joinUrl;
         _createdAt = snapshot.createdAt;
+        _maxPlayers = snapshot.maxPlayers;
         // Calculate how many bots can be invited
         final int currentPlayerCount = snapshot.players.length;
-        final int remainingSpots = _maxPlayers - currentPlayerCount;
+        final int maxPlayers =
+            snapshot.maxPlayers ?? 8; // Fallback for legacy games
+        final int remainingSpots = maxPlayers - currentPlayerCount;
         _botsToInvite = min(3, max(0, remainingSpots));
         // Lobby: preserve natural order as provided by the snapshot
         _players = snapshot.players.values
@@ -248,6 +249,7 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
         onInviteBots: _isHost ? _inviteBots : null,
         botsToInvite: _botsToInvite,
         createdAt: _createdAt,
+        maxPlayers: _maxPlayers,
         onLeave: () async {
           final appTheme = Theme.of(context).extension<AppTheme>() ??
               AppTheme.defaultTheme();

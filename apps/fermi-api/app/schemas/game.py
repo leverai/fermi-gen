@@ -78,6 +78,7 @@ class GameDocPlayers(TypedDict):
     host: str
     players: dict[str, GamePlayer]
     full: bool
+    max_players: int
 
 
 class GameDocPlayersAnswers(TypedDict):

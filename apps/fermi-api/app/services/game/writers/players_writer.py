@@ -25,7 +25,14 @@ if TYPE_CHECKING:
     from app.services.game.utils import Writeable
 
 
-MAX_PLAYERS = 8
+# Tier-based maximum players
+MAX_PLAYERS_FREE = 5
+MAX_PLAYERS_PRO = 20
+
+
+def get_max_players(*, is_pro: bool) -> int:
+    """Return the maximum players allowed based on subscription tier."""
+    return MAX_PLAYERS_PRO if is_pro else MAX_PLAYERS_FREE
 
 
 class GamePlayersWriter:
@@ -49,8 +56,17 @@ class GamePlayersWriter:
         writer: 'Writeable',
         host_id: str,
         users: Iterable['User'],
+        *,
+        max_players: int,
     ) -> None:
-        """Set game players, host, and full flag.
+        """Set game players, host, full flag, and max_players.
+
+        Args:
+            game_ref: Reference to the game document.
+            writer: Transaction or batch to write with.
+            host_id: Firebase UID of the host player.
+            users: Iterable of user objects to add as players.
+            max_players: Maximum players allowed (based on host's tier).
 
         Raises:
             ValidationError: If ``host_id`` is not among provided users or
@@ -70,13 +86,14 @@ class GamePlayersWriter:
             raise ValidationError('Host not in players')
 
         n_players = len(players)
-        if n_players > MAX_PLAYERS:
+        if n_players > max_players:
             raise ValidationError('Too many players')
 
         game_data = GameDocPlayers(
             host=host_id,
             players=players,
-            full=n_players == MAX_PLAYERS,
+            full=n_players == max_players,
+            max_players=max_players,
         )
         writer.update(game_ref, cast(dict, game_data))
 
@@ -86,8 +103,20 @@ class GamePlayersWriter:
         writer: 'Writeable',
         players: dict[str, GamePlayer],
         user: 'User',
+        *,
+        max_players: int,
     ) -> list[str]:
         """Add a player to the game and return user_uids.
+
+        Args:
+            game_ref: Reference to the game document.
+            writer: Transaction or batch to write with.
+            players: Current players dict from the game document.
+            user: User to add as a player.
+            max_players: Maximum players allowed for this game.
+
+        Returns:
+            List of all player UIDs after adding the new player.
 
         Raises:
             StateConflictError: If the player already joined the game.
@@ -103,7 +132,7 @@ class GamePlayersWriter:
                     user,
                     is_host=False,
                 ),
-                'full': (len(players) + 1) == MAX_PLAYERS,
+                'full': (len(players) + 1) == max_players,
             },
         )
 
@@ -143,7 +172,8 @@ class GamePlayersWriter:
 
         """
         active_player_ids = self.get_active_player_ids(
-            players, include_bots=include_bots
+            players,
+            include_bots=include_bots,
         )
         if remove_id not in active_player_ids:
             raise NotFoundError('Player not found')
