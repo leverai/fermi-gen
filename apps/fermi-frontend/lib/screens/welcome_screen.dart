@@ -147,24 +147,14 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                             'assets/icons/logo-fg.svg',
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
                         Text(
-                          'Welcome to',
+                          'Welcome to Guesstimate!',
                           textAlign: TextAlign.center,
                           style: AppFont.primaryTextStyle(
                             context,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            color: appTheme.text,
-                          ),
-                        ),
-                        Text(
-                          'Guesstimate!',
-                          textAlign: TextAlign.center,
-                          style: AppFont.primaryTextStyle(
-                            context,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
                             color: appTheme.text,
                           ),
                         ),
@@ -200,8 +190,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                 textSpan: TextSpan(
                                   style: AppFont.primaryTextStyle(
                                     context,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w400,
                                     color: appTheme.text,
                                     height: 1.4,
                                   ),
@@ -235,8 +225,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                 textSpan: TextSpan(
                                   style: AppFont.primaryTextStyle(
                                     context,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w400,
                                     color: appTheme.text,
                                     height: 1.4,
                                   ),
@@ -267,25 +257,25 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                               _buildCarouselSlide(
                                 context: context,
                                 appTheme: appTheme,
-                                icon: Icons.perm_data_setting_outlined,
+                                icon: Icons.psychology,
                                 textSpan: TextSpan(
                                   style: AppFont.primaryTextStyle(
                                     context,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w400,
                                     color: appTheme.text,
                                     height: 1.4,
                                   ),
                                   children: [
                                     const TextSpan(text: 'How well can '),
                                     TextSpan(
-                                      text: 'YOU',
+                                      text: 'YOU\n',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w900,
                                         color: appTheme.primary,
                                       ),
                                     ),
-                                    const TextSpan(text: ' estimate?'),
+                                    const TextSpan(text: ' Guesstimate?'),
                                   ],
                                 ),
                               ),
