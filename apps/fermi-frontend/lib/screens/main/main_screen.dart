@@ -416,11 +416,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                   onStatsTapped: () {
                                     final stats =
                                         _controller.playerStatsDto?.stats;
-                                    if (stats != null) {
+                                    final ranks =
+                                        _controller.configDto?.ranks ?? [];
+                                    if (stats != null && ranks.isNotEmpty) {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(
                                           builder: (_) => RanksScreen(
                                             playerStats: stats,
+                                            ranks: ranks,
                                           ),
                                         ),
                                       );

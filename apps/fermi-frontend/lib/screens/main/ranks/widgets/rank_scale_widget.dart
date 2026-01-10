@@ -1,6 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
-import 'package:fermi_frontend/models/rank_data.dart';
+import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -10,10 +10,12 @@ class RankScaleWidget extends StatelessWidget {
     super.key,
     required this.currentRank,
     required this.playerPercentile,
+    required this.allRanks,
   });
 
   final RankDefinition currentRank;
   final int playerPercentile;
+  final List<RankDefinition> allRanks;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +31,7 @@ class RankScaleWidget extends StatelessWidget {
           painter: _ScalePainter(
             currentRank: currentRank,
             playerPercentile: playerPercentile,
+            allRanks: allRanks,
             appTheme: appTheme,
             context: context,
           ),
@@ -41,12 +44,14 @@ class RankScaleWidget extends StatelessWidget {
 class _ScalePainter extends CustomPainter {
   final RankDefinition currentRank;
   final int playerPercentile;
+  final List<RankDefinition> allRanks;
   final AppTheme appTheme;
   final BuildContext context;
 
   _ScalePainter({
     required this.currentRank,
     required this.playerPercentile,
+    required this.allRanks,
     required this.appTheme,
     required this.context,
   });

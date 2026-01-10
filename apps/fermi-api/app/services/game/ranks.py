@@ -4,9 +4,14 @@ This module defines the player ranking tiers and provides functions
 to compute a player's rank based on their average percentile.
 """
 
+from typing import TYPE_CHECKING
+
 from fastapi import Request
 
 from app.schemas.endpoints import PlayerStats
+
+if TYPE_CHECKING:
+    from app.schemas.endpoints import GameConfigResponse
 
 # Rank definitions: (tier_id, name, min_percentile, accuracy_vibe, tagline)
 # Ordered from highest to lowest tier for efficient lookup
@@ -56,3 +61,35 @@ def get_rank_for_percentile(
         accuracy_vibe='Lost',
         tagline='India is right around the corner, I swear.',
     )
+
+
+def get_all_ranks(
+    request: Request | None = None,
+) -> list['GameConfigResponse.RankDefinition']:
+    """Get all rank definitions for the config endpoint.
+
+    Args:
+        request: Optional FastAPI request to build absolute image URLs.
+
+    Returns:
+        List of RankDefinition objects sorted by id (ascending).
+
+    """
+    from app.schemas.endpoints import GameConfigResponse
+
+    base = str(request.base_url).rstrip('/') if request else ''
+
+    # Sort by tier_id ascending for display (RANKS is stored highest-first)
+    sorted_ranks = sorted(RANKS, key=lambda r: r[0])
+
+    return [
+        GameConfigResponse.RankDefinition(
+            id=tier_id,
+            name=name,
+            min_percentile=min_percentile,
+            accuracy_vibe=accuracy_vibe,
+            tagline=tagline,
+            picture=f'{base}/static/ranks/{tier_id}.svg',
+        )
+        for tier_id, name, min_percentile, accuracy_vibe, tagline in sorted_ranks
+    ]

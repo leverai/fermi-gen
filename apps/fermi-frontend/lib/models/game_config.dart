@@ -3,11 +3,13 @@ import 'package:fermi_frontend/models/user_limits.dart';
 class GameConfig {
   final List<CategoryInfo> categories;
   final List<DifficultyInfo> difficulties;
+  final List<RankDefinition> ranks;
   final UserLimits? userLimits;
 
   const GameConfig({
     required this.categories,
     required this.difficulties,
+    required this.ranks,
     this.userLimits,
   });
 
@@ -24,6 +26,11 @@ class GameConfig {
         .whereType<Map<String, dynamic>>()
         .map(DifficultyInfo.fromJson)
         .toList(growable: false);
+    final List<dynamic> ranksJson = json['ranks'] as List<dynamic>? ?? const [];
+    final List<RankDefinition> ranks = ranksJson
+        .whereType<Map<String, dynamic>>()
+        .map(RankDefinition.fromJson)
+        .toList(growable: false);
 
     final userLimitsJson = json['user_limits'] as Map<String, dynamic>?;
     final userLimits =
@@ -32,6 +39,7 @@ class GameConfig {
     return GameConfig(
       categories: cats,
       difficulties: diffs,
+      ranks: ranks,
       userLimits: userLimits,
     );
   }
@@ -75,6 +83,36 @@ class DifficultyInfo {
     return DifficultyInfo(
       name: json['name']?.toString() ?? '',
       slug: json['slug']?.toString() ?? '',
+      picture: json['picture']?.toString() ?? '',
+    );
+  }
+}
+
+/// Rank tier definition from the backend.
+class RankDefinition {
+  final int id;
+  final String name;
+  final int minPercentile;
+  final String accuracyVibe;
+  final String tagline;
+  final String picture;
+
+  const RankDefinition({
+    required this.id,
+    required this.name,
+    required this.minPercentile,
+    required this.accuracyVibe,
+    required this.tagline,
+    required this.picture,
+  });
+
+  factory RankDefinition.fromJson(Map<String, dynamic> json) {
+    return RankDefinition(
+      id: (json['id'] as num? ?? 0).toInt(),
+      name: json['name']?.toString() ?? '',
+      minPercentile: (json['min_percentile'] as num? ?? 0).toInt(),
+      accuracyVibe: json['accuracy_vibe']?.toString() ?? '',
+      tagline: json['tagline']?.toString() ?? '',
       picture: json['picture']?.toString() ?? '',
     );
   }

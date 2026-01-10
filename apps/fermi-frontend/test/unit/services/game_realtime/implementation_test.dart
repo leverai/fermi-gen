@@ -277,6 +277,7 @@ void main() {
         gameConfig: const GameConfig(
           categories: [],
           difficulties: [],
+          ranks: [],
         ),
       );
 
@@ -320,6 +321,7 @@ void main() {
         gameConfig: const GameConfig(
           categories: [],
           difficulties: [],
+          ranks: [],
         ),
       );
 
@@ -357,6 +359,7 @@ void main() {
         gameConfig: const GameConfig(
           categories: [],
           difficulties: [],
+          ranks: [],
         ),
       );
 

@@ -160,8 +160,30 @@ class GameConfigResponse(BaseModel):
         slug: str
         picture: str
 
+    class RankDefinition(BaseModel):
+        """Rank tier definition for display in the ranks screen."""
+
+        id: int
+        """Rank tier ID (1-5)."""
+
+        name: str
+        """Rank name (e.g., 'Fermi')."""
+
+        min_percentile: int
+        """Minimum percentile to achieve this rank."""
+
+        accuracy_vibe: str
+        """Accuracy vibe descriptor (e.g., 'Uncanny')."""
+
+        tagline: str
+        """Rank tagline (e.g., 'Close enough for physics.')."""
+
+        picture: str
+        """URL to the rank image."""
+
     categories: list['GameConfigResponse.CategoryInfo']
     difficulties: list['GameConfigResponse.DifficultyInfo']
+    ranks: list['GameConfigResponse.RankDefinition']
     user_limits: UserLimits | None = None
 
 

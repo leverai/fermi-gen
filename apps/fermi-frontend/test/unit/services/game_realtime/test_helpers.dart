@@ -28,6 +28,7 @@ FirestoreGameRealtime createTestRealtime({
               picture: '',
             ),
           ],
+          ranks: [],
         ),
   );
 }
