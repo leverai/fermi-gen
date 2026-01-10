@@ -18,6 +18,8 @@ void showPartyBottomSheet({
   required BuildContext context,
   required MainScreenController controller,
   required VoidCallback onPrimaryAction,
+  bool isAnonymous = false,
+  VoidCallback? onAuthRequired,
 }) {
   final AppTheme appTheme =
       Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
@@ -28,6 +30,8 @@ void showPartyBottomSheet({
         builder: (_) => PaywallScreen(
           subscriptionService:
               Provider.of<SubscriptionService>(context, listen: false),
+          isAnonymous: isAnonymous,
+          onAuthRequired: onAuthRequired,
         ),
       ),
     );
