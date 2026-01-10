@@ -147,7 +147,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                             'assets/icons/logo-fg.svg',
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                         Text(
                           'Welcome to Guesstimate!',
                           textAlign: TextAlign.center,
@@ -267,15 +267,15 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                     height: 1.4,
                                   ),
                                   children: [
-                                    const TextSpan(text: 'How well can '),
+                                    const TextSpan(text: 'How do '),
                                     TextSpan(
-                                      text: 'YOU\n',
+                                      text: 'you',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w900,
                                         color: appTheme.primary,
                                       ),
                                     ),
-                                    const TextSpan(text: ' Guesstimate?'),
+                                    const TextSpan(text: ' compare?'),
                                   ],
                                 ),
                               ),

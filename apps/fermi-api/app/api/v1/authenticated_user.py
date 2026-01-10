@@ -4,6 +4,8 @@ from fermi_db.models.subscription import SubscriptionTier
 from fermi_db.models.user import User
 from pydantic import BaseModel, ConfigDict
 
+from app.core.config import settings
+
 
 class AuthenticatedUser(BaseModel):
     """User model enriched with subscription tier.
@@ -19,7 +21,9 @@ class AuthenticatedUser(BaseModel):
 
     @property
     def is_pro(self) -> bool:
-        """Check if user has Pro subscription."""
+        """Check if user has Pro subscription or is in bypass list."""
+        if self.user.email and self.user.email in settings.pro_bypass_emails:
+            return True
         return self.tier == SubscriptionTier.PRO
 
     # Delegate common user attributes for convenience

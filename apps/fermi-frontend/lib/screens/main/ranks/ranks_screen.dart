@@ -1,5 +1,5 @@
+import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/player_stats.dart';
-import 'package:fermi_frontend/models/rank_data.dart';
 import 'package:fermi_frontend/screens/main/ranks/widgets/rank_scale_widget.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -12,9 +12,11 @@ class RanksScreen extends StatefulWidget {
   const RanksScreen({
     super.key,
     required this.playerStats,
+    required this.ranks,
   });
 
   final PlayerStats playerStats;
+  final List<RankDefinition> ranks;
 
   @override
   State<RanksScreen> createState() => _RanksScreenState();
@@ -29,7 +31,7 @@ class _RanksScreenState extends State<RanksScreen> {
     super.initState();
     // Initialize page controller to the user's rank - 1 (since id 1 is index 0)
     final initialIndex = widget.playerStats.rank.id - 1;
-    _currentIndex = initialIndex.clamp(0, allRanks.length - 1);
+    _currentIndex = initialIndex.clamp(0, widget.ranks.length - 1);
     _pageController = PageController(initialPage: _currentIndex);
   }
 
@@ -70,17 +72,18 @@ class _RanksScreenState extends State<RanksScreen> {
                         _currentIndex = index;
                       });
                     },
-                    itemCount: allRanks.length,
+                    itemCount: widget.ranks.length,
                     itemBuilder: (context, index) {
-                      final rank = allRanks[index];
+                      final rank = widget.ranks[index];
                       return _RankPage(
                           rank: rank, playerStats: widget.playerStats);
                     },
                   ),
                 ),
                 RankScaleWidget(
-                  currentRank: allRanks[_currentIndex],
+                  currentRank: widget.ranks[_currentIndex],
                   playerPercentile: widget.playerStats.averagePercentile,
+                  allRanks: widget.ranks,
                 ),
                 // Bottom padding for scale (safe area handled by ResponsiveContainer)
                 const SizedBox(height: 16),
@@ -119,7 +122,7 @@ class _RanksScreenState extends State<RanksScreen> {
                 ),
               ),
 
-            if (_currentIndex < allRanks.length - 1)
+            if (_currentIndex < widget.ranks.length - 1)
               Positioned(
                 right: 16,
                 top: 0,
@@ -155,29 +158,20 @@ class _RankPage extends StatelessWidget {
   final RankDefinition rank;
   final PlayerStats playerStats;
 
-  String _getRankImageUrl() {
-    if (playerStats.rank.picture.isEmpty) return '';
-    final parts = playerStats.rank.picture.split('/');
-    if (parts.isEmpty) return '';
-    parts.removeLast();
-    return '${parts.join('/')}/${rank.id}.svg';
-  }
-
   @override
   Widget build(BuildContext context) {
     final AppTheme appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
-    final imageUrl = _getRankImageUrl();
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (imageUrl.isNotEmpty)
+        if (rank.picture.isNotEmpty)
           SizedBox(
             width: 140,
             height: 140,
             child: SvgPicture.network(
-              imageUrl,
+              rank.picture,
               placeholderBuilder: (context) => Icon(
                 Icons.military_tech,
                 size: 80,

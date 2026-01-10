@@ -61,6 +61,7 @@ void main() {
         difficulties: [
           DifficultyInfo(name: 'EASY', slug: 'Easy', picture: ''),
         ],
+        ranks: [],
       );
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
 
@@ -76,7 +77,7 @@ void main() {
     test('should load player stats on initialize when user is authenticated',
         () async {
       // ARRANGE
-      const config = GameConfig(categories: [], difficulties: []);
+      const config = GameConfig(categories: [], difficulties: [], ranks: []);
       const stats = PlayerStatsResponse(
         playerId: 'player123',
         stats: PlayerStats(
@@ -93,16 +94,14 @@ void main() {
       );
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
       when(() => mockAuth.firebaseUid).thenReturn('player123');
-      when(() => mockApi.getPlayerStatsTyped())
-          .thenAnswer((_) async => stats);
+      when(() => mockApi.getPlayerStatsTyped()).thenAnswer((_) async => stats);
 
       // ACT
       await controller.initialize();
 
       // ASSERT
       expect(controller.playerStatsDto, equals(stats));
-      verify(() => mockApi.getPlayerStatsTyped())
-          .called(1);
+      verify(() => mockApi.getPlayerStatsTyped()).called(1);
     });
 
     test('should restore last round settings on initialize', () async {
@@ -119,6 +118,7 @@ void main() {
         difficulties: [
           DifficultyInfo(name: 'EASY', slug: 'Easy', picture: ''),
         ],
+        ranks: [],
       );
       const lastRoundSettings = LastRoundSettings(
         categories: ['GENERAL'],
@@ -152,7 +152,7 @@ void main() {
 
     test('should set isLoading to false after initialization', () async {
       // ARRANGE
-      const config = GameConfig(categories: [], difficulties: []);
+      const config = GameConfig(categories: [], difficulties: [], ranks: []);
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
 
       // ACT
@@ -181,6 +181,7 @@ void main() {
           ),
         ],
         difficulties: [],
+        ranks: [],
       );
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
       when(() => mockAuth.lastRoundSettings).thenReturn(null);
@@ -291,6 +292,7 @@ void main() {
         difficulties: [
           DifficultyInfo(name: 'EASY', slug: 'Easy', picture: ''),
         ],
+        ranks: [],
       );
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
       when(() => mockAuth.lastRoundSettings).thenReturn(null);
@@ -408,7 +410,7 @@ void main() {
     // For unit tests, we verify that the method exists and can be called.
 
     setUp(() async {
-      const config = GameConfig(categories: [], difficulties: []);
+      const config = GameConfig(categories: [], difficulties: [], ranks: []);
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
       when(() => mockAuth.lastRoundSettings).thenReturn(null);
       await controller.initialize();

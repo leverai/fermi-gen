@@ -19,7 +19,7 @@ from app.schemas.endpoints import (
 )
 from app.services.game.errors import ValidationError
 from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
-from app.services.game.ranks import get_rank_for_percentile
+from app.services.game.ranks import get_all_ranks, get_rank_for_percentile
 from app.services.game.repositories.game_repo import GameRepository
 from app.services.game.tasks.archive_game_results import archive_game_results
 from app.services.game.tasks.fetch_and_set_questions import fetch_and_set_questions
@@ -497,6 +497,7 @@ class GameService:
         return GameConfigResponse(
             categories=get_request_categories(),
             difficulties=get_request_difficulties(request),
+            ranks=get_all_ranks(request),
             user_limits=UserLimits(party_hostings_remaining=hostings_left),
         )
 

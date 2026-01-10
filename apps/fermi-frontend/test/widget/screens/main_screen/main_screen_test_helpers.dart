@@ -56,6 +56,7 @@ GameConfig createTestGameConfig() {
           slug: 'Medium',
           picture: 'https://example.com/medium.svg'),
     ],
+    ranks: [],
   );
 }
 
@@ -93,8 +94,7 @@ Future<void> setupInitializedMainScreen(
   when(() => mockAuth.shouldRefreshStats).thenReturn(false);
   if (withStats) {
     final stats = createTestPlayerStats();
-    when(() => mockApi.getPlayerStatsTyped())
-        .thenAnswer((_) async => stats);
+    when(() => mockApi.getPlayerStatsTyped()).thenAnswer((_) async => stats);
   }
 
   await pumpWithMaterialApp(

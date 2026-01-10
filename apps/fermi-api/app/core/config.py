@@ -47,8 +47,8 @@ class Settings(BaseSettings):
     # Even with OIDC configured at Cloud Run level, this provides defense-in-depth
     scheduler_secret: str = ''
 
-    # Premium bypass patterns (for testing/reviewers)
-    premium_bypass_patterns: list[str] = []
+    # Pro bypass emails - these users bypass Pro gating (treated as Pro)
+    pro_bypass_emails: list[str] = ['leverai@leverai.tech', 'testers@leverai.tech']
 
     # Logging
     log_level: str = 'INFO'
