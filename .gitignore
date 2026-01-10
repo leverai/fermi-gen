@@ -23,6 +23,7 @@ Design.md
 __pycache__/
 *.jsonl
 *.json
+!apps/fermi-frontend/assets/**/*.json
 .TODO
 gha-creds-*.json
 .prompts/
