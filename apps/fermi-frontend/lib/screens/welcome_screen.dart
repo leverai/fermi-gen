@@ -149,11 +149,21 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         ),
                         const SizedBox(height: 32),
                         Text(
-                          'Welcome to Guesstimate!',
+                          'Welcome to',
                           textAlign: TextAlign.center,
                           style: AppFont.primaryTextStyle(
                             context,
-                            fontSize: 32,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: appTheme.text,
+                          ),
+                        ),
+                        Text(
+                          'Guesstimate!',
+                          textAlign: TextAlign.center,
+                          style: AppFont.primaryTextStyle(
+                            context,
+                            fontSize: 28,
                             fontWeight: FontWeight.w900,
                             color: appTheme.text,
                           ),
@@ -182,28 +192,102 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           child: PageView(
                             controller: _pageController,
                             children: [
-                              // Slide 1
+                              // Slide 1: Fermi's estimation
                               _buildCarouselSlide(
                                 context: context,
                                 appTheme: appTheme,
                                 imageAsset: 'assets/icons/fermi.png',
-                                text:
-                                    'Nobel prize winner Enrico Fermi was a master of estimation.',
+                                textSpan: TextSpan(
+                                  style: AppFont.primaryTextStyle(
+                                    context,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                    color: appTheme.text,
+                                    height: 1.4,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: 'Enrico Fermi',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        color: appTheme.primary,
+                                      ),
+                                    ),
+                                    const TextSpan(text: ' famously '),
+                                    TextSpan(
+                                      text: 'estimated',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        color: appTheme.primary,
+                                      ),
+                                    ),
+                                    const TextSpan(
+                                        text:
+                                            " an explosion's power by observing flying pieces of paper!"),
+                                  ],
+                                ),
                               ),
-                              // Slide 2
+                              // Slide 2: Columbus comparison
                               _buildCarouselSlide(
                                 context: context,
                                 appTheme: appTheme,
-                                icon: Icons.waves, // Placeholder icon
-                                text:
-                                    "He famously estimated the first atomic bomb’s power using flying pieces of paper!",
+                                imageAsset: 'assets/icons/Colombus.png',
+                                textSpan: TextSpan(
+                                  style: AppFont.primaryTextStyle(
+                                    context,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                    color: appTheme.text,
+                                    height: 1.4,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: 'Christopher Columbus',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        color: appTheme.primary,
+                                      ),
+                                    ),
+                                    const TextSpan(
+                                        text: ', On the other hand, '),
+                                    TextSpan(
+                                      text: 'estimated',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        color: appTheme.primary,
+                                      ),
+                                    ),
+                                    const TextSpan(
+                                        text:
+                                            ' that Asia was right around the corner!'),
+                                  ],
+                                ),
                               ),
-                              // Slide 3
+                              // Slide 3: Call to action
                               _buildCarouselSlide(
                                 context: context,
                                 appTheme: appTheme,
-                                icon: Icons.psychology, // Placeholder icon
-                                text: "Are you ready to tes!",
+                                icon: Icons.perm_data_setting_outlined,
+                                textSpan: TextSpan(
+                                  style: AppFont.primaryTextStyle(
+                                    context,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                    color: appTheme.text,
+                                    height: 1.4,
+                                  ),
+                                  children: [
+                                    const TextSpan(text: 'How well can '),
+                                    TextSpan(
+                                      text: 'YOU',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        color: appTheme.primary,
+                                      ),
+                                    ),
+                                    const TextSpan(text: ' estimate?'),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -252,7 +336,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   Widget _buildCarouselSlide({
     required BuildContext context,
     required AppTheme appTheme,
-    required String text,
+    required TextSpan textSpan,
     String? imageAsset,
     IconData? icon,
   }) {
@@ -274,16 +358,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         else if (icon != null)
           Icon(icon, size: 64, color: appTheme.primary),
         const SizedBox(height: 24),
-        Text(
-          text,
+        RichText(
           textAlign: TextAlign.center,
-          style: AppFont.primaryTextStyle(
-            context,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: appTheme.text,
-            height: 1.4,
-          ),
+          text: textSpan,
         ),
       ],
     );
