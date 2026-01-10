@@ -96,7 +96,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
 
       // Semantic
       danger: const HSLColor.fromAHSL(1.0, 4, .71, 0.62).toColor(),
-      warning: const HSLColor.fromAHSL(1.0, 53, 1.0, 0.70).toColor(),
+      warning: const HSLColor.fromAHSL(1.0, 43, 1.0, 0.68).toColor(),
       success: const HSLColor.fromAHSL(1.0, 144, 0.21, 0.49).toColor(),
 
       // Rank Colors
@@ -144,7 +144,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
       danger:
           const HSLColor.fromAHSL(1.0, 354, .82, 0.66).toColor(), // 1 - 0.62
       warning:
-          const HSLColor.fromAHSL(1.0, 53, 1.0, 0.50).toColor(), // 1 - 0.70
+          const HSLColor.fromAHSL(1.0, 43, 1.0, 0.68).toColor(), // 1 - 0.70
       success:
           const HSLColor.fromAHSL(1.0, 144, 0.21, 0.51).toColor(), // 1 - 0.49
 
