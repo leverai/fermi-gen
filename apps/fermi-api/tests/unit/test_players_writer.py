@@ -42,6 +42,7 @@ def test_set_players_happy_path_sets_players_host_and_full_flag(
         cast(Any, writer),
         host_id='a',
         users=cast(Any, users),
+        max_players=5,
     )
 
     assert len(writer.updates) == 1
@@ -51,6 +52,7 @@ def test_set_players_happy_path_sets_players_host_and_full_flag(
     assert data['players']['a']['is_host'] is True
     assert data['players']['b']['is_host'] is False
     assert data['full'] is False
+    assert data['max_players'] == 5
 
 
 def test_set_players_validates_host_present(
@@ -66,6 +68,7 @@ def test_set_players_validates_host_present(
             cast(Any, writer),
             host_id='z',
             users=cast(Any, [_user('a')]),
+            max_players=5,
         )
 
 
@@ -76,13 +79,14 @@ def test_set_players_validates_max_players(
     writer = recorder_writer
     game_ref = fake_doc_ref
     lw = GamePlayersWriter()
-    users = [_user(str(i)) for i in range(1, 10)]  # 9 > MAX_PLAYERS(8)
+    users = [_user(str(i)) for i in range(1, 7)]  # 6 > max_players=5
     with pytest.raises(ValidationError):
         lw.set_players(
             cast(Any, game_ref),
             cast(Any, writer),
             host_id='1',
             users=cast(Any, users),
+            max_players=5,  # FREE tier limit
         )
 
 
@@ -93,17 +97,18 @@ def test_add_player_adds_and_sets_full_flag(
     writer = recorder_writer
     game_ref = fake_doc_ref
     lw = GamePlayersWriter()
-    players = _players_map('1', '2', '3', '4', '5', '6', '7')
+    players = _players_map('1', '2', '3', '4')  # 4 existing players
 
     uid_list = lw.add_player(
         cast(Any, game_ref),
         cast(Any, writer),
         players=cast(Any, players),
-        user=cast(Any, _user('8')),
+        user=cast(Any, _user('5')),
+        max_players=5,  # FREE tier limit
     )
 
-    assert uid_list[-1] == '8'
-    # With 7 existing, adding the 8th should set full=True
+    assert uid_list[-1] == '5'
+    # With 4 existing, adding the 5th should set full=True (FREE tier limit)
     assert writer.updates[0][1]['full'] is True
 
 
@@ -122,6 +127,7 @@ def test_add_player_duplicate_raises_conflict(
             cast(Any, writer),
             players=cast(Any, players),
             user=cast(Any, _user('1')),
+            max_players=5,
         )
 
 

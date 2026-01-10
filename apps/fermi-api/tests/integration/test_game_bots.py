@@ -204,7 +204,10 @@ def test_cannot_add_bots_exceeding_max_players(
     create_private_game: Callable[[dict[str, str]], str],
     get_firestore_doc: Callable[[str], dict[str, Any]],
 ) -> None:
-    """Cannot add bots if it would exceed max player limit (400)."""
+    """Cannot add bots if it would exceed max player limit (400).
+
+    Note: FREE tier hosts have max_players=5.
+    """
     host_headers = get_api_auth_headers(
         'dev.user+bot-host-max@example.com',
         'password123',
@@ -213,8 +216,8 @@ def test_cannot_add_bots_exceeding_max_players(
     game_id = create_private_game(host_headers)
     _wait_ready(get_firestore_doc, game_id)
 
-    # Add 6 human players (host + 6 = 7 total)
-    for i in range(6):
+    # Add 3 human players (host + 3 = 4 total)
+    for i in range(3):
         headers = get_api_auth_headers(
             f'dev.user+bot-joiner-{i}@example.com',
             'password123',
@@ -231,7 +234,7 @@ def test_cannot_add_bots_exceeding_max_players(
                 break
             time.sleep(0.1)
 
-    # Try to add 2 bots (would make 9 total, exceeding max of 8) → 400
+    # Try to add 2 bots (would make 6 total, exceeding max of 5) → 400
     resp = api_client.post(
         '/api/v1/game/add_bots',
         json={'resource_id': game_id, 'bot_ids': ['bot-gpt51', 'bot-gpt5mini']},

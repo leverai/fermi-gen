@@ -171,7 +171,10 @@ def test_join_full_game_returns_409(
     create_private_game: Callable[[dict[str, str]], str],
     get_firestore_doc: Callable[[str], dict],
 ) -> None:
-    """Join full game should return 409."""
+    """Join full game should return 409.
+
+    Note: FREE tier hosts have max_players=5, so game becomes full at 5 players.
+    """
     # Host creates game
     host_headers = get_api_auth_headers(
         'dev.user+fullhost@example.com',
@@ -180,8 +183,8 @@ def test_join_full_game_returns_409(
     )
     game_id = create_private_game(host_headers)
 
-    # Sequentially join 7 additional users to reach 8 players total
-    for i in range(7):
+    # Sequentially join 4 additional users to reach 5 players total (FREE tier limit)
+    for i in range(4):
         headers = get_api_auth_headers(
             f'dev.user+full{i}@example.com',
             'password123',
@@ -199,10 +202,11 @@ def test_join_full_game_returns_409(
                 break
             time.sleep(0.1)
 
-    # Confirm game is full
+    # Confirm game is full (5 players is the FREE tier limit)
     doc = get_firestore_doc(game_id)
-    assert len(doc['players']) == 8
+    assert len(doc['players']) == 5
     assert doc['full'] is True
+    assert doc['max_players'] == 5
 
     # Next join attempt should 409
     extra_headers = get_api_auth_headers(

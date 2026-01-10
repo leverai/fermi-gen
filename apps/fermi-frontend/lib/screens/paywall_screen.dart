@@ -316,6 +316,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     return Scaffold(
       backgroundColor: appTheme.bgDark,
       body: SafeArea(
+        bottom: false,
         child: _isLoading
             ? Center(
                 child: CircularProgressIndicator(color: appTheme.primary),
@@ -973,9 +974,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
     return Container(
       padding: EdgeInsets.fromLTRB(
         20,
-        16,
+        12,
         20,
-        16 + MediaQuery.of(context).padding.bottom,
+        12 + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
         color: appTheme.bg,

@@ -99,13 +99,17 @@ class GameService:
             writer=batch,
         )
 
-        # 3. Set players
+        # 3. Set players with tier-based max_players
+        from app.services.game.writers.players_writer import get_max_players
+
+        max_players = get_max_players(is_pro=is_pro)
         try:
             self._players_writer.set_players(
                 game_ref=game_ref,
                 writer=batch,
                 host_id=current_user.firebase_uid,
                 users=[current_user],
+                max_players=max_players,
             )
         except ValidationError as err:
             raise HTTPException(

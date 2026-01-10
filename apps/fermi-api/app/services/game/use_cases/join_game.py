@@ -76,6 +76,7 @@ class JoinGameUseCase:
                 'state',
                 'players',
                 'full',
+                'max_players',
                 'question_uids',
                 'n_questions',
                 'category',
@@ -101,6 +102,7 @@ class JoinGameUseCase:
         span.set_attribute(attrs.GAME_STATE, state.name)
         players = cast(dict[str, GamePlayer], data.get('players', {}))
         span.set_attribute(attrs.GAME_PLAYER_COUNT, len(players))
+        max_players = int(data['max_players'])
 
         # Update lifecycle state back to not-ready (someone joined)
         try:
@@ -122,6 +124,7 @@ class JoinGameUseCase:
                 writer=tx,
                 players=cast(dict[str, GamePlayer], data['players']),
                 user=current_user,
+                max_players=max_players,
             )
         except StateConflictError as err:
             raise HTTPException(

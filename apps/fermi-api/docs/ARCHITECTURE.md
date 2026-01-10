@@ -307,7 +307,8 @@ The structure of a game document is defined by the `GameDoc` schema (`apps/fermi
     - `rank` (number): The player's current rank in the game.
     - `is_host` (boolean): Whether the player is the host.
     - `is_active` (boolean): Whether the player is currently active in the game.
-- `full` (boolean): Whether the game is full and cannot accept new players.
+- `max_players` (number): Maximum players allowed in this game (5 for FREE, 20 for PRO). Determined by host's subscription tier at game creation and remains fixed.
+- `full` (boolean): Whether the game is full and cannot accept new players (i.e., player count equals `max_players`).
 - `progress` (map): An `AnswersProgress` object showing the progress of answers for the current question.
   - `AnswersProgress` Schema:
     - `answered` (map): A map where keys are `firebase_uid`s and values are booleans indicating if the player has answered.
