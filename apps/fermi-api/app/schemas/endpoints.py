@@ -99,10 +99,16 @@ class PlayerStats(BaseModel):
         """Rank tier ID (1-5)."""
 
         name: str
-        """Rank name (e.g., 'Fermi Master')."""
+        """Rank name (e.g., 'The Fermi')."""
 
         picture: str
         """URL to the rank image."""
+
+        accuracy_vibe: str
+        """Accuracy vibe descriptor (e.g., 'Uncanny')."""
+
+        tagline: str
+        """Rank tagline (e.g., 'Close enough for physics.')."""
 
     total_party_games: int
     """Total party mode games played."""

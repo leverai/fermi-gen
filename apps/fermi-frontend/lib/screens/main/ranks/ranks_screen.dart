@@ -196,6 +196,17 @@ class _RankPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
+        // Accuracy Vibe - styled as subtitle
+        Text(
+          rank.accuracyVibe,
+          style: AppFont.primaryTextStyle(
+            context,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+            color: appTheme.primary,
+          ),
+        ),
+        const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
@@ -212,9 +223,13 @@ class _RankPage extends StatelessWidget {
             ),
           ),
         ),
-        if (playerStats.rank.id == rank.id) ...[
-          const SizedBox(height: 24),
-          Container(
+        const SizedBox(height: 24),
+        Visibility(
+          maintainSize: true,
+          maintainAnimation: true,
+          maintainState: true,
+          visible: playerStats.rank.id == rank.id,
+          child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: Text(
               'Your Current Rank ✓',
@@ -226,7 +241,22 @@ class _RankPage extends StatelessWidget {
               ),
             ),
           ),
-        ],
+        ),
+        const SizedBox(height: 48),
+        // Tagline - styled as italic quote
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Text(
+            '“${rank.tagline}”',
+            textAlign: TextAlign.center,
+            style: AppFont.primaryTextStyle(
+              context,
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+              color: appTheme.textMuted,
+            ).copyWith(fontStyle: FontStyle.italic),
+          ),
+        ),
       ],
     );
   }
