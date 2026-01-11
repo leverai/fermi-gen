@@ -59,7 +59,7 @@ class TextBlockRenderer extends StatelessWidget {
   }
 }
 
-/// Renders a heading block.
+/// Renders a heading block with accent bar and step number detection.
 class HeadingBlockWidget extends StatelessWidget {
   const HeadingBlockWidget({
     super.key,
@@ -70,18 +70,77 @@ class HeadingBlockWidget extends StatelessWidget {
   final SerpHeadingBlock block;
   final AppTheme appTheme;
 
+  /// Detects if snippet starts with a step pattern like "Step 1:", "1.", "2."
+  /// Returns (prefix, rest) if match found, otherwise (null, original).
+  (String?, String) _parseStepPrefix(String text) {
+    // Match "Step N:" pattern
+    final stepMatch = RegExp(r'^(Step\s+\d+[:.]\s*)(.*)$', caseSensitive: false)
+        .firstMatch(text);
+    if (stepMatch != null) {
+      return (stepMatch.group(1), stepMatch.group(2) ?? '');
+    }
+
+    // Match "N." or "N:" pattern at start
+    final numMatch = RegExp(r'^(\d+[.:]\s*)(.*)$').firstMatch(text);
+    if (numMatch != null) {
+      return (numMatch.group(1), numMatch.group(2) ?? '');
+    }
+
+    return (null, text);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
-      child: Text(
-        block.snippet,
-        style: AppFont.primaryTextStyle(
-          context,
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          color: appTheme.text,
+    final (prefix, rest) = _parseStepPrefix(block.snippet);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12.0, bottom: 8.0),
+      decoration: BoxDecoration(
+        color: appTheme.bgLight.withAlpha(120),
+        borderRadius: BorderRadius.circular(8),
+        border: Border(
+          left: BorderSide(
+            color: appTheme.primary,
+            width: 4,
+          ),
         ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+        child: prefix != null
+            ? RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: prefix,
+                      style: AppFont.primaryTextStyle(
+                        context,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: appTheme.primary,
+                      ),
+                    ),
+                    TextSpan(
+                      text: rest,
+                      style: AppFont.primaryTextStyle(
+                        context,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: appTheme.text,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Text(
+                block.snippet,
+                style: AppFont.primaryTextStyle(
+                  context,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: appTheme.text,
+                ),
+              ),
       ),
     );
   }
@@ -264,8 +323,10 @@ class ListItemWidget extends StatelessWidget {
                     style: AppFont.primaryTextStyle(
                       context,
                       fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: appTheme.textMuted,
+                      fontWeight: FontWeight.w600,
+                      color: indentLevel == 0
+                          ? appTheme.primary
+                          : appTheme.textMuted,
                     ),
                   ),
                 ),
@@ -352,7 +413,7 @@ class ListItemWidget extends StatelessWidget {
                 context,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: appTheme.text,
+                color: appTheme.primary,
                 height: 1.5,
               ),
             ),
@@ -400,18 +461,26 @@ class CodeBlockWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: appTheme.bg,
+        color: appTheme.bgDark,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: appTheme.borderMuted),
+        border: Border(
+          left: BorderSide(
+            color: appTheme.primary.withAlpha(180),
+            width: 3,
+          ),
+        ),
       ),
-      child: SelectableText(
-        block.code,
-        style: const TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 13,
-          height: 1.4,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: SelectableText(
+          block.code,
+          style: TextStyle(
+            fontFamily: 'monospace',
+            fontSize: 13,
+            height: 1.4,
+            color: appTheme.text,
+          ),
         ),
       ),
     );

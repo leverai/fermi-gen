@@ -138,7 +138,7 @@ class _AnswerWalkthroughContent extends StatelessWidget {
         // Text blocks
         ...response.textBlocks.map(
           (block) => Padding(
-            padding: const EdgeInsets.only(bottom: 12.0),
+            padding: const EdgeInsets.only(bottom: 16.0),
             child: TextBlockRenderer(
               block: block,
               response: response,
