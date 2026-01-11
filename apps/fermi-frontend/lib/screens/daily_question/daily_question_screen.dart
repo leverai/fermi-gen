@@ -368,8 +368,6 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         // Hide unit tape indicators immediately after submission
         _unitTapeController.setRevealed(
             true, const Duration(milliseconds: 600));
-        // Signal MainScreen to refresh stats when we navigate back
-        context.read<AuthService>().shouldRefreshStats = true;
       }
     } catch (e) {
       // print('[DQ] Error submitting answer: $e');
@@ -418,8 +416,6 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         // Hide unit tape indicators
         _unitTapeController.setRevealed(
             true, const Duration(milliseconds: 600));
-        // Signal MainScreen to refresh stats
-        context.read<AuthService>().shouldRefreshStats = true;
 
         // Refresh archive to update participation status and mark as seen
         // Since results are shown immediately after post-take, mark as seen

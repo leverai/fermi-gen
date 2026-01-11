@@ -481,22 +481,5 @@ void main() {
       // Assert
       expect(authService.lastRoundSettings, isNull);
     });
-
-    test('should track shouldRefreshStats flag', () {
-      // Arrange
-      expect(authService.shouldRefreshStats, false);
-
-      // Act
-      authService.shouldRefreshStats = true;
-
-      // Assert
-      expect(authService.shouldRefreshStats, true);
-
-      // Act
-      authService.shouldRefreshStats = false;
-
-      // Assert
-      expect(authService.shouldRefreshStats, false);
-    });
   });
 }

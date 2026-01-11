@@ -67,16 +67,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     );
     _pageController = PageController(initialPage: _currentIndex);
 
-    // Check if we need to refresh stats (set by DQ or Party game screens)
-    // This must be in a post-frame callback so the controller is fully initialized
+    // Trigger DQ load after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && widget.authService.shouldRefreshStats) {
-        widget.authService.shouldRefreshStats = false;
-        _controller.refreshInBackground();
-        // Also refresh DQ data
-        context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
-      } else if (mounted) {
-        // Trigger DQ load after first frame if not refreshing
+      if (mounted) {
         context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
       }
     });
@@ -114,6 +107,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
+    // Force refresh stats when user explicitly taps Me Tab
+    // (bypasses debounce since this is an intentional user action)
+    if (index == 1) {
+      _controller.refreshInBackground(force: true);
+    }
   }
 
   void _onPageChanged(int index) {
@@ -170,10 +168,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         ),
       )
           .then((_) {
-        // Refresh user limits when returning from Party game
-        // (hosting count may have changed)
+        // Refresh stats and user limits when returning from Party game
+        // (stats and hosting count may have changed)
         if (mounted) {
-          _controller.refreshUserLimits();
+          _controller.refreshInBackground(force: true);
           context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
         }
       });

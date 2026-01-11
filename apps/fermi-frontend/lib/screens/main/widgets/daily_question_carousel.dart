@@ -105,19 +105,25 @@ class DailyQuestionCarousel extends StatelessWidget {
                               .then((_) {
                             // Refresh stats when returning from DQ screen
                             // in case player submitted an answer
-                            mainController.refreshInBackground();
+                            mainController.refreshInBackground(force: true);
                           });
                         };
                       } else {
                         // User already submitted - go to screen to view submission
                         displayStatus = 'SUBMITTED';
                         onTapCallback = () {
-                          Navigator.of(context).push(
+                          final mainController =
+                              context.read<MainScreenController>();
+                          Navigator.of(context)
+                              .push(
                             MaterialPageRoute(
                               // Don't pass questionDate - screen will use controller.todayDate
                               builder: (context) => const DailyQuestionScreen(),
                             ),
-                          );
+                          )
+                              .then((_) {
+                            mainController.refreshInBackground(force: true);
+                          });
                         };
                       }
                     } else if (status == 'CLOSED') {
@@ -127,27 +133,39 @@ class DailyQuestionCarousel extends StatelessWidget {
                           // User participated - show results
                           displayStatus = 'RESULTS_READY';
                           onTapCallback = () {
+                            final mainController =
+                                context.read<MainScreenController>();
                             controller.markResultsSeen(date);
-                            Navigator.of(context).push(
+                            Navigator.of(context)
+                                .push(
                               MaterialPageRoute(
                                 builder: (context) => DailyQuestionScreen(
                                   questionDate: date,
                                 ),
                               ),
-                            );
+                            )
+                                .then((_) {
+                              mainController.refreshInBackground(force: true);
+                            });
                           };
                         } else {
                           // User hasn't participated - allow post-take
                           displayStatus = 'POST_TAKE';
                           onTapCallback = () {
-                            Navigator.of(context).push(
+                            final mainController =
+                                context.read<MainScreenController>();
+                            Navigator.of(context)
+                                .push(
                               MaterialPageRoute(
                                 builder: (_) => PreDailyQuestionScreen(
                                   questionDate: date,
                                   isPostTake: true,
                                 ),
                               ),
-                            );
+                            )
+                                .then((_) {
+                              mainController.refreshInBackground(force: true);
+                            });
                           };
                         }
                       } else {
@@ -173,27 +191,39 @@ class DailyQuestionCarousel extends StatelessWidget {
                       // User participated - show results
                       displayStatus = 'RESULTS_READY';
                       onTapCallback = () {
+                        final mainController =
+                            context.read<MainScreenController>();
                         controller.markResultsSeen(date);
-                        Navigator.of(context).push(
+                        Navigator.of(context)
+                            .push(
                           MaterialPageRoute(
                             builder: (_) => DailyQuestionScreen(
                               questionDate: date,
                             ),
                           ),
-                        );
+                        )
+                            .then((_) {
+                          mainController.refreshInBackground(force: true);
+                        });
                       };
                     } else {
                       // User hasn't participated - allow post-take
                       displayStatus = 'POST_TAKE';
                       onTapCallback = () {
-                        Navigator.of(context).push(
+                        final mainController =
+                            context.read<MainScreenController>();
+                        Navigator.of(context)
+                            .push(
                           MaterialPageRoute(
                             builder: (_) => PreDailyQuestionScreen(
                               questionDate: date,
                               isPostTake: true,
                             ),
                           ),
-                        );
+                        )
+                            .then((_) {
+                          mainController.refreshInBackground(force: true);
+                        });
                       };
                     }
                   }
