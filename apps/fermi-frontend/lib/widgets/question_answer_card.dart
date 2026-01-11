@@ -12,7 +12,6 @@ import 'package:fermi_frontend/widgets/answer_walkthrough_sheet.dart';
 import 'package:fermi_frontend/models/serp_text_block.dart';
 import 'package:fermi_frontend/widgets/walkthrough_button.dart';
 
-const double kQuestionAnswerCardQuestionHeight = 24.0 * 5;
 const double kQuestionAnswerCardAnswerRowHeight = 36.0;
 const double kQuestionAnswerCardAccuracyScaleHeight = 48.0;
 const double kQuestionAnswerCardSpacing = 24.0;
@@ -395,7 +394,6 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                   key: widget.questionWidgetKey,
                   text: widget.questionText,
                   tags: widget.tags,
-                  height: kQuestionAnswerCardQuestionHeight,
                   showBorder: false,
                   bottomSpacing: 24.0,
                   revealedColor: widget.revealedColor,

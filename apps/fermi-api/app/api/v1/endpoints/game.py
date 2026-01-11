@@ -236,22 +236,18 @@ async def get_player_stats(
 @router.get('/config', response_model=GameConfigResponse)
 async def get_game_config(
     request: Request,
-    auth_user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
+    _: Annotated[User, Depends(get_current_user)],
     game_service: Annotated[GameService, Depends(get_game_service)],
-    hosting_repo: Annotated[
-        PartyHostingRepository,
-        Depends(get_party_hosting_repository),
-    ],
 ) -> GameConfigResponse:
-    """Get the game config."""
+    """Get the static game config.
+
+    This endpoint returns configuration that never changes per user
+    (categories, difficulties, ranks). It should be called once at
+    startup and cached.
+    """
     span = trace.get_current_span()
     span.set_attribute(api_attrs.ACTION, get_game_config.__qualname__)
-    return await game_service.get_game_config(
-        request,
-        user_id=auth_user.id,
-        hosting_repo=hosting_repo,
-        is_pro=auth_user.is_pro,
-    )
+    return await game_service.get_game_config(request)
 
 
 @router.get('/invite/{game_id}', response_class=HTMLResponse)

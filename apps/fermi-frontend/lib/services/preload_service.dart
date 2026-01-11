@@ -3,16 +3,21 @@ import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/player_stats.dart';
+import 'package:fermi_frontend/models/user_limits.dart';
 
-/// Service that preloads game config and player stats in the background.
+/// Service that preloads game config, user limits, and player stats.
 ///
 /// This allows screens to display data immediately without waiting for API calls.
 /// The service caches the data and ensures only one preload operation runs at a time.
+///
+/// Config is static and should be fetched once at startup.
+/// User limits are dynamic and refreshed after actions that affect them.
 class PreloadService {
   final ApiService api;
   final AuthService auth;
 
   GameConfig? _cachedConfig;
+  UserLimits? _cachedUserLimits;
   PlayerStatsResponse? _cachedStats;
   Future<void>? _preloadFuture;
 
@@ -24,10 +29,13 @@ class PreloadService {
   /// Gets the cached config, or null if not yet loaded.
   GameConfig? get cachedConfig => _cachedConfig;
 
+  /// Gets the cached user limits, or null if not yet loaded.
+  UserLimits? get cachedUserLimits => _cachedUserLimits;
+
   /// Gets the cached stats, or null if not yet loaded.
   PlayerStatsResponse? get cachedStats => _cachedStats;
 
-  /// Starts preloading config and stats in the background.
+  /// Starts preloading config, user limits, and stats in the background.
   ///
   /// This method is idempotent - calling it multiple times will return
   /// the same future if a preload is already in progress.
@@ -51,8 +59,13 @@ class PreloadService {
         }
       }
 
-      // Fetch config (required for main screen)
-      _cachedConfig = await api.getGameConfigTyped();
+      // Fetch config and user limits in parallel (both required for main screen)
+      final results = await Future.wait([
+        api.getGameConfigTyped(),
+        api.getUserLimitsTyped(),
+      ]);
+      _cachedConfig = results[0] as GameConfig;
+      _cachedUserLimits = results[1] as UserLimits;
 
       // Fetch stats if we have a user ID
       if (auth.firebaseUid != null) {
@@ -71,6 +84,7 @@ class PreloadService {
   /// Useful when user signs out or when you want to force a refresh.
   void clearCache() {
     _cachedConfig = null;
+    _cachedUserLimits = null;
     _cachedStats = null;
     _preloadFuture = null;
   }

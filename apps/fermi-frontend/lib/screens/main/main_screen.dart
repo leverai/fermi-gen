@@ -62,6 +62,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     );
     _controller.initialize(
       preloadedConfig: widget.preloadService?.cachedConfig,
+      preloadedUserLimits: widget.preloadService?.cachedUserLimits,
       preloadedStats: widget.preloadService?.cachedStats,
     );
     _pageController = PageController(initialPage: _currentIndex);
@@ -169,10 +170,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         ),
       )
           .then((_) {
-        // Refresh stats when returning from Party game
-        // Force refresh to ensure hosting count is accurate
+        // Refresh user limits when returning from Party game
+        // (hosting count may have changed)
         if (mounted) {
-          _controller.refreshInBackground(force: true);
+          _controller.refreshUserLimits();
           context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
         }
       });

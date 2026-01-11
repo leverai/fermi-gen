@@ -317,7 +317,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     required TextSpan textSpan,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 48),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
           const Spacer(flex: 2),
@@ -357,7 +357,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     required TextSpan textSpan,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 48),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
           const Spacer(flex: 2),
@@ -417,7 +417,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     required TextSpan textSpan,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 48),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
           const Spacer(flex: 2),

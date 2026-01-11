@@ -4,12 +4,23 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Request, status
 from fermi_db.models.user import User
+from fermi_db.repositories.party_hosting_repository import PartyHostingRepository
 from opentelemetry import trace
 
 import app.logging.attributes as api_attrs
-from app.api.v1.auth_deps import get_current_user
-from app.api.v1.dependencies import get_user_service
-from app.schemas.endpoints import SetLocaleRequest, UpdateUserProfileRequest
+from app.api.v1.auth_deps import get_authenticated_user, get_current_user
+from app.api.v1.authenticated_user import AuthenticatedUser
+from app.api.v1.dependencies import (
+    get_game_service,
+    get_party_hosting_repository,
+    get_user_service,
+)
+from app.schemas.endpoints import (
+    SetLocaleRequest,
+    UpdateUserProfileRequest,
+    UserLimitsResponse,
+)
+from app.services.game.service import GameService
 from app.services.user import UserService
 
 router = APIRouter()
@@ -99,3 +110,27 @@ async def delete_user(
     assert current_user.id is not None
     await user_service.delete_user(user_id=current_user.id)
     return status.HTTP_200_OK
+
+
+@router.get('/limits', response_model=UserLimitsResponse)
+async def get_user_limits(
+    auth_user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
+    game_service: Annotated[GameService, Depends(get_game_service)],
+    hosting_repo: Annotated[
+        PartyHostingRepository,
+        Depends(get_party_hosting_repository),
+    ],
+) -> UserLimitsResponse:
+    """Get user-specific limits based on subscription tier.
+
+    This returns dynamic data that changes with user actions (e.g., party
+    game hosting count). Should be fetched after actions that affect limits.
+    """
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, get_user_limits.__qualname__)
+    limits = await game_service.get_user_limits(
+        user_id=auth_user.id,
+        hosting_repo=hosting_repo,
+        is_pro=auth_user.is_pro,
+    )
+    return UserLimitsResponse(limits=limits)
