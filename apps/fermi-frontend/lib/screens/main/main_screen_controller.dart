@@ -9,6 +9,7 @@ import 'package:fermi_frontend/services/firestore_game_realtime.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/player_stats.dart';
+import 'package:fermi_frontend/models/user_limits.dart';
 
 /// Controller for MainScreen: owns side-effects and derived state.
 class MainScreenController extends ChangeNotifier {
@@ -19,6 +20,7 @@ class MainScreenController extends ChangeNotifier {
 
   // DTO-backed state
   GameConfig? _configDto;
+  UserLimits? _userLimitsDto;
   PlayerStatsResponse? _playerStatsDto;
 
   // UI state
@@ -31,6 +33,7 @@ class MainScreenController extends ChangeNotifier {
 
   // Public accessors
   GameConfig? get configDto => _configDto;
+  UserLimits? get userLimitsDto => _userLimitsDto;
   PlayerStatsResponse? get playerStatsDto => _playerStatsDto;
   List<DifficultyInfo> get difficulties =>
       _configDto?.difficulties ?? const <DifficultyInfo>[];
@@ -70,13 +73,15 @@ class MainScreenController extends ChangeNotifier {
   // Lifecycle
   Future<void> initialize({
     GameConfig? preloadedConfig,
+    UserLimits? preloadedUserLimits,
     PlayerStatsResponse? preloadedStats,
   }) async {
     print(
-        '[MainScreenController] initialize called. preloadedConfig=${preloadedConfig != null}, preloadedStats=${preloadedStats != null}');
+        '[MainScreenController] initialize called. preloadedConfig=${preloadedConfig != null}, preloadedUserLimits=${preloadedUserLimits != null}, preloadedStats=${preloadedStats != null}');
     // If we have preloaded data, use it immediately
     if (preloadedConfig != null) {
       _configDto = preloadedConfig;
+      _userLimitsDto = preloadedUserLimits;
       _playerStatsDto = preloadedStats;
       isLoading = false;
       errorMessage = null;
@@ -97,7 +102,7 @@ class MainScreenController extends ChangeNotifier {
 
       notifyListeners();
 
-      // Fetch fresh data in background to ensure we have the latest
+      // Fetch fresh user limits and stats in background
       refreshInBackground();
       return;
     }
@@ -107,15 +112,23 @@ class MainScreenController extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
-      print('[MainScreenController] Fetching game config...');
-      final GameConfig config = await api.getGameConfigTyped();
-      print('[MainScreenController] Got config, fetching stats...');
+      print('[MainScreenController] Fetching game config and user limits...');
+      // Fetch config and user limits in parallel
+      final results = await Future.wait([
+        api.getGameConfigTyped(),
+        api.getUserLimitsTyped(),
+      ]);
+      final GameConfig config = results[0] as GameConfig;
+      final UserLimits userLimits = results[1] as UserLimits;
+
+      print('[MainScreenController] Got config and limits, fetching stats...');
       PlayerStatsResponse? stats;
       if (auth.firebaseUid != null) {
         stats = await api.getPlayerStatsTyped();
         print('[MainScreenController] Got stats');
       }
       _configDto = config;
+      _userLimitsDto = userLimits;
       _playerStatsDto = stats;
       // Restore last round settings if available
       final LastRoundSettings? lrs = auth.lastRoundSettings;
@@ -141,7 +154,8 @@ class MainScreenController extends ChangeNotifier {
     }
   }
 
-  /// Refreshes data in the background without blocking the UI.
+  /// Refreshes user limits and stats in the background without blocking the UI.
+  /// Config is NOT refreshed since it's static and cached at startup.
   /// Skips refresh if data was refreshed less than 30 seconds ago,
   /// unless [force] is true.
   Future<void> refreshInBackground({bool force = false}) async {
@@ -156,16 +170,15 @@ class MainScreenController extends ChangeNotifier {
     _lastRefreshTime = now;
 
     try {
-      // Fetch data without setting isLoading to true
-      // This allows the UI to remain responsive
-      final GameConfig config = await api.getGameConfigTyped();
+      // Only fetch user limits and stats - config is static
+      final UserLimits userLimits = await api.getUserLimitsTyped();
       PlayerStatsResponse? stats;
       if (auth.firebaseUid != null) {
         stats = await api.getPlayerStatsTyped();
       }
 
       // Update data
-      _configDto = config;
+      _userLimitsDto = userLimits;
       _playerStatsDto = stats;
 
       // Notify listeners to update UI with fresh data
@@ -174,6 +187,19 @@ class MainScreenController extends ChangeNotifier {
       // Log error but don't show error message to user
       // Keep showing cached data instead
       print('⚠️ MainScreenController.refreshInBackground error: $e');
+      print(st);
+    }
+  }
+
+  /// Refreshes only user limits. Call after actions that affect limits
+  /// (e.g., creating a party game).
+  Future<void> refreshUserLimits() async {
+    try {
+      final UserLimits userLimits = await api.getUserLimitsTyped();
+      _userLimitsDto = userLimits;
+      notifyListeners();
+    } catch (e, st) {
+      print('⚠️ MainScreenController.refreshUserLimits error: $e');
       print(st);
     }
   }

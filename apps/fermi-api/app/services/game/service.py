@@ -471,24 +471,43 @@ class GameService:
     async def get_game_config(
         self,
         request: Request | None = None,
-        *,
-        user_id: int | None = None,
-        hosting_repo: 'PartyHostingRepository',
-        is_pro: bool = False,
     ) -> GameConfigResponse:
         """Get the game config.
 
+        This returns static game configuration that never changes per user.
+        It should be called once at startup and cached.
+
         Args:
             request: FastAPI request for building asset URLs.
-            user_id: User's database ID (for personalized limits).
-            is_pro: Whether user has Pro subscription.
-            hosting_repo: Repository for checking hosting limits.
 
         Returns:
-            Game config including user-specific limits if authenticated.
+            Static game config (categories, difficulties, ranks).
 
         """
-        assert user_id is not None
+        return GameConfigResponse(
+            categories=get_request_categories(),
+            difficulties=get_request_difficulties(request),
+            ranks=get_all_ranks(request),
+        )
+
+    async def get_user_limits(
+        self,
+        *,
+        user_id: int,
+        hosting_repo: 'PartyHostingRepository',
+        is_pro: bool = False,
+    ) -> UserLimits:
+        """Get user-specific limits based on subscription tier.
+
+        Args:
+            user_id: User's database ID.
+            hosting_repo: Repository for checking hosting limits.
+            is_pro: Whether user has Pro subscription.
+
+        Returns:
+            User limits including remaining party hostings.
+
+        """
         hostings_left = (
             -1
             if is_pro
@@ -497,13 +516,7 @@ class GameService:
                 limit=FREE_HOSTING_LIMIT_PER_WEEK,
             )
         )
-
-        return GameConfigResponse(
-            categories=get_request_categories(),
-            difficulties=get_request_difficulties(request),
-            ranks=get_all_ranks(request),
-            user_limits=UserLimits(party_hostings_remaining=hostings_left),
-        )
+        return UserLimits(party_hostings_remaining=hostings_left)
 
     async def vote(
         self,

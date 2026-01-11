@@ -143,6 +143,12 @@ class UserLimits(BaseModel):
     """Number of party hostings remaining this week. -1 for unlimited (Pro users)."""
 
 
+class UserLimitsResponse(BaseModel):
+    """Response model for getting user-specific limits."""
+
+    limits: UserLimits
+
+
 class GameConfigResponse(BaseModel):
     """Response model for getting the game config."""
 
@@ -184,7 +190,6 @@ class GameConfigResponse(BaseModel):
     categories: list['GameConfigResponse.CategoryInfo']
     difficulties: list['GameConfigResponse.DifficultyInfo']
     ranks: list['GameConfigResponse.RankDefinition']
-    user_limits: UserLimits | None = None
 
 
 class SetLocaleRequest(BaseModel):

@@ -13,7 +13,7 @@ import 'package:fermi_frontend/widgets/bounce_effect_wrapper.dart';
 class GamesTab extends StatelessWidget {
   Widget _buildFreeTierInfo(BuildContext context, AppTheme appTheme) {
     final controller = context.watch<MainScreenController>();
-    final userLimits = controller.configDto?.userLimits;
+    final userLimits = controller.userLimitsDto;
 
     // Don't show anything for Pro users or if limits aren't loaded
     if (userLimits == null || userLimits.isUnlimited) {

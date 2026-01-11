@@ -5,6 +5,7 @@ import 'package:fermi_frontend/models/avatar_info.dart';
 import 'package:http/http.dart' as http;
 import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/player_stats.dart';
+import 'package:fermi_frontend/models/user_limits.dart';
 import 'package:fermi_frontend/utils/env.dart';
 import 'package:fermi_frontend/utils/om_constants.dart';
 import 'package:fermi_frontend/services/tracing_service.dart';
@@ -125,6 +126,28 @@ class ApiService {
   Future<GameConfig> getGameConfigTyped() async {
     final raw = await getGameConfig();
     return GameConfig.fromJson(raw);
+  }
+
+  Future<Map<String, dynamic>> getUserLimits() async {
+    try {
+      final response = await _authGet('/user/limits');
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body)['detail'];
+        throw Exception('Failed to get user limits: $error');
+      }
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<UserLimits> getUserLimitsTyped() async {
+    final raw = await getUserLimits();
+    final limitsJson = raw['limits'] as Map<String, dynamic>;
+    return UserLimits.fromJson(limitsJson);
   }
 
   Future<Map<String, dynamic>> getPlayerStats() async {

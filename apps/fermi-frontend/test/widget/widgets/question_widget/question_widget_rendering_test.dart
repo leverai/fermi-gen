@@ -13,7 +13,6 @@ void main() {
       const questionText = QuestionDataFixtures.sampleQuestion1;
       const widget = QuestionWidget(
         text: questionText,
-        height: 200,
       );
 
       // Act
@@ -30,7 +29,6 @@ void main() {
       const widget = QuestionWidget(
         text: questionText,
         tags: tags,
-        height: 200,
       );
 
       // Act
@@ -52,7 +50,6 @@ void main() {
       const questionText = QuestionDataFixtures.sampleQuestion1;
       final widget = QuestionWidget(
         text: questionText,
-        height: 200,
         showLikeWidget: true,
         initialLikes: 5,
         initialVoteState: VoteState.none,
@@ -77,7 +74,6 @@ void main() {
       const questionText = QuestionDataFixtures.sampleQuestion1;
       const widget = QuestionWidget(
         text: questionText,
-        height: 200,
         showLikeWidget: false,
       );
 
@@ -95,7 +91,6 @@ void main() {
       const upvoteCount = 42;
       final widget = QuestionWidget(
         text: questionText,
-        height: 200,
         showLikeWidget: true,
         initialLikes: upvoteCount,
         initialVoteState: VoteState.none,

@@ -48,7 +48,7 @@ void showPartyBottomSheet({
             animation: controller,
             builder: (context, _) {
               final items = _buildCategories(controller);
-              final UserLimits? userLimits = controller.configDto?.userLimits;
+              final UserLimits? userLimits = controller.userLimitsDto;
               final bool canHost = userLimits?.canHost ?? true;
               return Padding(
                 padding: EdgeInsets.only(
