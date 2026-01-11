@@ -313,7 +313,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
       context,
       fontSize: 12,
       fontWeight: FontWeight.w600,
-      color: appTheme.text,
+      color: appTheme.bgLight,
     );
 
     final labelTextStyle = AppFont.secondaryTextStyle(

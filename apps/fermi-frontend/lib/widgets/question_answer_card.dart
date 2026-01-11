@@ -451,7 +451,7 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                               children: [
                                 // SliderTextMirror with fixed width to prevent jumping
                                 SizedBox(
-                                  width: 90, // Fixed width for "999 Trillion"
+                                  width: 110, // Fixed width for "999 Thousand"
                                   child: Align(
                                     alignment: Alignment.center,
                                     heightFactor: 1,
