@@ -13,7 +13,6 @@ class AuthService {
   AuthUser? currentUser;
   String? locale; // 'US' or 'EU'
   LastRoundSettings? lastRoundSettings;
-  bool shouldRefreshStats = false;
 
   /// Creates an AuthService instance.
   ///

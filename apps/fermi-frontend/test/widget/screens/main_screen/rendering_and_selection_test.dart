@@ -31,7 +31,6 @@ void main() {
       when(() => mockAuth.firebaseUid).thenReturn(null);
       when(() => mockAuth.lastRoundSettings).thenReturn(null);
       when(() => mockAuth.currentUser).thenReturn(null);
-      when(() => mockAuth.shouldRefreshStats).thenReturn(false);
 
       // Stub the DailyQuestionController method to avoid real async operations
       when(() => mockDailyQuestionController.refreshArchiveAndSubscribe())

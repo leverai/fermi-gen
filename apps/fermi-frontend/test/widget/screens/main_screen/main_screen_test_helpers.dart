@@ -91,7 +91,6 @@ Future<void> setupInitializedMainScreen(
   when(() => mockAuth.firebaseUid).thenReturn(withStats ? 'test-player' : null);
   when(() => mockAuth.lastRoundSettings).thenReturn(null);
   when(() => mockAuth.currentUser).thenReturn(null);
-  when(() => mockAuth.shouldRefreshStats).thenReturn(false);
   if (withStats) {
     final stats = createTestPlayerStats();
     when(() => mockApi.getPlayerStatsTyped()).thenAnswer((_) async => stats);
