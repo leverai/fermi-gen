@@ -30,6 +30,9 @@ class QuestionState {
   /// JSON string of SerpAPI AI response for answer walkthrough (may be empty)
   final String? paragraph;
 
+  /// Whether the walkthrough has been viewed for this question (per-session)
+  final bool walkthroughViewed;
+
   QuestionState({
     this.questionUid,
     this.questionText = '',
@@ -52,6 +55,7 @@ class QuestionState {
     this.isRevealed = false,
     this.duration,
     this.paragraph,
+    this.walkthroughViewed = false,
   });
 
   QuestionState copyWith({
@@ -76,6 +80,7 @@ class QuestionState {
     bool? isRevealed,
     Duration? duration,
     String? paragraph,
+    bool? walkthroughViewed,
   }) {
     return QuestionState(
       questionUid: questionUid ?? this.questionUid,
@@ -99,6 +104,7 @@ class QuestionState {
       isRevealed: isRevealed ?? this.isRevealed,
       duration: duration ?? this.duration,
       paragraph: paragraph ?? this.paragraph,
+      walkthroughViewed: walkthroughViewed ?? this.walkthroughViewed,
     );
   }
 }

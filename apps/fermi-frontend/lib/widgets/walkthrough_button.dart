@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:fermi_frontend/theme/app_theme.dart';
-import 'package:fermi_frontend/widgets/animated_sparkles.dart';
+import 'package:lottie/lottie.dart';
 
+/// A button that displays a light bulb Lottie animation for answer walkthroughs.
+///
+/// The animation loops continuously until tapped, then stops on tap.
+/// Optionally, if [hasBeenViewed] is true, the animation shows static (no loop).
 class WalkthroughButton extends StatefulWidget {
   final VoidCallback onTap;
-  final Duration spinDuration;
-  final Duration sparkleDuration;
   final double size;
+  final bool hasBeenViewed;
 
   const WalkthroughButton({
     super.key,
     required this.onTap,
-    this.spinDuration = const Duration(milliseconds: 1500),
-    this.sparkleDuration = const Duration(seconds: 2),
-    this.size = 20.0,
+    this.size = 24.0,
+    this.hasBeenViewed = false,
   });
 
   @override
@@ -22,63 +23,56 @@ class WalkthroughButton extends StatefulWidget {
 
 class _WalkthroughButtonState extends State<WalkthroughButton>
     with SingleTickerProviderStateMixin {
-  late AnimationController _spinController;
-  late Animation<double> _spinAnimation;
+  late AnimationController _controller;
+  bool _hasTapped = false;
 
   @override
   void initState() {
     super.initState();
-    _spinController = AnimationController(
-      vsync: this,
-      duration: widget.spinDuration,
-    );
-
-    _spinAnimation = CurvedAnimation(
-      parent: _spinController,
-      curve: Curves.easeInOutBack,
-    );
-
-    _spinController.forward();
+    _controller = AnimationController(vsync: this);
   }
 
   @override
   void dispose() {
-    _spinController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
-  @override
-  void didUpdateWidget(WalkthroughButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.spinDuration != widget.spinDuration) {
-      _spinController.duration = widget.spinDuration;
-    }
+  void _handleTap() {
+    setState(() {
+      _hasTapped = true;
+    });
+    _controller.stop();
+    widget.onTap();
   }
+
+  /// Determines if the animation should loop.
+  bool get _shouldAnimate => !widget.hasBeenViewed && !_hasTapped;
 
   @override
   Widget build(BuildContext context) {
-    // We access theme here to style the container
-    final appTheme =
-        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: widget.onTap,
+        onTap: _handleTap,
         borderRadius: BorderRadius.circular(100),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            RotationTransition(
-              turns: _spinAnimation,
-              child: AnimatedSparkles(
-                color: appTheme.primary,
-                size: widget.size,
-                duration: widget.sparkleDuration,
-              ),
-            ),
-          ],
+        child: SizedBox(
+          width: widget.size,
+          height: widget.size,
+          child: Lottie.asset(
+            'assets/lotties/thinking.json',
+            controller: _controller,
+            onLoaded: (composition) {
+              _controller.duration = composition.duration;
+              if (_shouldAnimate) {
+                _controller.repeat();
+              } else {
+                // Show static first frame
+                _controller.value = 0.0;
+              }
+            },
+            fit: BoxFit.fitHeight,
+          ),
         ),
       ),
     );

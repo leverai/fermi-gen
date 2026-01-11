@@ -117,6 +117,8 @@ class GameCard extends StatelessWidget {
     this.currentPlayerId,
     // Answer walkthrough
     this.paragraph,
+    this.walkthroughViewed = false,
+    this.onWalkthroughViewed,
   });
 
   final String questionText;
@@ -168,6 +170,12 @@ class GameCard extends StatelessWidget {
 
   /// JSON string of SerpAPI AI response for answer walkthrough
   final String? paragraph;
+
+  /// Whether the walkthrough has been viewed (stops animation loop)
+  final bool walkthroughViewed;
+
+  /// Callback when the walkthrough is viewed
+  final VoidCallback? onWalkthroughViewed;
 
   Widget _buildMainButton(BuildContext context) {
     if (paneState == null) {
@@ -317,6 +325,8 @@ class GameCard extends StatelessWidget {
               currentPlayerAvatarUrl: currentPlayerAvatarUrl,
               currentPlayerId: currentPlayerId,
               paragraph: paragraph,
+              walkthroughViewed: walkthroughViewed,
+              onWalkthroughViewed: onWalkthroughViewed,
             ),
 
             // Feedback row (right-aligned like widget)
