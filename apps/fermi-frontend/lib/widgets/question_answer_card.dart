@@ -56,6 +56,8 @@ class QuestionAnswerCard extends StatefulWidget {
     this.currentPlayerId,
     // Answer walkthrough
     this.paragraph,
+    this.walkthroughViewed = false,
+    this.onWalkthroughViewed,
   });
 
   final String questionText;
@@ -86,6 +88,12 @@ class QuestionAnswerCard extends StatefulWidget {
 
   /// JSON string of SerpAPI AI response for answer walkthrough
   final String? paragraph;
+
+  /// Whether the walkthrough has been viewed (stops animation loop)
+  final bool walkthroughViewed;
+
+  /// Callback when the walkthrough is viewed
+  final VoidCallback? onWalkthroughViewed;
 
   @override
   State<QuestionAnswerCard> createState() => _QuestionAnswerCardState();
@@ -421,7 +429,7 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                             const SizedBox(height: 12),
                           ],
                         )
-                      : const SizedBox(height: 16),
+                      : const SizedBox(height: 24),
                 ),
                 // const SizedBox(height: 2),
                 // Answer row (Row Y) containing player's answer (Row X) and Explain button
@@ -441,7 +449,7 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                           // Unified container for SliderTextMirror + UnitTape
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12.0, vertical: 4.0),
+                                horizontal: 12.0, vertical: 8.0),
                             decoration: BoxDecoration(
                               color: appTheme.secondaryMuted.withAlpha(40),
                               borderRadius: BorderRadius.circular(60),
@@ -488,13 +496,14 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                       // Explain button (only shown when paragraph is valid and parseable)
                       if (_isValidParagraph())
                         SizedBox(
-                          height: kQuestionAnswerCardAnswerRowHeight - 8,
-                          width: 50,
+                          height: kQuestionAnswerCardAnswerRowHeight,
+                          width: kQuestionAnswerCardAnswerRowHeight,
                           child: WalkthroughButton(
-                            size: 18,
-                            spinDuration: const Duration(milliseconds: 600),
-                            sparkleDuration: const Duration(seconds: 2),
+                            size: kQuestionAnswerCardAnswerRowHeight,
+                            hasBeenViewed: widget.walkthroughViewed,
                             onTap: () async {
+                              // Notify that walkthrough was viewed (for session state)
+                              widget.onWalkthroughViewed?.call();
                               final success =
                                   await AnswerWalkthroughSheet.showFromJson(
                                 context,

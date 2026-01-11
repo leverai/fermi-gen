@@ -669,6 +669,22 @@ class QuestionScreenV2Controller extends ChangeNotifier {
     return _stateManager.getQuestionState(index)?.paragraph;
   }
 
+  /// Check if the walkthrough has been viewed for a question (per-session)
+  bool isWalkthroughViewed(int index) {
+    return _stateManager.getQuestionState(index)?.walkthroughViewed ?? false;
+  }
+
+  /// Mark the walkthrough as viewed for a question (per-session)
+  void markWalkthroughViewed(int index) {
+    final state = _stateManager.getQuestionState(index);
+    if (state == null || state.walkthroughViewed) return;
+    _stateManager.updateQuestionState(
+      index,
+      state.copyWith(walkthroughViewed: true),
+    );
+    notifyListeners();
+  }
+
   /// Check if transitioning from a finished state to an answering state
   /// This happens when the host advances to the next question
   bool _isTransitionToAnsweringPhase({

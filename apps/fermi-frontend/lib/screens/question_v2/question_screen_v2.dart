@@ -383,6 +383,8 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
       currentPlayerId: myId,
       // Answer walkthrough
       paragraph: showFeedback ? _controller.getParagraphForIndex(index) : null,
+      walkthroughViewed: _controller.isWalkthroughViewed(index),
+      onWalkthroughViewed: () => _controller.markWalkthroughViewed(index),
     );
   }
 
