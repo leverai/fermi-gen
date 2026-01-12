@@ -437,93 +437,96 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                   height: kQuestionAnswerCardAnswerRowHeight,
                   child: Row(
                     mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Row X: Player's answer display
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Unified container for SliderTextMirror + UnitTape
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12.0, vertical: 8.0),
-                            decoration: BoxDecoration(
-                              color: appTheme.highlight.withAlpha(20),
-                              borderRadius: BorderRadius.circular(60),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // SliderTextMirror with fixed width to prevent jumping
-                                SizedBox(
-                                  width: 110, // Fixed width for "999 Thousand"
-                                  child: Align(
-                                    alignment: Alignment.center,
-                                    heightFactor: 1,
-                                    widthFactor: 1,
-                                    child: SliderTextMirror(
-                                      value: widget.currentAnswer,
-                                      // fontSize: 14,
-                                      // fontWeight: FontWeight.normal,
-                                      unitOptions: widget.unitOptions,
-                                    ),
+                      // Unified container for SliderTextMirror + UnitTape
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12.0, vertical: 8.0),
+                          decoration: BoxDecoration(
+                            color: appTheme.highlight.withAlpha(20),
+                            borderRadius: BorderRadius.circular(60),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // SliderTextMirror filled the empty space
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.center,
+                                  heightFactor: 1,
+                                  child: SliderTextMirror(
+                                    value: widget.currentAnswer,
+                                    unitOptions: widget.unitOptions,
                                   ),
                                 ),
-                                // UnitTape (if units available) - no separator needed
-                                if (widget.units.isNotEmpty)
-                                  UnitTape(
-                                    key: widget.unitKey,
-                                    units: widget.units,
-                                    unitOptions: widget.unitOptions,
-                                    initialValue: widget.currentAnswer.unit,
-                                    currentLocale: widget.currentLocale,
-                                    onUnitChanged: (unit) =>
-                                        widget.onAnswerChanged(
-                                      widget.currentAnswer.copyWith(unit: unit),
-                                    ),
-                                    onLocaleChanged: widget.onLocaleChanged,
-                                    editable: widget.editable,
-                                    unitOptionsNotifier:
-                                        widget.unitOptionsNotifier,
-                                    controller: widget.unitTapeController,
+                              ),
+                              // UnitTape (if units available)
+                              if (widget.units.isNotEmpty)
+                                UnitTape(
+                                  key: widget.unitKey,
+                                  units: widget.units,
+                                  unitOptions: widget.unitOptions,
+                                  initialValue: widget.currentAnswer.unit,
+                                  currentLocale: widget.currentLocale,
+                                  onUnitChanged: (unit) =>
+                                      widget.onAnswerChanged(
+                                    widget.currentAnswer.copyWith(unit: unit),
                                   ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      // Explain button (only shown when paragraph is valid and parseable)
-                      if (_isValidParagraph())
-                        SizedBox(
-                          height: kQuestionAnswerCardAnswerRowHeight,
-                          width: kQuestionAnswerCardAnswerRowHeight,
-                          child: WalkthroughButton(
-                            size: kQuestionAnswerCardAnswerRowHeight,
-                            hasBeenViewed: widget.walkthroughViewed,
-                            onTap: () async {
-                              // Notify that walkthrough was viewed (for session state)
-                              widget.onWalkthroughViewed?.call();
-                              final success =
-                                  await AnswerWalkthroughSheet.showFromJson(
-                                context,
-                                jsonString: widget.paragraph!,
-                              );
-                              if (!success && context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                        'Failed to load answer walkthrough'),
-                                    duration: Duration(seconds: 2),
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-                              }
-                            },
+                                  onLocaleChanged: widget.onLocaleChanged,
+                                  editable: widget.editable,
+                                  unitOptionsNotifier:
+                                      widget.unitOptionsNotifier,
+                                  controller: widget.unitTapeController,
+                                ),
+                            ],
                           ),
                         ),
+                      ),
+                      // Explain button (only shown when paragraph is valid and parseable)
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeOutBack,
+                        child: _isValidParagraph()
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(width: 8),
+                                  SizedBox(
+                                    height: kQuestionAnswerCardAnswerRowHeight,
+                                    width: kQuestionAnswerCardAnswerRowHeight,
+                                    child: WalkthroughButton(
+                                      size: kQuestionAnswerCardAnswerRowHeight,
+                                      hasBeenViewed: widget.walkthroughViewed,
+                                      onTap: () async {
+                                        // Notify that walkthrough was viewed (for session state)
+                                        widget.onWalkthroughViewed?.call();
+                                        final success =
+                                            await AnswerWalkthroughSheet
+                                                .showFromJson(
+                                          context,
+                                          jsonString: widget.paragraph!,
+                                        );
+                                        if (!success && context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'Failed to load answer walkthrough'),
+                                              duration: Duration(seconds: 2),
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
+                      ),
                     ],
                   ),
                 ),
