@@ -15,7 +15,7 @@ class SliderTextMirror extends StatelessWidget {
     super.key,
     required this.value,
     this.unitOptions = const {},
-    this.fontSize = 12.0,
+    this.fontSize = 14.0,
     this.fontWeight = FontWeight.w500,
   });
 
@@ -62,7 +62,7 @@ class SliderTextMirror extends StatelessWidget {
         context,
         fontSize: fontSize,
         fontWeight: fontWeight,
-        color: appTheme.secondary,
+        color: appTheme.secondaryMuted,
       ),
     );
   }

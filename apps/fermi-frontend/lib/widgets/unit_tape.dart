@@ -480,7 +480,7 @@ class _UnitTapeState extends State<UnitTape>
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
     // Determine colors based on focus and dragging state
-    final Color textColor = appTheme.secondary;
+    final Color textColor = appTheme.secondaryMuted;
 
     if (widget.units.isEmpty) {
       return const SizedBox.shrink();
@@ -573,7 +573,7 @@ class _UnitTapeState extends State<UnitTape>
                           fullName,
                           style: AppFont.primaryTextStyle(
                             context,
-                            fontSize: 12.0,
+                            fontSize: 14.0,
                             fontWeight: FontWeight.w500,
                             color:
                                 textColor, // Use the pre-calculated textColor

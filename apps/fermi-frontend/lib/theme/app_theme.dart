@@ -124,7 +124,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
       textMuted: const HSLColor.fromAHSL(1.0, 30, 0.11, 0.4).toColor(),
 
       // UI Elements (Inverted)
-      highlight: const HSLColor.fromAHSL(1, 90, 0.01, 0.83).toColor(),
+      highlight: const HSLColor.fromAHSL(1, 90, 0.01, 0.43).toColor(),
       border: const HSLColor.fromAHSL(1, 90, 0.01, 0.53).toColor(),
       borderMuted: const HSLColor.fromAHSL(1, 90, 0.01, 0.63).toColor(),
 

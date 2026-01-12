@@ -451,7 +451,7 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12.0, vertical: 8.0),
                             decoration: BoxDecoration(
-                              color: appTheme.secondaryMuted.withAlpha(40),
+                              color: appTheme.highlight.withAlpha(20),
                               borderRadius: BorderRadius.circular(60),
                             ),
                             child: Row(
@@ -466,6 +466,8 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                                     widthFactor: 1,
                                     child: SliderTextMirror(
                                       value: widget.currentAnswer,
+                                      // fontSize: 14,
+                                      // fontWeight: FontWeight.normal,
                                       unitOptions: widget.unitOptions,
                                     ),
                                   ),
