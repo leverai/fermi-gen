@@ -1,9 +1,10 @@
 """FastAPI dependencies."""
 
+import logging
 from functools import lru_cache
+from typing import Annotated
 
-# from typing import Annotated
-from fastapi import Depends  # , Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fermi_db.dal import DatabaseClient
 from fermi_db.repositories.party_hosting_repository import PartyHostingRepository
 from fermi_db.repositories.subscription_repository import SubscriptionRepository
@@ -12,7 +13,7 @@ from fermi_db.session import get_session
 from google.cloud.firestore_v1.async_client import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-# from app.core.config import settings
+from app.core.config import settings
 from app.services.auth import AuthService
 from app.services.daily_question.service import DailyQuestionService
 from app.services.game.service import GameService
@@ -20,7 +21,7 @@ from app.services.scoring import ScoringService
 from app.services.subscription import SubscriptionService
 from app.services.user import UserService
 
-# logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 @lru_cache
@@ -100,33 +101,33 @@ def get_subscription_service(
     )
 
 
-# async def verify_scheduler_secret(
-#     x_scheduler_secret: Annotated[str | None, Header()] = None,
-# ) -> None:
-#     """Verify Cloud Scheduler shared secret header.
+async def verify_scheduler_secret(
+    x_scheduler_secret: Annotated[str | None, Header()] = None,
+) -> None:
+    """Verify Cloud Scheduler shared secret header.
 
-#     This provides defense-in-depth for scheduler endpoints, in addition to
-#     OIDC authentication configured at Cloud Run/IAM level.
+    This provides defense-in-depth for scheduler endpoints, in addition to
+    OIDC authentication configured at Cloud Run/IAM level.
 
-#     Set SCHEDULER_SECRET environment variable and configure Cloud Scheduler
-#     to send it in the X-Scheduler-Secret header.
-#     """
-#     if not settings.scheduler_secret:
-#         # If secret is not configured, log warning but allow request
-#         # (assumes OIDC is handling auth at Cloud Run level)
-#         logger.warning(
-#             'SCHEDULER_SECRET not configured - relying solely on Cloud Run IAM/OIDC',
-#         )
-#         return
+    Set SCHEDULER_SECRET environment variable and configure Cloud Scheduler
+    to send it in the X-Scheduler-Secret header.
+    """
+    if not settings.scheduler_secret:
+        # If secret is not configured, log warning but allow request
+        # (assumes OIDC is handling auth at Cloud Run level)
+        logger.warning(
+            'SCHEDULER_SECRET not configured - relying solely on Cloud Run IAM/OIDC',
+        )
+        return
 
-#     if not x_scheduler_secret:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail='Missing X-Scheduler-Secret header',
-#         )
+    if not x_scheduler_secret:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Missing X-Scheduler-Secret header',
+        )
 
-#     if x_scheduler_secret != settings.scheduler_secret:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail='Invalid scheduler secret',
-#         )
+    if x_scheduler_secret != settings.scheduler_secret:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Invalid scheduler secret',
+        )

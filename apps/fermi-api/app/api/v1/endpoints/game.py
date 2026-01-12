@@ -16,6 +16,7 @@ from app.api.v1.dependencies import (
     get_firestore_client,
     get_game_service,
     get_party_hosting_repository,
+    verify_scheduler_secret,
 )
 from app.api.v1.rate_limit import (
     GAME_CLEANUP_RATE_LIMIT,
@@ -324,6 +325,7 @@ async def cleanup_finished_games(
     request: Request,
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     game_service: Annotated[GameService, Depends(get_game_service)],
+    _: Annotated[None, Depends(verify_scheduler_secret)],
     max_games: int = 100,
 ) -> dict[str, int]:
     """Delete finished/aborted games. Intended for scheduled cleanup jobs.
