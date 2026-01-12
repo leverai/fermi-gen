@@ -31,6 +31,11 @@ class ApiService {
       _authPost(path, body);
 
   Future<http.Response> _authGet(String path) async {
+    // Proactive refresh: check token before request
+    if (authService.shouldRefreshToken()) {
+      await authService.refreshAccessToken();
+    }
+
     final String? token = authService.accessToken;
     if (token == null) throw Exception('User is not authorized');
     final Uri uri = Uri.parse('$_apiBaseUrl$path');
@@ -55,6 +60,11 @@ class ApiService {
   }
 
   Future<http.Response> _authPost(String path, Object? body) async {
+    // Proactive refresh: check token before request
+    if (authService.shouldRefreshToken()) {
+      await authService.refreshAccessToken();
+    }
+
     final String? token = authService.accessToken;
     if (token == null) throw Exception('User is not authorized');
     final Uri uri = Uri.parse('$_apiBaseUrl$path');
