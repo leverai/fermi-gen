@@ -25,7 +25,8 @@ void showPartyBottomSheet({
       Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
   void showPaywall() {
-    Navigator.of(context).push(
+    Navigator.of(context)
+        .push(
       MaterialPageRoute(
         builder: (_) => PaywallScreen(
           subscriptionService:
@@ -34,7 +35,13 @@ void showPartyBottomSheet({
           onAuthRequired: onAuthRequired,
         ),
       ),
-    );
+    )
+        .then((purchased) {
+      if (purchased == true) {
+        // Refresh user limits to update "N free hostings left" message
+        controller.refreshUserLimits();
+      }
+    });
   }
 
   showModalBottomSheet(

@@ -14,6 +14,7 @@ import 'package:fermi_frontend/widgets/styled_dialog.dart';
 import 'package:fermi_frontend/widgets/avatar_widget.dart';
 import 'package:fermi_frontend/screens/paywall_screen.dart';
 import 'package:fermi_frontend/services/subscription_service.dart';
+import 'package:fermi_frontend/providers/subscription_provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:provider/provider.dart';
@@ -208,7 +209,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   void _handleUpgradeSubscription() {
     final subscriptionService = context.read<SubscriptionService>();
-    Navigator.of(context).push(
+    Navigator.of(context)
+        .push(
       MaterialPageRoute(
         builder: (_) => PaywallScreen(
           subscriptionService: subscriptionService,
@@ -219,7 +221,18 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           },
         ),
       ),
-    );
+    )
+        .then((purchased) async {
+      if (purchased == true && mounted) {
+        // Refresh subscription state after successful purchase
+        context.read<SubscriptionProvider>().refresh();
+        // Refresh auth token to update subscriptionTier for settings sheet
+        await widget.authService.refreshAccessToken();
+        // Refresh controller to update user limits for party card
+        _controller.refreshInBackground(force: true);
+        setState(() {});
+      }
+    });
   }
 
   Future<void> _handleLocaleChanged(String newLocale) async {
