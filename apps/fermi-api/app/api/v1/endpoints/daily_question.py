@@ -16,7 +16,7 @@ from app.api.v1.authenticated_user import AuthenticatedUser
 from app.api.v1.dependencies import (
     get_daily_question_service,
     get_firestore_client,
-    # verify_scheduler_secret,
+    verify_scheduler_secret,
 )
 from app.api.v1.rate_limit import DQ_START_RATE_LIMIT, limiter
 from app.services.daily_question.schemas import (
@@ -253,7 +253,7 @@ async def submit_post_take_answer(
 async def close_and_schedule_dq(
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
-    # _: Annotated[None, Depends(verify_scheduler_secret)],
+    _: Annotated[None, Depends(verify_scheduler_secret)],
 ) -> DQEndResponse:
     """End the active DQ and schedule the next one.
 
@@ -285,7 +285,7 @@ async def activate_dq(
     request: Request,
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
-    # _: Annotated[None, Depends(verify_scheduler_secret)],
+    _: Annotated[None, Depends(verify_scheduler_secret)],
 ) -> None:
     """Activate the scheduled DQ for this date.
 
