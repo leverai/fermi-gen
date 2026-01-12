@@ -1,3 +1,3 @@
 class AppConfig {
-  static const int defaultQuestionCount = 3;
+  static const int defaultQuestionCount = 6;
 }

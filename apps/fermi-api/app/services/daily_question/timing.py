@@ -7,7 +7,10 @@ All timestamps are stored and processed in UTC. The DQ window is defined as:
 """
 
 import datetime
+import logging
 from zoneinfo import ZoneInfo
+
+logger = logging.getLogger(__name__)
 
 # Time zone constant
 UTC_TZ = ZoneInfo('UTC')
@@ -17,7 +20,7 @@ DQ_DAY_START_HOUR = 2  # 2 AM UTC - when the DQ "day" starts
 DQ_WINDOW_OPEN_HOUR = 12  # 12 PM UTC - when DQ becomes ACTIVE
 
 # Deadline constants (in seconds)
-ANSWER_TIMEOUT_S = 30  # Time to answer once started
+ANSWER_TIMEOUT_S = 40  # Time to answer once started
 AD_GRACE_S = 10  # Grace period after Answer Deadline
 QD_GRACE_S = 20  # Grace period after Question Deadline
 
@@ -103,9 +106,6 @@ def get_answer_deadline(
     timeout_deadline = started_at_utc + datetime.timedelta(seconds=ANSWER_TIMEOUT_S)
     result = min(timeout_deadline, qd_utc)
 
-    import logging
-
-    logger = logging.getLogger(__name__)
     logger.info(
         '[get_answer_deadline] started_at=%s, qd=%s, '
         'timeout_deadline=%s, result=%s (using %s)',
