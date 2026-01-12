@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:fermi_frontend/utils/env.dart';
 
 class AuthService {
@@ -128,6 +129,23 @@ class AuthService {
   }
 
   // Resolver centralized in utils/env.dart
+
+  /// Check if the access token needs to be refreshed.
+  /// Returns true if token is null, expired, or expires within [bufferSeconds].
+  bool shouldRefreshToken({int bufferSeconds = 60}) {
+    final token = accessToken;
+    if (token == null || token.isEmpty) return true;
+
+    try {
+      // Refresh if token is expired or expires within buffer window
+      final expiryDate = JwtDecoder.getExpirationDate(token);
+      final bufferTime = DateTime.now().add(Duration(seconds: bufferSeconds));
+      return expiryDate.isBefore(bufferTime);
+    } catch (e) {
+      debugPrint('[AuthService] Failed to decode token expiry: $e');
+      return true; // Assume refresh needed if decode fails
+    }
+  }
 
   Future<bool> refreshAccessToken() async {
     final String? token = accessToken;
