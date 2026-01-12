@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lottie/lottie.dart';
@@ -36,6 +38,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   final PageController _pageController = PageController();
   int _currentIndex = 0;
+
+  Timer? _windblowTimer;
+  bool _startWindblow = false;
 
   Future<void> _getStarted(BuildContext context) async {
     // Mark welcome as seen
@@ -100,12 +105,32 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
     // Start Carousel
     _carouselController.forward();
+
+    // Start windblow delay
+    _startWindblowDelay();
+  }
+
+  void _startWindblowDelay() {
+    _windblowTimer?.cancel();
+    setState(() => _startWindblow = false);
+    _windblowTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _startWindblow = true);
+    });
   }
 
   void _onPageChanged(int index) {
     setState(() {
       _currentIndex = index;
     });
+
+    // Handle windblow animation delay for first slide
+    if (index == 0) {
+      _startWindblowDelay();
+    } else {
+      _windblowTimer?.cancel();
+      setState(() => _startWindblow = false);
+    }
+
     if (index == 2) {
       _startLateAnimationSequence();
     } else {
@@ -131,6 +156,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   @override
   void dispose() {
+    _windblowTimer?.cancel();
     _logoController.dispose();
     _carouselController.dispose();
     _buttonController.dispose();
@@ -325,6 +351,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             child: Lottie.asset(
               'assets/lotties/Windblow.json',
               fit: BoxFit.contain,
+              animate: _startWindblow,
             ),
           ),
           const Spacer(flex: 1),
