@@ -15,7 +15,14 @@ import 'package:fermi_frontend/widgets/player_confetti_overlay.dart';
 
 /// Survival mode screen - single player timed questions until failure.
 class SurvivalScreen extends StatefulWidget {
-  const SurvivalScreen({super.key});
+  final int initialCurrentStreak;
+  final int initialBestStreak;
+
+  const SurvivalScreen({
+    super.key,
+    this.initialCurrentStreak = 0,
+    this.initialBestStreak = 0,
+  });
 
   @override
   State<SurvivalScreen> createState() => _SurvivalScreenState();
@@ -33,6 +40,8 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
     _controller = SurvivalScreenController(
       apiService: apiService,
       userLocale: authService.locale ?? 'US',
+      initialCurrentStreak: widget.initialCurrentStreak,
+      initialBestStreak: widget.initialBestStreak,
     );
     _controller.addListener(_onControllerChanged);
     _controller.attach();

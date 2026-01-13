@@ -11,10 +11,14 @@ import 'package:fermi_frontend/widgets/unit_tape.dart';
 class SurvivalScreenController extends ChangeNotifier {
   final ApiService apiService;
   final String userLocale;
+  final int initialCurrentStreak;
+  final int initialBestStreak;
 
   SurvivalScreenController({
     required this.apiService,
     required this.userLocale,
+    this.initialCurrentStreak = 0,
+    this.initialBestStreak = 0,
   });
 
   // --- State ---
@@ -35,11 +39,11 @@ class SurvivalScreenController extends ChangeNotifier {
   int _questionNumber = 0;
   int get questionNumber => _questionNumber;
 
-  // Streak tracking
-  int _currentStreak = 0;
+  // Streak tracking (initialized from constructor params)
+  late int _currentStreak = initialCurrentStreak;
   int get currentStreak => _currentStreak;
 
-  int _bestStreak = 0;
+  late int _bestStreak = initialBestStreak;
   int get bestStreak => _bestStreak;
 
   // Answer state
@@ -92,17 +96,8 @@ class SurvivalScreenController extends ChangeNotifier {
   /// Initialize the controller and start a new survival run.
   Future<void> attach() async {
     _currentLocale = userLocale;
-    await _fetchBestStreak();
+    // Streak values are passed from PreSurvivalScreen, no need to fetch
     await _startRun();
-  }
-
-  Future<void> _fetchBestStreak() async {
-    try {
-      _bestStreak = await apiService.survivalGetBestStreak();
-    } catch (e) {
-      // Ignore - just use 0 as default
-      _bestStreak = 0;
-    }
   }
 
   Future<void> _startRun({int? runId}) async {

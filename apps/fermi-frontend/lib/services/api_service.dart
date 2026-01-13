@@ -494,22 +494,6 @@ class ApiService {
     }
   }
 
-  /// Get user's best survival streak.
-  Future<int> survivalGetBestStreak() async {
-    try {
-      final resp = await _authGet('/survival/best-streak');
-      if (resp.statusCode == 200) {
-        return jsonDecode(resp.body) as int;
-      }
-      final error = _extractErrorMessage(resp);
-      throw Exception('Failed to get survival best streak: $error');
-    } on http.ClientException catch (_) {
-      throw Exception('Network error: Please check your connection.');
-    } catch (e) {
-      rethrow;
-    }
-  }
-
   /// Get user's survival streak stats (current and best).
   Future<Map<String, dynamic>> survivalGetStreakStats() async {
     try {
