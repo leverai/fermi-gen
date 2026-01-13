@@ -426,6 +426,89 @@ class ApiService {
       rethrow;
     }
   }
+
+  // --- Survival Mode ---
+
+  /// Start a new survival run or resume an existing one.
+  /// Returns the question response with run_id, question data, and deadline.
+  Future<Map<String, dynamic>> survivalCreateOrResume({int? runId}) async {
+    try {
+      final body = <String, dynamic>{};
+      if (runId != null) {
+        body['run_id'] = runId;
+      }
+      final resp = await _authPost('/survival/create_or_resume', body);
+      if (resp.statusCode == 200) {
+        return jsonDecode(resp.body) as Map<String, dynamic>;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to start survival: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Submit an answer for the current survival question.
+  /// Returns pass/fail status, score, and next question info.
+  Future<Map<String, dynamic>> survivalSubmitAnswer({
+    required int runId,
+    required AnswerValue answer,
+  }) async {
+    try {
+      final int resolvedNumber = _applyOmMultiplier(answer);
+      final String? unitOrNull = (answer.unit.isEmpty) ? null : answer.unit;
+      final resp = await _authPost('/survival/answer', {
+        'run_id': runId,
+        'answer': {
+          'number': resolvedNumber,
+          'unit': unitOrNull,
+        },
+      });
+      if (resp.statusCode == 200) {
+        return jsonDecode(resp.body) as Map<String, dynamic>;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to submit survival answer: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get user's survival statistics.
+  Future<Map<String, dynamic>> survivalGetStats() async {
+    try {
+      final resp = await _authGet('/survival/stats');
+      if (resp.statusCode == 200) {
+        return jsonDecode(resp.body) as Map<String, dynamic>;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to get survival stats: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get user's best survival streak.
+  Future<int> survivalGetBestStreak() async {
+    try {
+      final resp = await _authGet('/survival/best-streak');
+      if (resp.statusCode == 200) {
+        return jsonDecode(resp.body) as int;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to get survival best streak: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
 
 // Moved to utils/env.dart

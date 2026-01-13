@@ -13,6 +13,14 @@ class UnitTapeController {
   void Function(bool revealed, Duration? duration)? _setRevealed;
   void Function()? _close;
 
+  void _unbind() {
+    _jumpTo = null;
+    _animateTo = null;
+    _requestFocus = null;
+    _setRevealed = null;
+    _close = null;
+  }
+
   void _bind({
     required void Function(String value) jumpTo,
     required Future<void> Function(String value, Duration duration) animateTo,
@@ -154,17 +162,17 @@ class _UnitTapeState extends State<UnitTape>
           setState(() {
             _isRevealed = r;
           });
-        }
-        if (r) {
-          // Fade out indicator when revealing - use provided duration or default to 600ms
-          _indicatorFadeController.animateTo(0.0,
-              duration: duration ?? const Duration(milliseconds: 600),
-              curve: Curves.easeInOutCubic);
-        } else {
-          // Fade in indicator when resetting
-          _indicatorFadeController.animateTo(1.0,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOutCubic);
+          if (r) {
+            // Fade out indicator when revealing - use provided duration or default to 600ms
+            _indicatorFadeController.animateTo(0.0,
+                duration: duration ?? const Duration(milliseconds: 600),
+                curve: Curves.easeInOutCubic);
+          } else {
+            // Fade in indicator when resetting
+            _indicatorFadeController.animateTo(1.0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOutCubic);
+          }
         }
       },
       close: _closeUnitSelector,
@@ -211,6 +219,7 @@ class _UnitTapeState extends State<UnitTape>
 
   @override
   void dispose() {
+    widget.controller?._unbind();
     _indicatorFadeController.dispose();
     _pageController?.dispose();
     // Only dispose internal notifier
@@ -267,17 +276,17 @@ class _UnitTapeState extends State<UnitTape>
             setState(() {
               _isRevealed = r;
             });
-          }
-          if (r) {
-            // Fade out indicator when revealing - use provided duration or default to 600ms
-            _indicatorFadeController.animateTo(0.0,
-                duration: duration ?? const Duration(milliseconds: 600),
-                curve: Curves.easeInOutCubic);
-          } else {
-            // Fade in indicator when resetting
-            _indicatorFadeController.animateTo(1.0,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOutCubic);
+            if (r) {
+              // Fade out indicator when revealing - use provided duration or default to 600ms
+              _indicatorFadeController.animateTo(0.0,
+                  duration: duration ?? const Duration(milliseconds: 600),
+                  curve: Curves.easeInOutCubic);
+            } else {
+              // Fade in indicator when resetting
+              _indicatorFadeController.animateTo(1.0,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOutCubic);
+            }
           }
         },
         close: _closeUnitSelector,

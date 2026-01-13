@@ -20,6 +20,7 @@ import 'package:fermi_frontend/screens/daily_question/daily_question_screen.dart
 import 'package:fermi_frontend/screens/daily_question/pre_daily_question_screen.dart';
 import 'package:fermi_frontend/screens/lobby/lobby_screen_controller.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
+import 'package:fermi_frontend/screens/survival/survival_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -153,6 +154,11 @@ class AppRouter {
               api: apiService,
             );
           },
+        ),
+        // Survival mode
+        GoRoute(
+          path: '/survival',
+          builder: (context, state) => const SurvivalScreen(),
         ),
       ],
       errorBuilder: (context, state) => Scaffold(

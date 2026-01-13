@@ -412,6 +412,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                       context.push('/upgrade-account');
                                     },
                                   ),
+                                  onSurvivalCardTapped: () {
+                                    context.push('/survival');
+                                  },
                                 ),
                               ),
                               ClipRect(

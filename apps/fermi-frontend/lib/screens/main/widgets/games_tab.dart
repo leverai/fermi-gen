@@ -47,10 +47,11 @@ class GamesTab extends StatelessWidget {
     );
   }
 
-  GamesTab({
+  const GamesTab({
     super.key,
     this.displayName,
     required this.onPartyCardTapped,
+    required this.onSurvivalCardTapped,
   });
 
   /// User's display name for the welcome message.
@@ -58,6 +59,9 @@ class GamesTab extends StatelessWidget {
 
   /// Callback when the Party card is tapped.
   final VoidCallback onPartyCardTapped;
+
+  /// Callback when the Survival card is tapped.
+  final VoidCallback onSurvivalCardTapped;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +85,8 @@ class GamesTab extends StatelessWidget {
                     const DailyQuestionCarousel(),
                     const SizedBox(height: 24),
                     _buildPartyCard(context, appTheme),
+                    const SizedBox(height: 16),
+                    _buildSurvivalCard(context, appTheme),
                   ],
                 ),
               ),
@@ -207,6 +213,77 @@ class GamesTab extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildFreeTierInfo(context, appTheme),
+                Text(
+                  'Tap to play',
+                  style: AppFont.primaryTextStyle(
+                    context,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: appTheme.bg.withAlpha(200),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSurvivalCard(BuildContext context, AppTheme appTheme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: BounceEffectWrapper(
+        onTap: onSurvivalCardTapped,
+        decoration: BoxDecoration(
+          color: appTheme.warning,
+          borderRadius: BorderRadius.circular(appTheme.borderRadius),
+          boxShadow: const [],
+        ),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Survival',
+                        style: AppFont.primaryTextStyle(
+                          context,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: appTheme.bg,
+                        ),
+                      ),
+                      Text(
+                        'Answer questions until you fail.',
+                        style: AppFont.primaryTextStyle(
+                          context,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: appTheme.bg.withAlpha(200),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.local_fire_department,
+                  size: 48,
+                  color: appTheme.bg,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
                 Text(
                   'Tap to play',
                   style: AppFont.primaryTextStyle(

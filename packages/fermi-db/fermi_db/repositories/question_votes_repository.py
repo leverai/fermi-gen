@@ -132,5 +132,5 @@ class QuestionVotesRepository(BaseRepository):
             & (QuestionVote.user_firebase_uid == user_firebase_uid),
         )
         result = await self.session.exec(stmt)
-        verdict = VoteVerdict(result.one_or_none())
-        return verdict or VoteVerdict.NO_VOTE
+        verdict = result.one_or_none()
+        return VoteVerdict(verdict) if verdict is not None else VoteVerdict.NO_VOTE
