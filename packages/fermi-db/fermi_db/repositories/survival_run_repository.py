@@ -88,7 +88,6 @@ class SurvivalRunRepository(BaseRepository):
             raise ValueError(f'Survival run {run_id} not found')
         run.questions_answered += 1
         run.total_score += score
-        run.passed = passed
         if not passed:
             run.is_completed = True
             run.ended_at = utcnow_naive()
@@ -103,23 +102,22 @@ class SurvivalRunRepository(BaseRepository):
         deadline: datetime.datetime | None = None,
     ) -> SurvivalRun:
         """Set the current question for a run efficiently."""
+        # 1. Perform the update (fast, no returning)
         stmt = (
             update(SurvivalRun)
-            .where(SurvivalRun.id == run_id)  # type: ignore
-            .values(current_question_uid=question_uid)
-            .values(current_deadline=deadline)
-            .returning(SurvivalRun)
+            .where(SurvivalRun.id == run_id)
+            .values(current_question_uid=question_uid, current_deadline=deadline)
         )
+        result = await self.session.exec(stmt)
 
-        result = await self.session.exec(stmt)  # type: ignore
-        updated_run = result.first()
-
-        if updated_run is None:
+        if result.rowcount == 0:
             raise ValueError(f'Survival run {run_id} not found')
 
         await self.session.commit()
 
-        return updated_run
+        # 2. Fetch the fresh object (standard select)
+        # This ensures you have a true ORM instance
+        return await self.get_run_by_id(run_id)
 
     async def get_user_best_run(self, user_firebase_uid: str) -> SurvivalRun | None:
         """Get the user's best run by questions_answered."""

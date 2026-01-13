@@ -83,20 +83,20 @@ class SurvivalService:
             # Update run with new question
             run = await self._db.survival_runs.set_current_question(
                 run_id=run.id,
-                question_uid=question.uid,
+                question_uid=str(question.uid),
                 deadline=deadline,
             )
         else:
             # Create new run with the new question
             run = await self._db.survival_runs.create_run(
                 user_firebase_uid=user_firebase_uid,
-                question_uid=question.uid,
+                question_uid=str(question.uid),
                 deadline=deadline,
             )
 
         # We have a run now with the new question. Time to return to user
-        question_data = await self._build_question_data(question, user_firebase_uid)
         assert run.id, 'This should not happen.'
+        question_data = await self._build_question_data(question, user_firebase_uid)
         return SurvivalQuestionResponse(
             run_id=run.id,
             question_number=run.questions_answered + 1,
@@ -163,7 +163,7 @@ class SurvivalService:
             uuid.UUID(run.current_question_uid),
         )
         quantiles_dict = cast(
-            ScoreQuantiles,
+            'ScoreQuantiles',
             quantiles.model_dump(exclude={'question_uid'}),
         )
         quantile = self._scoring.get_score_quantile(score, quantiles_dict)
@@ -179,12 +179,12 @@ class SurvivalService:
 
         # 4. Update answer events and user history
         answer_event = AnswerEvent(
-            question_uid=run.current_question_uid,
+            question_uid=uuid.UUID(run.current_question_uid),
             # TODO: remove cat and diff from AnswerEvent
             question_difficulty=QuestionDifficulty.MEDIUM,
             question_category=QuestionCategory.OTHER,
             user_firebase_id=user_firebase_uid,
-            game_id=run_id,
+            game_id=str(run_id),
             answer=answer,
             correct_answer=correct_answer,
             score_number=score,
@@ -210,6 +210,7 @@ class SurvivalService:
         else:
             converted_answer = correct_answer
 
+        streak = run.questions_answered if passed else run.questions_answered - 1
         return SurvivalAnswerResponse(
             passed=passed,
             score=score,
@@ -222,7 +223,7 @@ class SurvivalService:
             total_score=run.total_score,
             run_summary=SurvivalRunSummary(
                 run_id=run_id,
-                questions_answered=run.questions_answered,
+                questions_answered=streak,
                 total_score=run.total_score,
             ),
             ai_overview=correct_answer_w_snippet['ai_overview'],

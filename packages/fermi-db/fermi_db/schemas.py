@@ -71,16 +71,17 @@ class AnswerReference(TypedDict):
 class AnswerBare(TypedDict):
     """Player answer."""
 
-
-class AnswerWithSnippet(TypedDict):
-    """Player answer with snippet."""
-
     number: float
     unit: str | None
+
+
+class AnswerWithSnippet(AnswerBare):
+    """Player answer with snippet."""
+
     ai_overview: str
 
 
-class Answer(AnswerWithSnippet):
+class Answer(AnswerBare):
     """The complete answer to a Fermi question."""
 
     paragraph: str

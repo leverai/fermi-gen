@@ -16,7 +16,7 @@ import 'package:fermi_frontend/widgets/circular_determinate_spinner.dart';
 ///   for optimal contrast against the primary color.
 
 /// Allowed labels for the main button.
-enum MainButtonLabel { create, join, start, submit, next, finish }
+enum MainButtonLabel { create, join, start, submit, next, finish, resume }
 
 extension MainButtonLabelText on MainButtonLabel {
   String get text {
@@ -33,6 +33,8 @@ extension MainButtonLabelText on MainButtonLabel {
         return 'Next';
       case MainButtonLabel.finish:
         return 'Finish';
+      case MainButtonLabel.resume:
+        return 'Resume';
     }
   }
 }
