@@ -26,6 +26,7 @@ from .subscription import (
     SubscriptionPlatform,
     SubscriptionTier,
 )
+from .survival import SurvivalRun
 from .user import User
 
 __all__ = [
@@ -45,6 +46,7 @@ __all__ = [
     'Subscription',
     'SubscriptionPlatform',
     'SubscriptionTier',
+    'SurvivalRun',
     'User',
     'UserQuestionHistory',
     'VoteVerdict',

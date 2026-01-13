@@ -16,6 +16,7 @@ from .repositories.question_votes_repository import QuestionVotesRepository
 from .repositories.raw_question_repository import RawQuestionRepository
 from .repositories.seed_repository import SeedRepository
 from .repositories.seeds_usage_repository import SeedsUsageRepository
+from .repositories.survival_run_repository import SurvivalRunRepository
 from .repositories.user_history_repository import UserHistoryRepository
 from .repositories.user_repository import UserRepository
 
@@ -37,6 +38,8 @@ class DatabaseClient:
         # Daily Question repositories
         self.daily_questions = DailyQuestionRepository(self.session)
         self.dq_answers = DailyQuestionAnswerRepository(self.session)
+        # Survival Mode repositories
+        self.survival_runs = SurvivalRunRepository(self.session)
         # Pipeline repositories
         self.seeds = SeedRepository(self.session)
         self.raw_questions = RawQuestionRepository(self.session)

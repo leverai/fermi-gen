@@ -8,7 +8,12 @@ from sqlmodel import select
 
 from fermi_db.models import Fermi, UserQuestionHistory
 from fermi_db.repositories import BaseRepository
-from fermi_db.schemas import QuestionCategory, QuestionDifficulty, QuestionStatus
+from fermi_db.schemas import (
+    AnswerWithSnippet,
+    QuestionCategory,
+    QuestionDifficulty,
+    QuestionStatus,
+)
 
 
 @dataclass
@@ -80,6 +85,30 @@ class FermiRepository(BaseRepository):
         statement = select(Fermi).where(Fermi.uid == uid)
         result = await self.session.exec(statement)
         return result.one_or_none()
+
+    async def get_answer_with_snippet_by_uid(
+        self,
+        uid: uuid.UUID,
+    ) -> AnswerWithSnippet | None:
+        """Get a single Answer entry by its UID.
+
+        Args:
+            uid: The unique identifier of the entry
+
+        Returns:
+            The Answer entry if found, None otherwise
+
+        """
+        statement = select(Fermi.number, Fermi.unit, Fermi.snippet).where(
+            Fermi.uid == uid,
+        )
+        result = await self.session.exec(statement)
+        tup = result.one_or_none()
+        return (
+            AnswerWithSnippet(number=tup[0], unit=tup[1], ai_overview=tup[2])
+            if tup
+            else None
+        )
 
     async def bulk_update(self, updates: list[FermiUpdate]) -> int:
         """Bulk update Fermi entries.

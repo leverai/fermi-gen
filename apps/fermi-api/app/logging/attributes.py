@@ -23,9 +23,6 @@ ACTION: Final = 'action'
 
 QUERY_PARAMS: Final = 'query_params'
 
-SUCCESS: Final = 'success'
-"""Whether the operation succeeded."""
-
 ERROR_TYPE: Final = 'error.type'
 """Type/name of error that occurred."""
 
@@ -92,3 +89,37 @@ WEBHOOK_APP_USER_ID: Final = 'webhook.app_user_id'
 
 WEBHOOK_PRODUCT_ID: Final = 'webhook.product_id'
 """Product ID from webhook payload."""
+
+# =============================================================================
+# Survival Mode context
+# =============================================================================
+
+SURVIVAL_RUN_ID: Final = 'survival.run_id'
+"""Survival run unique ID."""
+
+SURVIVAL_QUESTION_NUMBER: Final = 'survival.question_number'
+"""Current question number in the run."""
+
+SURVIVAL_PASSED: Final = 'survival.passed'
+"""Whether the survival question was passed."""
+
+SURVIVAL_QUESTIONS_ANSWERED: Final = 'survival.questions_answered'
+"""Total questions answered in the run."""
+
+SURVIVAL_TOTAL_SCORE: Final = 'survival.total_score'
+"""Total score accumulated in the run."""
+
+SURVIVAL_SCORE: Final = 'survival.score'
+"""Score for the current survival answer."""
+
+SURVIVAL_PLAYER_ANSWER: Final = 'survival.player_answer'
+"""Player's answer."""
+
+SURVIVAL_NEXT_QUESTION_UID: Final = 'survival.next_question_uid'
+"""Next question UID."""
+
+SURVIVAL_TOTAL_RUNS: Final = 'survival.total_runs'
+"""Total runs."""
+
+SURVIVAL_BEST_STREAK: Final = 'survival.best_streak'
+"""Best streak."""
