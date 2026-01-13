@@ -62,7 +62,7 @@ class SliderTextMirror extends StatelessWidget {
         context,
         fontSize: fontSize,
         fontWeight: fontWeight,
-        color: appTheme.secondaryMuted,
+        color: appTheme.secondary,
       ),
     );
   }

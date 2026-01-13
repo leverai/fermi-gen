@@ -2,7 +2,7 @@
 
 import logging
 from functools import lru_cache
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends, Header, HTTPException, status
 from fermi_db.dal import DatabaseClient
@@ -20,6 +20,9 @@ from app.services.game.service import GameService
 from app.services.scoring import ScoringService
 from app.services.subscription import SubscriptionService
 from app.services.user import UserService
+
+if TYPE_CHECKING:
+    from app.services.survival.service import SurvivalService
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +102,15 @@ def get_subscription_service(
         subscription_repository=subscription_repository,
         user_repository=user_repository,
     )
+
+
+def get_survival_service(
+    db_client: DatabaseClient = Depends(get_db_client),  # noqa: B008
+) -> 'SurvivalService':
+    """Get an instance of the SurvivalService."""
+    from app.services.survival.service import SurvivalService
+
+    return SurvivalService(db_client=db_client)
 
 
 async def verify_scheduler_secret(

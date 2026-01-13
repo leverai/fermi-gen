@@ -33,7 +33,7 @@ This document describes the architecture, design decisions, and internal working
   - [Firestore Schema](#firestore-schema)
   - [Key Differences from Party Mode](#key-differences-from-party-mode)
   - [Scheduled Jobs](#scheduled-jobs)
-- [Design Decisions](#design-decisions)
+- [Survival Mode](#survival-mode)
 
 ---
 
@@ -742,6 +742,13 @@ Daily Question lifecycle is managed by Cloud Run jobs (triggered by Cloud Schedu
    - Updates Firestore document (`status=ACTIVE`)
    - Adds `invite_url` to Firestore document for sharing
    - Sends push notification to users that DQ is active
+
+---
+
+## Survival Mode
+
+Single-player mode where players answer timed questions until they fail.
+See [SURVIVAL_MODE.md](SURVIVAL_MODE.md) for details.
 
 ---
 

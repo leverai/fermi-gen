@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     health,
     privacy_policy,
     question,
+    survival,
     user,
     webhooks,
 )
@@ -27,6 +28,7 @@ api_router.include_router(health.router, prefix='/health', tags=['health'])
 api_router.include_router(account_deletion.router, tags=['account'])
 api_router.include_router(privacy_policy.router, tags=['privacy'])
 api_router.include_router(question.router, prefix='/question', tags=['question'])
+api_router.include_router(survival.router, prefix='/survival', tags=['survival'])
 api_router.include_router(user.router, prefix='/user', tags=['user'])
 api_router.include_router(assets.router, prefix='/assets', tags=['assets'])
 api_router.include_router(webhooks.router, prefix='/webhooks', tags=['webhooks'])
