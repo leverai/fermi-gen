@@ -42,7 +42,7 @@ This ensures:
 | `/survival/create_or_resume` | POST | Start new run OR resume/advance active run |
 | `/survival/answer` | POST | Submit answer, get pass/fail result |
 | `/survival/stats` | GET | Get user's survival statistics |
-| `/survival/best-streak` | GET | Get user's best survival streak |
+| `/survival/streak` | GET | Get user's streak stats (current and best streak) |
 
 ### Voting
 Use existing question endpoints:

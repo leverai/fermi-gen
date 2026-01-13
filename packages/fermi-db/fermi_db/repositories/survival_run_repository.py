@@ -147,6 +147,20 @@ class SurvivalRunRepository(BaseRepository):
         result = (await self.session.exec(stmt)).first()
         return (result or 1) - 1
 
+    async def get_current_streak(self, user_firebase_uid: str) -> int:
+        """Get the user's current active run streak."""
+        stmt = (
+            select(SurvivalRun.questions_answered)
+            .where(
+                SurvivalRun.user_firebase_uid == user_firebase_uid,  # type: ignore
+                SurvivalRun.is_completed == False,  # noqa: E712
+            )
+            .order_by(SurvivalRun.started_at.desc())  # type: ignore
+            .limit(1)
+        )
+        result = (await self.session.exec(stmt)).first()
+        return (result or 1) - 1
+
     async def count_user_runs(self, user_firebase_uid: str) -> int:
         """Count total completed runs for a user."""
         from sqlmodel import func

@@ -1,5 +1,7 @@
 """Pydantic schemas for Survival Mode endpoints."""
 
+from typing import TypedDict
+
 from fermi_core.schemas.units import UnitInfo
 from fermi_core.units import Locale
 from fermi_db.models.game import VoteVerdict
@@ -73,3 +75,10 @@ class SurvivalStatsResponse(BaseModel):
     best_streak: int  # Most questions answered in one run
     average_streak: float
     total_questions_answered: int
+
+
+class StreakInfo(TypedDict):
+    """User's streak stats."""
+
+    best_streak: int
+    current_streak: int
