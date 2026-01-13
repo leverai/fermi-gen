@@ -12,15 +12,15 @@ from fermi_db.schemas import AnswerBare, QuestionCategory, QuestionDifficulty
 from opentelemetry import trace
 
 import app.logging.attributes as attrs
-from app.services.scoring import ScoringService
-
-from .schemas import (
+from app.schemas import (
+    StreakInfo,
     SurvivalAnswerResponse,
     SurvivalQuestionData,
     SurvivalQuestionResponse,
     SurvivalRunSummary,
     SurvivalStatsResponse,
 )
+from app.services.scoring import ScoringService
 
 logger = logging.getLogger(__name__)
 
@@ -45,32 +45,35 @@ class SurvivalService:
         self._db = db_client
         self._scoring = ScoringService()
 
+    async def _get_active_run(self, run_id: int) -> SurvivalRun:
+        """Get an active run by id."""
+        run = await self._db.survival_runs.get_run_by_id(run_id)
+        if run is None:
+            raise ValueError(f'Run {run_id} not found')
+        if run.ended_at:
+            raise ValueError(f'Run {run_id} already ended at {run.ended_at}')
+        assert run.current_question_uid, 'This should not happen.'
+        return run
+
     async def create_or_resume_run(
         self,
         user_firebase_uid: str,
         run_id: int | None = None,
     ) -> SurvivalQuestionResponse:
         """Step the run by one question."""
-        # Get or create the run
+        span = trace.get_current_span()
+        span.set_attribute(attrs.SURVIVAL_USER_ID, user_firebase_uid)
+
+        # Get or create the run. Try to get by id.
+        # If not found, try to find from user id. If not found, create a new run.
         run: SurvivalRun | None = None
-
-        # Try to get by id
         if run_id:
-            run = await self._db.survival_runs.get_run_by_id(run_id)
-            if run is None:
-                raise ValueError(f'Run {run_id} not found')
-            if run.ended_at:
-                raise ValueError(f'Run {run_id} already ended at {run.ended_at}')
-            assert run.current_question_uid, 'This should not happen.'
-            logger.debug('Got run from id %s', run_id)
-
-        # Not found by id. Try to find from user id.
-        if run is None:
+            run = await self._get_active_run(run_id)
+            span.set_attribute(attrs.SURVIVAL_RUN_ID, run_id)
+        else:
             run = await self._db.survival_runs.get_active_run(
                 user_firebase_uid=user_firebase_uid,
             )
-            if run is not None and run.ended_at:
-                raise ValueError(f'Run {run_id} already ended at {run.ended_at}')
 
         # At this point, we either got it by id, found it by player, or will create it.
         # Let's fetch the next question
@@ -255,10 +258,17 @@ class SurvivalService:
             total_questions_answered=total_questions,
         )
 
-    async def get_best_streak(self, user_firebase_uid: str) -> int:
-        """Get user's best streak of completed runs."""
-        return await self._db.survival_runs.get_user_best_streak(
+    async def get_streak_stats(self, user_firebase_uid: str) -> StreakInfo:
+        """Get user's streak stats (current and best streak)."""
+        best_streak = await self._db.survival_runs.get_user_best_streak(
             user_firebase_uid=user_firebase_uid,
+        )
+        current_streak = await self._db.survival_runs.get_current_streak(
+            user_firebase_uid=user_firebase_uid,
+        )
+        return StreakInfo(
+            best_streak=best_streak,
+            current_streak=current_streak,
         )
 
     async def _get_random_question(self, user_firebase_uid: str) -> Fermi:

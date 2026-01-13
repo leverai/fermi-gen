@@ -9,14 +9,15 @@ from opentelemetry import trace
 import app.logging.attributes as api_attrs
 from app.api.v1.auth_deps import get_current_user
 from app.api.v1.dependencies import get_survival_service
-from app.services.survival.schemas import (
+from app.schemas import (
     CreateOrResumeRequest,
     SurvivalAnswerRequest,
     SurvivalAnswerResponse,
     SurvivalQuestionResponse,
     SurvivalStatsResponse,
 )
-from app.services.survival.service import SurvivalService
+from app.schemas.survival import StreakInfo
+from app.services.survival import SurvivalService
 
 router = APIRouter()
 
@@ -85,15 +86,15 @@ async def get_survival_stats(
     )
 
 
-@router.get('/best-streak', response_model=int)
-async def get_survival_best_streak(
+@router.get('/streak', response_model=StreakInfo)
+async def get_survival_streak(
     current_user: Annotated[User, Depends(get_current_user)],
     survival_service: Annotated[SurvivalService, Depends(get_survival_service)],
-) -> int:
-    """Get user's best streak of completed runs."""
+) -> StreakInfo:
+    """Get user's streak stats (current and best streak)."""
     span = trace.get_current_span()
-    span.set_attribute(api_attrs.ACTION, get_survival_best_streak.__qualname__)
+    span.set_attribute(api_attrs.ACTION, get_survival_streak.__qualname__)
 
-    return await survival_service.get_best_streak(
+    return await survival_service.get_streak_stats(
         user_firebase_uid=current_user.firebase_uid,
     )
