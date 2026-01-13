@@ -29,7 +29,7 @@ class GamesTab extends StatelessWidget {
         Icon(
           canHost ? Icons.info_outline : Icons.lock_outline,
           size: 14,
-          color: canHost ? appTheme.warning : appTheme.bg.withAlpha(150),
+          color: appTheme.bg.withAlpha(canHost ? 200 : 150),
         ),
         const SizedBox(width: 6),
         Text(
@@ -40,7 +40,7 @@ class GamesTab extends StatelessWidget {
             context,
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: canHost ? appTheme.warning : appTheme.bg.withAlpha(150),
+            color: appTheme.bg.withAlpha(canHost ? 200 : 150),
           ),
         ),
       ],
