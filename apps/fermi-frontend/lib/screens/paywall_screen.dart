@@ -831,7 +831,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                               context,
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: appTheme.borderMuted,
+                              color: appTheme.bgLight,
                             ),
                           ),
                         ),
