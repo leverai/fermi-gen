@@ -163,7 +163,20 @@ class AppRouter {
         ),
         GoRoute(
           path: '/survival',
-          builder: (context, state) => const SurvivalScreen(),
+          builder: (context, state) {
+            final currentStreak = int.tryParse(
+                  state.uri.queryParameters['currentStreak'] ?? '',
+                ) ??
+                0;
+            final bestStreak = int.tryParse(
+                  state.uri.queryParameters['bestStreak'] ?? '',
+                ) ??
+                0;
+            return SurvivalScreen(
+              initialCurrentStreak: currentStreak,
+              initialBestStreak: bestStreak,
+            );
+          },
         ),
       ],
       errorBuilder: (context, state) => Scaffold(

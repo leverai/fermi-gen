@@ -133,19 +133,37 @@ class SurvivalRunRepository(BaseRepository):
         result = await self.session.exec(stmt)
         return result.first()
 
+    # async def get_user_best_streak(self, user_firebase_uid: str) -> int:
+    #     """Get the user's best streak of completed runs."""
+    #     stmt = (
+    #         select(SurvivalRun.questions_answered)
+    #         .where(
+    #             SurvivalRun.user_firebase_uid == user_firebase_uid,  # type: ignore
+    #             SurvivalRun.is_completed == True,
+    #         )
+    #         .order_by(SurvivalRun.questions_answered.desc())  # type: ignore
+    #         .limit(1)
+    #     )
+    #     result = (await self.session.exec(stmt)).first()
+    #     return (result or 1) - 1
+
     async def get_user_best_streak(self, user_firebase_uid: str) -> int:
         """Get the user's best streak of completed runs."""
         stmt = (
-            select(SurvivalRun.questions_answered)
+            select(SurvivalRun.questions_answered, SurvivalRun.is_completed)
             .where(
                 SurvivalRun.user_firebase_uid == user_firebase_uid,  # type: ignore
-                SurvivalRun.is_completed == True,  # noqa: E712
             )
             .order_by(SurvivalRun.questions_answered.desc())  # type: ignore
             .limit(1)
         )
         result = (await self.session.exec(stmt)).first()
-        return (result or 1) - 1
+        if result is None:
+            return 0
+        q_answered, is_completed = result
+        if is_completed:
+            return q_answered - 1
+        return q_answered
 
     async def get_current_streak(self, user_firebase_uid: str) -> int:
         """Get the user's current active run streak."""
@@ -159,7 +177,7 @@ class SurvivalRunRepository(BaseRepository):
             .limit(1)
         )
         result = (await self.session.exec(stmt)).first()
-        return (result or 1) - 1
+        return result or 0
 
     async def count_user_runs(self, user_firebase_uid: str) -> int:
         """Count total completed runs for a user."""

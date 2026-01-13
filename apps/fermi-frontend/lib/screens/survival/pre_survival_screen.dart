@@ -56,7 +56,11 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
   }
 
   void _handleStart() {
-    context.pushReplacement('/survival');
+    final currentStreak = _streakInfo?.currentStreak ?? 0;
+    final bestStreak = _streakInfo?.bestStreak ?? 0;
+    context.pushReplacement(
+      '/survival?currentStreak=$currentStreak&bestStreak=$bestStreak',
+    );
   }
 
   void _handleLeave() {
