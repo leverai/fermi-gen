@@ -176,35 +176,51 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
                               color: appTheme.text,
                             ),
                           ),
-                          const SizedBox(height: 12),
-
-                          // Subtitle / Streak Info
+                          const SizedBox(height: 4),
                           Text(
-                            isResume
-                                ? 'Current Streak: $streak\nReady to keep going?'
-                                : 'How long can you survive?\nBuild your streak.',
+                            'How long can you beat the average player for?\nBuild your streak.',
                             textAlign: TextAlign.center,
                             style: AppFont.primaryTextStyle(
                               context,
-                              fontSize: 20,
+                              fontSize: 14,
                               fontWeight: FontWeight.w400,
                               color: appTheme.textMuted,
                               height: 1.4,
                             ),
                           ),
+                          // const SizedBox(height: 48),
+
+                          // Subtitle / Streak Info
                           if (bestStreak > 0) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              'Best Streak: $bestStreak',
-                              style: AppFont.primaryTextStyle(
-                                context,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: appTheme.warning,
+                            const SizedBox(height: 24),
+                            Text.rich(
+                              TextSpan(
+                                style: AppFont.primaryTextStyle(
+                                  context,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                  color: appTheme.textMuted,
+                                ),
+                                children: [
+                                  const TextSpan(text: 'Streak: '),
+                                  TextSpan(text: streak > 0 ? '$streak' : '_'),
+                                  const TextSpan(text: ' / '),
+                                  TextSpan(
+                                    text: '$bestStreak',
+                                    style: AppFont.primaryTextStyle(
+                                      context,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: appTheme.warning,
+                                    ),
+                                  ),
+                                ],
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ],
-                          const SizedBox(height: 48),
+                          if (bestStreak > 0) const SizedBox(height: 36),
+                          if (bestStreak <= 0) const SizedBox(height: 48),
 
                           // Action Button
                           SizedBox(
@@ -220,7 +236,7 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
 
                           // Descriptive Footer
                           Text(
-                            'One mistake and it\'s over.',
+                            'One mistake and it\'s over!',
                             style: AppFont.primaryTextStyle(
                               context,
                               fontSize: 16,
@@ -230,7 +246,7 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Timed questions • Precision counts',
+                            '40 Seconds each • Precision counts',
                             style: AppFont.primaryTextStyle(
                               context,
                               fontSize: 14,

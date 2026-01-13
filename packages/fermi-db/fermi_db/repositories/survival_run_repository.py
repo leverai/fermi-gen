@@ -133,20 +133,6 @@ class SurvivalRunRepository(BaseRepository):
         result = await self.session.exec(stmt)
         return result.first()
 
-    # async def get_user_best_streak(self, user_firebase_uid: str) -> int:
-    #     """Get the user's best streak of completed runs."""
-    #     stmt = (
-    #         select(SurvivalRun.questions_answered)
-    #         .where(
-    #             SurvivalRun.user_firebase_uid == user_firebase_uid,  # type: ignore
-    #             SurvivalRun.is_completed == True,
-    #         )
-    #         .order_by(SurvivalRun.questions_answered.desc())  # type: ignore
-    #         .limit(1)
-    #     )
-    #     result = (await self.session.exec(stmt)).first()
-    #     return (result or 1) - 1
-
     async def get_user_best_streak(self, user_firebase_uid: str) -> int:
         """Get the user's best streak of completed runs."""
         stmt = (
@@ -155,6 +141,7 @@ class SurvivalRunRepository(BaseRepository):
                 SurvivalRun.user_firebase_uid == user_firebase_uid,  # type: ignore
             )
             .order_by(SurvivalRun.questions_answered.desc())  # type: ignore
+            .order_by(SurvivalRun.is_completed.asc())  # type: ignore
             .limit(1)
         )
         result = (await self.session.exec(stmt)).first()
