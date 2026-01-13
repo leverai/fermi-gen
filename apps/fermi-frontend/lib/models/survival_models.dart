@@ -177,6 +177,24 @@ class SurvivalStatsResponse {
   }
 }
 
+/// User's survival streak information.
+class StreakInfo {
+  final int bestStreak;
+  final int currentStreak;
+
+  const StreakInfo({
+    required this.bestStreak,
+    required this.currentStreak,
+  });
+
+  factory StreakInfo.fromJson(Map<String, dynamic> json) {
+    return StreakInfo(
+      bestStreak: json['best_streak'] as int? ?? 0,
+      currentStreak: json['current_streak'] as int? ?? 0,
+    );
+  }
+}
+
 /// Parse an answer value from JSON (matches backend AnswerBare schema).
 AnswerValue _parseAnswerValue(dynamic json) {
   if (json == null) {

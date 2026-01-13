@@ -9,14 +9,14 @@ from opentelemetry import trace
 import app.logging.attributes as api_attrs
 from app.api.v1.auth_deps import get_current_user
 from app.api.v1.dependencies import get_survival_service
-from app.schemas import (
+from app.schemas.survival import (
     CreateOrResumeRequest,
+    StreakInfo,
     SurvivalAnswerRequest,
     SurvivalAnswerResponse,
     SurvivalQuestionResponse,
     SurvivalStatsResponse,
 )
-from app.schemas.survival import StreakInfo
 from app.services.survival import SurvivalService
 
 router = APIRouter()

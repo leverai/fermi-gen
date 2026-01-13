@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:fermi_frontend/services/api_service.dart';
+import 'package:fermi_frontend/models/survival_models.dart';
 import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -8,28 +12,103 @@ import 'package:fermi_frontend/theme/app_font.dart';
 /// Pre-Survival screen shown before starting or resuming a survival run.
 ///
 /// Displays the user's current streak and provides a button to proceed.
-class PreSurvivalScreen extends StatelessWidget {
-  /// The user's current survival streak.
-  final int streak;
+class PreSurvivalScreen extends StatefulWidget {
+  const PreSurvivalScreen({super.key});
 
-  /// Callback when the user taps the action button.
-  final VoidCallback onStart;
+  @override
+  State<PreSurvivalScreen> createState() => _PreSurvivalScreenState();
+}
 
-  /// Callback when the user wants to leave the screen.
-  final VoidCallback onLeave;
+class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
+  bool _isLoading = true;
+  String? _error;
+  StreakInfo? _streakInfo;
 
-  const PreSurvivalScreen({
-    super.key,
-    required this.streak,
-    required this.onStart,
-    required this.onLeave,
-  });
+  @override
+  void initState() {
+    super.initState();
+    _fetchStreaks();
+  }
+
+  Future<void> _fetchStreaks() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final apiService = context.read<ApiService>();
+      final result = await apiService.survivalGetStreakStats();
+      if (mounted) {
+        setState(() {
+          _streakInfo = StreakInfo.fromJson(result);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _handleStart() {
+    context.pushReplacement('/survival');
+  }
+
+  void _handleLeave() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      context.go('/main');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
+    if (_isLoading) {
+      return ResponsiveContainer(
+        backgroundColor: appTheme.bg,
+        child: const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return ResponsiveContainer(
+        backgroundColor: appTheme.bg,
+        child: Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Error: $_error',
+                    style: TextStyle(color: appTheme.danger)),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _fetchStreaks,
+                  child: const Text('Try Again'),
+                ),
+                TextButton(
+                  onPressed: _handleLeave,
+                  child: const Text('Go Back'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final streak = _streakInfo?.currentStreak ?? 0;
+    final bestStreak = _streakInfo?.bestStreak ?? 0;
     final bool isResume = streak > 0;
 
     return ResponsiveContainer(
@@ -38,7 +117,7 @@ class PreSurvivalScreen extends StatelessWidget {
         canPop: false,
         onPopInvokedWithResult: (bool didPop, dynamic result) {
           if (didPop) return;
-          onLeave();
+          _handleLeave();
         },
         child: Scaffold(
           backgroundColor: appTheme.bg,
@@ -53,7 +132,7 @@ class PreSurvivalScreen extends StatelessWidget {
                     child: IconButton(
                       icon: Icon(Icons.chevron_left,
                           color: appTheme.border, size: 32),
-                      onPressed: onLeave,
+                      onPressed: _handleLeave,
                       tooltip: 'Back',
                     ),
                   ),
@@ -109,13 +188,25 @@ class PreSurvivalScreen extends StatelessWidget {
                               height: 1.4,
                             ),
                           ),
+                          if (bestStreak > 0) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              'Best Streak: $bestStreak',
+                              style: AppFont.primaryTextStyle(
+                                context,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: appTheme.warning,
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 48),
 
                           // Action Button
                           SizedBox(
                             width: 200,
                             child: MainButton(
-                              onPressed: onStart,
+                              onPressed: _handleStart,
                               label: isResume
                                   ? MainButtonLabel.resume
                                   : MainButtonLabel.start,
@@ -135,7 +226,7 @@ class PreSurvivalScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Unlimited time • Precision counts',
+                            'Timed questions • Precision counts',
                             style: AppFont.primaryTextStyle(
                               context,
                               fontSize: 14,
