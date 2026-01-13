@@ -413,7 +413,12 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                     },
                                   ),
                                   onSurvivalCardTapped: () {
-                                    context.push('/pre-survival');
+                                    context.push('/pre-survival').then((_) {
+                                      if (mounted) {
+                                        _controller.refreshInBackground(
+                                            force: true);
+                                      }
+                                    });
                                   },
                                 ),
                               ),

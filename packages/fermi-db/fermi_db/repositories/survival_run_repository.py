@@ -198,3 +198,52 @@ class SurvivalRunRepository(BaseRepository):
         )
         result = await self.session.execute(stmt)
         return result.scalar() or 0.0
+
+    async def count_today_runs(self, user_firebase_uid: str) -> int:
+        """Count runs started today (UTC midnight to now) for a user.
+
+        Args:
+            user_firebase_uid: The user's Firebase UID.
+
+        Returns:
+            Number of runs started today.
+
+        """
+        from sqlmodel import func
+
+        day_start = self._get_day_start_utc()
+        stmt = select(func.count(SurvivalRun.id)).where(  # type: ignore
+            SurvivalRun.user_firebase_uid == user_firebase_uid,  # type: ignore
+            SurvivalRun.started_at >= day_start,
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar() or 0
+
+    async def get_runs_remaining_today(
+        self,
+        user_firebase_uid: str,
+        limit: int,
+    ) -> int:
+        """Get remaining runs for a user today.
+
+        Args:
+            user_firebase_uid: The user's Firebase UID.
+            limit: Maximum runs allowed per day.
+
+        Returns:
+            Number of runs remaining (0 if at limit).
+
+        """
+        count = await self.count_today_runs(user_firebase_uid)
+        return max(0, limit - count)
+
+    @staticmethod
+    def _get_day_start_utc() -> datetime.datetime:
+        """Get the start of the current day (00:00 UTC).
+
+        Returns:
+            datetime at 00:00:00 of the current day.
+
+        """
+        now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+        return now.replace(hour=0, minute=0, second=0, microsecond=0)

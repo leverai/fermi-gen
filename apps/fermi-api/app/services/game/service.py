@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from fermi_db import DatabaseClient
     from fermi_db.models.user import User
     from fermi_db.repositories.party_hosting_repository import PartyHostingRepository
+    from fermi_db.repositories.survival_run_repository import SurvivalRunRepository
     from google.cloud.firestore_v1 import (
         AsyncClient,
         AsyncTransaction,
@@ -49,6 +50,9 @@ if TYPE_CHECKING:
 
 # Free tier party hosting limit (per calendar week)
 FREE_HOSTING_LIMIT_PER_WEEK = 2
+
+# Free tier survival run limit (per calendar day)
+FREE_SURVIVAL_RUNS_PER_DAY = 2
 
 
 class GameService:
@@ -494,18 +498,22 @@ class GameService:
         self,
         *,
         user_id: int,
+        user_firebase_uid: str,
         hosting_repo: 'PartyHostingRepository',
+        survival_run_repo: 'SurvivalRunRepository',
         is_pro: bool = False,
     ) -> UserLimits:
         """Get user-specific limits based on subscription tier.
 
         Args:
             user_id: User's database ID.
+            user_firebase_uid: User's Firebase UID.
             hosting_repo: Repository for checking hosting limits.
+            survival_run_repo: Repository for checking survival run limits.
             is_pro: Whether user has Pro subscription.
 
         Returns:
-            User limits including remaining party hostings.
+            User limits including remaining party hostings and survival runs.
 
         """
         hostings_left = (
@@ -516,7 +524,18 @@ class GameService:
                 limit=FREE_HOSTING_LIMIT_PER_WEEK,
             )
         )
-        return UserLimits(party_hostings_remaining=hostings_left)
+        survival_left = (
+            -1
+            if is_pro
+            else await survival_run_repo.get_runs_remaining_today(
+                user_firebase_uid=user_firebase_uid,
+                limit=FREE_SURVIVAL_RUNS_PER_DAY,
+            )
+        )
+        return UserLimits(
+            party_hostings_remaining=hostings_left,
+            survival_runs_remaining=survival_left,
+        )
 
     async def vote(
         self,

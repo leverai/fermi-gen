@@ -36,6 +36,9 @@ SURVIVAL_TIME_LIMIT_SECONDS = 40
 GRACE_PERIOD_SECONDS = 20
 GRACE_PERIOD = timedelta(seconds=GRACE_PERIOD_SECONDS)
 
+# Free tier survival run limit (per calendar day)
+FREE_SURVIVAL_RUNS_PER_DAY = 2
+
 
 class SurvivalService:
     """Service for survival mode gameplay logic."""
@@ -59,8 +62,25 @@ class SurvivalService:
         self,
         user_firebase_uid: str,
         run_id: int | None = None,
+        *,
+        is_pro: bool = False,
     ) -> SurvivalQuestionResponse:
-        """Step the run by one question."""
+        """Create a new run or resume an existing one.
+
+        Args:
+            user_firebase_uid: User's Firebase UID.
+            run_id: Optional run ID to resume.
+            is_pro: Whether user has Pro subscription (unlimited runs).
+
+        Returns:
+            Question response with run info.
+
+        Raises:
+            HTTPException: 403 if daily limit reached (free users only).
+
+        """
+        from fastapi import HTTPException, status
+
         span = trace.get_current_span()
 
         # Get or create the run. Try to get by id.
@@ -89,6 +109,18 @@ class SurvivalService:
                 deadline=deadline,
             )
         else:
+            # Creating new run - check limits for free users
+            if not is_pro:
+                remaining = await self._db.survival_runs.get_runs_remaining_today(
+                    user_firebase_uid=user_firebase_uid,
+                    limit=FREE_SURVIVAL_RUNS_PER_DAY,
+                )
+                if remaining <= 0:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail='Daily survival run limit reached',
+                    )
+
             # Create new run with the new question
             run = await self._db.survival_runs.create_run(
                 user_firebase_uid=user_firebase_uid,
