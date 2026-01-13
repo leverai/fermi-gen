@@ -22,7 +22,7 @@ from app.services.subscription import SubscriptionService
 from app.services.user import UserService
 
 if TYPE_CHECKING:
-    from app.services.survival.service import SurvivalService
+    from app.services.survival import SurvivalService
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +108,7 @@ def get_survival_service(
     db_client: DatabaseClient = Depends(get_db_client),  # noqa: B008
 ) -> 'SurvivalService':
     """Get an instance of the SurvivalService."""
-    from app.services.survival.service import SurvivalService
+    from app.services.survival import SurvivalService
 
     return SurvivalService(db_client=db_client)
 

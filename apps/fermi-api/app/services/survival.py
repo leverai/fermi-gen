@@ -12,7 +12,7 @@ from fermi_db.schemas import AnswerBare, QuestionCategory, QuestionDifficulty
 from opentelemetry import trace
 
 import app.logging.attributes as attrs
-from app.schemas import (
+from app.schemas.survival import (
     StreakInfo,
     SurvivalAnswerResponse,
     SurvivalQuestionData,
@@ -45,7 +45,7 @@ class SurvivalService:
         self._db = db_client
         self._scoring = ScoringService()
 
-    async def _get_active_run(self, run_id: int) -> SurvivalRun:
+    async def _get_active_run(self, run_id: int) -> 'SurvivalRun':
         """Get an active run by id."""
         run = await self._db.survival_runs.get_run_by_id(run_id)
         if run is None:
@@ -62,7 +62,6 @@ class SurvivalService:
     ) -> SurvivalQuestionResponse:
         """Step the run by one question."""
         span = trace.get_current_span()
-        span.set_attribute(attrs.SURVIVAL_USER_ID, user_firebase_uid)
 
         # Get or create the run. Try to get by id.
         # If not found, try to find from user id. If not found, create a new run.

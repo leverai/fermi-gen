@@ -509,6 +509,22 @@ class ApiService {
       rethrow;
     }
   }
+
+  /// Get user's survival streak stats (current and best).
+  Future<Map<String, dynamic>> survivalGetStreakStats() async {
+    try {
+      final resp = await _authGet('/survival/streak');
+      if (resp.statusCode == 200) {
+        return jsonDecode(resp.body) as Map<String, dynamic>;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to get survival streak stats: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
 
 // Moved to utils/env.dart

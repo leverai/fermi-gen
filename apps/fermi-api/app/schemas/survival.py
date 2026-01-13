@@ -1,12 +1,11 @@
 """Pydantic schemas for Survival Mode endpoints."""
 
-from typing import TypedDict
-
 from fermi_core.schemas.units import UnitInfo
 from fermi_core.units import Locale
 from fermi_db.models.game import VoteVerdict
 from fermi_db.schemas import AnswerBare, QuestionCategory, QuestionDifficulty
 from pydantic import BaseModel
+from typing_extensions import TypedDict
 
 
 class SurvivalQuestionData(BaseModel):
