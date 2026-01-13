@@ -47,6 +47,40 @@ class GamesTab extends StatelessWidget {
     );
   }
 
+  Widget _buildSurvivalFreeTierInfo(BuildContext context, AppTheme appTheme) {
+    final controller = context.watch<MainScreenController>();
+    final userLimits = controller.userLimitsDto;
+
+    // Don't show anything for Pro users or if limits aren't loaded
+    if (userLimits == null || userLimits.isSurvivalUnlimited) {
+      return const SizedBox.shrink();
+    }
+
+    final bool canPlay = userLimits.canPlaySurvival;
+    final int remaining = userLimits.survivalRunsRemaining;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          canPlay ? Icons.info_outline : Icons.lock_outline,
+          size: 14,
+          color: appTheme.bg.withAlpha(canPlay ? 200 : 150),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          canPlay ? '$remaining free runs left today' : 'Daily limit reached',
+          style: AppFont.primaryTextStyle(
+            context,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: appTheme.bg.withAlpha(canPlay ? 200 : 150),
+          ),
+        ),
+      ],
+    );
+  }
+
   const GamesTab({
     super.key,
     this.displayName,
@@ -81,12 +115,12 @@ class GamesTab extends StatelessWidget {
                   children: [
                     const SizedBox(height: 24),
                     _buildWelcomeMessage(context, appTheme),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 48),
                     const DailyQuestionCarousel(),
                     const SizedBox(height: 24),
-                    _buildPartyCard(context, appTheme),
-                    const SizedBox(height: 16),
                     _buildSurvivalCard(context, appTheme),
+                    const SizedBox(height: 24),
+                    _buildPartyCard(context, appTheme),
                   ],
                 ),
               ),
@@ -262,7 +296,7 @@ class GamesTab extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Answer questions until you fail.',
+                        'Beat the Average. Play until you loose.',
                         style: AppFont.primaryTextStyle(
                           context,
                           fontSize: 14,
@@ -282,8 +316,9 @@ class GamesTab extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                _buildSurvivalFreeTierInfo(context, appTheme),
                 Text(
                   'Tap to play',
                   style: AppFont.primaryTextStyle(

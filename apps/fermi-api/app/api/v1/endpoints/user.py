@@ -1,6 +1,6 @@
 """User endpoints."""
 
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from fastapi import APIRouter, Depends, Request, status
 from fermi_db.models.user import User
@@ -13,6 +13,7 @@ from app.api.v1.authenticated_user import AuthenticatedUser
 from app.api.v1.dependencies import (
     get_game_service,
     get_party_hosting_repository,
+    get_survival_run_repository,
     get_user_service,
 )
 from app.schemas.endpoints import (
@@ -22,6 +23,9 @@ from app.schemas.endpoints import (
 )
 from app.services.game.service import GameService
 from app.services.user import UserService
+
+if TYPE_CHECKING:
+    from fermi_db.repositories.survival_run_repository import SurvivalRunRepository
 
 router = APIRouter()
 
@@ -120,17 +124,24 @@ async def get_user_limits(
         PartyHostingRepository,
         Depends(get_party_hosting_repository),
     ],
+    survival_run_repo: Annotated[
+        'SurvivalRunRepository',
+        Depends(get_survival_run_repository),
+    ],
 ) -> UserLimitsResponse:
     """Get user-specific limits based on subscription tier.
 
     This returns dynamic data that changes with user actions (e.g., party
-    game hosting count). Should be fetched after actions that affect limits.
+    game hosting count, survival run count). Should be fetched after actions
+    that affect limits.
     """
     span = trace.get_current_span()
     span.set_attribute(api_attrs.ACTION, get_user_limits.__qualname__)
     limits = await game_service.get_user_limits(
         user_id=auth_user.id,
+        user_firebase_uid=auth_user.firebase_uid,
         hosting_repo=hosting_repo,
+        survival_run_repo=survival_run_repo,
         is_pro=auth_user.is_pro,
     )
     return UserLimitsResponse(limits=limits)

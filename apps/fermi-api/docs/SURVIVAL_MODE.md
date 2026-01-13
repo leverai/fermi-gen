@@ -84,3 +84,25 @@ Use existing question endpoints:
 | Next Question | Bundled in answer response | Separate request |
 | History Update | Batch at game end | Per question (sync) |
 | Answer Storage | `answer_events` | `answer_events` (shared) |
+
+## Feature Gating
+
+### Free Tier Limits
+
+- **Runs Per Day**: 2 runs per calendar day (UTC midnight reset)
+- Limit checked only when **creating new runs**, not resuming
+- Pro users have unlimited runs
+
+### Backend Enforcement
+
+- `SurvivalRunRepository.get_runs_remaining_today()` counts today's runs
+- `SurvivalService.create_or_resume_run()` checks limit before creating new runs
+- Returns `403 Forbidden` with `"Daily survival run limit reached"` if exceeded
+- `GET /user/limits` returns `survival_runs_remaining` field (-1 for Pro users)
+
+### Frontend Enforcement
+
+- `PreSurvivalScreen` fetches limits and checks `canPlaySurvival`
+- Shows "Get Unlimited" button → opens paywall when limit reached
+- Resuming an active run bypasses the limit check
+- `GamesTab` Survival card shows "N free runs left today" for free users

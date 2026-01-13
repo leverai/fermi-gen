@@ -142,6 +142,9 @@ class UserLimits(BaseModel):
     party_hostings_remaining: int
     """Number of party hostings remaining this week. -1 for unlimited (Pro users)."""
 
+    survival_runs_remaining: int
+    """Number of survival runs remaining today. -1 for unlimited (Pro users)."""
+
 
 class UserLimitsResponse(BaseModel):
     """Response model for getting user-specific limits."""

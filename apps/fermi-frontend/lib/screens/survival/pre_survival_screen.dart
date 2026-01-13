@@ -3,7 +3,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/services/api_service.dart';
+import 'package:fermi_frontend/services/auth_service.dart';
+import 'package:fermi_frontend/services/subscription_service.dart';
 import 'package:fermi_frontend/models/survival_models.dart';
+import 'package:fermi_frontend/models/user_limits.dart';
+import 'package:fermi_frontend/screens/paywall_screen.dart';
 import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -12,6 +16,7 @@ import 'package:fermi_frontend/theme/app_font.dart';
 /// Pre-Survival screen shown before starting or resuming a survival run.
 ///
 /// Displays the user's current streak and provides a button to proceed.
+/// Free users are limited to 2 runs per day.
 class PreSurvivalScreen extends StatefulWidget {
   const PreSurvivalScreen({super.key});
 
@@ -23,14 +28,16 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
   bool _isLoading = true;
   String? _error;
   StreakInfo? _streakInfo;
+  UserLimits? _userLimits;
+  bool _isReturning = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchStreaks();
+    _fetchData();
   }
 
-  Future<void> _fetchStreaks() async {
+  Future<void> _fetchData() async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -38,10 +45,15 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
 
     try {
       final apiService = context.read<ApiService>();
-      final result = await apiService.survivalGetStreakStats();
+      // Fetch streaks and limits in parallel
+      final results = await Future.wait([
+        apiService.survivalGetStreakStats(),
+        apiService.getUserLimitsTyped(),
+      ]);
       if (mounted) {
         setState(() {
-          _streakInfo = StreakInfo.fromJson(result);
+          _streakInfo = StreakInfo.fromJson(results[0] as Map<String, dynamic>);
+          _userLimits = results[1] as UserLimits;
           _isLoading = false;
         });
       }
@@ -55,12 +67,23 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
     }
   }
 
-  void _handleStart() {
+  Future<void> _handleStart() async {
     final currentStreak = _streakInfo?.currentStreak ?? 0;
     final bestStreak = _streakInfo?.bestStreak ?? 0;
-    context.pushReplacement(
+
+    if (mounted) {
+      setState(() {
+        _isReturning = true;
+      });
+    }
+
+    await context.push(
       '/survival?currentStreak=$currentStreak&bestStreak=$bestStreak',
     );
+
+    if (mounted) {
+      _handleLeave();
+    }
   }
 
   void _handleLeave() {
@@ -71,16 +94,45 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
     }
   }
 
+  void _showPaywall() {
+    final authService = context.read<AuthService>();
+    final isAnonymous = authService.isAnonymous;
+
+    Navigator.of(context)
+        .push(
+      MaterialPageRoute(
+        builder: (_) => PaywallScreen(
+          subscriptionService:
+              Provider.of<SubscriptionService>(context, listen: false),
+          isAnonymous: isAnonymous,
+          onAuthRequired: isAnonymous
+              ? () {
+                  // Navigate to auth flow if anonymous
+                  context.go('/welcome');
+                }
+              : null,
+        ),
+      ),
+    )
+        .then((purchased) {
+      if (purchased == true) {
+        // Refresh limits after purchase
+        _fetchData();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    if (_isLoading) {
+    if (_isLoading || _isReturning) {
       return ResponsiveContainer(
         backgroundColor: appTheme.bg,
-        child: const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
+        child: Scaffold(
+          backgroundColor: appTheme.bg,
+          body: const Center(child: CircularProgressIndicator()),
         ),
       );
     }
@@ -97,7 +149,7 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
                     style: TextStyle(color: appTheme.danger)),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: _fetchStreaks,
+                  onPressed: _fetchData,
                   child: const Text('Try Again'),
                 ),
                 TextButton(
@@ -114,6 +166,10 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
     final streak = _streakInfo?.currentStreak ?? 0;
     final bestStreak = _streakInfo?.bestStreak ?? 0;
     final bool isResume = streak > 0;
+
+    // Check if user can play (has runs remaining or is resuming)
+    // Resuming an existing run doesn't count against the limit
+    final bool canPlay = isResume || (_userLimits?.canPlaySurvival ?? true);
 
     return ResponsiveContainer(
       backgroundColor: appTheme.bg,
@@ -226,10 +282,13 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
                           SizedBox(
                             width: 200,
                             child: MainButton(
-                              onPressed: _handleStart,
-                              label: isResume
-                                  ? MainButtonLabel.resume
-                                  : MainButtonLabel.start,
+                              onPressed: canPlay ? _handleStart : _showPaywall,
+                              label: canPlay
+                                  ? (isResume
+                                      ? MainButtonLabel.resume
+                                      : MainButtonLabel.start)
+                                  : null,
+                              customLabel: canPlay ? null : 'Get Unlimited',
                             ),
                           ),
                           const SizedBox(height: 40),

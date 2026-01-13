@@ -7,7 +7,8 @@ from fermi_db.models.user import User
 from opentelemetry import trace
 
 import app.logging.attributes as api_attrs
-from app.api.v1.auth_deps import get_current_user
+from app.api.v1.auth_deps import get_authenticated_user, get_current_user
+from app.api.v1.authenticated_user import AuthenticatedUser
 from app.api.v1.dependencies import get_survival_service
 from app.schemas.survival import (
     CreateOrResumeRequest,
@@ -26,12 +27,14 @@ router = APIRouter()
 async def start_survival_run(
     payload: CreateOrResumeRequest,
     current_user: Annotated[User, Depends(get_current_user)],
+    auth_user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
     survival_service: Annotated[SurvivalService, Depends(get_survival_service)],
 ) -> SurvivalQuestionResponse:
-    """Start a new survival run.
+    """Start a new survival run or resume an existing one.
 
-    If the user has an active run, it is ended first.
-    Returns the first question with a 40-second timer.
+    If the user has an active run, it resumes that run.
+    Returns the next question with a 40-second timer.
+    Free users are limited to 2 runs per day.
     """
     span = trace.get_current_span()
     span.set_attribute(api_attrs.ACTION, start_survival_run.__qualname__)
@@ -40,6 +43,7 @@ async def start_survival_run(
     response = await survival_service.create_or_resume_run(
         user_firebase_uid=current_user.firebase_uid,
         run_id=payload.run_id,
+        is_pro=auth_user.is_pro,
     )
 
     return response

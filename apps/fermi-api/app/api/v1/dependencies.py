@@ -22,6 +22,8 @@ from app.services.subscription import SubscriptionService
 from app.services.user import UserService
 
 if TYPE_CHECKING:
+    from fermi_db.repositories.survival_run_repository import SurvivalRunRepository
+
     from app.services.survival import SurvivalService
 
 logger = logging.getLogger(__name__)
@@ -89,6 +91,15 @@ def get_party_hosting_repository(
 ) -> PartyHostingRepository:
     """Get an instance of the PartyHostingRepository."""
     return PartyHostingRepository(session)
+
+
+def get_survival_run_repository(
+    session: AsyncSession = Depends(get_session),  # noqa: B008
+) -> 'SurvivalRunRepository':
+    """Get an instance of the SurvivalRunRepository."""
+    from fermi_db.repositories.survival_run_repository import SurvivalRunRepository
+
+    return SurvivalRunRepository(session)
 
 
 def get_subscription_service(
