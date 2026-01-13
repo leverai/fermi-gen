@@ -251,7 +251,16 @@ class SurvivalScreenController extends ChangeNotifier {
       );
       _answerResponse = SurvivalAnswerResponse.fromJson(json);
       _isSubmitted = true;
-      _currentStreak = _answerResponse!.totalQuestions;
+
+      // Update streak from runSummary if available (backend's source of truth)
+      // Otherwise fallback to manual increment if passed
+      if (_answerResponse!.runSummary != null) {
+        _currentStreak = _answerResponse!.runSummary!.questionsAnswered;
+      } else if (_answerResponse!.passed) {
+        _currentStreak = _answerResponse!.totalQuestions;
+      } else {
+        _currentStreak = _answerResponse!.totalQuestions - 1;
+      }
 
       // Update best streak if current is higher
       if (_currentStreak > _bestStreak) {
