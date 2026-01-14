@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
+import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/survival_models.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/widgets/unit_tape.dart';
@@ -13,12 +14,14 @@ class SurvivalScreenController extends ChangeNotifier {
   final String userLocale;
   final int initialCurrentStreak;
   final int initialBestStreak;
+  final GameConfig? gameConfig;
 
   SurvivalScreenController({
     required this.apiService,
     required this.userLocale,
     this.initialCurrentStreak = 0,
     this.initialBestStreak = 0,
+    this.gameConfig,
   });
 
   // --- State ---
@@ -86,6 +89,26 @@ class SurvivalScreenController extends ChangeNotifier {
   Map<String, String> _unitAbbreviationToId = {};
 
   final UnitTapeController unitTapeController = UnitTapeController();
+
+  /// Get category display slug from backend name.
+  String? getCategorySlug() {
+    final name = _currentQuestion?.category;
+    if (name == null || name.isEmpty) return null;
+    final config = gameConfig;
+    if (config == null) return name;
+    final match = config.categories.where((c) => c.name == name).firstOrNull;
+    return match?.slug ?? name;
+  }
+
+  /// Get difficulty display slug from backend name.
+  String? getDifficultySlug() {
+    final name = _currentQuestion?.difficulty;
+    if (name == null || name.isEmpty) return null;
+    final config = gameConfig;
+    if (config == null) return name;
+    final match = config.difficulties.where((d) => d.name == name).firstOrNull;
+    return match?.slug ?? name;
+  }
 
   // Confetti trigger
   bool _showConfetti = false;

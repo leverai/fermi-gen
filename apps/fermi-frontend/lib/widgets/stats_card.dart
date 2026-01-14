@@ -139,7 +139,7 @@ class _RankItem extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         SizedBox(
-          width: 28,
+          width: 40,
           height: 40,
           child: SvgPicture.network(
             rank.picture,

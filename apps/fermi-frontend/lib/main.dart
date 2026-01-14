@@ -333,6 +333,7 @@ class _MyAppState extends State<MyApp> {
       providers: [
         Provider<AuthService>.value(value: _authService),
         Provider<ApiService>.value(value: _apiService),
+        Provider<PreloadService>.value(value: _preloadService),
         Provider<SubscriptionService>.value(value: _subscriptionService),
         ChangeNotifierProvider.value(value: _subscriptionProvider),
         ChangeNotifierProvider.value(value: _dailyQuestionController),

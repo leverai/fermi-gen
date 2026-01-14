@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:fermi_frontend/screens/survival/survival_screen_controller.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
+import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/question_answer_card.dart';
@@ -36,12 +37,14 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
     super.initState();
     final apiService = context.read<ApiService>();
     final authService = context.read<AuthService>();
+    final preloadService = context.read<PreloadService>();
 
     _controller = SurvivalScreenController(
       apiService: apiService,
       userLocale: authService.locale ?? 'US',
       initialCurrentStreak: widget.initialCurrentStreak,
       initialBestStreak: widget.initialBestStreak,
+      gameConfig: preloadService.cachedConfig,
     );
     _controller.addListener(_onControllerChanged);
     _controller.attach();
@@ -332,8 +335,10 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
     return QuestionAnswerCard(
       questionText: question.text,
       tags: [
-        if (question.category != null) question.category!,
-        if (question.difficulty != null) question.difficulty!,
+        if (_controller.getCategorySlug() != null)
+          _controller.getCategorySlug()!,
+        if (_controller.getDifficultySlug() != null)
+          _controller.getDifficultySlug()!,
       ],
       currentAnswer: _controller.userAnswer,
       submittedAnswer: isSubmitted ? _controller.userAnswer : null,
