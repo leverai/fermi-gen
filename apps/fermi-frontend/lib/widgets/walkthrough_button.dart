@@ -60,7 +60,7 @@ class _WalkthroughButtonState extends State<WalkthroughButton>
           height: widget.size,
           child: Icon(Icons.help_outline,
               size: widget.size,
-              color: _hasTapped ? _appTheme.border : _appTheme.warning),
+              color: _hasTapped ? _appTheme.border : _appTheme.primary),
         ),
       ),
     );

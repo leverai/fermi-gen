@@ -23,10 +23,13 @@ class AppTheme extends ThemeExtension<AppTheme> {
   final Color borderMuted;
 
   // Brand colors
+  // Brand colors
   final Color primary;
   final Color primaryMuted;
   final Color secondary;
   final Color secondaryMuted;
+  final Color survival;
+  final Color survivalMuted;
 
   // Semantic colors
   final Color danger;
@@ -57,6 +60,8 @@ class AppTheme extends ThemeExtension<AppTheme> {
     required this.primaryMuted,
     required this.secondary,
     required this.secondaryMuted,
+    required this.survival,
+    required this.survivalMuted,
     required this.danger,
     required this.warning,
     required this.success,
@@ -64,100 +69,104 @@ class AppTheme extends ThemeExtension<AppTheme> {
     required this.silver,
     required this.bronze,
     this.borderWidth = 1.0,
-    this.borderRadius = 12.0,
-    this.shadowOffset = const Offset(4, 4),
-    this.shadowColor = Colors.black,
+    this.borderRadius = 16.0, // Increased radius for softer look
+    this.shadowOffset =
+        const Offset(0, 4), // Soft drop shadow instead of brutalist offset
+    this.shadowColor = const Color(0x40000000), // Soft black shadow
   });
 
-  /// Default theme with Neubrutalism colors
+  /// Default theme with "Happy Dark" colors
   factory AppTheme.defaultTheme() {
     return AppTheme(
-      // Backgrounds
-      bgDark: const HSLColor.fromAHSL(1.0, 90, 0.01, 0.10).toColor(),
-      bg: const HSLColor.fromAHSL(1.0, 90, 0.01, 0.17).toColor(),
-      bgLight: const HSLColor.fromAHSL(1.0, 90, 0.01, 0.24).toColor(),
+      // Backgrounds - Cool Slate Dark
+      bgDark: const HSLColor.fromAHSL(1.0, 220, 0.20, 0.10).toColor(),
+      bg: const HSLColor.fromAHSL(1.0, 220, 0.20, 0.14).toColor(),
+      bgLight: const HSLColor.fromAHSL(1.0, 220, 0.20, 0.18).toColor(),
 
-      // Text
-      text: const HSLColor.fromAHSL(1.0, 40, 0.93, 0.97).toColor(),
-      textMuted: const HSLColor.fromAHSL(1.0, 30, 0.11, 0.6).toColor(),
+      // Text - Soft White & Cool Grey
+      text: const HSLColor.fromAHSL(1.0, 220, 0.20, 0.95).toColor(),
+      textMuted: const HSLColor.fromAHSL(1.0, 220, 0.15, 0.65).toColor(),
 
       // UI Elements
-      highlight: const HSLColor.fromAHSL(1.0, 144, 0.1, 0.82).toColor(),
-      border: const HSLColor.fromAHSL(1.0, 144, 0.05, 0.52).toColor(),
-      borderMuted: const HSLColor.fromAHSL(1.0, 144, 0.05, 0.32).toColor(),
+      highlight: const HSLColor.fromAHSL(1.0, 220, 0.20, 0.45).toColor(),
+      border: const HSLColor.fromAHSL(1.0, 220, 0.15, 0.4).toColor(),
+      borderMuted: const HSLColor.fromAHSL(1.0, 220, 0.15, 0.35).toColor(),
 
-      // Brand - Vibrant Purple
-      primary: const HSLColor.fromAHSL(1.0, 144, 0.21, 0.49).toColor(),
-      primaryMuted: const HSLColor.fromAHSL(1.0, 144, 0.21, 0.30).toColor(),
+      // Brand (Daily) - Soft Vibrant Indigo
+      primary: const HSLColor.fromAHSL(1.0, 250, 0.70, 0.65).toColor(),
+      primaryMuted: const HSLColor.fromAHSL(1.0, 250, 0.50, 0.25).toColor(),
 
-      // Secondary - Vibrant Teal
-      secondary: const HSLColor.fromAHSL(1.0, 4, .71, 0.62).toColor(),
-      secondaryMuted: const HSLColor.fromAHSL(1.0, 4, .71, 0.32).toColor(),
+      // Secondary (Party) - Soft Vibrant Pink
+      secondary: const HSLColor.fromAHSL(1.0, 330, 0.80, 0.65).toColor(),
+      secondaryMuted: const HSLColor.fromAHSL(1.0, 330, 0.60, 0.25).toColor(),
 
-      // Semantic
-      danger: const HSLColor.fromAHSL(1.0, 4, .71, 0.62).toColor(),
-      warning: const HSLColor.fromAHSL(1.0, 43, 1.0, 0.68).toColor(),
-      success: const HSLColor.fromAHSL(1.0, 144, 0.21, 0.49).toColor(),
-
-      // Rank Colors
-      gold: const HSLColor.fromAHSL(1.0, 48, 1.0, 0.50).toColor(),
-      silver: const HSLColor.fromAHSL(1.0, 210, 0.1, 0.75).toColor(),
-      bronze: const HSLColor.fromAHSL(1.0, 30, 0.7, 0.50).toColor(),
-
-      // Shadow
-      shadowColor: const HSLColor.fromAHSL(1.0, 90, 0.01, 0.10).toColor(),
-    );
-  }
-
-  /// Light theme with inverted colors
-  factory AppTheme.lightTheme() {
-    return AppTheme(
-      // Backgrounds (Swapped: bgLight becomes inverted bgDark, etc.)
-      // Old bgDark (0.10) inverted -> 0.90 -> becomes bgLight
-      // Old bgLight (0.24) inverted -> 0.76 -> becomes bgDark
-      bgLight: const HSLColor.fromAHSL(1.0, 90, 0.01, 0.90).toColor(),
-      bg: const HSLColor.fromAHSL(1.0, 90, 0.01, 0.83).toColor(),
-      bgDark: const HSLColor.fromAHSL(1.0, 90, 0.01, 0.76).toColor(),
-
-      // Text (Inverted)
-      text: const HSLColor.fromAHSL(1.0, 40, 0.93, 0.03).toColor(),
-      textMuted: const HSLColor.fromAHSL(1.0, 30, 0.11, 0.4).toColor(),
-
-      // UI Elements (Inverted)
-      highlight: const HSLColor.fromAHSL(1, 90, 0.01, 0.43).toColor(),
-      border: const HSLColor.fromAHSL(1, 90, 0.01, 0.53).toColor(),
-      borderMuted: const HSLColor.fromAHSL(1, 90, 0.01, 0.63).toColor(),
-
-      // Brand - Vibrant Purple (Kept same hue/sat, inverted lightness? Or kept same?)
-      // Usually brand colors are kept similar but adjusted for contrast.
-      // Let's invert lightness for now as per instruction "subtraction the L in HSL from 1".
-      primary:
-          const HSLColor.fromAHSL(1.0, 144, 0.21, 0.51).toColor(), // 1 - 0.49
-      primaryMuted:
-          const HSLColor.fromAHSL(1.0, 144, 0.21, 0.35).toColor(), // 1 - 0.30
-
-      // Secondary - Vibrant Teal
-      secondary: const HSLColor.fromAHSL(1.0, 354, .82, 0.66).toColor(),
-      secondaryMuted: const HSLColor.fromAHSL(1.0, 354, .82, 0.56).toColor(),
+      // Survival - Soft Vibrant Orange
+      survival: const HSLColor.fromAHSL(1.0, 30, 0.90, 0.60).toColor(),
+      survivalMuted: const HSLColor.fromAHSL(1.0, 30, 0.70, 0.25).toColor(),
 
       // Semantic
       danger:
-          const HSLColor.fromAHSL(1.0, 354, .82, 0.66).toColor(), // 1 - 0.62
+          const HSLColor.fromAHSL(1.0, 350, 0.80, 0.65).toColor(), // Soft Red
       warning:
-          const HSLColor.fromAHSL(1.0, 197, 0.34, 0.5).toColor(), // 1 - 0.70
+          const HSLColor.fromAHSL(1.0, 45, 0.90, 0.60).toColor(), // Soft Yellow
       success:
-          const HSLColor.fromAHSL(1.0, 144, 0.21, 0.51).toColor(), // 1 - 0.49
+          const HSLColor.fromAHSL(1.0, 150, 0.60, 0.55).toColor(), // Soft Green
 
-      // Rank Colors (Inverted)
-      gold: const HSLColor.fromAHSL(1.0, 48, 1.0, 0.50)
-          .toColor(), // 0.5 inverted is 0.5
-      silver:
-          const HSLColor.fromAHSL(1.0, 210, 0.1, 0.25).toColor(), // 1 - 0.75
-      bronze: const HSLColor.fromAHSL(1.0, 30, 0.7, 0.50)
-          .toColor(), // 0.5 inverted is 0.5
+      // Rank Colors
+      gold: const HSLColor.fromAHSL(1.0, 45, 0.90, 0.60).toColor(),
+      silver: const HSLColor.fromAHSL(1.0, 210, 0.20, 0.75).toColor(),
+      bronze: const HSLColor.fromAHSL(1.0, 30, 0.60, 0.50).toColor(),
 
-      // Shadow - Kept dark for depth
-      shadowColor: const HSLColor.fromAHSL(1.0, 90, 0.01, 0.10).toColor(),
+      // Shadow
+      shadowColor:
+          Basics.black.withOpacity(0.2), // Use simple opacity for soft shadows
+      shadowOffset: const Offset(0, 4),
+    );
+  }
+
+  /// Light theme with "Happy Light" colors
+  factory AppTheme.lightTheme() {
+    return AppTheme(
+      // Backgrounds - Warm Soft White
+      bgDark:
+          const HSLColor.fromAHSL(1.0, 40, 0.10, 0.80).toColor(), // Off-white
+      bg: const HSLColor.fromAHSL(1.0, 40, 0.10, 0.85).toColor(), // Near white
+      bgLight:
+          const HSLColor.fromAHSL(1.0, 0, 0.0, 0.90).toColor(), // Pure white
+
+      // Text - Dark Slate
+      text: const HSLColor.fromAHSL(1.0, 220, 0.30, 0.15).toColor(),
+      textMuted: const HSLColor.fromAHSL(1.0, 220, 0.15, 0.55).toColor(),
+
+      // UI Elements
+      highlight: const HSLColor.fromAHSL(1.0, 220, 0.20, 0.55).toColor(),
+      border: const HSLColor.fromAHSL(1.0, 220, 0.15, 0.65).toColor(),
+      borderMuted: const HSLColor.fromAHSL(1.0, 220, 0.10, 0.75).toColor(),
+
+      // Brand (Daily) - Deep Vibrant Indigo
+      primary: const HSLColor.fromAHSL(1.0, 250, 0.70, 0.55).toColor(),
+      primaryMuted: const HSLColor.fromAHSL(1.0, 250, 0.50, 0.3).toColor(),
+
+      // Secondary (Party) - Deep Vibrant Pink
+      secondary: const HSLColor.fromAHSL(1.0, 330, 0.80, 0.55).toColor(),
+      secondaryMuted: const HSLColor.fromAHSL(1.0, 330, 0.60, 0.3).toColor(),
+
+      // Survival - Deep Vibrant Orange
+      survival: const HSLColor.fromAHSL(1.0, 30, 0.90, 0.5).toColor(),
+      survivalMuted: const HSLColor.fromAHSL(1.0, 30, 0.70, 0.90).toColor(),
+
+      // Semantic
+      danger: const HSLColor.fromAHSL(1.0, 350, 0.80, 0.55).toColor(),
+      warning: const HSLColor.fromAHSL(1.0, 45, 0.90, 0.50).toColor(),
+      success: const HSLColor.fromAHSL(1.0, 150, 0.60, 0.45).toColor(),
+
+      // Rank Colors
+      gold: const HSLColor.fromAHSL(1.0, 45, 0.90, 0.55).toColor(),
+      silver: const HSLColor.fromAHSL(1.0, 210, 0.20, 0.60).toColor(),
+      bronze: const HSLColor.fromAHSL(1.0, 30, 0.60, 0.55).toColor(),
+
+      shadowColor: Basics.black.withOpacity(0.1),
+      shadowOffset: const Offset(0, 2),
     );
   }
 
@@ -175,6 +184,8 @@ class AppTheme extends ThemeExtension<AppTheme> {
     Color? primaryMuted,
     Color? secondary,
     Color? secondaryMuted,
+    Color? survival,
+    Color? survivalMuted,
     Color? danger,
     Color? warning,
     Color? success,
@@ -199,6 +210,8 @@ class AppTheme extends ThemeExtension<AppTheme> {
       primaryMuted: primaryMuted ?? this.primaryMuted,
       secondary: secondary ?? this.secondary,
       secondaryMuted: secondaryMuted ?? this.secondaryMuted,
+      survival: survival ?? this.survival,
+      survivalMuted: survivalMuted ?? this.survivalMuted,
       danger: danger ?? this.danger,
       warning: warning ?? this.warning,
       success: success ?? this.success,
@@ -230,6 +243,8 @@ class AppTheme extends ThemeExtension<AppTheme> {
       primaryMuted: Color.lerp(primaryMuted, other.primaryMuted, t)!,
       secondary: Color.lerp(secondary, other.secondary, t)!,
       secondaryMuted: Color.lerp(secondaryMuted, other.secondaryMuted, t)!,
+      survival: Color.lerp(survival, other.survival, t)!,
+      survivalMuted: Color.lerp(survivalMuted, other.survivalMuted, t)!,
       danger: Color.lerp(danger, other.danger, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       success: Color.lerp(success, other.success, t)!,
@@ -242,6 +257,10 @@ class AppTheme extends ThemeExtension<AppTheme> {
       shadowColor: Color.lerp(shadowColor, other.shadowColor, t)!,
     );
   }
+}
+
+class Basics {
+  static const Color black = Colors.black;
 }
 
 double? lerpDouble(double? a, double? b, double t) {

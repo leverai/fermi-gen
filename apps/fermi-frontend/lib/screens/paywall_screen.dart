@@ -640,7 +640,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     } else if (tier.full) {
       // Full access
       icon = Icons.check_circle_rounded;
-      color = appTheme.success;
+      color = appTheme.primary;
     } else {
       // Partial/limited access
       icon = Icons.do_disturb_on_rounded;
