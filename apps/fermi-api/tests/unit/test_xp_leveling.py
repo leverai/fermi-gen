@@ -53,6 +53,8 @@ def mock_user_repository() -> MagicMock:
     mock = MagicMock()
     mock.get_xp = AsyncMock(return_value=0)
     mock.increment_xp = AsyncMock()
+    mock.get_by_firebase_uid = AsyncMock(return_value=MagicMock())
+    mock.session.commit = AsyncMock()
     return mock
 
 

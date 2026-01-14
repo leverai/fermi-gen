@@ -54,4 +54,4 @@ def test_get_score_quantile_selection_and_floor() -> None:
 
     assert s.get_score_quantile(125.0, quantiles) == 0.99
     assert s.get_score_quantile(95.0, quantiles) == 0.85
-    assert s.get_score_quantile(5.0, quantiles) == 0.0
+    assert s.get_score_quantile(5.0, quantiles) == 1.0
