@@ -144,7 +144,7 @@ class AppTheme extends ThemeExtension<AppTheme> {
       danger:
           const HSLColor.fromAHSL(1.0, 354, .82, 0.66).toColor(), // 1 - 0.62
       warning:
-          const HSLColor.fromAHSL(1.0, 250, 0.17, 0.49).toColor(), // 1 - 0.70
+          const HSLColor.fromAHSL(1.0, 197, 0.34, 0.5).toColor(), // 1 - 0.70
       success:
           const HSLColor.fromAHSL(1.0, 144, 0.21, 0.51).toColor(), // 1 - 0.49
 

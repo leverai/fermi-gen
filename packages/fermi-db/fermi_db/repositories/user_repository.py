@@ -105,7 +105,7 @@ class UserRepository(BaseRepository):
         """Update a user's info at login: Firebase claims, login streak, updated_at."""
         # Email: update when provided
         user = await self._update_firebase_claims(user, firebase_claims)
-        user = await self._update_login_streak(user)
+        user = self._update_login_streak(user)
         user.updated_at = utcnow_naive()
         self.session.add(user)
         await self.session.commit()
@@ -161,7 +161,7 @@ class UserRepository(BaseRepository):
         await self.session.refresh(user)
         return user
 
-    async def _update_login_streak(self, user: User) -> User:
+    def _update_login_streak(self, user: User) -> User:
         """Update the user's login streak based on last login at.
 
         Rules:
