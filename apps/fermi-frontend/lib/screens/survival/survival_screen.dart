@@ -7,8 +7,9 @@ import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
-import 'package:fermi_frontend/widgets/question_answer_card.dart';
-import 'package:fermi_frontend/widgets/main_button.dart';
+import 'package:fermi_frontend/screens/question_v2/widgets/game_card.dart';
+import 'package:fermi_frontend/screens/question_v2/models/question_pane_state.dart';
+import 'package:fermi_frontend/widgets/animated_like_dislike.dart';
 import 'package:fermi_frontend/widgets/leave_button.dart';
 import 'package:fermi_frontend/widgets/styled_dialog.dart';
 import 'package:fermi_frontend/widgets/responsive_container.dart';
@@ -302,6 +303,18 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
     );
   }
 
+  /// Convert backend vote int (-1, 0, 1) to VoteState enum.
+  VoteState _mapVoteVerdict(int vote) {
+    switch (vote) {
+      case 1:
+        return VoteState.upvoted;
+      case -1:
+        return VoteState.downvoted;
+      default:
+        return VoteState.none;
+    }
+  }
+
   Widget _buildQuestionCard(BuildContext context, AppTheme appTheme) {
     final question = _controller.currentQuestion!;
     final isSubmitted = _controller.isSubmitted;
@@ -314,25 +327,25 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
           answerResponse.passed ? appTheme.success : appTheme.danger;
     }
 
-    // Build button
-    final Widget buttonWidget;
+    // Percentile calculation
+    final double? rawPercentile =
+        isSubmitted ? answerResponse?.percentile : null;
+    final int? percentileValue = rawPercentile?.round();
+    final bool showPercentile =
+        isSubmitted && percentileValue != null && percentileValue > 0;
+
+    // Determine paneState for button
+    final QuestionPaneState paneState;
     if (!isSubmitted) {
-      buttonWidget = MainButton(
-        onPressed: _handleSubmit,
-        label: MainButtonLabel.submit,
-      );
-    } else if (answerResponse != null) {
-      buttonWidget = MainButton(
-        onPressed: _handleNext,
-        label: answerResponse.passed
-            ? MainButtonLabel.next
-            : MainButtonLabel.finish,
-      );
+      paneState = QuestionPaneState.started;
     } else {
-      buttonWidget = const SizedBox.shrink();
+      paneState = QuestionPaneState.finished;
     }
 
-    return QuestionAnswerCard(
+    // If passed, show Next; if failed, show Finish (isLast=true triggers Finish label)
+    final bool isLast = isSubmitted && !(answerResponse?.passed ?? true);
+
+    return GameCard(
       questionText: question.text,
       tags: [
         if (_controller.getCategorySlug() != null)
@@ -352,8 +365,27 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
           isSubmitted ? answerResponse?.convertedCorrectAnswer : null,
       revealedColor: revealedColor,
       unitTapeController: _controller.unitTapeController,
-      buttonWidget: buttonWidget,
+      // Feedback (like widget) visibility
+      showFeedback: isSubmitted,
+      // Vote state and callbacks
+      initialLikes: question.upvotes,
+      initialVoteState: _mapVoteVerdict(question.userVote),
+      onUpvote: _controller.onUpvote,
+      onDeUpvote: _controller.onDeUpvote,
+      onDownvote: _controller.onDownvote,
+      onDeDownvote: _controller.onDeDownvote,
+      // Percentile
+      percentile: percentileValue ?? 0,
+      showPercentile: showPercentile,
+      // AI overview
       paragraph: isSubmitted ? answerResponse?.aiOverview : null,
+      // Button props (using paneState for GameCard's internal button)
+      paneState: paneState,
+      isLast: isLast,
+      isHost: true, // Survival mode: player is always in control
+      isCurrentQuestion: true, // Single question at a time
+      onSubmit: _handleSubmit,
+      onNext: _handleNext,
     );
   }
 }
