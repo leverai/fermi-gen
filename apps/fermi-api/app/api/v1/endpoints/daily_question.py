@@ -16,6 +16,7 @@ from app.api.v1.authenticated_user import AuthenticatedUser
 from app.api.v1.dependencies import (
     get_daily_question_service,
     get_firestore_client,
+    get_user_service,
     verify_scheduler_secret,
 )
 from app.api.v1.rate_limit import DQ_START_RATE_LIMIT, limiter
@@ -30,6 +31,7 @@ from app.services.daily_question.schemas import (
     DQSubmitResponse,
 )
 from app.services.daily_question.service import DailyQuestionService
+from app.services.user import UserService
 
 router = APIRouter()
 
@@ -65,6 +67,7 @@ async def submit_answer(
     current_user: Annotated[User, Depends(get_current_user)],
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> DQSubmitResponse:
     """Submit an answer for the daily question.
 
@@ -79,6 +82,7 @@ async def submit_answer(
         user_firebase_uid=current_user.firebase_uid,
         answer=payload.answer,
         firestore_client=firestore_client,
+        user_service=user_service,
     )
 
     return result

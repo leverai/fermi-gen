@@ -112,7 +112,11 @@ class UserService:
         """
         xp_increment = int(score // 100)
         if xp_increment > 0:
+            user = await self._user_repository.get_by_firebase_uid(firebase_uid)
+            if user is None:
+                raise ValueError(f'User with firebase_uid {firebase_uid} not found')
             await self._user_repository.increment_xp(firebase_uid, xp_increment)
+            await self._user_repository.session.commit()
         return xp_increment
 
     async def get_xp_level(self, firebase_uid: str) -> dict[str, int]:

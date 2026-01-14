@@ -54,6 +54,8 @@ if TYPE_CHECKING:
     from fermi_db import DatabaseClient
     from google.cloud.firestore_v1 import AsyncClient
 
+    from app.services.user import UserService
+
 logger = logging.getLogger(__name__)
 
 
@@ -208,6 +210,7 @@ class DailyQuestionService:
         user_firebase_uid: str,
         answer: AnswerBare,
         firestore_client: 'AsyncClient',
+        user_service: 'UserService',
     ) -> DQSubmitResponse:
         """Submit an answer for the daily question.
 
@@ -215,6 +218,7 @@ class DailyQuestionService:
             user_firebase_uid: The user's Firebase UID.
             answer: The user's answer.
             firestore_client: Firestore client.
+            user_service: User service.
 
         Returns:
             Submit response with score.
@@ -282,9 +286,7 @@ class DailyQuestionService:
         score = self._scoring.calculate_score(answer, correct_answer)
 
         # Increment XP based on score (xp_increment = score // 100)
-        xp_increment = int(score // 100)
-        if xp_increment > 0:
-            await self._db.users.increment_xp(user_firebase_uid, xp_increment)
+        await user_service.increment_xp_by_score(user_firebase_uid, score)
 
         # Store answer in database
         await self._db.dq_answers.submit_answer(
