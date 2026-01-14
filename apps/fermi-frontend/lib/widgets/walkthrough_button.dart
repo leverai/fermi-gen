@@ -1,5 +1,5 @@
+import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 
 /// A button that displays a light bulb Lottie animation for answer walkthroughs.
 ///
@@ -46,8 +46,7 @@ class _WalkthroughButtonState extends State<WalkthroughButton>
     widget.onTap();
   }
 
-  /// Determines if the animation should loop.
-  bool get _shouldAnimate => !widget.hasBeenViewed && !_hasTapped;
+  AppTheme get _appTheme => Theme.of(context).extension<AppTheme>()!;
 
   @override
   Widget build(BuildContext context) {
@@ -59,20 +58,9 @@ class _WalkthroughButtonState extends State<WalkthroughButton>
         child: SizedBox(
           width: widget.size,
           height: widget.size,
-          child: Lottie.asset(
-            'assets/lotties/thinking.json',
-            controller: _controller,
-            onLoaded: (composition) {
-              _controller.duration = composition.duration;
-              if (_shouldAnimate) {
-                _controller.repeat();
-              } else {
-                // Show static first frame
-                _controller.value = 0.0;
-              }
-            },
-            fit: BoxFit.fitHeight,
-          ),
+          child: Icon(Icons.help_outline,
+              size: widget.size,
+              color: _hasTapped ? _appTheme.border : _appTheme.warning),
         ),
       ),
     );
