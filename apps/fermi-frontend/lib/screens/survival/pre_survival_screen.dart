@@ -267,7 +267,7 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
                                       context,
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
-                                      color: appTheme.warning,
+                                      color: appTheme.survival,
                                     ),
                                   ),
                                 ],
