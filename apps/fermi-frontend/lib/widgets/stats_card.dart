@@ -57,6 +57,10 @@ class StatsCard extends StatelessWidget {
                     label: 'Daily Guesses',
                     value: stats.totalDailyGuesses.toString(),
                   ),
+                  _StatItem(
+                    label: 'Survivals',
+                    value: stats.totalSurvivalRuns.toString(),
+                  ),
                   _RankItem(
                     label: 'Rank',
                     rank: stats.rank,

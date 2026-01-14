@@ -44,6 +44,7 @@ class RankInfo {
 class PlayerStats {
   final int totalPartyGames;
   final int totalDailyGuesses;
+  final int totalSurvivalRuns;
   final int averagePercentile;
   final RankInfo rank;
   final int level;
@@ -51,6 +52,7 @@ class PlayerStats {
   const PlayerStats({
     required this.totalPartyGames,
     required this.totalDailyGuesses,
+    required this.totalSurvivalRuns,
     required this.averagePercentile,
     required this.rank,
     required this.level,
@@ -60,6 +62,7 @@ class PlayerStats {
     return PlayerStats(
       totalPartyGames: json['total_party_games'] as int? ?? 0,
       totalDailyGuesses: json['total_daily_guesses'] as int? ?? 0,
+      totalSurvivalRuns: json['total_survival_runs'] as int? ?? 0,
       averagePercentile: json['average_percentile'] as int? ?? 0,
       rank:
           RankInfo.fromJson(json['rank'] as Map<String, dynamic>? ?? const {}),

@@ -83,6 +83,7 @@ void main() {
         stats: PlayerStats(
           totalPartyGames: 10,
           totalDailyGuesses: 5,
+          totalSurvivalRuns: 0,
           averagePercentile: 75,
           level: 1,
           rank: RankInfo(
