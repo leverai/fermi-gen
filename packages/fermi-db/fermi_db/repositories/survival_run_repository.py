@@ -1,9 +1,10 @@
 """Repository for survival run operations."""
 
 import datetime
+from typing import cast
 
 from fermi_core.utils import utcnow_naive
-from sqlmodel import select, update
+from sqlmodel import func, select, update
 
 from fermi_db.models import SurvivalRun
 
@@ -105,10 +106,10 @@ class SurvivalRunRepository(BaseRepository):
         # 1. Perform the update (fast, no returning)
         stmt = (
             update(SurvivalRun)
-            .where(SurvivalRun.id == run_id)
+            .where(SurvivalRun.id == run_id)  # type: ignore
             .values(current_question_uid=question_uid, current_deadline=deadline)
         )
-        result = await self.session.exec(stmt)
+        result = await self.session.exec(stmt)  # type: ignore
 
         if result.rowcount == 0:
             raise ValueError(f'Survival run {run_id} not found')
@@ -117,7 +118,7 @@ class SurvivalRunRepository(BaseRepository):
 
         # 2. Fetch the fresh object (standard select)
         # This ensures you have a true ORM instance
-        return await self.get_run_by_id(run_id)
+        return cast(SurvivalRun, await self.get_run_by_id(run_id))
 
     async def get_user_best_run(self, user_firebase_uid: str) -> SurvivalRun | None:
         """Get the user's best run by questions_answered."""
@@ -247,3 +248,11 @@ class SurvivalRunRepository(BaseRepository):
         """
         now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
         return now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    async def count_user_survival_runs(self, user_firebase_uid: str) -> int:
+        """Count survival runs for a user."""
+        stmt = select(func.count(SurvivalRun.id)).where(  # type: ignore
+            SurvivalRun.user_firebase_uid == user_firebase_uid,
+        )  # type: ignore
+        result = await self.session.exec(stmt)
+        return result.one() or 0

@@ -222,6 +222,9 @@ class GameAnalyticsGateway:
             'total_daily_guesses': await self._db_client.dq_answers.count_user_answers(
                 player_id,
             ),
+            'total_survival_runs': await self._db_client.survival_runs.count_user_survival_runs(  # noqa: E501
+                player_id,
+            ),
             'average_percentile': avg_pct,
             'xp': xp,
             'level': level,

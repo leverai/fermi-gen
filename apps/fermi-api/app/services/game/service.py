@@ -466,6 +466,7 @@ class GameService:
                 total_party_games=raw_stats['total_party_games'],
                 total_daily_guesses=raw_stats['total_daily_guesses'],
                 average_percentile=raw_stats['average_percentile'],
+                total_survival_runs=raw_stats['total_survival_runs'],
                 rank=rank,
                 xp=raw_stats['xp'],
                 level=raw_stats['level'],

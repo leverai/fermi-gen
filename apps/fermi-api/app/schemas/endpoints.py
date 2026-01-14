@@ -116,6 +116,9 @@ class PlayerStats(BaseModel):
     total_daily_guesses: int
     """Total daily questions answered."""
 
+    total_survival_runs: int
+    """Total survival runs."""
+
     average_percentile: int
     """Average percentile (0-100)."""
 
