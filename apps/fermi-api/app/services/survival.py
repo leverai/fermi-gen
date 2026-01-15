@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, cast
 from fermi_core.units import convert_answer_to_user_unit, get_unit_family
 from fermi_core.utils import utcnow_naive
 from fermi_db.models import AnswerEvent, Fermi
-from fermi_db.schemas import AnswerBare, QuestionCategory, QuestionDifficulty
+from fermi_db.schemas import AnswerBare, GameMode, QuestionCategory, QuestionDifficulty
 from opentelemetry import trace
 
 import app.logging.attributes as attrs
@@ -223,6 +223,7 @@ class SurvivalService:
             correct_answer=correct_answer,
             score_number=score,
             score_quantile=quantile,
+            game_mode=GameMode.SURVIVAL,
         )
         await self._db.answers.add_answers([answer_event])
         await self._db.users_history.add_questions_to_users_history(

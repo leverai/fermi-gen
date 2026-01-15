@@ -6,6 +6,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 
 from fermi_db.models import AnswerEvent, AnswersQuantiles
+from fermi_db.schemas import GameMode
 
 from . import BaseRepository
 
@@ -74,11 +75,12 @@ class AnswerRepository(BaseRepository):
             firebase_uid: The user's Firebase UID.
 
         Returns:
-            The count of distinct game_id values for this user.
+            The count of distinct game_id values for Party mode games.
 
         """
         stmt = select(func.count(func.distinct(AnswerEvent.game_id))).where(
             AnswerEvent.user_firebase_id == firebase_uid,  # pyright: ignore[reportArgumentType]
+            AnswerEvent.game_mode == GameMode.PARTY,
         )
         result = await self.session.execute(stmt)
         count = result.scalar()

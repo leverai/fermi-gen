@@ -11,6 +11,7 @@ from sqlmodel import Field, SQLModel
 
 from fermi_db.schemas import (
     AnswerBare,
+    GameMode,
     QuestionCategory,
     QuestionDifficulty,
     QuestionStatus,
@@ -116,6 +117,7 @@ class AnswerEvent(SQLModel, table=True):
     correct_answer: AnswerBare = Field(sa_column=sa.Column(sa.JSON))
     score_number: float
     score_quantile: float
+    game_mode: GameMode | None = Field(default=None, index=True)
     created_at: datetime.datetime = Field(
         default_factory=utcnow_naive,
         sa_column=sa.Column(sa.TIMESTAMP(timezone=False)),

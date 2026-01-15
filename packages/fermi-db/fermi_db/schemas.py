@@ -94,3 +94,14 @@ class Locale(StrEnum):
 
     US = 'US'
     EU = 'EU'
+
+
+class GameMode(StrEnum):
+    """Game mode for answer events.
+
+    Used to distinguish which game mode an answer event belongs to.
+    """
+
+    PARTY = 'PARTY'
+    SURVIVAL = 'SURVIVAL'
+    DAILY_QUESTION = 'DAILY_QUESTION'  # Reserved for future use

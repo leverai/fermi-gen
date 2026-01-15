@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, cast
 from fermi_core.units import get_unit_family
 from fermi_db.models import AnswerEvent
 from fermi_db.models.game import VoteVerdict
-from fermi_db.schemas import QuestionCategory
+from fermi_db.schemas import GameMode, QuestionCategory
 
 from app.schemas.game import (
     AnswerDoc,
@@ -145,6 +145,7 @@ class GameAnalyticsGateway:
                         correct_answer=player_result['correct_answer'],
                         score_number=player_result['score']['number'],
                         score_quantile=player_result['score']['quantile'],
+                        game_mode=GameMode.PARTY,
                     ),
                 )
         return answer_events
