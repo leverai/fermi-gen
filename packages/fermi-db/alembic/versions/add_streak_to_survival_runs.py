@@ -16,7 +16,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = 'add_streak_to_survival_runs'
-down_revision: str | Sequence[str] | None = 'add_xp_column'
+down_revision: str | Sequence[str] | None = 'add_game_mode_to_answer_events'
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
