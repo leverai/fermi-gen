@@ -340,9 +340,9 @@ class SurvivalRunRepository(BaseRepository):
                 FROM best_runs
             )
             SELECT r.rank, r.user_firebase_uid, u.display_name, u.picture,
-                   r.streak, r.is_completed
+                    r.streak, r.is_completed
             FROM ranked r
-            JOIN users u ON u.firebase_uid = r.user_firebase_uid
+            JOIN "user" u ON u.firebase_uid = r.user_firebase_uid
             WHERE r.user_firebase_uid = :user_firebase_uid
         """)
         result = await self.session.execute(
