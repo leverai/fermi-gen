@@ -5,6 +5,7 @@ import 'package:fermi_frontend/models/avatar_info.dart';
 import 'package:http/http.dart' as http;
 import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/player_stats.dart';
+import 'package:fermi_frontend/models/survival_models.dart';
 import 'package:fermi_frontend/models/user_limits.dart';
 import 'package:fermi_frontend/utils/env.dart';
 import 'package:fermi_frontend/utils/om_constants.dart';
@@ -503,6 +504,27 @@ class ApiService {
       }
       final error = _extractErrorMessage(resp);
       throw Exception('Failed to get survival streak stats: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get survival mode leaderboard.
+  Future<LeaderboardResponse> survivalGetLeaderboard({
+    int page = 1,
+    int pageSize = 25,
+  }) async {
+    try {
+      final resp = await _authGet(
+          '/survival/leaderboard?page=$page&page_size=$pageSize');
+      if (resp.statusCode == 200) {
+        return LeaderboardResponse.fromJson(
+            jsonDecode(resp.body) as Map<String, dynamic>);
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to get leaderboard: $error');
     } on http.ClientException catch (_) {
       throw Exception('Network error: Please check your connection.');
     } catch (e) {

@@ -209,3 +209,65 @@ AnswerValue _parseAnswerValue(dynamic json) {
   // and has the correct order of magnitude (K, M, B, T).
   return decomposeNumber(numValue.toDouble(), unit);
 }
+
+/// A single entry on the survival leaderboard.
+class LeaderboardEntry {
+  final int rank;
+  final String? displayName;
+  final String? picture;
+  final int bestStreak;
+  final bool isCompleted;
+
+  const LeaderboardEntry({
+    required this.rank,
+    this.displayName,
+    this.picture,
+    required this.bestStreak,
+    required this.isCompleted,
+  });
+
+  factory LeaderboardEntry.fromJson(Map<String, dynamic> json) {
+    return LeaderboardEntry(
+      rank: json['rank'] as int,
+      displayName: json['display_name'] as String?,
+      picture: json['picture'] as String?,
+      bestStreak: json['best_streak'] as int,
+      isCompleted: json['is_completed'] as bool,
+    );
+  }
+}
+
+/// Paginated response for the survival leaderboard.
+class LeaderboardResponse {
+  final List<LeaderboardEntry> entries;
+  final LeaderboardEntry? currentUser;
+  final int totalCount;
+  final int page;
+  final int pageSize;
+  final int totalPages;
+
+  const LeaderboardResponse({
+    required this.entries,
+    this.currentUser,
+    required this.totalCount,
+    required this.page,
+    required this.pageSize,
+    required this.totalPages,
+  });
+
+  factory LeaderboardResponse.fromJson(Map<String, dynamic> json) {
+    return LeaderboardResponse(
+      entries: (json['entries'] as List)
+          .map((e) => LeaderboardEntry.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      currentUser: json['current_user'] != null
+          ? LeaderboardEntry.fromJson(
+              json['current_user'] as Map<String, dynamic>)
+          : null,
+      totalCount: json['total_count'] as int,
+      page: json['page'] as int,
+      pageSize: json['page_size'] as int,
+      totalPages: json['total_pages'] as int,
+    );
+  }
+}
