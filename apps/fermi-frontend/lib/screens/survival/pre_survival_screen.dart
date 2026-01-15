@@ -234,11 +234,11 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'How long can you beat the average player for?\nBuild your streak.',
+                            'Beat the Average Player.\nReady?',
                             textAlign: TextAlign.center,
                             style: AppFont.primaryTextStyle(
                               context,
-                              fontSize: 14,
+                              fontSize: 20,
                               fontWeight: FontWeight.w400,
                               color: appTheme.textMuted,
                               height: 1.4,
