@@ -10,6 +10,7 @@ import 'package:fermi_frontend/models/user_limits.dart';
 import 'package:fermi_frontend/screens/paywall_screen.dart';
 import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
+import 'package:fermi_frontend/widgets/avatar_widget.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 
@@ -587,15 +588,12 @@ class _SurvivalLeaderboardTabState extends State<_SurvivalLeaderboardTab> {
                       child: _buildRankBadge(appTheme, entry.rank),
                     ),
                     const SizedBox(width: 12),
-                    CircleAvatar(
-                      radius: 20,
+                    AvatarWidget(
+                      imageUrl: entry.picture,
+                      size: 40,
                       backgroundColor: appTheme.bgLight,
-                      backgroundImage: entry.picture != null
-                          ? NetworkImage(entry.picture!)
-                          : null,
-                      child: entry.picture == null
-                          ? Icon(Icons.person, color: appTheme.text, size: 20)
-                          : null,
+                      placeholder:
+                          Icon(Icons.person, color: appTheme.text, size: 20),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -661,15 +659,12 @@ class _SurvivalLeaderboardTabState extends State<_SurvivalLeaderboardTab> {
                   child: _buildRankBadge(appTheme, _currentUser!.rank),
                 ),
                 const SizedBox(width: 12),
-                CircleAvatar(
-                  radius: 20,
+                AvatarWidget(
+                  imageUrl: _currentUser!.picture,
+                  size: 40,
                   backgroundColor: appTheme.bgLight,
-                  backgroundImage: _currentUser!.picture != null
-                      ? NetworkImage(_currentUser!.picture!)
-                      : null,
-                  child: _currentUser!.picture == null
-                      ? Icon(Icons.person, color: appTheme.text, size: 20)
-                      : null,
+                  placeholder:
+                      Icon(Icons.person, color: appTheme.text, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
