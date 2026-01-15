@@ -6,7 +6,6 @@ documents, and archives game results. It is designed to be a pure adapter and
 has no knowledge of Firestore or HTTP semantics.
 """
 
-import asyncio
 import uuid
 from typing import TYPE_CHECKING, cast
 
@@ -59,11 +58,10 @@ class GameAnalyticsGateway:
         )
 
         # 2. Get quantiles
-        quantiles_tasks = [
-            self._db_client.answers.get_question_quantiles(question.uid)
+        quantiles = [
+            await self._db_client.answers.get_question_quantiles(question.uid)
             for question in questions
         ]
-        quantiles = await asyncio.gather(*quantiles_tasks)
 
         # 3. Create docs
         questions_docs: list[QuestionDoc] = []

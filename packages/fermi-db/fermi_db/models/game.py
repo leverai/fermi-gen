@@ -141,6 +141,25 @@ class AnswersQuantiles(SQLModel):
     p95: float = 0.0
     p99: float = 0.0
 
+    @staticmethod
+    def easy(question_uid: uuid.UUID) -> 'AnswersQuantiles':
+        """Return easy quantiles for cold-start protection (linear 1-1000)."""
+        return AnswersQuantiles(
+            question_uid=question_uid,
+            p01=10.0,
+            p05=50.0,
+            p10=100.0,
+            p25=250.0,
+            p50=500.0,
+            p60=600.0,
+            p75=750.0,
+            p80=800.0,
+            p85=850.0,
+            p90=900.0,
+            p95=950.0,
+            p99=990.0,
+        )
+
 
 class VoteVerdict(IntEnum):
     """Verdict of a user's vote on a question.

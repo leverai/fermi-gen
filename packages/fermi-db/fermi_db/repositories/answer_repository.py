@@ -10,6 +10,11 @@ from fermi_db.schemas import GameMode
 
 from . import BaseRepository
 
+# Minimum sample size before trusting real quantiles.
+# Below this threshold, linear quantiles (0→1000) are returned to prevent
+# cold-start volatility where early accurate players skew the distribution.
+MIN_QUANTILE_SAMPLE_SIZE = 20
+
 
 class AnswerRepository(BaseRepository):
     """Handles database operations related to answers."""
@@ -26,11 +31,16 @@ class AnswerRepository(BaseRepository):
         self,
         question_uid: UUID,
     ) -> AnswersQuantiles:
-        """Compute score quantiles live from answer_events for a question."""
+        """Compute score quantiles live from answer_events for a question.
+
+        Returns linear quantiles (0→1000) when sample count is below
+        MIN_QUANTILE_SAMPLE_SIZE to prevent cold-start volatility.
+        """
         score_col = cast(Any, AnswerEvent.score_number)
         question_col = cast(Any, AnswerEvent.question_uid)
 
         cols = [
+            func.count(score_col).label('cnt'),
             func.percentile_cont(0.01).within_group(score_col.asc()).label('p01'),
             func.percentile_cont(0.05).within_group(score_col.asc()).label('p05'),
             func.percentile_cont(0.10).within_group(score_col.asc()).label('p10'),
@@ -52,20 +62,27 @@ class AnswerRepository(BaseRepository):
             return AnswersQuantiles(question_uid=question_uid)
 
         m = row._mapping
+        sample_count = m['cnt'] or 0
+        sample_count = int(sample_count)
+
+        # Return linear quantiles for cold-start protection
+        if sample_count < MIN_QUANTILE_SAMPLE_SIZE:
+            return AnswersQuantiles.easy(question_uid)
+
         return AnswersQuantiles(
             question_uid=question_uid,
-            p01=float(m['p01']) if m['p01'] is not None else 0.0,
-            p05=float(m['p05']) if m['p05'] is not None else 0.0,
-            p10=float(m['p10']) if m['p10'] is not None else 0.0,
-            p25=float(m['p25']) if m['p25'] is not None else 0.0,
-            p50=float(m['p50']) if m['p50'] is not None else 0.0,
-            p60=float(m['p60']) if m['p60'] is not None else 0.0,
-            p75=float(m['p75']) if m['p75'] is not None else 0.0,
-            p80=float(m['p80']) if m['p80'] is not None else 0.0,
-            p85=float(m['p85']) if m['p85'] is not None else 0.0,
-            p90=float(m['p90']) if m['p90'] is not None else 0.0,
-            p95=float(m['p95']) if m['p95'] is not None else 0.0,
-            p99=float(m['p99']) if m['p99'] is not None else 0.0,
+            p01=m['p01'] or 0.0,
+            p05=m['p05'] or 0.0,
+            p10=m['p10'] or 0.0,
+            p25=m['p25'] or 0.0,
+            p50=m['p50'] or 0.0,
+            p60=m['p60'] or 0.0,
+            p75=m['p75'] or 0.0,
+            p80=m['p80'] or 0.0,
+            p85=m['p85'] or 0.0,
+            p90=m['p90'] or 0.0,
+            p95=m['p95'] or 0.0,
+            p99=m['p99'] or 0.0,
         )
 
     async def count_user_party_games(self, firebase_uid: str) -> int:
@@ -126,7 +143,7 @@ class AnswerRepository(BaseRepository):
         )
         result = await self.session.execute(stmt)
         percentile = result.scalar()
-        return int(percentile) if percentile is not None else 0
+        return int(percentile) if percentile is not None else 100
 
     async def get_user_answer_events(
         self,
