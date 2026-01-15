@@ -13,6 +13,8 @@ from opentelemetry import trace
 
 import app.logging.attributes as attrs
 from app.schemas.survival import (
+    LeaderboardEntry,
+    LeaderboardResponse,
     StreakInfo,
     SurvivalAnswerResponse,
     SurvivalQuestionData,
@@ -301,6 +303,56 @@ class SurvivalService:
         return StreakInfo(
             best_streak=best_streak,
             current_streak=current_streak,
+        )
+
+    async def get_leaderboard(
+        self,
+        user_firebase_uid: str,
+        page: int = 1,
+        page_size: int = 25,
+    ) -> LeaderboardResponse:
+        """Get paginated global streak leaderboard with current user's entry."""
+        offset = (page - 1) * page_size
+
+        # Fetch leaderboard entries and total count
+        entries = await self._db.survival_runs.get_leaderboard(
+            limit=page_size,
+            offset=offset,
+        )
+        total_count = await self._db.survival_runs.get_leaderboard_total_count()
+        total_pages = (total_count + page_size - 1) // page_size
+
+        # Get current user's entry (may not be in current page)
+        user_entry = await self._db.survival_runs.get_user_leaderboard_entry(
+            user_firebase_uid=user_firebase_uid,
+        )
+
+        return LeaderboardResponse(
+            entries=[
+                LeaderboardEntry(
+                    rank=e['rank'],
+                    user_firebase_uid=e['user_firebase_uid'],
+                    display_name=e['display_name'],
+                    picture=e['picture'],
+                    best_streak=e['streak'],
+                    is_completed=e['is_completed'],
+                )
+                for e in entries
+            ],
+            current_user=LeaderboardEntry(
+                rank=user_entry['rank'],
+                user_firebase_uid=user_entry['user_firebase_uid'],
+                display_name=user_entry['display_name'],
+                picture=user_entry['picture'],
+                best_streak=user_entry['streak'],
+                is_completed=user_entry['is_completed'],
+            )
+            if user_entry
+            else None,
+            total_count=total_count,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
         )
 
     async def _get_random_question(self, user_firebase_uid: str) -> Fermi:

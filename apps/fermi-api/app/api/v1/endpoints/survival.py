@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fermi_db.models.user import User
 from opentelemetry import trace
 
@@ -12,6 +12,7 @@ from app.api.v1.authenticated_user import AuthenticatedUser
 from app.api.v1.dependencies import get_survival_service
 from app.schemas.survival import (
     CreateOrResumeRequest,
+    LeaderboardResponse,
     StreakInfo,
     SurvivalAnswerRequest,
     SurvivalAnswerResponse,
@@ -101,4 +102,27 @@ async def get_survival_streak(
 
     return await survival_service.get_streak_stats(
         user_firebase_uid=current_user.firebase_uid,
+    )
+
+
+@router.get('/leaderboard', response_model=LeaderboardResponse)
+async def get_survival_leaderboard(
+    current_user: Annotated[User, Depends(get_current_user)],
+    survival_service: Annotated[SurvivalService, Depends(get_survival_service)],
+    page: int = Query(1, ge=1, description='Page number (1-indexed)'),
+    page_size: int = Query(25, ge=1, le=100, description='Items per page'),
+) -> LeaderboardResponse:
+    """Get global survival streak leaderboard.
+
+    Returns paginated list of players sorted by best streak (descending).
+    Includes current user's rank regardless of their position in the page.
+    """
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, get_survival_leaderboard.__qualname__)
+    span.set_attribute(api_attrs.QUERY_PARAMS, f'page={page}&page_size={page_size}')
+
+    return await survival_service.get_leaderboard(
+        user_firebase_uid=current_user.firebase_uid,
+        page=page,
+        page_size=page_size,
     )
