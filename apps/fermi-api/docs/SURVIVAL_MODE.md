@@ -24,6 +24,7 @@ Single-player mode where players answer timed questions until they fail.
 | `current_question_uid` | str | Current question (required, indexed) |
 | `current_deadline` | datetime | Answer deadline (nullable) |
 | `is_completed` | bool | True if run ended |
+| `streak` | int | Computed streak for leaderboard (indexed) |
 
 ### Unified Data Storage
 
@@ -43,6 +44,7 @@ This ensures:
 | `/survival/answer` | POST | Submit answer, get pass/fail result |
 | `/survival/stats` | GET | Get user's survival statistics |
 | `/survival/streak` | GET | Get user's streak stats (current and best streak) |
+| `/survival/leaderboard` | GET | Get global streak leaderboard (paginated) |
 
 ### Voting
 Use existing question endpoints:

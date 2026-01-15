@@ -789,7 +789,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Come back later for results.',
+          'Come back for results later.',
           style: AppFont.secondaryTextStyle(
             context,
             color: appTheme.textMuted,

@@ -81,3 +81,24 @@ class StreakInfo(TypedDict):
 
     best_streak: int
     current_streak: int
+
+
+class LeaderboardEntry(BaseModel):
+    """Single entry in the survival leaderboard."""
+
+    rank: int
+    display_name: str | None
+    picture: str | None
+    best_streak: int
+    is_completed: bool  # Whether their best run has ended
+
+
+class LeaderboardResponse(BaseModel):
+    """Paginated leaderboard response."""
+
+    entries: list[LeaderboardEntry]
+    current_user: LeaderboardEntry | None  # Always included if user has played
+    total_count: int
+    page: int
+    page_size: int
+    total_pages: int

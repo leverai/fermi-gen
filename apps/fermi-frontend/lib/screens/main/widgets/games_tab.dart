@@ -296,7 +296,7 @@ class GamesTab extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Beat the average player. Play\nuntil you loose.',
+                        'Beat the average player. How\nlong can you survive for?',
                         style: AppFont.primaryTextStyle(
                           context,
                           fontSize: 14,

@@ -4,11 +4,24 @@ import datetime
 from typing import cast
 
 from fermi_core.utils import utcnow_naive
+from sqlalchemy import text
 from sqlmodel import func, select, update
+from typing_extensions import TypedDict
 
 from fermi_db.models import SurvivalRun
 
 from . import BaseRepository
+
+
+class LeaderboardRow(TypedDict):
+    """Single row in the survival leaderboard."""
+
+    rank: int
+    user_firebase_uid: str
+    display_name: str | None
+    picture: str | None
+    streak: int
+    is_completed: bool
 
 
 class SurvivalRunRepository(BaseRepository):
@@ -89,6 +102,8 @@ class SurvivalRunRepository(BaseRepository):
             raise ValueError(f'Survival run {run_id} not found')
         run.questions_answered += 1
         run.total_score += score
+        # Update streak: current questions if passed, minus 1 if failed
+        run.streak = run.questions_answered if passed else run.questions_answered - 1
         if not passed:
             run.is_completed = True
             run.ended_at = utcnow_naive()
@@ -256,3 +271,98 @@ class SurvivalRunRepository(BaseRepository):
         )  # type: ignore
         result = await self.session.exec(stmt)
         return result.one() or 0
+
+    # ---- Leaderboard Methods ----
+
+    async def get_leaderboard(
+        self,
+        limit: int = 25,
+        offset: int = 0,
+    ) -> list[LeaderboardRow]:
+        """Get paginated global leaderboard of best streaks per user.
+
+        Uses dense ranking (ties share the same rank).
+        Active runs are shown before completed runs at the same streak.
+        """
+        query = text("""
+            WITH best_runs AS (
+                SELECT DISTINCT ON (user_firebase_uid)
+                    user_firebase_uid, streak, is_completed
+                FROM survival_runs
+                ORDER BY user_firebase_uid, streak DESC, is_completed ASC
+            ),
+            ranked AS (
+                SELECT
+                    user_firebase_uid, streak, is_completed,
+                    DENSE_RANK() OVER (ORDER BY streak DESC) as rank
+                FROM best_runs
+            )
+            SELECT r.rank, r.user_firebase_uid, u.display_name, u.picture,
+                   r.streak, r.is_completed
+            FROM ranked r
+            JOIN users u ON u.firebase_uid = r.user_firebase_uid
+            ORDER BY r.rank, r.is_completed ASC, r.user_firebase_uid
+            LIMIT :limit OFFSET :offset
+        """)
+        result = await self.session.execute(
+            query,
+            {'limit': limit, 'offset': offset},
+        )
+        rows = result.fetchall()
+        return [
+            LeaderboardRow(
+                rank=row.rank,
+                user_firebase_uid=row.user_firebase_uid,
+                display_name=row.display_name,
+                picture=row.picture,
+                streak=row.streak,
+                is_completed=row.is_completed,
+            )
+            for row in rows
+        ]
+
+    async def get_user_leaderboard_entry(
+        self,
+        user_firebase_uid: str,
+    ) -> LeaderboardRow | None:
+        """Get a specific user's leaderboard entry with rank."""
+        query = text("""
+            WITH best_runs AS (
+                SELECT DISTINCT ON (user_firebase_uid)
+                    user_firebase_uid, streak, is_completed
+                FROM survival_runs
+                ORDER BY user_firebase_uid, streak DESC, is_completed ASC
+            ),
+            ranked AS (
+                SELECT
+                    user_firebase_uid, streak, is_completed,
+                    DENSE_RANK() OVER (ORDER BY streak DESC) as rank
+                FROM best_runs
+            )
+            SELECT r.rank, r.user_firebase_uid, u.display_name, u.picture,
+                   r.streak, r.is_completed
+            FROM ranked r
+            JOIN users u ON u.firebase_uid = r.user_firebase_uid
+            WHERE r.user_firebase_uid = :user_firebase_uid
+        """)
+        result = await self.session.execute(
+            query,
+            {'user_firebase_uid': user_firebase_uid},
+        )
+        row = result.fetchone()
+        if row is None:
+            return None
+        return LeaderboardRow(
+            rank=row.rank,
+            user_firebase_uid=row.user_firebase_uid,
+            display_name=row.display_name,
+            picture=row.picture,
+            streak=row.streak,
+            is_completed=row.is_completed,
+        )
+
+    async def get_leaderboard_total_count(self) -> int:
+        """Get total number of users on the leaderboard (users with any run)."""
+        stmt = select(func.count(func.distinct(SurvivalRun.user_firebase_uid)))
+        result = await self.session.execute(stmt)
+        return result.scalar() or 0
