@@ -91,6 +91,8 @@ CREATE INDEX idx_user_history_question ON user_question_history(question_uid);
 User answer submissions and scores.
 
 ```sql
+CREATE TYPE gamemode AS ENUM ('PARTY', 'SURVIVAL', 'DAILY_QUESTION');
+
 CREATE TABLE answer_events (
     id SERIAL PRIMARY KEY,
     user_firebase_uid TEXT NOT NULL,
@@ -100,22 +102,25 @@ CREATE TABLE answer_events (
     score FLOAT NOT NULL,
     percentile FLOAT,
     game_id TEXT,
+    game_mode gamemode,
     answered_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX idx_answer_events_user ON answer_events(user_firebase_uid);
 CREATE INDEX idx_answer_events_question ON answer_events(question_uid);
 CREATE INDEX idx_answer_events_game ON answer_events(game_id);
+CREATE INDEX idx_answer_events_game_mode ON answer_events(game_mode);
 ```
 
 **Fields:**
 - `user_firebase_uid`: Firebase user ID
-- `question_uid`: Question UUID (references `fermi` materialized view)
+- `question_uid`: Question UUID (references `fermi` table)
 - `answer_number`: Player's numeric answer
 - `answer_unit`: Player's selected unit
 - `score`: Score for this answer (0-100)
 - `percentile`: Player's percentile rank for this question
 - `game_id`: Associated game ID (optional)
+- `game_mode`: Game mode (PARTY, SURVIVAL, DAILY_QUESTION). Nullable for historical records.
 - `answered_at`: Timestamp of submission
 
 #### `questions_votes`
