@@ -461,7 +461,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                       bottom: 12,
                       right: 12,
                       child: Material(
-                        color: Colors.transparent,
+                        color: appTheme.bgLight.withAlpha(140),
+                        borderRadius: BorderRadius.circular(1e3),
                         child: IconButton(
                           onPressed: _toggleSettings,
                           splashColor: Colors.transparent,

@@ -179,7 +179,7 @@ build-frontend-android-prod:
 	fvm flutter build appbundle \
 	  --release \
 	  --flavor prod \
-	  --dart-define=API_BASE_URL=https://fermi-api-prod-uc.a.run.app/api/v1 \
+	  --dart-define=API_BASE_URL=https://fermi-api-prod-811437731406.us-central1.run.app/api/v1 \
 	  --dart-define=USE_EMULATORS=false \
 	  --dart-define=SUPPRESS_TEST_LOGS=true \
 	  --dart-define=REVENUECAT_ANDROID_API_KEY=REVENUECAT_ANDROID_API_KEY_PLACEHOLDER

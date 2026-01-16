@@ -371,7 +371,7 @@ class _SurvivalPlayTab extends StatelessWidget {
 
             // Descriptive Footer
             Text(
-              'One mistake and it\'s over!',
+              'Join the leaderboard!',
               style: AppFont.primaryTextStyle(
                 context,
                 fontSize: 16,
@@ -381,7 +381,7 @@ class _SurvivalPlayTab extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '40 Seconds each • Precision counts',
+              '40 Seconds each • Resume anytime',
               style: AppFont.primaryTextStyle(
                 context,
                 fontSize: 14,
