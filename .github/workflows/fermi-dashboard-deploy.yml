@@ -76,8 +76,7 @@ jobs:
             ENVIRONMENT=${{ inputs.environment }}
           flags: |
             --service-account=fermi-api-runner@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
-            --add-cloudsql-instances=${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:${{ vars.CLOUD_SQL_INSTANCE_DEV }}
-            --add-cloudsql-instances=${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:${{ vars.CLOUD_SQL_INSTANCE_PROD }}
+            --add-cloudsql-instances=${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:fermi-db,${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:fermi-db-prod
             --port=8080
             --min-instances=0
             --max-instances=2
