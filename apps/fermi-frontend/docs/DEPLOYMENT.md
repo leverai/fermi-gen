@@ -27,6 +27,25 @@ The Fermi Game frontend is a Flutter application that can be built for multiple 
 - **Development**: Local emulators with Firebase emulators and local API
 - **Production**: Real Firebase services and production API endpoint
 
+### Build Flavors
+
+The app supports two build flavors for Android:
+
+- **Dev Flavor** (`tech.leverai.guesstimate.dev`):
+  - Used for internal testing via Firebase App Distribution
+  - Includes "DEV" banner on app icon
+  - App name: "Guesstimate Dev"
+  - Can coexist with prod flavor on the same device
+  - Connects to dev backend by default
+
+- **Prod Flavor** (`tech.leverai.guesstimate`):
+  - Used for Google Play Store releases
+  - Standard app icon without banner
+  - App name: "Guesstimate"
+  - Connects to production backend
+
+Both flavors have separate Firebase app configurations and can be installed simultaneously on the same device for testing.
+
 ---
 
 ## Prerequisites
@@ -82,15 +101,18 @@ The app uses `--dart-define` flags to configure runtime behavior. **All values m
 
 ### Firebase Configuration
 
-The app includes Firebase configuration files:
+The app uses flavor-specific Firebase configuration files:
 
-- **Android**: `android/app/google-services.json`
+- **Dev Flavor**: `android/app/src/dev/google-services.json`
+- **Prod Flavor**: `android/app/src/prod/google-services.json`
 - **iOS**: `ios/Runner/GoogleService-Info.plist` (if iOS support added)
 
 These files are **not** committed to the repository. Obtain them from Firebase Console:
 1. Go to Firebase Console → Project Settings
-2. Add Android app (if not exists)
-3. Download `google-services.json` and place in `android/app/`
+2. Add Android app for each flavor (if not exists):
+   - Dev: Package name `tech.leverai.guesstimate.dev`
+   - Prod: Package name `tech.leverai.guesstimate`
+3. Download each `google-services.json` and place in the appropriate flavor directory
 
 ---
 
@@ -216,42 +238,63 @@ The `DeepLinkService` recognizes `localhost` URLs and routes appropriately.
 
 ### Android
 
-#### Debug APK (Testing)
+The app uses build flavors for different deployment targets. Use the Makefile commands for simplified builds:
+
+#### Dev Flavor (Firebase App Distribution)
+
+Build a release APK for internal testing via Firebase App Distribution:
 
 ```bash
-cd apps/fermi-frontend
-fvm flutter build apk --debug \
-  --dart-define=USE_EMULATORS=false \
-  --dart-define=API_BASE_URL=https://your-production-api.com/api/v1
+# From workspace root
+make build-frontend-android-dev
 ```
 
-Output: `build/app/outputs/flutter-apk/app-debug.apk`
+Output: `build/app/outputs/flutter-apk/app-dev-release.apk`
 
-#### Release APK
-
+**Manual build:**
 ```bash
 cd apps/fermi-frontend
-fvm flutter build apk --release \
+fvm flutter build apk --release --flavor dev \
   --dart-define=USE_EMULATORS=false \
-  --dart-define=API_BASE_URL=https://your-production-api.com/api/v1
+  --dart-define=API_BASE_URL=https://fermi-api-bwuxx6eogq-uc.a.run.app/api/v1 \
+  --dart-define=SUPPRESS_TEST_LOGS=true \
+  --dart-define=REVENUECAT_ANDROID_API_KEY=REVENUECAT_ANDROID_API_KEY_PLACEHOLDER
 ```
 
-Output: `build/app/outputs/flutter-apk/app-release.apk`
+**Distributing via Firebase App Distribution:**
+```bash
+firebase appdistribution:distribute \
+  build/app/outputs/flutter-apk/app-dev-release.apk \
+  --app 1:811437731406:android:3e808c9261b17a9c3c1d1f \
+  --groups "internal-testers"
+```
 
-#### Release App Bundle (AAB)
+#### Prod Flavor (Google Play Store)
 
-For Google Play Store distribution:
+Build a release App Bundle for Google Play Store:
 
 ```bash
-cd apps/fermi-frontend
-fvm flutter build appbundle --release \
-  --dart-define=USE_EMULATORS=false \
-  --dart-define=API_BASE_URL=https://your-production-api.com/api/v1
+# From workspace root
+make build-frontend-android-prod
 ```
 
-Output: `build/app/outputs/bundle/release/app-release.aab`
+Output: `build/app/outputs/bundle/prodRelease/app-prod-release.aab`
 
-**Note**: App Bundle requires signing configuration in `android/app/build.gradle`.
+**Manual build:**
+```bash
+cd apps/fermi-frontend
+fvm flutter build appbundle --release --flavor prod \
+  --dart-define=USE_EMULATORS=false \
+  --dart-define=API_BASE_URL=https://fermi-api-prod-uc.a.run.app/api/v1 \
+  --dart-define=SUPPRESS_TEST_LOGS=true \
+  --dart-define=REVENUECAT_ANDROID_API_KEY=REVENUECAT_ANDROID_API_KEY_PLACEHOLDER
+```
+
+**Note**: Both flavors require signing configuration via environment variables:
+- `KEYSTORE_FILE`: Path to keystore file
+- `KEYSTORE_PASSWORD`: Keystore password
+- `KEY_ALIAS`: Key alias
+- `KEY_PASSWORD`: Key password
 
 ### iOS (macOS Only)
 

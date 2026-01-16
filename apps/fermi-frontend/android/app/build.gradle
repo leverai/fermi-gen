@@ -28,6 +28,21 @@ if (flutterVersionName == null) {
     compileSdk = 35
     ndkVersion = "27.0.12077973"
 
+    flavorDimensions = ["environment"]
+
+    productFlavors {
+        dev {
+            dimension = "environment"
+            applicationId = "tech.leverai.guesstimate.dev"
+            resValue "string", "app_name", "Guesstimate Dev"
+        }
+        prod {
+            dimension = "environment"
+            applicationId = "tech.leverai.guesstimate"
+            resValue "string", "app_name", "Guesstimate"
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
@@ -42,7 +57,6 @@ if (flutterVersionName == null) {
     }
 
     defaultConfig {
-        applicationId = "tech.leverai.guesstimate"
         minSdk = 23
         targetSdk = 35
         versionCode = flutterVersionCode.toInteger()

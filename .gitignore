@@ -24,6 +24,7 @@ __pycache__/
 *.jsonl
 *.json
 !apps/fermi-frontend/assets/**/*.json
+!apps/fermi-frontend/android/app/*.json
 .TODO
 gha-creds-*.json
 .prompts/
