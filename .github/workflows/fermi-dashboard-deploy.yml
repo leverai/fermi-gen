@@ -70,7 +70,7 @@ jobs:
           region: ${{ vars.GCP_REGION }}
           project_id: ${{ vars.GCP_PROJECT_ID }}
           secrets: |
-            DATABASE_URL_DEV=database-url-dev:latest
+            DATABASE_URL_DEV=database-url:latest
             DATABASE_URL_PROD=database-url-prod:latest
             AUTH_USERNAME=dashboard-auth-username:latest
             AUTH_PASSWORD=dashboard-auth-password:latest
