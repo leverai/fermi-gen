@@ -19,6 +19,8 @@ jobs:
   build-and-deploy:
     name: Build and Deploy Dashboard
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
     permissions:
       contents: read
       id-token: write
