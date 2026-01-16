@@ -191,6 +191,4 @@ jobs:
             --cpu=1
             --timeout=300s
             --concurrency=80
-            --network=default
-            --subnet=default
-            --vpc-egress=private-ranges-only
+            ${{ vars.VPC_FLAGS }}
