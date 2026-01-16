@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
@@ -34,7 +35,7 @@ void main() {
         players: players,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       // Verify PlayersRow is present (which contains PlayerWidgets)
@@ -58,8 +59,6 @@ void main() {
       await pumpLobbyScreen(
         tester,
         players: players,
-        isWaiting: true,
-        isPrivate: false,
         currentPlayerId: 'player_1',
       );
       // Use pump() instead of pumpAndSettle() to avoid infinite animation timeout
@@ -70,6 +69,11 @@ void main() {
       // LoadingAnimationWidget.fourRotatingDots is used, but we can't
       // easily test that without a key. Just verify no share button is shown.
       expect(find.byType(ShareButton), findsNothing);
+
+      // Clean up TextScroll timers before test ends
+      await tester.pumpWidget(const SizedBox());
+      await tester.binding.delayed(const Duration(seconds: 1));
+      await tester.pump();
     });
 
     testWidgets('should display start button for host when ready',
@@ -92,7 +96,7 @@ void main() {
         startEnabled: true,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       expect(find.byType(MainButton), findsOneWidget);
@@ -119,7 +123,7 @@ void main() {
         startEnabled: false,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       expect(find.byType(MainButton), findsOneWidget);
@@ -144,12 +148,11 @@ void main() {
       await pumpLobbyScreen(
         tester,
         players: players,
-        isPrivate: true,
         joinUrl: 'https://example.com/join/abc',
         onShare: () {},
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       expect(find.byType(ShareButton), findsOneWidget);
@@ -173,7 +176,7 @@ void main() {
         players: players,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       // LeaveButtonOverlay is present

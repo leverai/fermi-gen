@@ -6,12 +6,10 @@ class PrimaryCta extends StatelessWidget {
     super.key,
     required this.isLoading,
     required this.onPressed,
-    required this.isLocked,
   });
 
   final bool isLoading;
   final VoidCallback? onPressed;
-  final bool isLocked;
 
   @override
   Widget build(BuildContext context) {
@@ -19,8 +17,7 @@ class PrimaryCta extends StatelessWidget {
       child: MainButton(
         onPressed: isLoading ? null : onPressed,
         isLoading: isLoading,
-        label: isLocked ? MainButtonLabel.create : MainButtonLabel.join,
-        showSpacebarGlyph: true,
+        label: MainButtonLabel.create,
         iconAssetPath: 'assets/icons/spacebar.svg',
       ),
     );

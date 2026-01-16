@@ -10,7 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 class AppFont extends ThemeExtension<AppFont> {
   const AppFont({
     this.primaryFamily = 'Ubuntu',
-    this.secondaryFamily = 'Open Sans',
+    this.secondaryFamily = 'Ubuntu',
     this.useGoogleFonts = true,
   });
 
@@ -69,6 +69,7 @@ class AppFont extends ThemeExtension<AppFont> {
     final String fontFamily = ext?.primaryFamily ?? 'Barlow';
 
     if (useGoogle) {
+      final letterSpacing = fontSize == 12 ? 0.5 : null;
       return GoogleFonts.getFont(
         fontFamily,
         fontSize: fontSize,
@@ -76,6 +77,7 @@ class AppFont extends ThemeExtension<AppFont> {
         color: color,
         height: height,
         decoration: decoration,
+        letterSpacing: letterSpacing,
       );
     } else {
       return TextStyle(
@@ -104,6 +106,11 @@ class AppFont extends ThemeExtension<AppFont> {
     final String fontFamily = ext?.secondaryFamily ?? 'Jura';
 
     if (useGoogle) {
+      final letterSpacing = fontSize == 12
+          ? 0.5
+          : fontSize == 10
+              ? 1.0
+              : null;
       return GoogleFonts.getFont(
         fontFamily,
         fontSize: fontSize,
@@ -111,6 +118,7 @@ class AppFont extends ThemeExtension<AppFont> {
         color: color,
         height: height,
         decoration: decoration,
+        letterSpacing: letterSpacing,
       );
     } else {
       return TextStyle(

@@ -10,7 +10,6 @@ from fermi_db.models import RawQuestion
 from fermi_db.session import session_context
 from pydantic import BaseModel
 
-from app.config import ETLConfig
 from app.core.deduplication import insert_unique_pending_questions
 from app.core.seed_selection import select_seeds_lru, select_seeds_thompson
 from app.core.validation import validate_question
@@ -64,9 +63,12 @@ async def insert_llm_questions(
     num_seeds: int = 5,
     questions_per_seed: int = 20,
     mode: Literal['thompson', 'lru'] = 'thompson',
-    config: ETLConfig | None = None,
+    model: str = 'o3',
+    model_provider: str = 'openai',
+    temperature: float = 1.0,
+    similarity_threshold: float = 0.15,
 ) -> QuestionBatchResult:
-    """Generate questions from seeds using LLM.
+    """Generate questions from seeds using LLM and insert them into the database.
 
     Flow: seed selection → LLM generation → embedding → raw insertion → dedup
 
@@ -74,7 +76,10 @@ async def insert_llm_questions(
         num_seeds: Number of seeds to use for generation
         questions_per_seed: Number of questions to generate per seed
         mode: Seed selection mode ('thompson' or 'lru')
-        config: ETL configuration (if None, load from env)
+        model: LLM model for question generation
+        model_provider: Model provider (e.g., 'openai', 'ollama')
+        temperature: Temperature for generation
+        similarity_threshold: Similarity threshold for question deduplication
 
     Returns:
         QuestionBatchResult with statistics and new question IDs
@@ -83,11 +88,6 @@ async def insert_llm_questions(
         ValueError: If mode is invalid
 
     """
-    if config is None:
-        from app.config import get_config
-
-        config = get_config()
-
     if mode not in ['thompson', 'lru']:
         raise ValueError(f"Invalid mode '{mode}'. Must be 'thompson' or 'lru'")
 
@@ -130,7 +130,6 @@ async def insert_llm_questions(
         seeds = await db_client.seeds.get_seeds_light_by_ids(seed_ids)
         if not seeds:
             raise RuntimeError('Seed ids returned do not exist in the database')
-
         if len(seeds) < len(seed_ids):
             logger.error(
                 f'{len(seed_ids) - len(seeds)} seed ids returned do not exist in the '
@@ -142,14 +141,20 @@ async def insert_llm_questions(
         batches = await aask_batch(
             seeds=[seed.seed for seed in seeds],
             num_questions=questions_per_seed,
-            model=config.question_generation_model,
-            model_provider=config.question_generation_model_provider,
+            model=model,
+            model_provider=model_provider,
+            temperature=temperature,
+            service_tier='flex',  # TODO: Consider adding aask kwargs input
         )
 
         # Step 4: Process all responses and create raw questions
         logger.info('Processing generated questions and creating embeddings...')
         all_raw_questions = []
-        for seed, batch in zip(seeds, batches, strict=True):
+        for seed, batch in zip(
+            seeds,
+            batches,
+            strict=True,
+        ):
             # Check if this batch failed
             if isinstance(batch, BaseException):
                 logger.error(
@@ -173,12 +178,12 @@ async def insert_llm_questions(
             embeddings = await aget_embeddings_clean_3small([q.text for q in questions])
 
             # Create raw question records
+            source = _create_llm_source_metadata(
+                seed=seed.seed,
+                model=model,
+                model_provider=model_provider,
+            )
             for question, embedding in zip(questions, embeddings, strict=True):
-                source = _create_llm_source_metadata(
-                    seed=seed.seed,
-                    model=config.question_generation_model,
-                    model_provider=config.question_generation_model_provider,
-                )
                 raw_q = RawQuestion(
                     seed_id=seed.id,  # type: ignore
                     text=question.text,
@@ -199,7 +204,7 @@ async def insert_llm_questions(
         logger.info('Starting deduplication...')
         new_question_ids = await insert_unique_pending_questions(
             db_client,
-            threshold=config.question_similarity_threshold,
+            threshold=similarity_threshold,
         )
         total_yielded = len(new_question_ids)
 
@@ -232,14 +237,11 @@ async def insert_llm_questions(
             new_question_ids=new_question_ids,
         )
 
-    # Should never reach here due to async generator
-    raise RuntimeError('Failed to get database session')
-
 
 async def insert_literal_questions(
     question_texts: list[str],
     provider: Literal['human', 'other'],
-    config: ETLConfig | None = None,
+    similarity_threshold: float,
 ) -> QuestionBatchResult:
     """Insert user-provided question texts directly.
 
@@ -249,17 +251,12 @@ async def insert_literal_questions(
     Args:
         question_texts: List of question texts to insert
         provider: The provider of the literal questions ('human' or 'other')
-        config: ETL configuration (if None, load from env)
+        similarity_threshold: Similarity threshold for question deduplication
 
     Returns:
         QuestionBatchResult with statistics and new question IDs
 
     """
-    if config is None:
-        from app.config import get_config
-
-        config = get_config()
-
     logger.info(
         f'Starting literal question insertion for {len(question_texts)} questions...',
     )
@@ -272,16 +269,14 @@ async def insert_literal_questions(
         valid_questions = []
         for question_text in question_texts:
             preprocessed = question_text.strip()
-            is_valid, error_msg = validate_question(preprocessed)
-
-            if not is_valid:
+            try:
+                valid_questions.append(validate_question(preprocessed))
+            except AssertionError as exc:
                 logger.warning(
                     f'Question rejected (validation failed): "{question_text[:50]}..." '
-                    f'Reason: {error_msg}',
+                    f'Reason: {exc}',
                 )
                 continue
-
-            valid_questions.append(preprocessed)
 
         if not valid_questions:
             logger.warning('No valid questions to insert after validation')
@@ -323,7 +318,7 @@ async def insert_literal_questions(
         logger.info('Starting deduplication...')
         new_question_ids = await insert_unique_pending_questions(
             db_client,
-            threshold=config.question_similarity_threshold,
+            threshold=similarity_threshold,
         )
         total_yielded = len(new_question_ids)
 

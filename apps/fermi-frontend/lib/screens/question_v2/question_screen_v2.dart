@@ -1,10 +1,11 @@
+import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fermi_frontend/screens/question_v2/question_screen_v2_controller.dart';
 import 'package:fermi_frontend/screens/question_v2/widgets/game_carousel.dart';
 import 'package:fermi_frontend/screens/question_v2/widgets/game_card.dart';
-import 'package:fermi_frontend/screens/question_v2/widgets/quick_access_bar.dart';
+import 'package:fermi_frontend/screens/question_v2/models/question_pane_state.dart';
 import 'package:fermi_frontend/widgets/players_row.dart';
-import 'package:fermi_frontend/screens/question_v2/widgets/submit_bar.dart';
 import 'package:fermi_frontend/widgets/leave_button.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -13,12 +14,8 @@ import 'package:fermi_frontend/services/game_session.dart';
 import 'package:fermi_frontend/screens/question_v2/helpers/leave.dart'
     as leave_helper;
 import 'package:fermi_frontend/screens/question_v2/helpers/snack.dart' as snack;
-import 'package:fermi_frontend/screens/question_v2/models/question_state.dart';
+
 import 'package:fermi_frontend/models/answer_value.dart';
-import 'package:fermi_frontend/widgets/keyboard_height_provider.dart';
-import 'package:fermi_frontend/widgets/bottom_sheet_height_provider.dart';
-import 'package:fermi_frontend/widgets/simple_percentile_text.dart';
-import 'package:fermi_frontend/utils/logger.dart';
 import 'package:fermi_frontend/widgets/rank_confetti_overlay.dart';
 
 class QuestionScreenV2 extends StatefulWidget {
@@ -34,14 +31,11 @@ class QuestionScreenV2 extends StatefulWidget {
     // Tutorial keys for onboarding
     this.questionWidgetKey,
     this.likeWidgetKey,
-    this.digitsKey,
-    this.omKey,
-    this.allDigitsKey,
     this.unitKey,
-    this.dragIndicatorKey,
-    this.answerWidgetKey,
+    this.answerScaleKey,
     this.onControllerCreated,
     this.onFinish,
+    this.onBeforeShowDialog,
   });
 
   final String gameId;
@@ -54,16 +48,14 @@ class QuestionScreenV2 extends StatefulWidget {
   // Tutorial keys for onboarding
   final Key? questionWidgetKey;
   final Key? likeWidgetKey;
-  final Key? digitsKey;
-  final Key? omKey;
-  final Key? allDigitsKey;
   final Key? unitKey;
-  final Key? dragIndicatorKey;
-  final Key? answerWidgetKey;
+  final Key? answerScaleKey;
   // Callback to expose controller (for onboarding)
   final ValueChanged<QuestionScreenV2Controller>? onControllerCreated;
   // Optional callback for finish button (for onboarding)
   final VoidCallback? onFinish;
+  // Optional callback called before showing dialogs (e.g., to dismiss tutorial overlay)
+  final VoidCallback? onBeforeShowDialog;
 
   @override
   State<QuestionScreenV2> createState() => _QuestionScreenV2State();
@@ -71,8 +63,6 @@ class QuestionScreenV2 extends StatefulWidget {
 
 class _QuestionScreenV2State extends State<QuestionScreenV2> {
   late final QuestionScreenV2Controller _controller;
-  final ValueNotifier<double> _bottomSheetHeightNotifier =
-      ValueNotifier<double>(0.0);
 
   @override
   void initState() {
@@ -98,18 +88,22 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
   void dispose() {
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
-    _bottomSheetHeightNotifier.dispose();
     super.dispose();
   }
 
   Future<void> _handleLeave() async {
     if (_controller.isReviewMode) {
       if (mounted) {
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/main', (route) => false);
+        // Pop Navigator stack first, then use go_router
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        context.go('/main');
       }
       return;
     }
+
+    // Dismiss tutorial overlay if present (e.g., during onboarding)
+    // This allows the dialog to be interacted with
+    widget.onBeforeShowDialog?.call();
 
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
@@ -128,8 +122,9 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
           return;
         }
         if (mounted) {
-          Navigator.of(context)
-              .pushNamedAndRemoveUntil('/main', (route) => false);
+          // Pop Navigator stack first, then use go_router
+          Navigator.of(context).popUntil((route) => route.isFirst);
+          context.go('/main');
         }
       },
     );
@@ -153,8 +148,9 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
 
     if (_controller.isReviewMode) {
       if (mounted) {
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/main', (route) => false);
+        // Pop Navigator stack first, then use go_router
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        context.go('/main');
       }
       return;
     }
@@ -165,12 +161,9 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
   Widget build(BuildContext context) {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
-    final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    // Height is now fixed based on GameCard's intrinsic content height plus percentile.
+    // Height is now fixed based on GameCard's intrinsic content height.
     // See game_card.dart for the breakdown of this value.
-    const double carouselHeight = kGameCardTotalHeight +
-        kAnswerPercentileMaxHeight +
-        kAnswerPercentileSpacing;
+    const double carouselHeight = kGameCardTotalHeight;
 
     return PopScope(
       canPop: false,
@@ -178,208 +171,78 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
         if (didPop) return;
         _handleLeave();
       },
-      child: Builder(builder: (context) {
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [appTheme.bg, appTheme.bg, appTheme.bgDark],
-                  stops: const [0.0, 0.5, 1.0],
+      child: ResponsiveContainer(
+        backgroundColor: appTheme.bgDark,
+        child: Builder(builder: (context) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(
+                color: appTheme.bgDark,
+              ),
+              Padding(
+                padding: const EdgeInsets.only(
+                    top: 16, bottom: 72, left: 12, right: 12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Players row
+                    PlayersRow(
+                      players: _controller
+                          .getPlayersForIndex(_controller.currentIndex),
+                      controllerById: _controller.playerControllers,
+                      showScoreOverlay: true,
+                      animateScoreOverlay: true,
+                      showNameChip: true,
+                      showRankIcons: _controller.isReviewMode,
+                      currentPlayerId: widget.realtime.currentPlayerId,
+                      questionIndex: _controller.currentIndex,
+                      deadlineProgressTracker:
+                          _controller.deadlineProgressTracker,
+                      finalRanks: _controller.finalRanks,
+                    ),
+                    // Spacer to center carousel vertically in remaining space
+                    const Spacer(),
+                    // Game carousel (fixed height, not expanded)
+                    GameCarousel(
+                      itemCount: widget.questionCount,
+                      currentIndex: _controller.currentIndex,
+                      pageController: _controller.pageController,
+                      itemBuilder: (context, index, realIndex) {
+                        return _buildGameCard(realIndex);
+                      },
+                      onPageChanged: (index) {
+                        _controller.onCarouselPageChanged(index);
+                      },
+                      height: carouselHeight,
+                      enableUserSwipe: _controller.isReviewMode,
+                    ),
+                    // Bottom spacer to balance layout
+                    const Spacer(),
+                  ],
                 ),
               ),
-            ),
-            BottomSheetHeightProvider(
-              heightNotifier: _bottomSheetHeightNotifier,
-              child: KeyboardHeightProvider(
-                keyboardHeight: keyboardHeight,
-                child: ValueListenableBuilder<double>(
-                  valueListenable: _bottomSheetHeightNotifier,
-                  builder: (context, bottomSheetHeight, child) {
-                    final double totalOffset =
-                        keyboardHeight + bottomSheetHeight;
-                    return MediaQuery(
-                      data: MediaQuery.of(context)
-                          .copyWith(viewInsets: EdgeInsets.zero),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 100),
-                        curve: Curves.linear,
-                        transform:
-                            Matrix4.translationValues(0, -totalOffset, 0),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                        top: 24, bottom: 48, left: 12, right: 12),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Players row
-                        SafeArea(
-                          bottom: false,
-                          child: PlayersRow(
-                            players: _controller
-                                .getPlayersForIndex(_controller.currentIndex),
-                            controllerById: _controller.playerControllers,
-                            showScoreOverlay: true,
-                            animateScoreOverlay: true,
-                            showNameChip: true,
-                            showRankIcons: _controller.isReviewMode,
-                            currentPlayerId: widget.realtime.currentPlayerId,
-                            questionIndex: _controller.currentIndex,
-                            deadlineProgressTracker:
-                                _controller.deadlineProgressTracker,
-                            finalRanks: _controller.finalRanks,
-                          ),
-                        ),
-                        // Expanding spacer to push widgets apart and handle different screen sizes
-                        // const Spacer(),
-                        // Game carousel (fixed height, not expanded)
-                        GameCarousel(
-                          itemCount: widget.questionCount,
-                          currentIndex: _controller.currentIndex,
-                          pageController: _controller.pageController,
-                          itemBuilder: (context, index, realIndex) {
-                            return _buildGameCard(realIndex);
-                          },
-                          onPageChanged: (index) {
-                            _controller.onCarouselPageChanged(index);
-                          },
-                          height: carouselHeight,
-                          enableUserSwipe: _controller.isReviewMode,
-                        ),
-                        // Equal spacing between widgets
-                        // const Spacer(flex: 1),
-                        // Main button
-                        Builder(
-                          builder: (context) {
-                            final appTheme =
-                                Theme.of(context).extension<AppTheme>();
-                            final deadlineProgress =
-                                _controller.deadlineProgressTracker?.progress ??
-                                    0.0;
-                            final deadlineColor = appTheme != null
-                                ? Color.lerp(appTheme.info, appTheme.danger,
-                                    deadlineProgress)
-                                : null;
-                            final autoNextProgress =
-                                _controller.autoNextProgress;
-                            final autoNextColor = appTheme != null
-                                ? Color.lerp(appTheme.info, appTheme.danger,
-                                    autoNextProgress)
-                                : null;
-
-                            return SubmitBar(
-                              state: _getPaneState(),
-                              isLast: _controller.currentIndex ==
-                                  widget.questionCount - 1,
-                              isHost: _controller.isHost,
-                              onSubmit: _handleSubmit,
-                              onNext: _handleNext,
-                              autoNextProgress: autoNextProgress,
-                              questionDeadlineProgress: deadlineProgress,
-                              questionDeadlineColor: deadlineColor,
-                              autoNextColor: autoNextColor,
-                            );
-                          },
-                        ),
-                      ],
+              if (widget.showLeaveButton)
+                LeaveButtonOverlay(
+                  iconColor: appTheme.border,
+                  splashColor: appTheme.borderMuted,
+                  onPressed: _handleLeave,
+                ),
+              // Rank confetti overlay for top 3 players at game end
+              if (_controller.confettiRank != null && _controller.isReviewMode)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: RankConfettiOverlay(
+                      rank: _controller.confettiRank!,
+                      // Don't clear confetti in review mode - it should persist
+                      onComplete: null,
                     ),
                   ),
                 ),
-              ),
-            ),
-            if (widget.showLeaveButton)
-              LeaveButtonOverlay(
-                iconColor: appTheme.border,
-                splashColor: appTheme.borderMuted,
-                onPressed: _handleLeave,
-              ),
-            // Rank confetti overlay for top 3 players at game end
-            if (_controller.confettiRank != null && _controller.isReviewMode)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: RankConfettiOverlay(
-                    rank: _controller.confettiRank!,
-                    // Don't clear confetti in review mode - it should persist
-                    onComplete: null,
-                  ),
-                ),
-              ),
-            // Quick access bar overlay - extends from question_answer card bottom border to submit bar top
-            Builder(
-              builder: (context) {
-                // Layout structure:
-                // - Padding(top: 20, bottom: 48) wraps Column
-                // - Column contains:
-                //   - Players row (164px)
-                //   - Spacer (expanding)
-                //   - GameCarousel (includes percentile widget + question_answer card + feedback row)
-                //   - SizedBox(height: 68) - spacing between carousel and submit bar
-                //   - SubmitBar (MainButton with dynamic height)
-                //
-                // The quick access bar extends from the bottom border of the question_answer card
-                // (not including the feedback row) to the top edge of the submit bar.
-                final screenHeight = MediaQuery.of(context).size.height;
-                const double bottomPadding = 48.0; // Column bottom padding
-                const double spacerHeight =
-                    24.0 * 4; // SizedBox height between carousel and submit bar
-                const double borderThickness =
-                    3.0; // Visual adjustment for card border thickness
-
-                // Calculate button height using the same formula as MainButton
-                const double baselineScreenHeight = 874.0;
-                const double baselineButtonHeight = 48.0;
-                final double buttonHeight = screenHeight *
-                    (baselineButtonHeight / baselineScreenHeight);
-
-                // Calculate submit bar top position from bottom of screen
-                final double submitBarTop =
-                    screenHeight - bottomPadding - buttonHeight;
-
-                // Carousel bottom is spacerHeight above submit bar top
-                final double carouselBottom = submitBarTop - spacerHeight;
-
-                // The carousel includes: percentile widget (24px + 24px spacing), question_answer card,
-                // and feedback row (48px). Quick access bar should start at the bottom border of the
-                // question_answer card, not the bottom of the entire carousel (which includes the feedback row).
-                final double questionAnswerCardBottom =
-                    carouselBottom - kGameCardFeedbackHeight;
-
-                // Quick access bar starts at question_answer card bottom border.
-                // Adjust by borderThickness to account for visual border rendering.
-                final double topPosition =
-                    questionAnswerCardBottom - borderThickness;
-
-                // Bottom offset positions the quick access bar to extend to the top of the submit bar.
-                final double bottomOffset = bottomPadding + buttonHeight;
-
-                return Positioned(
-                  top: topPosition,
-                  left: 0,
-                  right: 0,
-                  bottom: bottomOffset,
-                  child: QuickAccessBar(
-                    key: widget.dragIndicatorKey,
-                    enabled: _controller.currentAnswerController != null,
-                    onTrigger: () {
-                      _controller.currentAnswerController?.requestFocus();
-                    },
-                    onClose: () {
-                      _controller.currentAnswerController?.closeBottomSheets();
-                    },
-                  ),
-                );
-              },
-            ),
-          ],
-        );
-      }),
+            ],
+          );
+        }),
+      ),
     );
   }
 
@@ -401,14 +264,11 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
     final revealedColor =
         showFeedback ? _controller.getRevealedColor(index) : null;
 
-    AppLogger.debug('_buildGameCard[$index]: isCurrentQuestion=$isCurrentQuestion, showFeedback=$showFeedback, displayAnswer=$displayAnswer, revealedAnswer=$revealedAnswer, revealedColor=$revealedColor');
-
     // Get player's percentile for this question
     final percentile = _controller.getMyPercentileForIndex(index);
     final percentileValue =
         percentile != null ? (percentile * 100).round() : null;
-    final showPercentile =
-        showFeedback && percentile != null && percentile >= 0.5;
+    final showPercentile = showFeedback && percentile != null && percentile > 0;
 
     // Get submitted answer for THIS question (per-question, not shared)
     final AnswerValue? submittedAnswerForThisQuestion;
@@ -425,86 +285,127 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
       submittedAnswerForThisQuestion = null;
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Always reserve space for percentile widget to prevent layout shifts
-        SizedBox(
-          height: kAnswerPercentileMaxHeight,
-          child: SimplePercentileText(
-            percentile: percentileValue,
-            visible: showPercentile,
-            prefixText: 'More accurate than  ',
-            suffixText: '  of players!',
-          ),
-        ),
-        // Spacing between percentile widget and game card (24px)
-        const SizedBox(height: kAnswerPercentileSpacing),
-        GameCard(
-          questionText: state.questionText,
-          tags: state.tags,
-          currentAnswer: displayAnswer,
-          submittedAnswer: submittedAnswerForThisQuestion,
-          unitOptions: state.unitOptions,
-          units: state.units,
-          currentLocale: _controller.currentLocale,
-          onAnswerChanged:
-              isCurrentQuestion ? _controller.onAnswerChanged : (_) {},
-          onLocaleChanged:
-              isCurrentQuestion ? _controller.onLocaleChanged : (_) {},
-          // In review mode, don't bind controller - use prop-based reveal instead
-          // EXCEPTION: For last question, allow controller binding even in review mode
-          // to enable animation when review mode activates simultaneously
-          // In live mode, bind controller for current question to handle reveal animation
-          answerController: (isCurrentQuestion &&
-                  (!_controller.isReviewMode || index == widget.questionCount - 1))
-              ? _controller.answerController
-              : null,
-          revealedAnswer: revealedAnswer,
-          revealedColor: revealedColor,
-          editable:
-              isCurrentQuestion && !_controller.isReviewMode && !showFeedback,
-          showFeedback: showFeedback,
-          initialLikes: state.upvotes,
-          initialVoteState: state.voteState,
-          onUpvote: isCurrentQuestion ? _controller.onUpvote : null,
-          onDeUpvote: isCurrentQuestion ? _controller.onDeUpvote : null,
-          onDownvote: isCurrentQuestion ? _controller.onDownvote : null,
-          onDeDownvote: isCurrentQuestion ? _controller.onDeDownvote : null,
-          unitOptionsNotifier:
-              isCurrentQuestion ? _controller.unitOptionsNotifier : null,
-          reviewMode: _controller.isReviewMode,
-          // Pass tutorial keys only for current question
-          questionWidgetKey:
-              isCurrentQuestion ? widget.questionWidgetKey : null,
-          likeWidgetKey: isCurrentQuestion ? widget.likeWidgetKey : null,
-          digitsKey: isCurrentQuestion ? widget.digitsKey : null,
-          omKey: isCurrentQuestion ? widget.omKey : null,
-          allDigitsKey: isCurrentQuestion ? widget.allDigitsKey : null,
-          unitKey: isCurrentQuestion ? widget.unitKey : null,
-          // Use unique key per question index to prevent widget reuse and value leakage
-          // For current question, use tutorial key if provided, otherwise use index-based key
-          answerWidgetKey: isCurrentQuestion
-              ? (widget.answerWidgetKey ?? ValueKey('answer_$index'))
-              : ValueKey('answer_$index'),
-        ),
-      ],
+    // Get button-related props
+    final paneState = _getPaneStateForIndex(index);
+    final bool isLast = index == widget.questionCount - 1;
+    final deadlineProgress = isCurrentQuestion
+        ? (_controller.deadlineProgressTracker?.progress ?? 0.0)
+        : 0.0;
+    final autoNextProgress =
+        isCurrentQuestion ? _controller.autoNextProgress : 0.0;
+
+    // Get converted answers for the current player (if revealed)
+    final Map<String, AnswerValue>? otherPlayersAnswers;
+    final Map<String, String?>? otherPlayersAvatars;
+    final Map<String, double>? otherPlayersScores;
+    String? currentPlayerAvatarUrl;
+
+    if (showFeedback && state.convertedAnswers.isNotEmpty) {
+      otherPlayersAnswers = state.convertedAnswers[myId];
+      // Pass per-question scores for carousel ordering
+      otherPlayersScores = state.scores;
+
+      // Extract avatar URLs for other players (excluding current player)
+      otherPlayersAvatars = {};
+      for (final player in state.players) {
+        if (player.playerId != null) {
+          if (player.playerId == myId) {
+            // Store current player's avatar
+            currentPlayerAvatarUrl = player.avatarUrl;
+          } else {
+            // Store other players' avatars
+            otherPlayersAvatars[player.playerId!] = player.avatarUrl;
+          }
+        }
+      }
+    } else {
+      otherPlayersAnswers = null;
+      otherPlayersAvatars = null;
+      otherPlayersScores = null;
+      currentPlayerAvatarUrl = null;
+    }
+
+    return GameCard(
+      questionText: state.questionText,
+      tags: state.tags,
+      currentAnswer: displayAnswer,
+      submittedAnswer: submittedAnswerForThisQuestion,
+      unitOptions: state.unitOptions,
+      units: state.units,
+      currentLocale: _controller.currentLocale,
+      onAnswerChanged: isCurrentQuestion ? _controller.onAnswerChanged : (_) {},
+      onLocaleChanged: isCurrentQuestion ? _controller.onLocaleChanged : (_) {},
+      revealedAnswer: revealedAnswer,
+      revealedColor: revealedColor,
+      editable: isCurrentQuestion && !_controller.isReviewMode && !showFeedback,
+      showFeedback: showFeedback,
+      initialLikes: state.upvotes,
+      initialVoteState: state.voteState,
+      onUpvote: isCurrentQuestion ? _controller.onUpvote : null,
+      onDeUpvote: isCurrentQuestion ? _controller.onDeUpvote : null,
+      onDownvote: isCurrentQuestion ? _controller.onDownvote : null,
+      onDeDownvote: isCurrentQuestion ? _controller.onDeDownvote : null,
+      unitOptionsNotifier:
+          isCurrentQuestion ? _controller.unitOptionsNotifier : null,
+      unitTapeController:
+          isCurrentQuestion ? _controller.unitTapeController : null,
+      reviewMode: _controller.isReviewMode,
+      // Pass tutorial keys only for current question
+      questionWidgetKey: isCurrentQuestion ? widget.questionWidgetKey : null,
+      likeWidgetKey: isCurrentQuestion ? widget.likeWidgetKey : null,
+      unitKey: isCurrentQuestion ? widget.unitKey : null,
+      answerScaleKey: isCurrentQuestion ? widget.answerScaleKey : null,
+      // Button-related props
+      paneState: paneState,
+      isLast: isLast,
+      isHost: _controller.isHost,
+      isCurrentQuestion: isCurrentQuestion,
+      onSubmit: isCurrentQuestion ? _handleSubmit : null,
+      onNext: isCurrentQuestion ? _handleNext : null,
+      autoNextProgress: autoNextProgress,
+      questionDeadlineProgress: deadlineProgress,
+      submitButtonKey:
+          null, // Don't use answerWidgetKey for submit button to avoid key conflicts
+      // Percentile props
+      percentile: percentileValue ?? 0,
+      showPercentile: showPercentile,
+      // Other players' converted answers
+      otherPlayersAnswers: otherPlayersAnswers,
+      otherPlayersAvatars: otherPlayersAvatars,
+      otherPlayersScores: otherPlayersScores,
+      currentPlayerAvatarUrl: currentPlayerAvatarUrl,
+      currentPlayerId: myId,
+      // Answer walkthrough
+      paragraph: showFeedback ? _controller.getParagraphForIndex(index) : null,
+      walkthroughViewed: _controller.isWalkthroughViewed(index),
+      onWalkthroughViewed: () => _controller.markWalkthroughViewed(index),
     );
   }
 
   QuestionPaneState _getPaneState() {
+    return _getPaneStateForIndex(_controller.currentIndex);
+  }
+
+  QuestionPaneState _getPaneStateForIndex(int index) {
     if (_controller.isReviewMode) {
       return QuestionPaneState.finished;
     }
-    final state = _controller.getQuestionState(_controller.currentIndex);
+    final state = _controller.getQuestionState(index);
     if (state == null) {
       return QuestionPaneState.started;
     }
     if (state.isRevealed) {
       return QuestionPaneState.finished;
     }
-    if (_controller.localSubmittedAnswer != null) {
+    // Check if this question has a submitted answer
+    final myId = widget.realtime.currentPlayerId;
+    final bool hasSubmittedAnswer = state.submittedAnswers.containsKey(myId);
+    // For current question, also check localSubmittedAnswer
+    if (index == _controller.currentIndex &&
+        _controller.localSubmittedAnswer != null) {
+      return QuestionPaneState.locked;
+    }
+    if (hasSubmittedAnswer) {
       return QuestionPaneState.locked;
     }
     return QuestionPaneState.started;

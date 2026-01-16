@@ -5,7 +5,10 @@ import logging
 from fastapi import APIRouter
 
 from app.config import get_config
-from app.schemas.requests import InsertLiteralRequest, InsertLLMRequest
+from app.schemas.requests import (
+    CompositePipelineFromQuestionsRequest,
+    CompositePipelineRequest,
+)
 from app.schemas.responses import CompositeResponse
 from app.services.composite_service import run_literal_workflow, run_llm_workflow
 
@@ -15,7 +18,7 @@ router = APIRouter()
 
 
 @router.post('/insert_llm', response_model=CompositeResponse)
-async def insert_llm(request: InsertLLMRequest) -> CompositeResponse:
+async def insert_llm(request: CompositePipelineRequest) -> CompositeResponse:
     """Generate questions via LLM, answer, enrich, and refresh view.
 
     Args:
@@ -36,7 +39,18 @@ async def insert_llm(request: InsertLLMRequest) -> CompositeResponse:
             num_seeds=request.num_seeds,
             questions_per_seed=request.questions_per_seed,
             mode=request.mode,
-            config=config,
+            question_model=request.question_model,
+            question_model_provider=request.question_model_provider,
+            question_temperature=request.question_temperature,
+            location_model=request.location_model,
+            extraction_model=request.extraction_model,
+            answer_model_provider=request.answer_model_provider,
+            confidence_threshold=request.confidence_threshold,
+            category_model=request.category_model,
+            category_model_provider=request.category_model_provider,
+            difficulty_model=request.difficulty_model,
+            difficulty_model_provider=request.difficulty_model_provider,
+            question_similarity_threshold=config.question_similarity_threshold,
         )
 
         return CompositeResponse(
@@ -53,7 +67,9 @@ async def insert_llm(request: InsertLLMRequest) -> CompositeResponse:
 
 
 @router.post('/insert_literal', response_model=CompositeResponse)
-async def insert_literal(request: InsertLiteralRequest) -> CompositeResponse:
+async def insert_literal(
+    request: CompositePipelineFromQuestionsRequest,
+) -> CompositeResponse:
     """Insert literal questions, answer, enrich, and refresh view.
 
     Args:
@@ -72,7 +88,15 @@ async def insert_literal(request: InsertLiteralRequest) -> CompositeResponse:
         result = await run_literal_workflow(
             question_texts=request.questions,
             provider=request.provider,
-            config=config,
+            location_model=request.location_model,
+            extraction_model=request.extraction_model,
+            answer_model_provider=request.answer_model_provider,
+            confidence_threshold=request.confidence_threshold,
+            category_model=request.category_model,
+            category_model_provider=request.category_model_provider,
+            difficulty_model=request.difficulty_model,
+            difficulty_model_provider=request.difficulty_model_provider,
+            question_similarity_threshold=config.question_similarity_threshold,
         )
 
         return CompositeResponse(

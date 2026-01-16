@@ -39,14 +39,12 @@ GameConfig createTestGameConfig() {
         index: 0,
         name: 'GENERAL',
         slug: 'General',
-        theme: {},
         picture: 'https://example.com/general.svg',
       ),
       CategoryInfo(
         index: 1,
         name: 'PHYSICS',
         slug: 'Physics',
-        theme: {},
         picture: 'https://example.com/physics.svg',
       ),
     ],
@@ -58,18 +56,25 @@ GameConfig createTestGameConfig() {
           slug: 'Medium',
           picture: 'https://example.com/medium.svg'),
     ],
+    ranks: [],
   );
 }
 
 /// Helper to create test PlayerStatsResponse
-PlayerStatsResponse createTestPlayerStats({num? overall}) {
+PlayerStatsResponse createTestPlayerStats({int? averagePercentile}) {
   return PlayerStatsResponse(
     playerId: 'test-player',
-    playerQuantiles: PlayerQuantiles(
-      byCategoryAndDifficulty: [],
-      byCategory: [],
-      byDifficulty: [],
-      overall: overall ?? 75.5,
+    stats: PlayerStats(
+      totalPartyGames: 10,
+      totalDailyGuesses: 5,
+      totalSurvivalRuns: 0,
+      averagePercentile: averagePercentile ?? 75,
+      level: 1,
+      rank: const RankInfo(
+        id: 1,
+        name: 'Observer',
+        picture: '',
+      ),
     ),
   );
 }
@@ -79,6 +84,7 @@ Future<void> setupInitializedMainScreen(
   WidgetTester tester,
   MockApiService mockApi,
   MockAuthService mockAuth, {
+  MockDailyQuestionService? mockDailyQuestionService,
   bool withStats = false,
 }) async {
   final config = createTestGameConfig();
@@ -86,16 +92,19 @@ Future<void> setupInitializedMainScreen(
   when(() => mockAuth.firebaseUid).thenReturn(withStats ? 'test-player' : null);
   when(() => mockAuth.lastRoundSettings).thenReturn(null);
   when(() => mockAuth.currentUser).thenReturn(null);
-  when(() => mockAuth.shouldRefreshStats).thenReturn(false);
   if (withStats) {
     final stats = createTestPlayerStats();
-    when(() => mockApi.getPlayerStatsTyped(playerId: 'test-player'))
-        .thenAnswer((_) async => stats);
+    when(() => mockApi.getPlayerStatsTyped()).thenAnswer((_) async => stats);
   }
 
   await pumpWithMaterialApp(
     tester,
-    MainScreen(apiService: mockApi, authService: mockAuth),
+    MainScreen(
+      apiService: mockApi,
+      authService: mockAuth,
+      dailyQuestionService:
+          mockDailyQuestionService ?? MockDailyQuestionService(),
+    ),
   );
   await tester.pumpAndSettle();
 }

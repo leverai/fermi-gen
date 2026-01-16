@@ -1,0 +1,9 @@
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/icon-dev.png"
+  # Adaptive icons for Android - reuse background, use dev foreground
+  adaptive_icon_background: "assets/icons/icon-bg.png"
+  adaptive_icon_foreground: "assets/icons/icon-dev.png"
+  remove_alpha_ios: true
+  flavor: dev

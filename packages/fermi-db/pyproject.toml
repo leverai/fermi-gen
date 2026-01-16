@@ -1,6 +1,6 @@
 [project]
 name = "fermi-db"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A data access layer for the Fermi-Gen database."
 readme = "README.md"
 authors = [
@@ -25,12 +25,15 @@ dependencies = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.rye]
-managed = true
-dev-dependencies = [
-    "pytest>=8.2.2",
-    "pytest-cov>=5.0.0",
-]
+[tool.hatch.build.targets.wheel]
+packages = ["fermi_db"]
+
+[tool.hatch.version]
+path = "fermi_db/__init__.py"
+
+[tool.pytest]
+asyncio_mode = 'auto'
+asyncio_default_fixture_loop_scope = 'session'
 
 [tool.uv.sources]
 fermi-core = { workspace = true }

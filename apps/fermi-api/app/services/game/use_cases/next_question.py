@@ -8,12 +8,13 @@ writes to managers, keeping Firestore semantics clear and centralized.
 from typing import TYPE_CHECKING, cast
 
 from fastapi import HTTPException, status
+from opentelemetry import trace
 
+import app.logging.attributes as attrs
 from app.schemas.endpoints import IdModel
 from app.schemas.game import GamePlayer, GameState
 from app.services.game.errors import StateConflictError
 from app.services.game.repositories.game_repo import GameRepository
-from app.services.game.utils import DIFFICULTY_TIMEOUT_SECONDS
 
 if TYPE_CHECKING:
     from fermi_db.models.user import User
@@ -74,8 +75,6 @@ class NextQuestionUseCase:
                 'question_order',
                 'players',
                 'host',
-                'difficulty',
-                'private',
             ],
         )
         if not data:
@@ -83,6 +82,15 @@ class NextQuestionUseCase:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail='Game not found',
             )
+
+        # Set OTel attributes after successful read
+        span = trace.get_current_span()
+        state = GameState(int(data['state']))
+        span.set_attribute(attrs.GAME_STATE, state.name)
+        players = cast(dict[str, GamePlayer], data.get('players', {}))
+        span.set_attribute(attrs.GAME_PLAYER_COUNT, len(players))
+        current_question_order = int(data.get('question_order', 0))
+        span.set_attribute(attrs.GAME_QUESTION_ORDER, current_question_order)
 
         # 2) Enforce host-only access
         if data.get('host') != current_user.firebase_uid:
@@ -93,14 +101,13 @@ class NextQuestionUseCase:
 
         # 3) Perform writes in a single batch
         batch = self._client.batch()
-        state = GameState(int(data['state']))
         question_uids = cast(list[str], data['question_uids'])
         try:
             next_question_order = self._lifecycle.next_question(
                 game_ref=game_ref,
                 writer=batch,
                 state=state,
-                question_order=int(data['question_order']),
+                question_order=current_question_order,
                 n_questions=len(question_uids),
             )
         except StateConflictError as err:
@@ -110,21 +117,13 @@ class NextQuestionUseCase:
             ) from err
 
         next_question_uid = question_uids[next_question_order - 1]
-        # Read difficulty from the specific question document
-        settings = await self._repo.get_questions_settings(
-            game_ref=game_ref,
-            question_uids=[next_question_uid],
-        )
-        difficulty = settings[next_question_uid].difficulty
-        timeout_seconds = (
-            None if data.get('private') else DIFFICULTY_TIMEOUT_SECONDS[difficulty]
-        )
+        span.set_attribute(attrs.GAME_QUESTION_UID, next_question_uid)
+        span.set_attribute(attrs.GAME_QUESTION_ORDER, next_question_order)
         self._questions.reveal_question(
             game_ref=game_ref,
             writer=batch,
             question_uid=next_question_uid,
             question_order=next_question_order,
-            timeout_seconds=timeout_seconds,
         )
 
         active_player_ids = [

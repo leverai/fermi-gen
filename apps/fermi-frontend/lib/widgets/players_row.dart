@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
-import 'package:fermi_frontend/widgets/rank_widget.dart';
 import 'package:fermi_frontend/widgets/player_widget_controller.dart';
+import 'package:fermi_frontend/models/rank.dart';
 import 'package:fermi_frontend/widgets/question_deadline_progress_tracker.dart';
 
 /// Displays a horizontal row of players with no spacing between widgets.
@@ -16,7 +16,6 @@ class PlayersRow extends StatefulWidget {
     this.controllerById,
     this.showNameChip = false,
     this.showRankIcons = false,
-    this.rankAnimationStyle = RankAnimationStyle.none,
     this.reorderDuration = const Duration(milliseconds: 500),
     this.reorderCurve = Curves.easeInOut,
     this.currentPlayerId,
@@ -38,7 +37,6 @@ class PlayersRow extends StatefulWidget {
   /// In review mode, uses finalRanks to show static final game ranks.
   /// In live mode, calculates from sorted position.
   final bool showRankIcons; // when true, PlayerWidget shows rank medals
-  final RankAnimationStyle rankAnimationStyle; // animation style for medals
   final Duration reorderDuration;
   final Curve reorderCurve;
 
@@ -123,7 +121,7 @@ class _PlayersRowState extends State<PlayersRow> {
 
     if (currentPlayerIndex == -1) return;
 
-    const double itemWidth = 120.0;
+    const double itemWidth = 108.0;
     const double spacing = 0.0;
 
     // Calculate the position to center the current player
@@ -193,8 +191,10 @@ class _PlayersRowState extends State<PlayersRow> {
     if (sortedPlayers.length <= 3) {
       return LayoutBuilder(
         builder: (context, constraints) {
-          const double itemWidth = 120.0;
-          const double itemHeight = 118.0;
+          const double itemWidth = 108.0;
+          const double itemHeight = 164.0;
+          // Extra height to accommodate transient score chip overflow (~32px below)
+          const double overflowMargin = 32.0;
           final int itemCount = sortedPlayers.length;
           final double totalWidth = itemCount * itemWidth;
           final double availableWidth =
@@ -246,7 +246,6 @@ class _PlayersRowState extends State<PlayersRow> {
                 controller: controller,
                 showNameChip: widget.showNameChip,
                 showRankIcons: widget.showRankIcons,
-                rankAnimationStyle: widget.rankAnimationStyle,
                 rankOverride: rankOverride,
                 isSelf: isSelf,
                 deadlineProgressTracker: widget.deadlineProgressTracker,
@@ -255,8 +254,9 @@ class _PlayersRowState extends State<PlayersRow> {
           }
 
           return SizedBox(
-            height: itemHeight,
+            height: itemHeight + overflowMargin,
             child: Stack(
+              clipBehavior: Clip.none,
               children: positioned,
             ),
           );
@@ -267,8 +267,8 @@ class _PlayersRowState extends State<PlayersRow> {
     // For >3 players: horizontally scrollable strip with AnimatedPositioned reordering.
     return LayoutBuilder(
       builder: (context, constraints) {
-        const double itemWidth = 120.0;
-        const double itemHeight = 140.0;
+        const double itemWidth = 108.0;
+        const double itemHeight = 164.0;
         final int itemCount = sortedPlayers.length;
         final double contentWidth = itemCount * itemWidth;
 
@@ -316,7 +316,6 @@ class _PlayersRowState extends State<PlayersRow> {
               controller: controller,
               showNameChip: widget.showNameChip,
               showRankIcons: widget.showRankIcons,
-              rankAnimationStyle: widget.rankAnimationStyle,
               rankOverride: rankOverride,
               isSelf: isSelf,
               deadlineProgressTracker: widget.deadlineProgressTracker,
@@ -324,18 +323,24 @@ class _PlayersRowState extends State<PlayersRow> {
           ));
         }
 
+        // Use extra height to accommodate transient score chip overflow (~32px below)
+        const double overflowMargin = 32.0;
         return SizedBox(
-          height: itemHeight,
+          height: itemHeight + overflowMargin,
           child: ScrollConfiguration(
             behavior: const ScrollBehavior().copyWith(overscroll: false),
             child: SingleChildScrollView(
               controller: _scrollController,
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
+              clipBehavior: Clip.none,
               child: SizedBox(
                 width: contentWidth,
-                height: itemHeight,
-                child: Stack(children: positioned),
+                height: itemHeight + overflowMargin,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: positioned,
+                ),
               ),
             ),
           ),

@@ -32,11 +32,9 @@ List<PlayerState> createPlayerStatesFromSnapshot(GameSnapshot snapshot) {
 Future<void> pumpLobbyScreen(
   WidgetTester tester, {
   required List<PlayerState> players,
-  bool isWaiting = false,
   VoidCallback? onStart,
   bool startEnabled = true,
   VoidCallback? onShare,
-  bool isPrivate = false,
   String? joinUrl,
   VoidCallback? onLeave,
   String? currentPlayerId,
@@ -45,14 +43,23 @@ Future<void> pumpLobbyScreen(
     tester,
     LobbyScreen(
       players: players,
-      isWaiting: isWaiting,
       onStart: onStart ?? () {},
       startEnabled: startEnabled,
       onShare: onShare,
-      isPrivate: isPrivate,
       joinUrl: joinUrl,
       onLeave: onLeave,
       currentPlayerId: currentPlayerId,
     ),
   );
+}
+
+/// Helper to settle animations in lobby screen tests.
+/// Uses pump() with duration instead of pumpAndSettle() because:
+/// - _CenterCallout has a repeating dots animation (AnimationController.repeat())
+/// - _CenterCallout has a periodic timer for auto-start countdown
+/// Both never complete, causing pumpAndSettle() to timeout.
+Future<void> pumpLobbyFrames(WidgetTester tester, {int frames = 5}) async {
+  for (int i = 0; i < frames; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
 }

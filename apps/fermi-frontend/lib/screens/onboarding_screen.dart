@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 import 'package:fermi_frontend/screens/question_v2/question_screen_v2.dart';
 import 'package:fermi_frontend/services/demo/onboarding_realtime.dart';
+import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/styled_dialog.dart';
+import 'package:fermi_frontend/widgets/responsive_container.dart';
 
 /// Onboarding screen that guides first-time users through answering a question.
 ///
@@ -15,10 +18,17 @@ import 'package:fermi_frontend/widgets/styled_dialog.dart';
 /// Users can progress through the tutorial or skip to end the tutorial sequence
 /// and interact with the widgets directly.
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key, this.testMode = false});
+  const OnboardingScreen({
+    super.key,
+    this.testMode = false,
+    this.preloadService,
+  });
 
   /// If true, don't persist the onboarding_seen flag (for testing)
   final bool testMode;
+
+  /// Optional preload service to ensure data is being fetched in background
+  final PreloadService? preloadService;
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -35,11 +45,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   // GlobalKeys for tutorial targets (passed through to child widgets)
   final GlobalKey _questionWidgetKey = GlobalKey();
   final GlobalKey _unitLabelKey = GlobalKey();
-  final GlobalKey _answerOmKey = GlobalKey();
-  final GlobalKey _digitsKey = GlobalKey();
-  final GlobalKey _allDigitsKey = GlobalKey();
-  final GlobalKey _omKey = GlobalKey();
-  final GlobalKey _dragIndicatorKey = GlobalKey();
+  final GlobalKey _answerScaleKey = GlobalKey();
 
   // Key to access the QuestionScreenV2 wrapper
   final GlobalKey<_QuestionScreenWrapperState> _questionScreenKey = GlobalKey();
@@ -48,6 +54,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void initState() {
     super.initState();
     _realtime = OnboardingRealtime(initialLocale: 'US');
+
+    // Ensure preloading is happening in the background
+    widget.preloadService?.preload();
 
     // Start tutorial after first frame + small delay for layout to settle
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -132,7 +141,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 secondaryMessage: null,
                 foregroundColor: appTheme.primary,
                 stepIndex: 1,
-                totalSteps: 6,
+                totalSteps: 3,
                 onNext: () => controller.next(),
                 onSkip: _handleSkip,
               );
@@ -140,11 +149,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
         ],
       ),
-      // Step 2: Answer widget (unified widget in V2)
+      // Step 3: Answer accuracy scale
       TargetFocus(
-        identify: 'answer',
-        keyTarget:
-            _answerOmKey, // This key is passed to AnswerWidget via answerWidgetKey
+        identify: 'answer-scale',
+        keyTarget: _answerScaleKey,
         alignSkip: Alignment.topRight,
         shape: ShapeLightFocus.RRect,
         radius: 12,
@@ -154,12 +162,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             align: ContentAlign.top,
             builder: (context, controller) {
               return _TutorialDialog(
-                key: const ValueKey('answer-card'),
+                key: const ValueKey('answer-scale-card'),
                 message: 'Answer',
-                secondaryMessage: 'Tap or Scroll',
+                secondaryMessage: 'Slide to answer',
                 foregroundColor: appTheme.primary,
                 stepIndex: 2,
-                totalSteps: 6,
+                totalSteps: 3,
                 onNext: () => controller.next(),
                 onSkip: _handleSkip,
               );
@@ -167,59 +175,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
         ],
       ),
-      // Step 3: Digits (all three wheels)
-      TargetFocus(
-        identify: 'digits',
-        keyTarget: _allDigitsKey,
-        alignSkip: Alignment.topRight,
-        shape: ShapeLightFocus.RRect,
-        radius: 12,
-        paddingFocus: 30,
-        contents: [
-          TargetContent(
-            align: ContentAlign.top,
-            builder: (context, controller) {
-              return _TutorialDialog(
-                key: const ValueKey('digits-card'),
-                message: 'Number',
-                secondaryMessage: '(1 - 999)',
-                foregroundColor: appTheme.primary,
-                stepIndex: 3,
-                totalSteps: 6,
-                onNext: () => controller.next(),
-                onSkip: _handleSkip,
-              );
-            },
-          ),
-        ],
-      ),
-      // Step 4: Order of Magnitude
-      TargetFocus(
-        identify: 'order-of-magnitude',
-        keyTarget: _omKey,
-        alignSkip: Alignment.topRight,
-        shape: ShapeLightFocus.RRect,
-        radius: 12,
-        paddingFocus: 30,
-        contents: [
-          TargetContent(
-            align: ContentAlign.top,
-            builder: (context, controller) {
-              return _TutorialDialog(
-                key: const ValueKey('om-card'),
-                message: 'Order of Magnitude',
-                secondaryMessage: 'Thousands, Millions, etc.',
-                foregroundColor: appTheme.primary,
-                stepIndex: 4,
-                totalSteps: 6,
-                onNext: () => controller.next(),
-                onSkip: _handleSkip,
-              );
-            },
-          ),
-        ],
-      ),
-      // Step 5: Unit selector (locale toggle + unit label)
+      // Step 2: Unit selector
       TargetFocus(
         identify: 'unit-selector',
         keyTarget: _unitLabelKey,
@@ -234,43 +190,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               return _TutorialDialog(
                 key: const ValueKey('unit-card'),
                 message: 'Unit',
-                secondaryMessage: 'U.S. and Metric units',
+                secondaryMessage: 'Imperial and Metric units',
                 foregroundColor: appTheme.primary,
-                stepIndex: 5,
-                totalSteps: 6,
+                stepIndex: 3,
+                totalSteps: 3,
                 onNext: () => controller.next(),
                 onSkip: _handleSkip,
               );
             },
           ),
         ],
-      ),
-      // Step 6: Drag indicator
-      TargetFocus(
-        identify: 'drag-indicator',
-        keyTarget: _dragIndicatorKey,
-        alignSkip: Alignment.topRight,
-        shape: ShapeLightFocus.RRect,
-        radius: 12,
-        paddingFocus: 30,
-        contents: [
-          TargetContent(
-            align: ContentAlign.top,
-            builder: (context, controller) {
-              return _TutorialDialog(
-                key: const ValueKey('drag-card'),
-                message: 'Quick Access',
-                secondaryMessage: 'Swipe Up for Numpad',
-                foregroundColor: appTheme.primary,
-                stepIndex: 6,
-                totalSteps: 6,
-                onNext: () => controller.next(),
-                onSkip: _handleSkip,
-              );
-            },
-          ),
-        ],
-      ),
+      )
     ];
 
     _tutorialCoachMark = TutorialCoachMark(
@@ -278,6 +208,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       colorShadow: Colors.black,
       paddingFocus: 10,
       opacityShadow: 0.8,
+      // Skip focus-out animation for faster transitions (bubble appears to move directly)
+      unFocusAnimationDuration: const Duration(milliseconds: 10),
+      // Faster focus-in animation (still smooth but quicker)
+      focusAnimationDuration: const Duration(milliseconds: 500),
+      // Disable pulse animation for cleaner, faster feel
+      pulseEnable: false,
       onFinish: () {
         // Tutorial completed successfully - ensure interactions are enabled
         // Note: onFinish is called when user completes all steps via Next buttons
@@ -298,19 +234,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _tutorialCoachMark!.show(context: context);
   }
 
+  /// Temporarily dismisses the tutorial overlay to allow interactions with dialogs.
+  ///
+  /// Called before showing dialogs (like the leave dialog) so they can be interacted with.
+  /// The tutorial will remain dismissed after this is called.
+  void _dismissTutorialForDialog() {
+    if (_tutorialCoachMark != null && !_isDisposing) {
+      _tutorialCoachMark!.skip();
+      // Mark tutorial as ended so it doesn't interfere with dialog interactions
+      if (mounted && !_isDisposing) {
+        setState(() {
+          _blockInteractions = false;
+        });
+      }
+    }
+  }
+
   /// Exits the onboarding screen and navigates to the main screen.
   ///
   /// Called when the user completes answering the question (via QuestionScreenV2's
-  /// onFinish callback). Marks onboarding as seen and navigates away.
+  /// onFinish callback). Marks onboarding as seen and navigates to main screen.
+  /// User is already authenticated anonymously, so we can go directly to main.
   void _exitOnboarding() async {
-    // Mark onboarding as seen (unless in test mode)
-    if (!widget.testMode) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('onboarding_seen', true);
-    }
+    // Mark onboarding as seen
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_seen', true);
 
     if (!mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+
+    // Refresh router to pick up the preference change and navigate to main
+    GoRouter.of(context).refresh();
+    context.go('/main');
   }
 
   @override
@@ -328,20 +282,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     return Theme(
       data: themedData,
-      child: Scaffold(
-        body: IgnorePointer(
-          ignoring: _blockInteractions,
-          child: _QuestionScreenWrapper(
-            key: _questionScreenKey,
-            realtime: _realtime,
-            questionWidgetKey: _questionWidgetKey,
-            unitLabelKey: _unitLabelKey,
-            answerOmKey: _answerOmKey,
-            digitsKey: _digitsKey,
-            allDigitsKey: _allDigitsKey,
-            omKey: _omKey,
-            dragIndicatorKey: _dragIndicatorKey,
-            onExit: _exitOnboarding,
+      child: ResponsiveContainer(
+        backgroundColor: appTheme.bgDark,
+        child: Scaffold(
+          resizeToAvoidBottomInset: false,
+          body: IgnorePointer(
+            ignoring: _blockInteractions,
+            child: _QuestionScreenWrapper(
+              key: _questionScreenKey,
+              realtime: _realtime,
+              questionWidgetKey: _questionWidgetKey,
+              unitLabelKey: _unitLabelKey,
+              answerScaleKey: _answerScaleKey,
+              onExit: _exitOnboarding,
+              onDismissTutorial: _dismissTutorialForDialog,
+            ),
           ),
         ),
       ),
@@ -356,23 +311,17 @@ class _QuestionScreenWrapper extends StatefulWidget {
     required this.realtime,
     required this.questionWidgetKey,
     required this.unitLabelKey,
-    required this.answerOmKey,
-    required this.digitsKey,
-    required this.allDigitsKey,
-    required this.omKey,
-    required this.dragIndicatorKey,
+    required this.answerScaleKey,
     required this.onExit,
+    required this.onDismissTutorial,
   });
 
   final OnboardingRealtime realtime;
   final GlobalKey questionWidgetKey;
   final GlobalKey unitLabelKey;
-  final GlobalKey answerOmKey;
-  final GlobalKey digitsKey;
-  final GlobalKey allDigitsKey;
-  final GlobalKey omKey;
-  final GlobalKey dragIndicatorKey;
+  final GlobalKey answerScaleKey;
   final VoidCallback onExit;
+  final VoidCallback onDismissTutorial;
 
   @override
   State<_QuestionScreenWrapper> createState() => _QuestionScreenWrapperState();
@@ -388,13 +337,11 @@ class _QuestionScreenWrapperState extends State<_QuestionScreenWrapper> {
       isHost: true,
       showLeaveButton: false, // Hide leave button in onboarding
       questionWidgetKey: widget.questionWidgetKey,
-      digitsKey: widget.digitsKey,
-      omKey: widget.omKey,
-      allDigitsKey: widget.allDigitsKey,
       unitKey: widget.unitLabelKey, // Map unitLabelKey to unitKey
-      dragIndicatorKey: widget.dragIndicatorKey,
-      answerWidgetKey: widget.answerOmKey, // Map answerOmKey to answerWidgetKey
+      answerScaleKey: widget.answerScaleKey,
       onFinish: widget.onExit, // Handle Finish button click
+      onBeforeShowDialog:
+          widget.onDismissTutorial, // Dismiss tutorial before showing dialogs
     );
   }
 }
@@ -432,37 +379,20 @@ class _TutorialDialog extends StatelessWidget {
     return StyledDialog(
       message: message,
       secondaryMessage: secondaryMessage,
-      primaryButtonLabel: stepIndex == totalSteps
-          ? 'Done! ($stepIndex/$totalSteps)'
-          : 'Next ($stepIndex/$totalSteps)',
+      primaryButtonLabel: stepIndex == totalSteps ? 'Done!' : 'Next',
       primaryButtonColor: foregroundColor,
       onPrimaryPressed: onNext,
       secondaryButtonLabel: 'Skip',
       onSecondaryPressed: onSkip,
       showAsDialog: false, // Used as content widget, not standalone dialog
-      primaryButtonWidget: RichText(
-        text: TextSpan(
-          children: [
-            TextSpan(
-              text: stepIndex == totalSteps ? 'Done! ' : 'Next ',
-              style: AppFont.primaryTextStyle(
-                context,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: appTheme.bg,
-              ).copyWith(letterSpacing: 0.2),
-            ),
-            TextSpan(
-              text: '($stepIndex/$totalSteps)',
-              style: AppFont.primaryTextStyle(
-                context,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: appTheme.bg,
-              ).copyWith(letterSpacing: 0.2),
-            ),
-          ],
-        ),
+      leftWidget: Text(
+        '($stepIndex/$totalSteps)',
+        style: AppFont.primaryTextStyle(
+          context,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: appTheme.textMuted,
+        ).copyWith(letterSpacing: 0.2),
       ),
     );
   }

@@ -5,7 +5,7 @@ import logging
 from fastapi import APIRouter
 
 from app.config import get_config
-from app.schemas.requests import SeedInsertRequest
+from app.schemas.requests import InsertLiteralSeedsRequest
 from app.schemas.responses import SeedInsertResponse
 from app.services.seed_service import insert_seeds
 
@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.post('/insert_literal', response_model=SeedInsertResponse)
-async def insert_literal(request: SeedInsertRequest) -> SeedInsertResponse:
+async def insert_literal(request: InsertLiteralSeedsRequest) -> SeedInsertResponse:
     """Manually insert seeds into the database.
 
     Seeds will be:
@@ -41,7 +41,7 @@ async def insert_literal(request: SeedInsertRequest) -> SeedInsertResponse:
         config = get_config()
         result = await insert_seeds(
             seed_texts=request.seeds,
-            config=config,
+            similarity_threshold=config.seed_similarity_threshold,
         )
 
         logger.info(f'Seed insertion successful: {result}')

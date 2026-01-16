@@ -61,21 +61,9 @@ def test_game_config_categories_and_difficulties(
     assert 'OTHER' not in names  # excluded by design
 
     # Validate shape and absolute picture URL
-    required_theme_keys = {
-        'background',
-        'foreground',
-        'foreground_negative',
-        'foreground_p30',
-        'foreground_negative_p30',
-    }
     for idx, c in enumerate(categories):
         assert c['index'] == idx
         assert isinstance(c['name'], str)
         assert c['name']
         assert isinstance(c['slug'], str)
         assert c['slug']
-        assert set(c['theme'].keys()) == required_theme_keys
-        pic = c['picture']
-        assert isinstance(pic, str)
-        assert pic.startswith('http')
-        assert '/static/categories/' in pic

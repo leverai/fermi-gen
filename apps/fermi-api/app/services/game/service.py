@@ -1,34 +1,31 @@
 """Game service."""
 
+import logging
 import uuid
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, Optional
 
 from fastapi import BackgroundTasks, HTTPException, Request, status
-from google.cloud import firestore
 
 from app.core.config import settings
 from app.schemas.endpoints import (
     GameAnswerRequest,
     GameConfigResponse,
     GameCreateRequest,
-    GameJoinRandomRequest,
     GameRemovePlayerRequest,
-    GetPlayerStatsRequest,
     GetPlayerStatsResponse,
     IdModel,
+    PlayerStats,
+    UserLimits,
 )
 from app.services.game.errors import ValidationError
 from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
+from app.services.game.ranks import get_all_ranks, get_rank_for_percentile
 from app.services.game.repositories.game_repo import GameRepository
 from app.services.game.tasks.archive_game_results import archive_game_results
 from app.services.game.tasks.fetch_and_set_questions import fetch_and_set_questions
 from app.services.game.transactions.runner import TransactionRunner
 from app.services.game.use_cases.end_game import EndGameUseCase
 from app.services.game.use_cases.join_game import JoinGameUseCase
-from app.services.game.use_cases.join_or_create_game import (
-    JoinOrCreateGameUseCase,
-    PostCommitData,
-)
 from app.services.game.use_cases.next_question import NextQuestionUseCase
 from app.services.game.use_cases.remove_player import RemovePlayerUseCase
 from app.services.game.use_cases.start_game import StartGameUseCase
@@ -44,10 +41,18 @@ from app.services.game.writers.questions_writer import GameQuestionsWriter
 if TYPE_CHECKING:
     from fermi_db import DatabaseClient
     from fermi_db.models.user import User
+    from fermi_db.repositories.party_hosting_repository import PartyHostingRepository
+    from fermi_db.repositories.survival_run_repository import SurvivalRunRepository
     from google.cloud.firestore_v1 import (
         AsyncClient,
         AsyncTransaction,
     )
+
+# Free tier party hosting limit (per calendar week)
+FREE_HOSTING_LIMIT_PER_WEEK = 2
+
+# Free tier survival run limit (per calendar day)
+FREE_SURVIVAL_RUNS_PER_DAY = 2
 
 
 class GameService:
@@ -68,24 +73,47 @@ class GameService:
         background_tasks: BackgroundTasks,
         current_user: 'User',
         firestore_client: 'AsyncClient',
+        hosting_repo: 'PartyHostingRepository',
+        *,
+        is_pro: bool = False,
     ) -> IdModel:
         """Create a new game."""
-        # 0. Prepare resources
+        # 0. Check hosting limits
+        assert current_user.id is not None
+        allowed = (
+            True
+            if is_pro
+            else await hosting_repo.get_hostings_remaining(
+                user_id=current_user.id,
+                limit=FREE_HOSTING_LIMIT_PER_WEEK,
+            )
+        )
+        if not allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail='Weekly party hosting limit reached',
+            )
+
+        # 1. Prepare resources
         batch = firestore_client.batch()
 
-        # 1. Create game document
+        # 2. Create game document
         game_ref = await self._lifecycle_writer.create_game(
             games_ref=firestore_client.collection('games'),
             writer=batch,
         )
 
-        # 2. Set players
+        # 3. Set players with tier-based max_players
+        from app.services.game.writers.players_writer import get_max_players
+
+        max_players = get_max_players(is_pro=is_pro)
         try:
             self._players_writer.set_players(
                 game_ref=game_ref,
                 writer=batch,
                 host_id=current_user.firebase_uid,
                 users=[current_user],
+                max_players=max_players,
             )
         except ValidationError as err:
             raise HTTPException(
@@ -93,17 +121,23 @@ class GameService:
                 detail=str(err),
             ) from err
 
-        # 3. Set misc fields
+        # 4. Set misc fields
         version_uid = str(uuid.uuid4())
-        base_url = str(request.base_url).rstrip('/')
+        # Use ChottuLink URL if configured, otherwise fall back to API trampoline
+
+        if settings.invite_url_base:
+            join_url = f'{settings.invite_url_base}/party?id={game_ref.id}'
+        else:
+            # Local dev: use API trampoline endpoint
+            base = str(request.base_url).rstrip('/')
+            join_url = f'{base}/api/v1/game/invite/{game_ref.id}'
         misc = {
-            'join_url': f'{base_url}{settings.api_v1_str}/game/invite/{game_ref.id}',
-            'private': payload.is_private,
+            'join_url': join_url,
             'version_uid': version_uid,
         }
         batch.update(game_ref, misc)
 
-        # 4. Commit the batch
+        # 5. Commit the batch
         await batch.commit()
 
         # 5. Fetch questions in the background and set them
@@ -162,85 +196,22 @@ class GameService:
 
         return IdModel(resource_id=payload.resource_id)
 
-    async def join_or_create_game(
-        self,
-        request: Request,
-        payload: GameJoinRandomRequest,
-        background_tasks: BackgroundTasks,
-        current_user: 'User',
-        firestore_client: 'AsyncClient',
-    ) -> IdModel:
-        """Join a matching public game or create a new one if none exists."""
-        games_ref = firestore_client.collection('games')
-
-        use_case = JoinOrCreateGameUseCase(
-            firestore_client=firestore_client,
-            repo=GameRepository(firestore_client),
-            join_use_case=JoinGameUseCase(
-                firestore_client=firestore_client,
-                txn_runner=TransactionRunner(firestore_client),
-                repo=GameRepository(firestore_client),
-                lifecycle=self._lifecycle_writer,
-                players=self._players_writer,
-                questions=self._questions_writer,
-            ),
-        )
-
-        @firestore.async_transactional
-        async def _txn(
-            transaction: 'AsyncTransaction',
-        ) -> tuple[str | None, PostCommitData | None]:
-            result = await use_case.execute_in_transaction(
-                tx=transaction,
-                payload=payload,
-                current_user=current_user,
-            )
-            return result['game_id'], result['post_commit']
-
-        transaction = firestore_client.transaction()
-        game_id, post = cast(
-            tuple[str | None, PostCommitData | None],
-            await _txn(transaction),
-        )
-
-        # 2. If no game was found, create a new one
-        if not game_id:
-            response = await self.create_game(
-                request=request,
-                payload=GameCreateRequest(
-                    question_round_settings=payload.question_round_settings,
-                    is_private=False,
-                ),
-                background_tasks=background_tasks,
-                current_user=current_user,
-                firestore_client=firestore_client,
-            )
-            game_id = response.resource_id
-        else:
-            # Schedule post-commit re-fetch for the joined game
-            game_ref = games_ref.document(game_id)
-            assert post is not None
-            background_tasks.add_task(
-                fetch_and_set_questions,
-                lifecycle=self._lifecycle_writer,
-                players_answers=self._players_results_writer,
-                questions=self._questions_writer,
-                game_ref=game_ref,
-                batch=firestore_client.batch(),
-                user_ids=post['players_uids'],
-                question_round_settings=post['question_round_settings'],
-                version_uid=post['version_uid'],
-            )
-
-        return IdModel(resource_id=game_id)
-
     async def start_game(
         self,
         payload: IdModel,
+        background_tasks: BackgroundTasks,
         current_user: 'User',
         firestore_client: 'AsyncClient',
+        hosting_repo: 'PartyHostingRepository',
     ) -> IdModel:
-        """Start a game via the use case orchestration."""
+        """Start a game via the use case orchestration.
+
+        If bots are present, schedules background task to submit their answers
+        for the first question.
+        """
+        from app.services.game.bots import is_bot
+        from app.services.game.tasks.submit_bot_answers import submit_bot_answers
+
         use_case = StartGameUseCase(
             firestore_client=firestore_client,
             repo=GameRepository(firestore_client),
@@ -248,10 +219,68 @@ class GameService:
             questions=self._questions_writer,
             players_answers=self._players_results_writer,
         )
-        return await use_case.execute(
+        result = await use_case.execute(
             game_id=payload.resource_id,
             current_user=current_user,
         )
+
+        # Record hosting
+        assert current_user.id is not None
+        await hosting_repo.record_hosting(
+            user_id=current_user.id,
+            game_id=payload.resource_id,
+        )
+
+        # Check for bots and schedule their answer submission
+        game_ref = firestore_client.collection('games').document(
+            payload.resource_id,
+        )
+        repo = GameRepository(firestore_client)
+        game_data = await repo.get_game_fields(
+            game_ref,
+            fields=['players', 'question_uid'],
+        )
+        if game_data:
+            players = game_data.get('players', {})
+            bot_ids = [pid for pid in players if is_bot(pid)]
+            question_uid = game_data.get('question_uid')
+            if bot_ids and question_uid:
+                background_tasks.add_task(
+                    submit_bot_answers,
+                    firestore_client=firestore_client,
+                    game_id=payload.resource_id,
+                    question_uid=question_uid,
+                    bot_ids=bot_ids,
+                )
+
+        return result
+
+    async def add_bots(
+        self,
+        request: 'Request',
+        game_id: str,
+        bot_ids: list[str],
+        current_user: 'User',
+        firestore_client: 'AsyncClient',
+    ) -> IdModel:
+        """Add bots to a game in lobby state.
+
+        Only the host can add bots. Bots answer automatically when questions
+        are revealed.
+        """
+        from app.services.game.use_cases.add_bots import AddBotsUseCase
+
+        use_case = AddBotsUseCase(
+            firestore_client=firestore_client,
+            repo=GameRepository(firestore_client),
+        )
+        await use_case.execute(
+            request=request,
+            game_id=game_id,
+            current_user=current_user,
+            bot_ids=bot_ids,
+        )
+        return IdModel(resource_id=game_id)
 
     async def submit_answer(
         self,
@@ -273,6 +302,7 @@ class GameService:
             lifecycle=self._lifecycle_writer,
             players_answers=self._players_results_writer,
             players=self._players_writer,
+            questions=self._questions_writer,
         )
 
         result = await use_case.execute(
@@ -294,10 +324,17 @@ class GameService:
     async def next_question(
         self,
         payload: IdModel,
+        background_tasks: BackgroundTasks,
         current_user: 'User',
         firestore_client: 'AsyncClient',
     ) -> IdModel:
-        """Reveal the next question via the use case orchestration."""
+        """Reveal the next question via the use case orchestration.
+
+        If bots are present, schedules background task to submit their answers.
+        """
+        from app.services.game.bots import is_bot
+        from app.services.game.tasks.submit_bot_answers import submit_bot_answers
+
         use_case = NextQuestionUseCase(
             firestore_client=firestore_client,
             repo=GameRepository(firestore_client),
@@ -305,10 +342,34 @@ class GameService:
             questions=self._questions_writer,
             players_answers=self._players_results_writer,
         )
-        return await use_case.execute(
+        result = await use_case.execute(
             game_id=payload.resource_id,
             current_user=current_user,
         )
+
+        # Check for bots and schedule their answer submission
+        game_ref = firestore_client.collection('games').document(
+            payload.resource_id,
+        )
+        repo = GameRepository(firestore_client)
+        game_data = await repo.get_game_fields(
+            game_ref,
+            fields=['players', 'question_uid'],
+        )
+        if game_data:
+            players = game_data.get('players', {})
+            bot_ids = [pid for pid in players if is_bot(pid)]
+            question_uid = game_data.get('question_uid')
+            if bot_ids and question_uid:
+                background_tasks.add_task(
+                    submit_bot_answers,
+                    firestore_client=firestore_client,
+                    game_id=payload.resource_id,
+                    question_uid=question_uid,
+                    bot_ids=bot_ids,
+                )
+
+        return result
 
     async def remove_player(
         self,
@@ -329,6 +390,7 @@ class GameService:
             lifecycle=self._lifecycle_writer,
             players=self._players_writer,
             players_answers=self._players_results_writer,
+            questions=self._questions_writer,
         )
 
         result = await use_case.execute(
@@ -387,13 +449,27 @@ class GameService:
 
     async def get_player_stats(
         self,
-        payload: GetPlayerStatsRequest,
+        player_id: str,
+        request: Request | None = None,
     ) -> GetPlayerStatsResponse:
         """Get a player's stats."""
+        raw_stats = await self._db_gateway.get_player_stats(
+            player_id=player_id,
+        )
+        rank = get_rank_for_percentile(
+            avg_percentile=raw_stats['average_percentile'],
+            request=request,
+        )
         return GetPlayerStatsResponse(
-            player_id=payload.player_id,
-            stats=await self._db_gateway.get_player_stats(
-                player_id=payload.player_id,
+            player_id=player_id,
+            stats=PlayerStats(
+                total_party_games=raw_stats['total_party_games'],
+                total_daily_guesses=raw_stats['total_daily_guesses'],
+                average_percentile=raw_stats['average_percentile'],
+                total_survival_runs=raw_stats['total_survival_runs'],
+                rank=rank,
+                xp=raw_stats['xp'],
+                level=raw_stats['level'],
             ),
         )
 
@@ -401,13 +477,66 @@ class GameService:
         self,
         request: Request | None = None,
     ) -> GameConfigResponse:
-        """Get the game config."""
+        """Get the game config.
+
+        This returns static game configuration that never changes per user.
+        It should be called once at startup and cached.
+
+        Args:
+            request: FastAPI request for building asset URLs.
+
+        Returns:
+            Static game config (categories, difficulties, ranks).
+
+        """
         return GameConfigResponse(
-            categories=get_request_categories(request),
+            categories=get_request_categories(),
             difficulties=get_request_difficulties(request),
+            ranks=get_all_ranks(request),
         )
 
-    # Legacy: update_votes no longer used; per-user votes are stored in votes table.
+    async def get_user_limits(
+        self,
+        *,
+        user_id: int,
+        user_firebase_uid: str,
+        hosting_repo: 'PartyHostingRepository',
+        survival_run_repo: 'SurvivalRunRepository',
+        is_pro: bool = False,
+    ) -> UserLimits:
+        """Get user-specific limits based on subscription tier.
+
+        Args:
+            user_id: User's database ID.
+            user_firebase_uid: User's Firebase UID.
+            hosting_repo: Repository for checking hosting limits.
+            survival_run_repo: Repository for checking survival run limits.
+            is_pro: Whether user has Pro subscription.
+
+        Returns:
+            User limits including remaining party hostings and survival runs.
+
+        """
+        hostings_left = (
+            -1
+            if is_pro
+            else await hosting_repo.get_hostings_remaining(
+                user_id=user_id,
+                limit=FREE_HOSTING_LIMIT_PER_WEEK,
+            )
+        )
+        survival_left = (
+            -1
+            if is_pro
+            else await survival_run_repo.get_runs_remaining_today(
+                user_firebase_uid=user_firebase_uid,
+                limit=FREE_SURVIVAL_RUNS_PER_DAY,
+            )
+        )
+        return UserLimits(
+            party_hostings_remaining=hostings_left,
+            survival_runs_remaining=survival_left,
+        )
 
     async def vote(
         self,
@@ -422,3 +551,47 @@ class GameService:
             user_firebase_uid=user_firebase_uid,
             verdict=verdict,
         )
+
+    async def cleanup_finished_games(
+        self,
+        firestore_client: 'AsyncClient',
+        *,
+        max_games: int = 100,
+    ) -> int:
+        """Delete finished/aborted games and their subcollections.
+
+        Games with state >= 8 (GAME_FINISHED or GAME_ABORTED) are eligible
+        for deletion. Subcollections (questions, answers, players_results)
+        are deleted before the parent game document.
+
+        Args:
+            firestore_client: Firestore async client.
+            max_games: Maximum number of games to delete in this call.
+
+        Returns:
+            Number of games deleted.
+
+        """
+        logger = logging.getLogger(__name__)
+        games_ref = firestore_client.collection('games')
+
+        # Query for finished/aborted games (state >= 8)
+        query = games_ref.where('state', '>=', 8).limit(max_games)
+        game_docs = [doc async for doc in query.stream()]
+
+        deleted_count = 0
+        for game_doc in game_docs:
+            game_ref = games_ref.document(game_doc.id)
+
+            # Delete subcollection documents
+            for subcollection_name in ('questions', 'answers', 'players_results'):
+                subcollection_ref = game_ref.collection(subcollection_name)
+                async for sub_doc in subcollection_ref.stream():
+                    await sub_doc.reference.delete()
+
+            # Delete the game document itself
+            await game_ref.delete()
+            deleted_count += 1
+
+        logger.info('Deleted %d finished/aborted games', deleted_count)
+        return deleted_count

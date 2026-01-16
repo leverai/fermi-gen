@@ -17,7 +17,6 @@ def test_create_private_game_creates_firestore_game_doc(
     - Document exists with matching id
     - state is LOBBY_NOT_READY
     - players map contains host and marks them as host/active
-    - private flag true
     - join_url present
     - version_uid present (non-empty string)
     """
@@ -35,7 +34,6 @@ def test_create_private_game_creates_firestore_game_doc(
     assert doc['id'] == game_id
     # State may already be flipped to LOBBY_READY (2) by background fetch
     assert doc['state'] in (1, 2)
-    assert doc['private'] is True
     assert isinstance(doc['join_url'], str)
     assert doc['join_url']
     assert isinstance(doc['version_uid'], str)

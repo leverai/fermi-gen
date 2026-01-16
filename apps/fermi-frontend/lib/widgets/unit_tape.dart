@@ -1,12 +1,10 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
-import 'package:fermi_frontend/widgets/bottom_sheet_height_provider.dart';
-import 'string_wheel.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
-import 'package:fermi_frontend/widgets/tap_indicator.dart';
 import 'package:fermi_frontend/widgets/string_tape.dart';
 import 'package:fermi_frontend/widgets/selector_widget.dart';
-import 'package:fermi_frontend/utils/logger.dart';
+import 'package:fermi_frontend/widgets/unit_system_switch.dart';
 
 class UnitTapeController {
   void Function(String value)? _jumpTo;
@@ -14,6 +12,14 @@ class UnitTapeController {
   void Function()? _requestFocus;
   void Function(bool revealed, Duration? duration)? _setRevealed;
   void Function()? _close;
+
+  void _unbind() {
+    _jumpTo = null;
+    _animateTo = null;
+    _requestFocus = null;
+    _setRevealed = null;
+    _close = null;
+  }
 
   void _bind({
     required void Function(String value) jumpTo,
@@ -70,6 +76,7 @@ class UnitTape extends StatefulWidget {
     this.controller,
     this.unitOptionsNotifier,
     this.onBeforeOpen,
+    this.backgroundColor,
   });
 
   final List<String> units; // Available unit abbreviations
@@ -85,6 +92,8 @@ class UnitTape extends StatefulWidget {
       unitOptionsNotifier; // Optional external notifier
   final VoidCallback?
       onBeforeOpen; // Called before selector opens (to close other inputs)
+  final Color?
+      backgroundColor; // Background color that fades to transparent when revealed
 
   @override
   State<UnitTape> createState() => _UnitTapeState();
@@ -92,14 +101,15 @@ class UnitTape extends StatefulWidget {
 
 class _UnitTapeState extends State<UnitTape>
     with SingleTickerProviderStateMixin {
-  final StringWheelController _wheel = StringWheelController();
+  PageController? _pageController;
   String? _current;
   bool _isFocused = false;
   bool _bottomSheetOpen = false;
   final ValueNotifier<Map<String, String>> _unitOptionsNotifier =
       ValueNotifier<Map<String, String>>({});
   late final AnimationController _indicatorFadeController;
-  bool _isDragging = false; // Track StringWheel dragging state
+  bool _isDragging = false; // Track PageView dragging state
+  bool _isRevealed = false; // Track reveal state
 
   ValueNotifier<Map<String, String>> get _effectiveNotifier =>
       widget.unitOptionsNotifier ?? _unitOptionsNotifier;
@@ -120,6 +130,11 @@ class _UnitTapeState extends State<UnitTape>
     _current = widget.initialValue.isNotEmpty
         ? widget.initialValue
         : (widget.units.isNotEmpty ? widget.units[0] : '');
+
+    // Initialize PageController with initial index
+    final initialIndex = _indexOf(_current);
+    _pageController = PageController(initialPage: initialIndex);
+
     // Only use internal notifier if no external one provided
     if (widget.unitOptionsNotifier == null) {
       _unitOptionsNotifier.value = widget.unitOptions;
@@ -128,70 +143,25 @@ class _UnitTapeState extends State<UnitTape>
     widget.controller?._bind(
       jumpTo: (v) {
         setState(() => _current = v);
-        _wheel.jumpTo(v);
-        // Notify parent to sync state when jumping programmatically
-        widget.onUnitChanged(v);
+        _jumpToPage(v);
+        // Defer onUnitChanged callback to after current build phase to prevent
+        // "setState() called during build" errors when jumpTo is called from didUpdateWidget
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            widget.onUnitChanged(v);
+          }
+        });
       },
       animateTo: (v, d) async {
-        AppLogger.debug(
-            'UnitTape.animateTo: value=$v, duration=${d.inMilliseconds}ms, current=$_current');
         setState(() => _current = v);
-        await _wheel.animateTo(v, d);
-        AppLogger.debug('UnitTape.animateTo: _wheel.animateTo returned');
+        await _animateToPage(v, d);
       },
       requestFocus: _requestFocus,
       setRevealed: (r, duration) {
-        if (r) {
-          // Fade out indicator when revealing - use provided duration or default to 600ms
-          _indicatorFadeController.animateTo(0.0,
-              duration: duration ?? const Duration(milliseconds: 600),
-              curve: Curves.easeInOutCubic);
-        } else {
-          // Fade in indicator when resetting
-          _indicatorFadeController.animateTo(1.0,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOutCubic);
-        }
-      },
-      close: _closeUnitSelector,
-    );
-
-    // Notify parent of initial unit value to sync state on first render
-    // This handles the case where UnitTape is conditionally rendered after units load
-    if (_current != null && _current!.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onUnitChanged(_current!);
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _indicatorFadeController.dispose();
-    // Only dispose internal notifier
-    if (widget.unitOptionsNotifier == null) {
-      _unitOptionsNotifier.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
-  void didUpdateWidget(covariant UnitTape oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      widget.controller?._bind(
-        jumpTo: (v) {
-          setState(() => _current = v);
-          _wheel.jumpTo(v);
-          // Notify parent to sync state when jumping programmatically
-          widget.onUnitChanged(v);
-        },
-        animateTo: (v, d) async {
-          setState(() => _current = v);
-          await _wheel.animateTo(v, d);
-        },
-        requestFocus: _requestFocus,
-        setRevealed: (r, duration) {
+        if (mounted) {
+          setState(() {
+            _isRevealed = r;
+          });
           if (r) {
             // Fade out indicator when revealing - use provided duration or default to 600ms
             _indicatorFadeController.animateTo(0.0,
@@ -203,18 +173,145 @@ class _UnitTapeState extends State<UnitTape>
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOutCubic);
           }
+        }
+      },
+      close: _closeUnitSelector,
+    );
+  }
+
+  int _indexOf(String? value) {
+    if (value == null || widget.units.isEmpty) return 0;
+    final int idx = widget.units.indexOf(value);
+    return idx >= 0 ? idx : 0;
+  }
+
+  /// Returns the index of value in units, or -1 if not found.
+  /// Use this when you need to know if the value actually exists.
+  int _safeIndexOf(String? value) {
+    if (value == null || widget.units.isEmpty) return -1;
+    return widget.units.indexOf(value);
+  }
+
+  void _jumpToPage(String value) {
+    if (widget.units.isEmpty || _pageController == null) return;
+    // Only jump if value is actually in the units list
+    // This prevents triggering onPageChanged with wrong index when value not found
+    final int idx = _safeIndexOf(value);
+    if (idx < 0) return; // Value not found, don't jump
+    if (_pageController!.hasClients) {
+      _pageController!.jumpToPage(idx);
+    }
+  }
+
+  Future<void> _animateToPage(String value, Duration duration) async {
+    if (widget.units.isEmpty || _pageController == null) return;
+    // Only animate if value is actually in the units list
+    final int idx = _safeIndexOf(value);
+    if (idx < 0) return; // Value not found, don't animate
+    if (_pageController!.hasClients) {
+      await _pageController!.animateToPage(
+        idx,
+        duration: duration,
+        curve: Curves.easeInOutCubic,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller?._unbind();
+    _indicatorFadeController.dispose();
+    _pageController?.dispose();
+    // Only dispose internal notifier
+    if (widget.unitOptionsNotifier == null) {
+      _unitOptionsNotifier.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant UnitTape oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Recreate PageController if units list CONTENT changed (not just reference)
+    // Using ListEquality for deep comparison to avoid spurious recreation during
+    // rebuilds that pass new list instances with identical content
+    final bool unitsContentChanged =
+        !const ListEquality<String>().equals(oldWidget.units, widget.units);
+    if (unitsContentChanged) {
+      // Check if current value exists in new units list
+      int currentIndex = _safeIndexOf(_current);
+      if (currentIndex < 0 && widget.units.isNotEmpty) {
+        // Current value not in new units - update to first unit
+        // This happens when locale changes and units are refreshed
+        _current = widget.units[0];
+        currentIndex = 0;
+      } else if (currentIndex < 0) {
+        currentIndex = 0;
+      }
+      _pageController?.dispose();
+      _pageController = PageController(initialPage: currentIndex);
+    }
+
+    if (oldWidget.controller != widget.controller) {
+      widget.controller?._bind(
+        jumpTo: (v) {
+          setState(() => _current = v);
+          _jumpToPage(v);
+          // Defer onUnitChanged callback to after current build phase to prevent
+          // "setState() called during build" errors when jumpTo is called from didUpdateWidget
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              widget.onUnitChanged(v);
+            }
+          });
+        },
+        animateTo: (v, d) async {
+          setState(() => _current = v);
+          await _animateToPage(v, d);
+        },
+        requestFocus: _requestFocus,
+        setRevealed: (r, duration) {
+          if (mounted) {
+            setState(() {
+              _isRevealed = r;
+            });
+            if (r) {
+              // Fade out indicator when revealing - use provided duration or default to 600ms
+              _indicatorFadeController.animateTo(0.0,
+                  duration: duration ?? const Duration(milliseconds: 600),
+                  curve: Curves.easeInOutCubic);
+            } else {
+              // Fade in indicator when resetting
+              _indicatorFadeController.animateTo(1.0,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOutCubic);
+            }
+          }
         },
         close: _closeUnitSelector,
       );
     }
     // Update internal notifier when unitOptions change (only if using internal notifier)
+    // Defer to post-frame to prevent "setState() called during build" errors
+    // when ValueListenableBuilder listeners trigger during widget tree rebuild
     if (widget.unitOptionsNotifier == null &&
         oldWidget.unitOptions != widget.unitOptions) {
-      _unitOptionsNotifier.value = widget.unitOptions;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _unitOptionsNotifier.value = widget.unitOptions;
+        }
+      });
     }
     // Close the bottom sheet if widget becomes non-editable (e.g., deadline reached)
     if (oldWidget.editable && !widget.editable) {
       _closeUnitSelector();
+      // Recreate PageController with correct initialPage when locking in the answer.
+      // This ensures the PageView (which rebuilds due to the key change when editable changes)
+      // starts at the correct position without any visible "flip" animation.
+      final targetIndex = _indexOf(_current);
+      _pageController?.dispose();
+      _pageController = PageController(initialPage: targetIndex);
     }
   }
 
@@ -231,7 +328,7 @@ class _UnitTapeState extends State<UnitTape>
     widget.onBeforeOpen?.call();
 
     // Ensure _current matches what's actually displayed
-    // If empty, use first unit in list (matching StringWheel behavior)
+    // If empty, use first unit in list
     if (_current == null || _current!.isEmpty) {
       _current = widget.units.isNotEmpty ? widget.units[0] : '';
     }
@@ -244,33 +341,6 @@ class _UnitTapeState extends State<UnitTape>
     // Capture initial values but allow updates through callbacks
     String currentLocale = widget.currentLocale;
     final GlobalKey sheetKey = GlobalKey();
-    final heightNotifier = BottomSheetHeightProvider.maybeOf(context);
-
-    // Height management during selector sequence transitions:
-    // When opening during a transition from OM selector, we need to:
-    // 1. Preserve the current height to prevent screen from snapping back
-    // 2. Signal ownership by updating the height (so OM selector's delayed check doesn't reset it)
-    // 3. Update to actual measured height once the sheet is built
-    // The OM selector waits 500ms and checks if height changed; if not, it resets to 0.
-    // By updating the height by >5.0px, we ensure the OM selector sees a change.
-    final double? transitionHeight = heightNotifier?.value;
-
-    if (transitionHeight != null &&
-        transitionHeight > 0 &&
-        heightNotifier != null) {
-      // Schedule height update after build phase completes (prevents setState during build error)
-      final notifier = heightNotifier; // Capture for postFrameCallback
-      final height = transitionHeight; // Capture for postFrameCallback
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        // Preserve the height first to prevent visual snap-back
-        notifier.value = height;
-        // Then signal ownership by updating slightly (exceeds 5.0px threshold used by OM selector)
-        // This prevents the OM selector's delayed check from resetting the height
-        Future.microtask(() {
-          notifier.value = height + 10.0;
-        });
-      });
-    }
 
     showModalBottomSheet(
       context: context,
@@ -284,17 +354,6 @@ class _UnitTapeState extends State<UnitTape>
 
         return StatefulBuilder(
           builder: (context, setModalState) {
-            // Measure height after build and notify provider
-            // This runs after the first frame, ensuring accurate measurement
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              final RenderBox? box =
-                  sheetKey.currentContext?.findRenderObject() as RenderBox?;
-              if (box != null && heightNotifier != null) {
-                // Update height with actual measured value
-                heightNotifier.value = box.size.height;
-              }
-            });
-
             return ValueListenableBuilder<Map<String, String>>(
               valueListenable: _effectiveNotifier,
               builder: (context, unitOptionsMap, child) {
@@ -319,7 +378,7 @@ class _UnitTapeState extends State<UnitTape>
                       setModalState(() {
                         _current = currentValue;
                       });
-                      _wheel.jumpTo(currentValue!);
+                      _jumpToPage(currentValue!);
                       widget.onUnitChanged(currentValue);
                     });
                   }
@@ -339,13 +398,23 @@ class _UnitTapeState extends State<UnitTape>
                     // Notify parent
                     widget.onLocaleChanged(newLocale);
                   },
+                  onCenteredValueChanged: (value) {
+                    // Update widget value in real-time as wheel scrolls
+                    if (mounted) {
+                      setModalState(() {
+                        _current = value;
+                      });
+                      _jumpToPage(value);
+                      widget.onUnitChanged(value);
+                    }
+                  },
                   onUnitSelected: (value) {
                     if (mounted && value != null) {
                       // Update modal state first to show visual feedback
                       setModalState(() {
                         _current = value;
                       });
-                      _wheel.jumpTo(value);
+                      _jumpToPage(value);
                       widget.onUnitChanged(value);
                       // Delay closing to allow visual feedback
                       Future.delayed(const Duration(milliseconds: 200), () {
@@ -371,13 +440,6 @@ class _UnitTapeState extends State<UnitTape>
         // Only update local state - no focus management needed as this uses a modal
         // bottom sheet, not keyboard input.
       }
-      // Reset height after modal dismiss animation completes
-      // This is the final selector in the sequence, so we always reset here
-      Future.delayed(const Duration(milliseconds: 50), () {
-        if (mounted && heightNotifier != null) {
-          heightNotifier.value = 0.0;
-        }
-      });
     });
 
     // No focus management needed - this uses a modal bottom sheet, not keyboard input.
@@ -390,76 +452,169 @@ class _UnitTapeState extends State<UnitTape>
     }
   }
 
+  void _onPageChanged(int index) {
+    // Ignore page changes when widget is not editable (e.g., during reveal)
+    // This prevents spurious onUnitChanged callbacks from PageController recreation
+    if (!widget.editable) return;
+
+    if (index >= 0 && index < widget.units.length) {
+      setState(() => _current = widget.units[index]);
+      widget.onUnitChanged(widget.units[index]);
+    }
+  }
+
+  void _navigatePage(int direction) {
+    if (_pageController == null || !_pageController!.hasClients) return;
+    // Use safe index lookup with fallback to current page position
+    final int fallbackIndex = _safeIndexOf(_current);
+    final currentPage = _pageController!.page?.round() ??
+        (fallbackIndex >= 0 ? fallbackIndex : 0);
+    final newPage = (currentPage + direction).clamp(0, widget.units.length - 1);
+    if (newPage != currentPage) {
+      _pageController!.animateToPage(
+        newPage,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Ensure _current matches what StringWheel displays
+    // Ensure _current matches what's displayed
     _current ??= widget.initialValue.isNotEmpty
         ? widget.initialValue
         : (widget.units.isNotEmpty ? widget.units[0] : '');
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    // Determine colors based on focus and reveal state
-    final Color textColor =
-        _isFocused ? appTheme.primary : (widget.revealColor ?? appTheme.text);
-    final Color borderColor =
-        _isFocused ? appTheme.primary : Colors.transparent;
+    // Determine colors based on focus and dragging state
+    final Color textColor = appTheme.secondary;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      child: GestureDetector(
-        onTap: widget.editable ? _showUnitSelector : null,
-        child: Stack(
+    if (widget.units.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final currentIndex = _indexOf(_current);
+    final canGoLeft = currentIndex > 0;
+    final canGoRight = currentIndex < widget.units.length - 1;
+
+    // Arrows are "active" (full opacity/color) only when editable and not at limits
+    // and not during reveal/focus/drag events.
+    final bool leftArrowActive = widget.editable &&
+        canGoLeft &&
+        !_isRevealed &&
+        !_isFocused &&
+        !_isDragging;
+    final bool rightArrowActive = widget.editable &&
+        canGoRight &&
+        !_isRevealed &&
+        !_isFocused &&
+        !_isDragging;
+
+    // Helper to get full name from abbreviation
+    String getFullName(String abbreviation) {
+      final entry = widget.unitOptions.entries.firstWhere(
+        (e) => e.value == abbreviation,
+        orElse: () => MapEntry(abbreviation, abbreviation),
+      );
+      return entry.key;
+    }
+
+    return AnimatedBuilder(
+      animation: _indicatorFadeController,
+      builder: (context, child) {
+        // No container styling - parent container handles background/padding
+        return Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            StringWheel(
-              values: widget.units,
-              initialValue: _current,
-              controller: _wheel,
-              enabled: widget.editable && !_isFocused,
-              height: 72,
-              itemExtent: 72,
-              width: 60,
-              borderColor: borderColor,
-              draggingBorderColor: appTheme.primary,
-              borderWidth: 1.5,
-              borderRadius: 8.0,
-              textStyle: AppFont.secondaryTextStyle(
-                context,
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-                color: textColor,
-                decoration: TextDecoration.none,
+            // Left arrow - hidden entirely at reveal (not just muted)
+            if (widget.units.length > 1)
+              AnimatedOpacity(
+                opacity: _isRevealed ? 0.0 : 1.0,
+                duration: const Duration(milliseconds: 300),
+                child: GestureDetector(
+                  onTap: widget.editable && canGoLeft
+                      ? () => _navigatePage(-1)
+                      : null,
+                  child: Icon(
+                    Icons.keyboard_arrow_left,
+                    size: 16.0,
+                    color: leftArrowActive ? appTheme.secondary : appTheme.bg,
+                  ),
+                ),
               ),
-              onChanged: (v) {
-                setState(() => _current = v);
-                widget.onUnitChanged(v);
-              },
-              onDraggingChanged: (dragging) {
-                setState(() {
-                  _isDragging = dragging;
-                });
-              },
+            // PageView for units - now shows full names
+            GestureDetector(
+              onTap: widget.editable ? _showUnitSelector : null,
+              behavior: HitTestBehavior.opaque,
+              child: SizedBox(
+                width:
+                    95, // Increased width to accommodate full names like "kilograms"
+                height: 24,
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    if (notification is ScrollStartNotification) {
+                      setState(() => _isDragging = true);
+                    } else if (notification is ScrollEndNotification) {
+                      setState(() => _isDragging = false);
+                    }
+                    return false;
+                  },
+                  child: PageView.builder(
+                    // Key includes editable state and target index when locked
+                    // This forces the PageView to rebuild fresh with correct position
+                    // when transitioning from editable to non-editable (reveal time)
+                    key: widget.editable
+                        ? null
+                        : ValueKey('locked_${_indexOf(_current)}'),
+                    controller: _pageController,
+                    physics: widget.editable && !_isFocused
+                        ? const PageScrollPhysics()
+                        : const NeverScrollableScrollPhysics(),
+                    onPageChanged: _onPageChanged,
+                    itemCount: widget.units.length,
+                    itemBuilder: (context, index) {
+                      // Show full name instead of abbreviation
+                      final fullName = getFullName(widget.units[index]);
+                      return Center(
+                        child: Text(
+                          fullName,
+                          style: AppFont.primaryTextStyle(
+                            context,
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.w500,
+                            color:
+                                textColor, // Use the pre-calculated textColor
+                            decoration: TextDecoration.none,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
             ),
-            // Tap indicator line at bottom
-            // Hide when focused or dragging (scroll indicator is showing)
-            AnimatedBuilder(
-              animation: _indicatorFadeController,
-              builder: (context, child) {
-                // Hide tap indicator when scroll indicator is showing (focused or dragging)
-                final double effectiveOpacity = (_isFocused || _isDragging)
-                    ? 0.0
-                    : _indicatorFadeController.value;
-                return TapIndicator(
-                  opacity: effectiveOpacity,
-                );
-              },
-            ),
+            // Right arrow - hidden entirely at reveal (not just muted)
+            if (widget.units.length > 1)
+              AnimatedOpacity(
+                opacity: _isRevealed ? 0.0 : 1.0,
+                duration: const Duration(milliseconds: 300),
+                child: GestureDetector(
+                  onTap: widget.editable && canGoRight
+                      ? () => _navigatePage(1)
+                      : null,
+                  child: Icon(
+                    Icons.keyboard_arrow_right,
+                    size: 16.0,
+                    color: rightArrowActive ? appTheme.secondary : appTheme.bg,
+                  ),
+                ),
+              ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -473,6 +628,7 @@ class _UnitSelectorSheet extends StatelessWidget {
     required this.options,
     required this.selectedUnit,
     required this.onLocaleChanged,
+    required this.onCenteredValueChanged,
     required this.onUnitSelected,
   });
 
@@ -481,6 +637,7 @@ class _UnitSelectorSheet extends StatelessWidget {
   final List<SelectorOption> options;
   final String? selectedUnit;
   final ValueChanged<String> onLocaleChanged;
+  final ValueChanged<String> onCenteredValueChanged;
   final ValueChanged<String?> onUnitSelected;
 
   @override
@@ -491,63 +648,105 @@ class _UnitSelectorSheet extends StatelessWidget {
         constraints: const BoxConstraints(minWidth: 400),
         decoration: BoxDecoration(
           color: appTheme.bg,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
-          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          boxShadow: [
+            BoxShadow(
+              color: appTheme.shadowColor,
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: SafeArea(
           top: false,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const SizedBox(height: 12),
               // Drag handle
               Container(
                 width: 40,
                 height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   color: appTheme.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-
-              // U.S. Units toggle chip
-              GestureDetector(
-                onTap: () {
-                  final newLocale = isUS ? 'EU' : 'US';
-                  onLocaleChanged(newLocale);
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+              const SizedBox(height: 12),
+              // Unit system toggle with Arrow (matches archive sheet layout)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  height: 48,
+                  width: double.infinity,
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      Icon(
-                        isUS ? Icons.check_circle : Icons.circle_outlined,
-                        size: 14,
-                        color: isUS ? appTheme.primary : appTheme.borderMuted,
+                      // Unit system switch: Imperial / Metric (centered)
+                      GestureDetector(
+                        onTap: () {
+                          final newLocale = isUS ? 'EU' : 'US';
+                          onLocaleChanged(newLocale);
+                        },
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Imperial label - fixed width to prevent toggle shifting
+                            SizedBox(
+                              width: 80,
+                              child: Text(
+                                'Imperial',
+                                textAlign: TextAlign.left,
+                                style: AppFont.primaryTextStyle(
+                                  context,
+                                  fontSize: 16,
+                                  fontWeight:
+                                      isUS ? FontWeight.w600 : FontWeight.w400,
+                                  color: isUS
+                                      ? appTheme.secondary
+                                      : appTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                            // Switch container
+                            UnitSystemSwitch(
+                              isUS: isUS,
+                            ),
+                            const SizedBox(width: 12),
+                            // Metric label - fixed width to prevent toggle shifting
+                            SizedBox(
+                              width: 80,
+                              child: Text(
+                                'Metric',
+                                textAlign: TextAlign.left,
+                                style: AppFont.primaryTextStyle(
+                                  context,
+                                  fontSize: 16,
+                                  fontWeight:
+                                      !isUS ? FontWeight.w600 : FontWeight.w400,
+                                  color: !isUS
+                                      ? appTheme.secondary
+                                      : appTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'U.S. Units',
-                        style: AppFont.primaryTextStyle(
-                          context,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
-                          color:
-                              isUS ? appTheme.primary : appTheme.borderMuted,
+                      // Arrow button (positioned right)
+                      Positioned(
+                        right: 0,
+                        child: IconButton(
+                          icon: Icon(Icons.keyboard_arrow_down,
+                              color: appTheme.border, size: 32),
+                          onPressed: () => Navigator.of(context).pop(),
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               // Unit selector - rebuilds with fresh options on each locale change
               StringTape(
                 values: options.map((opt) => opt.value).toList(),
@@ -558,7 +757,7 @@ class _UnitSelectorSheet extends StatelessWidget {
                   context,
                   fontSize: 20,
                   fontWeight: FontWeight.w400,
-                  color: appTheme.highlight,
+                  color: appTheme.borderMuted,
                   height: 1.2,
                 ).copyWith(
                   letterSpacing: 1.5,
@@ -579,9 +778,8 @@ class _UnitSelectorSheet extends StatelessWidget {
                   );
                   return option.label;
                 },
-                onSelected: (value) {
-                  onUnitSelected(value);
-                },
+                onCenteredValueChanged: onCenteredValueChanged,
+                onSelected: onUnitSelected,
               ),
             ],
           ),

@@ -1,4 +1,8 @@
 import 'dart:async';
+import 'dart:math';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 
 import 'package:fermi_frontend/screens/lobby/lobby_screen.dart';
 import 'package:fermi_frontend/services/api_service.dart';
@@ -7,6 +11,7 @@ import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:fermi_frontend/screens/question_v2/question_screen_v2.dart';
 import 'package:fermi_frontend/screens/question_v2/helpers/leave.dart';
@@ -35,13 +40,12 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
   List<PlayerState> _players = const <PlayerState>[];
   bool _isHost = false;
   bool _isLobbyReady = false;
-  bool _isPrivate = false;
   String? _joinUrl;
-  bool _isLobby = true;
   bool _navigatedToQuestions = false;
   GameSessionController? _session;
-  // kept for potential future use to delay UI swaps until first realtime
-  // snapshot; currently unused but harmless
+  int _botsToInvite = 0;
+  DateTime? _createdAt;
+  int? _maxPlayers;
 
   @override
   void initState() {
@@ -59,10 +63,15 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
       setState(() {
         _isHost = snapshot.isHost;
         _isLobbyReady = snapshot.state == GameState.lobbyReady;
-        _isLobby = snapshot.state == GameState.lobbyNotReady ||
-            snapshot.state == GameState.lobbyReady;
-        _isPrivate = snapshot.isPrivate;
         _joinUrl = snapshot.joinUrl;
+        _createdAt = snapshot.createdAt;
+        _maxPlayers = snapshot.maxPlayers;
+        // Calculate how many bots can be invited
+        final int currentPlayerCount = snapshot.players.length;
+        final int maxPlayers =
+            snapshot.maxPlayers ?? 8; // Fallback for legacy games
+        final int remainingSpots = maxPlayers - currentPlayerCount;
+        _botsToInvite = min(3, max(0, remainingSpots));
         // Lobby: preserve natural order as provided by the snapshot
         _players = snapshot.players.values
             .map((p) => PlayerState(
@@ -145,6 +154,7 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
   @override
   void dispose() {
     _sub?.cancel();
+    widget.realtime.dispose();
     super.dispose();
   }
 
@@ -168,11 +178,47 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
       return;
     }
     try {
-      await Share.share(url, subject: 'Join my Fermi game');
+      if (kIsWeb) {
+        // Web: Copy to clipboard and show feedback
+        await Clipboard.setData(ClipboardData(text: url));
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invite link copied.')),
+        );
+      } else {
+        // Mobile: Use native share sheet
+        await Share.share(url, subject: 'Join my Fermi game');
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to copy invite link: $e')),
+      );
+    }
+  }
+
+  Future<void> _inviteBots() async {
+    if (_botsToInvite <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No bot slots available')),
+      );
+      return;
+    }
+    try {
+      // Request four Gemini bots (1 to 4)
+      await widget.api.addBots(
+        gameId: widget.gameId,
+        botIds: ['bot-gemini1', 'bot-gemini2', 'bot-gemini3', 'bot-gemini4'],
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invited 4 bots to the game')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to invite bots: $e')),
       );
     }
   }
@@ -194,13 +240,16 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
       data: themed,
       child: LobbyScreen(
         players: _players,
-        isWaiting: (!_isPrivate) && _isLobby,
         startEnabled: _isHost && _isLobbyReady,
         onStart: _startGame,
-        isPrivate: _isPrivate,
         joinUrl: _joinUrl,
-        onShare: _isPrivate ? _shareInvite : null,
+        onShare: _shareInvite,
         currentPlayerId: widget.realtime.currentPlayerId,
+        isHost: _isHost,
+        onInviteBots: _isHost ? _inviteBots : null,
+        botsToInvite: _botsToInvite,
+        createdAt: _createdAt,
+        maxPlayers: _maxPlayers,
         onLeave: () async {
           final appTheme = Theme.of(context).extension<AppTheme>() ??
               AppTheme.defaultTheme();
@@ -223,8 +272,12 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
                 return;
               }
               if (!mounted || !context.mounted) return;
-              Navigator.of(context)
-                  .pushNamedAndRemoveUntil('/main', (route) => false);
+              // First pop Navigator stack to clear any routes pushed via Navigator.push()
+              // This handles the case where lobby was opened from main_screen.dart
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              // Then use go_router to ensure we land on main screen
+              // This handles any go_router state and deep link entry
+              context.go('/main');
             },
           );
         },

@@ -10,8 +10,6 @@ from fermi_db.schemas import QuestionCategory, QuestionDifficulty
 from fermi_db.session import session_context
 from pydantic import BaseModel
 
-from app.config import ETLConfig
-
 logger = logging.getLogger(__name__)
 
 
@@ -20,18 +18,20 @@ class EnrichmentResult(BaseModel):
 
     enriched: int
     skipped: int
-    details: dict[str, Any]
+    details: dict[str, Any] | None = None
 
 
 async def enrich_categories(
     limit: int,
-    config: ETLConfig,
+    model: str = 'gpt-5-mini',
+    model_provider: str = 'openai',
 ) -> EnrichmentResult:
     """Enrich questions with categories using LLM classification.
 
     Args:
         limit: Maximum number of questions to enrich
-        config: Application configuration
+        model: Model for category classification
+        model_provider: Model provider
 
     Returns:
         EnrichmentResult with statistics
@@ -61,8 +61,10 @@ async def enrich_categories(
         # Batch categorize using langchain
         results = await acategorize_batch(
             questions=question_texts,
-            model=config.category_model,
-            model_provider=config.category_model_provider,
+            model=model,
+            model_provider=model_provider,
+            temperature=0.9,
+            # service_tier='flex',
         )
 
         # Process results and prepare updates
@@ -99,13 +101,15 @@ async def enrich_categories(
 
 async def enrich_difficulties(
     limit: int,
-    config: ETLConfig,
+    model: str = 'gpt-5-mini',
+    model_provider: str = 'openai',
 ) -> EnrichmentResult:
     """Enrich questions with difficulties using LLM classification.
 
     Args:
         limit: Maximum number of questions to enrich
-        config: Application configuration
+        model: Model for difficulty assessment
+        model_provider: Model provider
 
     Returns:
         EnrichmentResult with statistics
@@ -135,8 +139,10 @@ async def enrich_difficulties(
         # Batch assess difficulty using langchain
         results = await adifficulty_batch(
             questions=question_texts,
-            model=config.difficulty_model,
-            model_provider=config.difficulty_model_provider,
+            model=model,
+            model_provider=model_provider,
+            temperature=0.2,
+            # service_tier='flex',
         )
 
         # Process results and prepare updates
@@ -173,9 +179,13 @@ async def enrich_difficulties(
         )
 
 
-async def refresh_materialized_view() -> bool:
-    """Refresh the materialized view."""
+async def sync_fermi_table() -> int:
+    """Sync fermi table with newly enriched questions.
+
+    Returns:
+        Number of new questions inserted
+
+    """
     async with session_context() as session:
         db_client = DatabaseClient(session)
-        await db_client.enrichment.refresh_materialized_view()
-        return True
+        return await db_client.enrichment.sync_fermi_table()

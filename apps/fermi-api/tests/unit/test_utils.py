@@ -67,11 +67,3 @@ def test_get_request_categories_order_and_general_present() -> None:
     # Ordering and presence
     assert cats[0].name == RequestCategory.PLANET_EARTH
     assert cats[-1].name == RequestCategory.HUMANITY_BY_NUMBERS
-    # Picture is relative without Request
-    assert cats[0].picture.startswith('/static/categories/')
-
-
-def test_get_request_categories_builds_absolute_picture_with_request() -> None:
-    req = _make_request('http://example.com')
-    cats = utils.get_request_categories(req)
-    assert cats[0].picture.startswith('http://example.com/static/categories/')

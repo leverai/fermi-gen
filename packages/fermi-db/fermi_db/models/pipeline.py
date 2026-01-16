@@ -99,3 +99,29 @@ class SeedsUsage(SQLModel, table=True):
         default_factory=utcnow_naive,
         sa_column=sa.Column(sa.TIMESTAMP(timezone=False), index=True),
     )
+
+
+class LLMAnswer(SQLModel, table=True):
+    """LLM-generated answers for Fermi questions.
+
+    Stores answers from different LLM models:
+    - GPT models: gpt-5.1, gpt-5-mini, gpt-5-nano (smart, competitive bots)
+    - Gemini Flash: gemini-flash-1 through gemini-flash-5 (casual, high-temp bots)
+
+    This allows users to play against bots of varying skill levels.
+    """
+
+    __tablename__ = 'llm_answers'  # type: ignore
+
+    id: int | None = Field(default=None, primary_key=True)
+    question_id: int = Field(foreign_key='fermi_questions.id', index=True)
+    model: str = Field(
+        description='Model name: gpt-5.1, gpt-5-mini, gpt-5-nano',
+        index=True,
+    )
+    number: float = Field(description='Numeric estimate from LLM')
+    unit: str | None = Field(default=None, description='Unit or None for dimensionless')
+    created_at: datetime.datetime = Field(
+        default_factory=utcnow_naive,
+        sa_column=sa.Column(sa.TIMESTAMP(timezone=False)),
+    )

@@ -36,7 +36,7 @@ void main() {
         players: players,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       // PlayerWidgets are rendered (avatars are inside)
@@ -69,7 +69,7 @@ void main() {
         players: players,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       // PlayersRow is configured with showNameChip: true in LobbyScreen
@@ -78,7 +78,7 @@ void main() {
 
       // Tap a player to show name (names are initially hidden, shown on tap)
       await tester.tap(find.byType(PlayerWidget).first);
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // Name should now be visible
       expect(find.text('Alice'), findsOneWidget);
@@ -118,7 +118,7 @@ void main() {
         players: players,
         currentPlayerId: 'player_2', // Current player is NOT the host
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       // Find all PlayerRingProgress widgets
@@ -174,7 +174,7 @@ void main() {
         players: players,
         currentPlayerId: 'player_2', // Bob is the current player (self)
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       // Find all PlayerRingProgress widgets
@@ -225,7 +225,7 @@ void main() {
         players: players,
         currentPlayerId: 'player_1', // Current player IS the host
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       // Find all PlayerRingProgress widgets
@@ -272,7 +272,7 @@ void main() {
         players: players,
         currentPlayerId: 'player_1',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       // All players should have review ring state
@@ -319,7 +319,7 @@ void main() {
         players: players,
         currentPlayerId: 'player_2',
       );
-      await tester.pumpAndSettle();
+      await pumpLobbyFrames(tester);
 
       // ASSERT
       final ringWidgets = tester.widgetList<PlayerRingProgress>(

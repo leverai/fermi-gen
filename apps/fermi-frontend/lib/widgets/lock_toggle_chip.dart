@@ -46,34 +46,34 @@ class _LockToggleChipState extends State<LockToggleChip> {
           borderRadius: BorderRadius.circular(4),
         ),
         enableTapToDismiss: true,
-        onTriggered: () {
-          // Toggle when tooltip is triggered
-          widget.onToggle();
-        },
         textStyle: AppFont.primaryTextStyle(
           context,
           fontSize: 14,
           fontWeight: widget.isLocked ? FontWeight.w500 : FontWeight.w400,
           color: appTheme.textMuted,
         ).copyWith(letterSpacing: 0.8),
-        child: SizedBox(
-          width: 28,
-          height: 48,
-          child: Center(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              transitionBuilder: (child, animation) {
-                return ScaleTransition(
-                  scale: animation,
-                  child: child,
-                );
-              },
-              child: Icon(
-                icon,
-                key: ValueKey<bool>(widget.isLocked),
-                size: 36,
-                color: color,
-                weight: 100,
+        // Use GestureDetector for tap handling - Tooltip.onTriggered doesn't work on web
+        child: GestureDetector(
+          onTap: widget.onToggle,
+          child: SizedBox(
+            width: 28,
+            height: 48,
+            child: Center(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, animation) {
+                  return ScaleTransition(
+                    scale: animation,
+                    child: child,
+                  );
+                },
+                child: Icon(
+                  icon,
+                  key: ValueKey<bool>(widget.isLocked),
+                  size: 36,
+                  color: color,
+                  weight: 100,
+                ),
               ),
             ),
           ),

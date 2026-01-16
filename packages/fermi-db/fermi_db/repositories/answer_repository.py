@@ -1,21 +1,19 @@
-"""Repository for answer-related database operations."""
+"""Repository for answer-events-related database operations."""
 
 from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 
-from fermi_db.models import AnswerEvent, AnswersQuantiles, FermiAnswer, FermiQuestion
-from fermi_db.schemas import (
-    PlayerPercentile,
-    PlayerPercentileByCategory,
-    PlayerPercentileByCategoryAndDifficulty,
-    PlayerPercentileByDifficulty,
-    QuestionCategory,
-    QuestionDifficulty,
-)
+from fermi_db.models import AnswerEvent, AnswersQuantiles
+from fermi_db.schemas import GameMode
 
 from . import BaseRepository
+
+# Minimum sample size before trusting real quantiles.
+# Below this threshold, linear quantiles (0→1000) are returned to prevent
+# cold-start volatility where early accurate players skew the distribution.
+MIN_QUANTILE_SAMPLE_SIZE = 20
 
 
 class AnswerRepository(BaseRepository):
@@ -33,11 +31,16 @@ class AnswerRepository(BaseRepository):
         self,
         question_uid: UUID,
     ) -> AnswersQuantiles:
-        """Compute score quantiles live from answer_events for a question."""
+        """Compute score quantiles live from answer_events for a question.
+
+        Returns linear quantiles (0→1000) when sample count is below
+        MIN_QUANTILE_SAMPLE_SIZE to prevent cold-start volatility.
+        """
         score_col = cast(Any, AnswerEvent.score_number)
         question_col = cast(Any, AnswerEvent.question_uid)
 
         cols = [
+            func.count(score_col).label('cnt'),
             func.percentile_cont(0.01).within_group(score_col.asc()).label('p01'),
             func.percentile_cont(0.05).within_group(score_col.asc()).label('p05'),
             func.percentile_cont(0.10).within_group(score_col.asc()).label('p10'),
@@ -59,114 +62,100 @@ class AnswerRepository(BaseRepository):
             return AnswersQuantiles(question_uid=question_uid)
 
         m = row._mapping
+        sample_count = m['cnt'] or 0
+        sample_count = int(sample_count)
+
+        # Return linear quantiles for cold-start protection
+        if sample_count < MIN_QUANTILE_SAMPLE_SIZE:
+            return AnswersQuantiles.easy(question_uid)
+
         return AnswersQuantiles(
             question_uid=question_uid,
-            p01=float(m['p01']) if m['p01'] is not None else 0.0,
-            p05=float(m['p05']) if m['p05'] is not None else 0.0,
-            p10=float(m['p10']) if m['p10'] is not None else 0.0,
-            p25=float(m['p25']) if m['p25'] is not None else 0.0,
-            p50=float(m['p50']) if m['p50'] is not None else 0.0,
-            p60=float(m['p60']) if m['p60'] is not None else 0.0,
-            p75=float(m['p75']) if m['p75'] is not None else 0.0,
-            p80=float(m['p80']) if m['p80'] is not None else 0.0,
-            p85=float(m['p85']) if m['p85'] is not None else 0.0,
-            p90=float(m['p90']) if m['p90'] is not None else 0.0,
-            p95=float(m['p95']) if m['p95'] is not None else 0.0,
-            p99=float(m['p99']) if m['p99'] is not None else 0.0,
+            p01=m['p01'] or 0.0,
+            p05=m['p05'] or 0.0,
+            p10=m['p10'] or 0.0,
+            p25=m['p25'] or 0.0,
+            p50=m['p50'] or 0.0,
+            p60=m['p60'] or 0.0,
+            p75=m['p75'] or 0.0,
+            p80=m['p80'] or 0.0,
+            p85=m['p85'] or 0.0,
+            p90=m['p90'] or 0.0,
+            p95=m['p95'] or 0.0,
+            p99=m['p99'] or 0.0,
         )
 
-    async def get_ave_quantile(self, firebase_uid: str) -> PlayerPercentile:
-        """Fetch a user's average answer quantiles."""
-        query = text(
-            """
-            SELECT
-                question_category,
-                question_difficulty,
-                AVG(score_quantile) as avg_percentile
-            FROM
-                answer_events
-            WHERE
-                user_firebase_id = :user_firebase_id
-            GROUP BY
-                GROUPING SETS (
-                    (question_category, question_difficulty),
-                    (question_category),
-                    (question_difficulty),
-                    ()
-                )
-            """,
-        )
-        result = await self.session.execute(
-            query,
-            {'user_firebase_id': firebase_uid},
-        )
-
-        by_category_and_difficulty: list[PlayerPercentileByCategoryAndDifficulty] = []
-        by_category: list[PlayerPercentileByCategory] = []
-        by_difficulty: list[PlayerPercentileByDifficulty] = []
-        overall: int = 0
-
-        for row in result:
-            category, difficulty, avg_quantile = row
-            if category and difficulty:
-                by_category_and_difficulty.append(
-                    PlayerPercentileByCategoryAndDifficulty(
-                        category=QuestionCategory(category),
-                        difficulty=QuestionDifficulty(difficulty),
-                        avg_percentile=int(avg_quantile * 100),
-                    ),
-                )
-            elif category:
-                by_category.append(
-                    PlayerPercentileByCategory(
-                        category=QuestionCategory(category),
-                        avg_percentile=int(avg_quantile * 100),
-                    ),
-                )
-            elif difficulty:
-                by_difficulty.append(
-                    PlayerPercentileByDifficulty(
-                        difficulty=QuestionDifficulty(difficulty),
-                        avg_percentile=int(avg_quantile * 100),
-                    ),
-                )
-            else:
-                overall = int(avg_quantile * 100) if avg_quantile is not None else 0
-
-        return PlayerPercentile(
-            by_category_and_difficulty=by_category_and_difficulty,
-            by_category=by_category,
-            by_difficulty=by_difficulty,
-            overall=overall,
-        )
-
-    async def get_latest_unanswered_questions(
-        self,
-        limit: int,
-    ) -> list[int]:
-        """Get the latest N unanswered question IDs efficiently.
-
-        Uses a LEFT JOIN to find questions without any answer attempts.
-        Only returns questions that have never been attempted (no answer record
-        exists). Questions with failed attempts (success=False) are excluded
-        to avoid retrying. Questions are ordered by created_at DESC (newest first).
+    async def count_user_party_games(self, firebase_uid: str) -> int:
+        """Count the number of distinct party games a user has played.
 
         Args:
-            limit: Maximum number of question IDs to return
+            firebase_uid: The user's Firebase UID.
 
         Returns:
-            List of question IDs that have no answer attempts
+            The count of distinct game_id values for Party mode games.
 
         """
-        statement = (
-            select(FermiQuestion.id)  # type: ignore
-            .outerjoin(FermiAnswer, FermiQuestion.id == FermiAnswer.question_id)  # type: ignore
-            .where(FermiAnswer.id.is_(None))  # type: ignore
-            .order_by(FermiQuestion.created_at.desc())  # type: ignore
-            .limit(limit)
+        stmt = select(func.count(func.distinct(AnswerEvent.game_id))).where(
+            AnswerEvent.user_firebase_id == firebase_uid,  # pyright: ignore[reportArgumentType]
+            AnswerEvent.game_mode == GameMode.PARTY,
+        )
+        result = await self.session.execute(stmt)
+        count = result.scalar()
+        return int(count) if count is not None else 0
+
+    async def get_overall_avg_percentile(self, firebase_uid: str) -> int:
+        """Get user's overall percentile across all party games.
+
+        Computes the player's global percentile by comparing their average score
+        against all other players' average scores using percent_rank().
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+
+        Returns:
+            The percentile (0-100), or 0 if no games played.
+
+        """
+        # Subquery: compute average score per player
+        player_avgs = (
+            select(
+                AnswerEvent.user_firebase_id,
+                func.avg(AnswerEvent.score_number).label('avg_score'),
+            )
+            .group_by(AnswerEvent.user_firebase_id)
+            .subquery()
         )
 
+        # Use percent_rank() window function to compute percentile in one query
+        ranked = (
+            select(
+                player_avgs.c.user_firebase_id,
+                (
+                    func.percent_rank().over(order_by=player_avgs.c.avg_score) * 100
+                ).label('percentile'),
+            )
+            .select_from(player_avgs)
+            .subquery()
+        )
+
+        stmt = select(ranked.c.percentile).where(
+            ranked.c.user_firebase_id == firebase_uid,  # pyright: ignore[reportArgumentType]
+        )
+        result = await self.session.execute(stmt)
+        percentile = result.scalar()
+        return int(percentile) if percentile is not None else 100
+
+    async def get_user_answer_events(
+        self,
+        user_id: str,
+        limit: int,
+    ) -> list[AnswerEvent]:
+        """Get the latest N answer events for a user."""
+        statement = (
+            select(AnswerEvent)
+            .where(AnswerEvent.user_firebase_id == user_id)  # pyright: ignore[reportArgumentType]
+            .order_by(AnswerEvent.created_at.desc())
+            .limit(limit)
+        )
         result = await self.session.exec(statement)
-        # Extract IDs from Row objects (result.all() returns Rows, not raw integers)
-        rows = result.all()
-        return [row[0] for row in rows if row[0] is not None]
+        return result.all()

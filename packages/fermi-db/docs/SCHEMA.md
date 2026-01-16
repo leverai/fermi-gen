@@ -1,6 +1,6 @@
 # Fermi Database Schema
 
-This document describes the complete database schema for the Fermi Game project, including legacy tables, pipeline tables, game tables, and materialized views.
+This document describes the complete database schema for the Fermi Game project, including legacy tables, pipeline tables, and production tables.
 
 ## Table of Contents
 
@@ -9,7 +9,7 @@ This document describes the complete database schema for the Fermi Game project,
   - [Legacy Tables](#legacy-tables)
   - [Pipeline Tables](#pipeline-tables)
   - [Game Tables](#game-tables)
-- [Materialized Views](#materialized-views)
+  - [Production Table (fermi)](#tables)
 - [Indexes and Constraints](#indexes-and-constraints)
 - [Relationships and Foreign Keys](#relationships-and-foreign-keys)
 - [Vector Embeddings (pgvector)](#vector-embeddings-pgvector)
@@ -84,13 +84,15 @@ CREATE INDEX idx_user_history_user ON user_question_history(user_firebase_uid);
 CREATE INDEX idx_user_history_question ON user_question_history(question_uid);
 ```
 
-**Note:** `question_uid` references the `fermi` materialized view (not a foreign key due to materialized view limitations).
+**Note:** `question_uid` references the `fermi` table (now a regular table, not a materialized view).
 
 #### `answer_events`
 
 User answer submissions and scores.
 
 ```sql
+CREATE TYPE gamemode AS ENUM ('PARTY', 'SURVIVAL', 'DAILY_QUESTION');
+
 CREATE TABLE answer_events (
     id SERIAL PRIMARY KEY,
     user_firebase_uid TEXT NOT NULL,
@@ -100,22 +102,25 @@ CREATE TABLE answer_events (
     score FLOAT NOT NULL,
     percentile FLOAT,
     game_id TEXT,
+    game_mode gamemode,
     answered_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX idx_answer_events_user ON answer_events(user_firebase_uid);
 CREATE INDEX idx_answer_events_question ON answer_events(question_uid);
 CREATE INDEX idx_answer_events_game ON answer_events(game_id);
+CREATE INDEX idx_answer_events_game_mode ON answer_events(game_mode);
 ```
 
 **Fields:**
 - `user_firebase_uid`: Firebase user ID
-- `question_uid`: Question UUID (references `fermi` materialized view)
+- `question_uid`: Question UUID (references `fermi` table)
 - `answer_number`: Player's numeric answer
 - `answer_unit`: Player's selected unit
 - `score`: Score for this answer (0-100)
 - `percentile`: Player's percentile rank for this question
 - `game_id`: Associated game ID (optional)
+- `game_mode`: Game mode (PARTY, SURVIVAL, DAILY_QUESTION). Nullable for historical records.
 - `answered_at`: Timestamp of submission
 
 #### `questions_votes`
@@ -281,54 +286,259 @@ CREATE INDEX idx_seeds_usage_seed ON seeds_usage(seed_id);
 
 **Usage:** Thompson Sampling uses `yielded` (successes) and `requested - yielded` (failures) to compute Beta distribution parameters.
 
+---
+
+### Daily Question Tables
+
+These tables support the Daily Question game mode, where a single question is served to all users daily with synchronized timing and leaderboard functionality.
+
+#### `daily_questions`
+
+Tracks the daily question for each date with window times and status.
+
+```sql
+CREATE TYPE dailyquestionstatus AS ENUM ('SCHEDULED', 'ACTIVE', 'CLOSED');
+
+CREATE TABLE daily_questions (
+    id SERIAL PRIMARY KEY,
+    question_date DATE NOT NULL UNIQUE,
+    question_uid UUID NOT NULL REFERENCES fermi(uid),
+    status dailyquestionstatus NOT NULL DEFAULT 'SCHEDULED',
+    window_start TIMESTAMP NOT NULL,
+    window_end TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_daily_questions_question_date ON daily_questions(question_date);
+CREATE INDEX idx_daily_questions_status ON daily_questions(status);
+```
+
+**Fields:**
+- `question_date`: The date for this daily question (unique)
+- `question_uid`: Reference to the fermi question
+- `status`: Current status (SCHEDULED, ACTIVE, CLOSED)
+- `window_start`: When the DQ window opens (UTC)
+- `window_end`: When the DQ window closes (UTC, typically 8 PM Central)
+
+**Timing:**
+- Window: 8 AM - 8 PM US Central Time
+- All timestamps stored in UTC, converted at API layer
+- Status transitions: SCHEDULED → ACTIVE (at window_start) → CLOSED (after window_end + grace period)
+
+#### `daily_question_answers`
+
+Stores user answers for daily questions with scores and ranks.
+
+```sql
+CREATE TABLE daily_question_answers (
+    id SERIAL PRIMARY KEY,
+    daily_question_id INTEGER NOT NULL REFERENCES daily_questions(id),
+    user_firebase_uid TEXT NOT NULL,
+    answer_number FLOAT NOT NULL,
+    answer_unit TEXT,
+    score FLOAT NOT NULL,
+    started_at TIMESTAMP NOT NULL,
+    submitted_at TIMESTAMP NOT NULL,
+    time_taken_s FLOAT NOT NULL,
+    rank INTEGER,
+    UNIQUE(daily_question_id, user_firebase_uid)
+);
+
+CREATE INDEX idx_daily_question_answers_daily_question_id ON daily_question_answers(daily_question_id);
+CREATE INDEX idx_daily_question_answers_user_firebase_uid ON daily_question_answers(user_firebase_uid);
+CREATE INDEX idx_daily_question_answers_score ON daily_question_answers(score);
+```
+
+**Fields:**
+- `daily_question_id`: Reference to the daily question
+- `user_firebase_uid`: Firebase user ID
+- `answer_number`: User's numeric answer
+- `answer_unit`: User's selected unit (optional)
+- `score`: Computed score (0-100)
+- `started_at`: When user started the question (UTC)
+- `submitted_at`: When answer was submitted (UTC)
+- `time_taken_s`: Time taken to answer in seconds
+- `rank`: User's rank (populated after window closes)
+
+**Constraints:**
+- Unique constraint ensures one answer per user per daily question
+- `rank` is NULL until the window closes and ranks are computed
+
+**Deadlines:**
+- Answer Deadline (AD): `min(started_at + 30s, window_end)`
+- AD Grace Period: 5 seconds after AD
+- Question Deadline (QD) Grace Period: 20 seconds after window_end
+
+**Key Differences from Party Mode:**
+- Answers stored in `daily_question_answers`, NOT `answer_events`
+- Does NOT update `user_question_history`
+- Questions marked with `is_daily_question=true` in `fermi` table
+
+---
+
+### User Table
+
+#### `user`
+
+Stores registered users, profiles, and leveling data.
+
+```sql
+CREATE TABLE user (
+    id SERIAL PRIMARY KEY,
+    firebase_uid TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE,
+    display_name TEXT,
+    picture TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    locale TEXT DEFAULT 'US',
+    login_streak INTEGER DEFAULT 0,
+    last_login_at TIMESTAMP DEFAULT NOW(),
+    xp BIGINT DEFAULT 0
+);
+
+CREATE INDEX idx_user_firebase_uid ON user(firebase_uid);
+CREATE INDEX idx_user_email ON user(email);
+```
+
+**Fields:**
+- `id`: Internal user ID
+- `firebase_uid`: Firebase Authentication UID (unique identifier)
+- `email`: User's email address
+- `display_name`: User's display name
+- `picture`: URL to user's avatar/profile picture
+- `locale`: User's locale preference ('US' or 'EU')
+- `login_streak`: Consecutive days logged in
+- `last_login_at`: Last login timestamp
+- `xp`: Experience points for leveling system (BigInteger for overflow protection)
+
+**XP and Leveling:**
+- XP is incremented when players score in games: `xp_increment = score // 100`
+- Level is computed on-the-fly: `level = (xp // 100) + 1`
+- New users start at Level 1 with 0 XP
+
+---
+
+### Subscription Tables
+
+#### `subscriptions`
+
+Tracks user subscription status and history.
+
+```sql
+CREATE TYPE subscriptiontier AS ENUM ('FREE', 'PRO');
+CREATE TYPE subscriptionplatform AS ENUM ('APP_STORE', 'PLAY_STORE', 'STRIPE', 'PROMOTIONAL');
+
+CREATE TABLE subscriptions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+    revenuecat_user_id TEXT NOT NULL,
+    tier subscriptiontier NOT NULL DEFAULT 'FREE',
+    product_id TEXT,                          -- e.g., 'fermi_pro_lifetime', 'fermi_pro_monthly'
+    platform subscriptionplatform,
+    is_active BOOLEAN NOT NULL DEFAULT FALSE,
+    expires_at TIMESTAMP,                     -- NULL for lifetime
+    original_purchase_date TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id)
+);
+
+CREATE INDEX idx_subscriptions_user_id ON subscriptions(user_id);
+CREATE INDEX idx_subscriptions_revenuecat_user_id ON subscriptions(revenuecat_user_id);
+```
+
+**Fields:**
+- `id`: Internal subscription ID
+- `user_id`: Reference to user table (one subscription per user)
+- `revenuecat_user_id`: RevenueCat app user ID (typically matches Firebase UID)
+- `tier`: Subscription tier ('FREE' or 'PRO')
+- `product_id`: Product identifier from RevenueCat (e.g., 'fermi_pro_lifetime')
+- `platform`: Platform where subscription was purchased
+- `is_active`: Whether the subscription is currently active
+- `expires_at`: Expiration timestamp (NULL for lifetime subscriptions)
+- `original_purchase_date`: When the subscription was originally purchased
+- `created_at`: When the subscription record was created
+- `updated_at`: When the subscription record was last updated
+
+**Subscription Management:**
+- Subscriptions are synced from RevenueCat via webhook events
+- One subscription record per user (enforced by UNIQUE constraint)
+- Records are updated on purchase, renewal, cancellation, and expiration events
+- Lifetime subscriptions have `expires_at = NULL` and `is_active = TRUE`
+
+---
+
 ### Game Tables
 
 See Legacy Tables section for `user_question_history`, `answer_events`, and `questions_votes`.
 
 ---
 
-## Materialized Views
+## Tables
 
 ### `fermi`
 
-Unified view joining successfully answered questions with their answers. This is the primary view used by the API for game question selection.
+Unified table joining successfully answered questions with their answers. This replaces the previous materialized view and is used directly by the API. Includes LLM answers for bot players.
 
 ```sql
-CREATE MATERIALIZED VIEW fermi AS
-SELECT
-    gen_random_uuid() AS uid,  -- Generate deterministic UUID
-    q.id,
-    q.text,
-    q.category,
-    q.difficulty,
-    q.year,
-    a.number,
-    a.unit,
-    a.snippet,
-    a.paragraph,
-    a.references
-FROM fermi_questions q
-INNER JOIN fermi_answers a ON q.id = a.question_id
-WHERE a.success = TRUE;
+CREATE TABLE fermi (
+    uid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id INTEGER NOT NULL REFERENCES fermi_questions(id),
+    text TEXT NOT NULL,
+    category TEXT,
+    difficulty TEXT,
+    year INTEGER,
+    number FLOAT NOT NULL,
+    unit TEXT,
+    snippet TEXT,
+    paragraph TEXT,
+    references JSONB,
+    -- GPT bot answers (smart, competitive)
+    gpt_5_1_number FLOAT NOT NULL,
+    gpt_5_1_unit TEXT,
+    gpt_5_mini_number FLOAT NOT NULL,
+    gpt_5_mini_unit TEXT,
+    gpt_5_nano_number FLOAT NOT NULL,
+    gpt_5_nano_unit TEXT,
+    -- Gemini Flash bot answers (casual, high temperature)
+    gemini_flash_1_number FLOAT NOT NULL,
+    gemini_flash_1_unit TEXT,
+    gemini_flash_2_number FLOAT NOT NULL,
+    gemini_flash_2_unit TEXT,
+    gemini_flash_3_number FLOAT NOT NULL,
+    gemini_flash_3_unit TEXT,
+    gemini_flash_4_number FLOAT NOT NULL,
+    gemini_flash_4_unit TEXT,
+    gemini_flash_5_number FLOAT NOT NULL,
+    gemini_flash_5_unit TEXT,
+    status questionstatus NOT NULL DEFAULT 'PENDING_REVIEW',
+    CONSTRAINT fermi_success_chk CHECK (TRUE) -- placeholder for success condition
+);
 
 CREATE UNIQUE INDEX idx_fermi_uid ON fermi (uid);
 CREATE INDEX idx_fermi_id ON fermi (id);
 CREATE INDEX idx_fermi_category ON fermi (category);
 CREATE INDEX idx_fermi_difficulty ON fermi (difficulty);
+CREATE INDEX idx_fermi_status ON fermi (status);
 ```
 
 **Key Properties:**
-- Only includes questions with successful answers (`success=TRUE`)
-- Excludes failed answer attempts
-- Must be refreshed after enrichment: `REFRESH MATERIALIZED VIEW fermi;`
-- UUID generated deterministically using `gen_random_uuid()`
+- Regular table (no longer a materialized view)
+- Only includes questions with successful answers AND all 8 LLM answers
+- Populated by `sync_fermi_table()` after enrichment and LLM answering complete
+- UUID generated using `uuid_generate_v5()` based on question ID for stability
+- Supports foreign key constraints from other tables
 
-**Why not a regular view?**
-- Materialized for performance (no join overhead on each query)
-- Unique index on `uid` for foreign key references (not possible with regular views)
-- Manually refreshed after bulk operations
+**LLM Answer Columns:**
+- **GPT models** (`gpt_5_1_*`, `gpt_5_mini_*`, `gpt_5_nano_*`): Smart competitive bots
+- **Gemini Flash** (`gemini_flash_{1-5}_*`): Casual bots with high temperature (1.5) for varied/less accurate answers
 
-**Important:** PostgreSQL doesn't support foreign keys TO materialized views. Tables like `user_question_history`, `answer_events`, and `questions_votes` reference `fermi.uid` but without FK constraints.
+**Why a table instead of materialized view?**
+- Allows proper foreign key constraints from `user_question_history`, `answer_events`, and `questions_votes`
+- Simpler data management - no need for `REFRESH MATERIALIZED VIEW`
+- Better referential integrity
+- Rows are inserted directly by the ETL pipeline after successful enrichment
 
 ---
 
@@ -385,12 +595,12 @@ fermi_questions (1) ─────< (N) raw_questions (canonical_question_id)
 ### Game Relationships
 
 ```
-fermi (materialized view) ─────< (N) user_question_history (no FK)
-fermi (materialized view) ─────< (N) answer_events (no FK)
-fermi (materialized view) ─────< (N) questions_votes (no FK)
+fermi (table) ─────< (N) user_question_history (FK: question_uid)
+fermi (table) ─────< (N) answer_events (FK: question_uid)
+fermi (table) ─────< (N) questions_votes (FK: question_uid)
 ```
 
-**Note:** Foreign keys to materialized views are not supported in PostgreSQL. References to `fermi.uid` are enforced at the application level.
+**Note:** With `fermi` now a regular table, foreign key constraints can be properly defined to ensure referential integrity.
 
 ---
 
@@ -453,30 +663,23 @@ WITH (m = 16, ef_construction = 64);
 **Rationale:**
 - Legacy preserved for backward compatibility
 - New schema optimized for pipeline performance
-- Materialized view bridges the gap
+- `fermi` table bridges the gap
 
-### Why Materialized View Instead of Regular View?
+### Why Table Instead of Materialized View?
 
 **Benefits:**
-- Performance: No join overhead on each query
-- Indexing: Unique index on `uid` for efficient lookups
-- Consistency: Snapshot of data at refresh time
+- Supports foreign key constraints for referential integrity
+- Simpler data management (no manual refresh needed)
+- Direct INSERT operations from ETL pipeline
+- Better integration with application logic
 
 **Trade-offs:**
-- Manual refresh required after changes
-- Storage overhead (data duplicated)
-- Not real-time (must refresh to see updates)
+- Requires explicit INSERT operations (handled by `sync_fermi_table()`)
+- Storage overhead (data duplicated from `fermi_questions` + `fermi_answers`)
+- Must manage data consistency at application level
 
-### Why No Foreign Keys to Materialized View?
-
-**Limitation:** PostgreSQL doesn't support foreign keys TO materialized views.
-
-**Workaround:**
-- Application-level enforcement
-- Deterministic UUID generation for consistency
-- Regular data validation
-
-**Alternative Considered:** Convert to regular table with triggers, but materialized view refresh is simpler and more explicit.
+**Migration from Materialized View:**
+The `fermi` table replaced the previous materialized view in December 2025. The ETL pipeline now uses `sync_fermi_table()` to insert rows after successful enrichment, eliminating the need for `REFRESH MATERIALIZED VIEW` commands.
 
 ### Why Record Failed Answer Attempts?
 

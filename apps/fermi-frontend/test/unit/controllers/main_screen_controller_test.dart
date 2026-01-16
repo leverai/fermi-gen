@@ -11,10 +11,17 @@ class MockApiService extends Mock implements ApiService {}
 
 class MockAuthService extends Mock implements AuthService {}
 
+// Fallback values for mocktail
+class FakeLastRoundSettings extends Fake implements LastRoundSettings {}
+
 void main() {
   late MockApiService mockApi;
   late MockAuthService mockAuth;
   late MainScreenController controller;
+
+  setUpAll(() {
+    registerFallbackValue(FakeLastRoundSettings());
+  });
 
   setUp(() {
     mockApi = MockApiService();
@@ -48,13 +55,13 @@ void main() {
             index: 0,
             name: 'GENERAL',
             slug: 'General',
-            theme: {},
             picture: '',
           ),
         ],
         difficulties: [
           DifficultyInfo(name: 'EASY', slug: 'Easy', picture: ''),
         ],
+        ranks: [],
       );
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
 
@@ -70,28 +77,32 @@ void main() {
     test('should load player stats on initialize when user is authenticated',
         () async {
       // ARRANGE
-      const config = GameConfig(categories: [], difficulties: []);
+      const config = GameConfig(categories: [], difficulties: [], ranks: []);
       const stats = PlayerStatsResponse(
         playerId: 'player123',
-        playerQuantiles: PlayerQuantiles(
-          byCategoryAndDifficulty: [],
-          byCategory: [],
-          byDifficulty: [],
-          overall: 75.5,
+        stats: PlayerStats(
+          totalPartyGames: 10,
+          totalDailyGuesses: 5,
+          totalSurvivalRuns: 0,
+          averagePercentile: 75,
+          level: 1,
+          rank: RankInfo(
+            id: 1,
+            name: 'Observer',
+            picture: '',
+          ),
         ),
       );
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
       when(() => mockAuth.firebaseUid).thenReturn('player123');
-      when(() => mockApi.getPlayerStatsTyped(playerId: 'player123'))
-          .thenAnswer((_) async => stats);
+      when(() => mockApi.getPlayerStatsTyped()).thenAnswer((_) async => stats);
 
       // ACT
       await controller.initialize();
 
       // ASSERT
       expect(controller.playerStatsDto, equals(stats));
-      verify(() => mockApi.getPlayerStatsTyped(playerId: 'player123'))
-          .called(1);
+      verify(() => mockApi.getPlayerStatsTyped()).called(1);
     });
 
     test('should restore last round settings on initialize', () async {
@@ -102,18 +113,17 @@ void main() {
             index: 0,
             name: 'GENERAL',
             slug: 'General',
-            theme: {},
             picture: '',
           ),
         ],
         difficulties: [
           DifficultyInfo(name: 'EASY', slug: 'Easy', picture: ''),
         ],
+        ranks: [],
       );
       const lastRoundSettings = LastRoundSettings(
-        category: 'GENERAL',
+        categories: ['GENERAL'],
         difficulty: 'EASY',
-        isPrivate: true,
       );
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
       when(() => mockAuth.lastRoundSettings).thenReturn(lastRoundSettings);
@@ -122,9 +132,8 @@ void main() {
       await controller.initialize();
 
       // ASSERT
-      expect(controller.selectedCategoryIndex, 0);
+      expect(controller.selectedCategoryIndices.contains(0), true);
       expect(controller.selectedDifficulty, 'EASY');
-      expect(controller.isLocked, true);
     });
 
     test('should handle initialization errors gracefully', () async {
@@ -144,7 +153,7 @@ void main() {
 
     test('should set isLoading to false after initialization', () async {
       // ARRANGE
-      const config = GameConfig(categories: [], difficulties: []);
+      const config = GameConfig(categories: [], difficulties: [], ranks: []);
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
 
       // ACT
@@ -163,72 +172,75 @@ void main() {
             index: 0,
             name: 'GENERAL',
             slug: 'General',
-            theme: {},
             picture: '',
           ),
           CategoryInfo(
             index: 1,
             name: 'PHYSICS',
             slug: 'Physics',
-            theme: {},
             picture: '',
           ),
         ],
         difficulties: [],
+        ranks: [],
       );
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
       when(() => mockAuth.lastRoundSettings).thenReturn(null);
       await controller.initialize();
     });
 
-    test('should select category by index', () {
+    test('should select multiple categories by indices', () {
       // ACT
-      controller.selectCategoryIndex(1);
+      controller.selectCategoryIndices({0, 1});
 
       // ASSERT
-      expect(controller.selectedCategoryIndex, 1);
+      expect(controller.selectedCategoryIndices, {0, 1});
     });
 
-    test('should deselect category when index is null', () {
+    test('should deselect all categories when empty set', () {
       // ARRANGE
-      controller.selectCategoryIndex(0);
+      controller.selectCategoryIndices({0});
 
       // ACT
-      controller.selectCategoryIndex(null);
+      controller.selectCategoryIndices({});
 
       // ASSERT
-      expect(controller.selectedCategoryIndex, isNull);
+      expect(controller.selectedCategoryIndices, isEmpty);
     });
 
-    test('should compute currentCategoryBackendName correctly', () {
+    test(
+        'should compute currentCategoryBackendNames correctly for single selection',
+        () {
       // ARRANGE
-      controller.selectCategoryIndex(0);
+      controller.selectCategoryIndices({0});
 
       // ASSERT
-      expect(controller.currentCategoryBackendName, 'GENERAL');
+      expect(controller.currentCategoryBackendNames, ['GENERAL']);
     });
 
-    test('should compute currentCategorySlug correctly', () {
+    test('should compute currentCategorySlugs correctly for multiple selection',
+        () {
       // ARRANGE
-      controller.selectCategoryIndex(1);
+      controller.selectCategoryIndices({0, 1});
 
       // ASSERT
-      expect(controller.currentCategorySlug, 'Physics');
+      // All selected = null (no filter)
+      expect(controller.currentCategorySlugs, isNull);
     });
 
-    test('should return null when no category selected', () {
+    test('should return null when no categories selected', () {
       // ASSERT
-      expect(controller.currentCategoryBackendName, isNull);
-      expect(controller.currentCategorySlug, isNull);
+      expect(controller.currentCategoryBackendNames, isNull);
+      expect(controller.currentCategorySlugs, isNull);
     });
 
-    test('should clamp category index to valid range', () {
-      // ACT
-      controller.selectCategoryIndex(10); // Out of range
+    test('should return null when all categories selected', () {
+      // ACT - select all categories
+      controller.selectCategoryIndices({0, 1});
 
-      // ASSERT
-      expect(
-          controller.currentCategoryBackendName, 'PHYSICS'); // Clamped to last
+      // ASSERT - all selected means no filter
+      expect(controller.currentCategoryBackendNames, isNull);
+      expect(controller.currentCategorySlugs, isNull);
     });
   });
 
@@ -267,249 +279,6 @@ void main() {
     });
   });
 
-  group('Privacy Toggle', () {
-    test('should toggle lock state', () {
-      // ARRANGE
-      expect(controller.isLocked, false);
-
-      // ACT
-      controller.toggleLock();
-
-      // ASSERT
-      expect(controller.isLocked, true);
-
-      // ACT
-      controller.toggleLock();
-
-      // ASSERT
-      expect(controller.isLocked, false);
-    });
-
-    test('should notify listeners on toggle', () {
-      // ARRANGE
-      var notified = false;
-      controller.addListener(() {
-        notified = true;
-      });
-
-      // ACT
-      controller.toggleLock();
-
-      // ASSERT
-      expect(notified, true);
-    });
-  });
-
-  group('Percentile Calculation', () {
-    test('should return 0 when no stats available', () {
-      // ARRANGE
-      // No stats loaded
-
-      // ASSERT
-      expect(controller.resolvedPercentile, 0);
-    });
-
-    test(
-        'should return overall percentile when no category/difficulty selected',
-        () async {
-      // ARRANGE
-      const config = GameConfig(categories: [], difficulties: []);
-      const stats = PlayerStatsResponse(
-        playerId: 'player123',
-        playerQuantiles: PlayerQuantiles(
-          byCategoryAndDifficulty: [],
-          byCategory: [],
-          byDifficulty: [],
-          overall: 75.5,
-        ),
-      );
-      when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
-      when(() => mockAuth.firebaseUid).thenReturn('player123');
-      when(() => mockApi.getPlayerStatsTyped(playerId: 'player123'))
-          .thenAnswer((_) async => stats);
-      when(() => mockAuth.lastRoundSettings).thenReturn(null);
-      await controller.initialize();
-
-      // ASSERT
-      expect(controller.resolvedPercentile, 76); // Rounded
-    });
-
-    test('should return difficulty percentile when only difficulty selected',
-        () async {
-      // ARRANGE
-      const config = GameConfig(categories: [], difficulties: []);
-      const stats = PlayerStatsResponse(
-        playerId: 'player123',
-        playerQuantiles: PlayerQuantiles(
-          byCategoryAndDifficulty: [],
-          byCategory: [],
-          byDifficulty: [
-            DifficultyQuantile(
-              difficulty: 'EASY',
-              avgQuantile: null,
-              avgPercentile: 80.3,
-            ),
-          ],
-          overall: 75.5,
-        ),
-      );
-      when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
-      when(() => mockAuth.firebaseUid).thenReturn('player123');
-      when(() => mockApi.getPlayerStatsTyped(playerId: 'player123'))
-          .thenAnswer((_) async => stats);
-      when(() => mockAuth.lastRoundSettings).thenReturn(null);
-      await controller.initialize();
-      controller.selectDifficulty('EASY');
-
-      // ASSERT
-      expect(controller.resolvedPercentile, 80); // Rounded
-    });
-
-    test('should return category percentile when only category selected',
-        () async {
-      // ARRANGE
-      const config = GameConfig(
-        categories: [
-          CategoryInfo(
-            index: 0,
-            name: 'GENERAL',
-            slug: 'General',
-            theme: {},
-            picture: '',
-          ),
-        ],
-        difficulties: [],
-      );
-      const stats = PlayerStatsResponse(
-        playerId: 'player123',
-        playerQuantiles: PlayerQuantiles(
-          byCategoryAndDifficulty: [],
-          byCategory: [
-            CategoryQuantile(
-              category: 'GENERAL',
-              avgQuantile: null,
-              avgPercentile: 85.7,
-            ),
-          ],
-          byDifficulty: [],
-          overall: 75.5,
-        ),
-      );
-      when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
-      when(() => mockAuth.firebaseUid).thenReturn('player123');
-      when(() => mockApi.getPlayerStatsTyped(playerId: 'player123'))
-          .thenAnswer((_) async => stats);
-      when(() => mockAuth.lastRoundSettings).thenReturn(null);
-      await controller.initialize();
-      controller.selectCategoryIndex(0);
-
-      // ASSERT
-      expect(controller.resolvedPercentile, 86); // Rounded
-    });
-
-    test('should return category+difficulty percentile when both selected',
-        () async {
-      // ARRANGE
-      const config = GameConfig(
-        categories: [
-          CategoryInfo(
-            index: 0,
-            name: 'GENERAL',
-            slug: 'General',
-            theme: {},
-            picture: '',
-          ),
-        ],
-        difficulties: [],
-      );
-      const stats = PlayerStatsResponse(
-        playerId: 'player123',
-        playerQuantiles: PlayerQuantiles(
-          byCategoryAndDifficulty: [
-            CategoryDifficultyQuantile(
-              category: 'GENERAL',
-              difficulty: 'EASY',
-              avgQuantile: null,
-              avgPercentile: 90.2,
-            ),
-          ],
-          byCategory: [],
-          byDifficulty: [],
-          overall: 75.5,
-        ),
-      );
-      when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
-      when(() => mockAuth.firebaseUid).thenReturn('player123');
-      when(() => mockApi.getPlayerStatsTyped(playerId: 'player123'))
-          .thenAnswer((_) async => stats);
-      when(() => mockAuth.lastRoundSettings).thenReturn(null);
-      await controller.initialize();
-      controller.selectCategoryIndex(0);
-      controller.selectDifficulty('EASY');
-
-      // ASSERT
-      expect(controller.resolvedPercentile, 90); // Rounded
-    });
-
-    test('should clamp percentile to 0-100 range', () async {
-      // ARRANGE
-      const config = GameConfig(categories: [], difficulties: []);
-      const stats = PlayerStatsResponse(
-        playerId: 'player123',
-        playerQuantiles: PlayerQuantiles(
-          byCategoryAndDifficulty: [],
-          byCategory: [],
-          byDifficulty: [],
-          overall: 150.0, // Out of range
-        ),
-      );
-      when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
-      when(() => mockAuth.firebaseUid).thenReturn('player123');
-      when(() => mockApi.getPlayerStatsTyped(playerId: 'player123'))
-          .thenAnswer((_) async => stats);
-      when(() => mockAuth.lastRoundSettings).thenReturn(null);
-      await controller.initialize();
-
-      // ASSERT
-      expect(controller.resolvedPercentile, 100); // Clamped
-    });
-
-    test('should handle missing stats gracefully', () async {
-      // ARRANGE
-      const config = GameConfig(
-        categories: [
-          CategoryInfo(
-            index: 0,
-            name: 'GENERAL',
-            slug: 'General',
-            theme: {},
-            picture: '',
-          ),
-        ],
-        difficulties: [],
-      );
-      const stats = PlayerStatsResponse(
-        playerId: 'player123',
-        playerQuantiles: PlayerQuantiles(
-          byCategoryAndDifficulty: [],
-          byCategory: [], // No stats for GENERAL
-          byDifficulty: [],
-          overall: 75.5,
-        ),
-      );
-      when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
-      when(() => mockAuth.firebaseUid).thenReturn('player123');
-      when(() => mockApi.getPlayerStatsTyped(playerId: 'player123'))
-          .thenAnswer((_) async => stats);
-      when(() => mockAuth.lastRoundSettings).thenReturn(null);
-      await controller.initialize();
-      controller.selectCategoryIndex(0);
-
-      // ASSERT
-      expect(controller.resolvedPercentile, 0); // Returns 0 when no stats found
-    });
-  });
-
   group('Game Creation', () {
     setUp(() async {
       const config = GameConfig(
@@ -518,27 +287,28 @@ void main() {
             index: 0,
             name: 'GENERAL',
             slug: 'General',
-            theme: {},
             picture: '',
           ),
         ],
         difficulties: [
           DifficultyInfo(name: 'EASY', slug: 'Easy', picture: ''),
         ],
+        ranks: [],
       );
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
       when(() => mockAuth.lastRoundSettings).thenReturn(null);
+      // Allow the setter to be called with any value
+      when(() => mockAuth.lastRoundSettings = any()).thenReturn(null);
       await controller.initialize();
-      controller.selectCategoryIndex(0);
+      controller.selectCategoryIndices({0});
       controller.selectDifficulty('EASY');
-      controller.isLocked = true;
     });
 
-    test('should create private game with selected settings', () async {
+    test('should create game with selected settings', () async {
       // ARRANGE
+      // Note: When all categories are selected (1 of 1), currentCategoryBackendNames returns null
       when(() => mockApi.createGame(
-            isPrivate: true,
-            category: 'GENERAL',
+            categories: null,
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async => 'game123');
@@ -549,31 +319,7 @@ void main() {
       // ASSERT
       expect(gameId, 'game123');
       verify(() => mockApi.createGame(
-            isPrivate: true,
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).called(1);
-    });
-
-    test('should create public game with selected settings', () async {
-      // ARRANGE
-      controller.isLocked = false;
-      when(() => mockApi.createGame(
-            isPrivate: false,
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).thenAnswer((_) async => 'game456');
-
-      // ACT
-      final gameId = await controller.createGame();
-
-      // ASSERT
-      expect(gameId, 'game456');
-      verify(() => mockApi.createGame(
-            isPrivate: false,
-            category: 'GENERAL',
+            categories: null,
             difficulty: 'EASY',
             nQuestions: 6,
           )).called(1);
@@ -582,8 +328,7 @@ void main() {
     test('should persist last round settings after creation', () async {
       // ARRANGE
       when(() => mockApi.createGame(
-            isPrivate: true,
-            category: 'GENERAL',
+            categories: null,
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async => 'game123');
@@ -592,19 +337,17 @@ void main() {
       await controller.createGame();
 
       // ASSERT
+      // When all categories are selected, lastRoundSettings.categories is null
       verify(() => mockAuth.lastRoundSettings = any(
-            that: predicate<LastRoundSettings>((lrs) =>
-                lrs.category == 'GENERAL' &&
-                lrs.difficulty == 'EASY' &&
-                lrs.isPrivate == true),
+            that: predicate<LastRoundSettings>(
+                (lrs) => lrs.categories == null && lrs.difficulty == 'EASY'),
           )).called(1);
     });
 
     test('should set isSubmitting during creation', () async {
       // ARRANGE
       when(() => mockApi.createGame(
-            isPrivate: true,
-            category: 'GENERAL',
+            categories: null,
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async {
@@ -626,8 +369,7 @@ void main() {
       // ARRANGE
       final error = Exception('Failed to create game');
       when(() => mockApi.createGame(
-            isPrivate: true,
-            category: 'GENERAL',
+            categories: null,
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async => throw error);
@@ -649,137 +391,13 @@ void main() {
       // ARRANGE
       controller.errorMessage = 'Previous error';
       when(() => mockApi.createGame(
-            isPrivate: true,
-            category: 'GENERAL',
+            categories: null,
             difficulty: 'EASY',
             nQuestions: 6,
           )).thenAnswer((_) async => 'game123');
 
       // ACT
       await controller.createGame();
-
-      // ASSERT
-      expect(controller.errorMessage, isNull);
-    });
-  });
-
-  group('Join Random Game', () {
-    setUp(() async {
-      const config = GameConfig(
-        categories: [
-          CategoryInfo(
-            index: 0,
-            name: 'GENERAL',
-            slug: 'General',
-            theme: {},
-            picture: '',
-          ),
-        ],
-        difficulties: [
-          DifficultyInfo(name: 'EASY', slug: 'Easy', picture: ''),
-        ],
-      );
-      when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
-      when(() => mockAuth.lastRoundSettings).thenReturn(null);
-      await controller.initialize();
-      controller.selectCategoryIndex(0);
-      controller.selectDifficulty('EASY');
-    });
-
-    test('should join random game with selected settings', () async {
-      // ARRANGE
-      when(() => mockApi.joinRandomGame(
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).thenAnswer((_) async => 'game789');
-
-      // ACT
-      final gameId = await controller.joinRandomGame();
-
-      // ASSERT
-      expect(gameId, 'game789');
-      verify(() => mockApi.joinRandomGame(
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).called(1);
-    });
-
-    test('should persist last round settings after join', () async {
-      // ARRANGE
-      when(() => mockApi.joinRandomGame(
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).thenAnswer((_) async => 'game789');
-
-      // ACT
-      await controller.joinRandomGame();
-
-      // ASSERT
-      verify(() => mockAuth.lastRoundSettings = any(
-            that: predicate<LastRoundSettings>((lrs) =>
-                lrs.category == 'GENERAL' &&
-                lrs.difficulty == 'EASY' &&
-                lrs.isPrivate == false), // Public game
-          )).called(1);
-    });
-
-    test('should set isSubmitting during join', () async {
-      // ARRANGE
-      when(() => mockApi.joinRandomGame(
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).thenAnswer((_) async {
-        // Simulate async delay
-        await Future.delayed(const Duration(milliseconds: 10));
-        return 'game789';
-      });
-
-      // ACT
-      final future = controller.joinRandomGame();
-
-      // ASSERT
-      expect(controller.isSubmitting, true);
-      await future;
-      expect(controller.isSubmitting, false);
-    });
-
-    test('should handle join errors', () async {
-      // ARRANGE
-      final error = Exception('Failed to join game');
-      when(() => mockApi.joinRandomGame(
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).thenAnswer((_) async => throw error);
-
-      // ACT
-      try {
-        await controller.joinRandomGame();
-        fail('Expected exception');
-      } catch (e) {
-        // Expected
-      }
-
-      // ASSERT
-      expect(controller.errorMessage, isNotNull);
-      expect(controller.isSubmitting, false);
-    });
-
-    test('should clear error message on success', () async {
-      // ARRANGE
-      controller.errorMessage = 'Previous error';
-      when(() => mockApi.joinRandomGame(
-            category: 'GENERAL',
-            difficulty: 'EASY',
-            nQuestions: 6,
-          )).thenAnswer((_) async => 'game789');
-
-      // ACT
-      await controller.joinRandomGame();
 
       // ASSERT
       expect(controller.errorMessage, isNull);
@@ -793,7 +411,7 @@ void main() {
     // For unit tests, we verify that the method exists and can be called.
 
     setUp(() async {
-      const config = GameConfig(categories: [], difficulties: []);
+      const config = GameConfig(categories: [], difficulties: [], ranks: []);
       when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => config);
       when(() => mockAuth.lastRoundSettings).thenReturn(null);
       await controller.initialize();

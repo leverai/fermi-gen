@@ -9,7 +9,9 @@ case returns a minimal flag to allow callers to schedule post-commit actions.
 from typing import TYPE_CHECKING, TypedDict, cast
 
 from fastapi import HTTPException, status
+from opentelemetry import trace
 
+import app.logging.attributes as attrs
 from app.schemas.game import AnswersProgress, GamePlayer, GameState
 from app.services.game.errors import NotFoundError, StateConflictError
 from app.services.game.repositories.game_repo import GameRepository
@@ -27,6 +29,7 @@ if TYPE_CHECKING:
         GamePlayersAnswersWriter,
     )
     from app.services.game.writers.players_writer import GamePlayersWriter
+    from app.services.game.writers.questions_writer import GameQuestionsWriter
 
 
 class SubmitAnswerResult(TypedDict):
@@ -48,6 +51,7 @@ class SubmitAnswerUseCase:
         lifecycle: 'GameLifecycleWriter',
         players_answers: 'GamePlayersAnswersWriter',
         players: 'GamePlayersWriter',
+        questions: 'GameQuestionsWriter',
     ) -> None:
         """Initialize the use case with required collaborators."""
         self._client = firestore_client
@@ -56,6 +60,7 @@ class SubmitAnswerUseCase:
         self._lifecycle = lifecycle
         self._players_answers = players_answers
         self._players = players
+        self._questions = questions
 
     async def execute(
         self,
@@ -80,7 +85,14 @@ class SubmitAnswerUseCase:
                     detail='Game not found',
                 )
 
+            # Set OTel attributes after successful read
+            span = trace.get_current_span()
+            state = GameState(int(data['state']))
+            span.set_attribute(attrs.GAME_STATE, state.name)
+            players = cast(dict[str, GamePlayer], data.get('players', {}))
+            span.set_attribute(attrs.GAME_PLAYER_COUNT, len(players))
             question_uid = cast(str, data['question_uid'])
+            span.set_attribute(attrs.GAME_QUESTION_UID, question_uid)
             correct_answer_doc = await self._repo.get_correct_answer(
                 game_ref=game_ref,
                 question_uid=question_uid,
@@ -96,7 +108,7 @@ class SubmitAnswerUseCase:
 
             # Now perform writes
             try:
-                result = self._players_answers.submit_answer(
+                submit_result = self._players_answers.submit_answer(
                     game_ref=game_ref,
                     writer=tx,
                     player_id=player_id,
@@ -105,7 +117,9 @@ class SubmitAnswerUseCase:
                     correct_answer_doc=correct_answer_doc,
                     progress=cast(AnswersProgress, data['progress']),
                 )
-                all_answered, current_player_score = result
+                all_answered, current_player_score, current_player_result = (
+                    submit_result
+                )
             except NotFoundError as err:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -117,13 +131,12 @@ class SubmitAnswerUseCase:
                     detail=str(err),
                 ) from err
 
-            state = GameState(int(data['state']))
             next_state = state
             if all_answered:
                 # Combine previously submitted scores with current player's score
                 question_scores: dict[str, float] = {
-                    pid: result['score']['number']
-                    for pid, result in players_results_doc['players_results'].items()
+                    pid: pr['score']['number']
+                    for pid, pr in players_results_doc['players_results'].items()
                 }
                 question_scores[player_id] = current_player_score
 
@@ -149,6 +162,15 @@ class SubmitAnswerUseCase:
 
                 try:
                     self._players_answers.reveal_players_results(
+                        game_ref=game_ref,
+                        writer=tx,
+                        question_uid=question_uid,
+                        players_results_doc=players_results_doc,
+                        current_player_id=player_id,
+                        current_player_result=current_player_result,
+                    )
+                    # Also reveal the answer document to enable answer walkthrough
+                    self._questions.reveal_answer(
                         game_ref=game_ref,
                         writer=tx,
                         question_uid=question_uid,

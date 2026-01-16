@@ -22,7 +22,7 @@ class QuestionPaneBindings {
   });
 
   void listen({
-    required void Function(AnswerValue correct) onReveal,
+    required void Function(AnswerValue correct, String? paragraph) onReveal,
     required void Function(PlayersAnswersSnapshot snapshot) onPlayersAnswers,
     void Function(RevealedQuestion q)? onQuestion,
     void Function(Object error, StackTrace st)? onError,
@@ -37,7 +37,7 @@ class QuestionPaneBindings {
     _revealSub =
         realtime.revealsForQuestion(gameId, index).listen((RevealPayload p) {
       qlog('[bindings] reveal onData index=$index');
-      onReveal(p.correct);
+      onReveal(p.correct, p.paragraph);
     }, onError: (Object e, StackTrace st) {
       qlog('[bindings] reveal onError index=$index e=$e');
       if (onError != null) onError(e, st);
@@ -47,7 +47,15 @@ class QuestionPaneBindings {
         realtime.playersAnswersForQuestion(gameId, index).listen((snapshot) {
       qlog(
           '[bindings] players_results onData index=$index submitted=${snapshot.submitted.length}');
-      onPlayersAnswers(snapshot);
+      qlog('[bindings] About to call onPlayersAnswers callback');
+      try {
+        onPlayersAnswers(snapshot);
+        qlog('[bindings] onPlayersAnswers callback completed successfully');
+      } catch (e, st) {
+        qlog('[bindings] ⚠️ EXCEPTION in onPlayersAnswers callback: $e');
+        qlog('[bindings] Stack trace: $st');
+        rethrow;
+      }
     }, onError: (Object e, StackTrace st) {
       qlog('[bindings] players_results onError index=$index e=$e');
       if (onError != null) onError(e, st);

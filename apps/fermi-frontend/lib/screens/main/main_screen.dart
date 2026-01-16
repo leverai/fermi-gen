@@ -1,81 +1,131 @@
-import 'package:fermi_frontend/widgets/vertical_percentile_text.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/screens/lobby/lobby_screen_controller.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
-import 'package:fermi_frontend/screens/main/widgets/top_bar_lock_avatar.dart';
-import 'package:fermi_frontend/screens/main/widgets/primary_cta.dart';
+import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/config/app_config.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
-import 'package:fermi_frontend/widgets/selector_widget.dart';
-import 'package:fermi_frontend/widgets/lock_toggle_chip.dart';
-import 'package:fermi_frontend/widgets/categories/category_carousel_m3.dart';
+import 'package:fermi_frontend/screens/main/widgets/settings_sheet.dart';
+import 'package:fermi_frontend/widgets/styled_dialog.dart';
+import 'package:fermi_frontend/widgets/avatar_widget.dart';
+import 'package:fermi_frontend/screens/paywall_screen.dart';
+import 'package:fermi_frontend/services/subscription_service.dart';
+import 'package:fermi_frontend/providers/subscription_provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+import 'package:provider/provider.dart';
+import 'package:fermi_frontend/services/daily_question_service.dart';
+import 'package:fermi_frontend/controllers/daily_question_controller.dart';
+import 'package:fermi_frontend/screens/main/widgets/me_tab.dart';
+import 'package:fermi_frontend/screens/main/widgets/games_tab.dart';
+import 'package:fermi_frontend/screens/main/widgets/party_bottom_sheet.dart';
+import 'package:fermi_frontend/screens/main/widgets/profile_sheet.dart';
+import 'package:fermi_frontend/screens/main/ranks/ranks_screen.dart';
+
+import 'package:fermi_frontend/widgets/responsive_container.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({
     super.key,
     required this.apiService,
     required this.authService,
+    this.preloadService,
+    required this.dailyQuestionService,
   });
 
   final ApiService apiService;
   final AuthService authService;
+  final PreloadService? preloadService;
+  final DailyQuestionService dailyQuestionService;
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late final MainScreenController _controller;
+
+  DateTime? _lastResumeTime;
+  int _currentIndex = 0; // 0 = Games, 1 = Me
+  late final PageController _pageController;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = MainScreenController(
       api: widget.apiService,
       auth: widget.authService,
     );
-    // Fire and forget; UI reacts via ChangeNotifier
-    _controller.initialize();
+    _controller.initialize(
+      preloadedConfig: widget.preloadService?.cachedConfig,
+      preloadedUserLimits: widget.preloadService?.cachedUserLimits,
+      preloadedStats: widget.preloadService?.cachedStats,
+    );
+    _pageController = PageController(initialPage: _currentIndex);
+
+    // Trigger DQ load after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
+      }
+    });
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (widget.authService.shouldRefreshStats) {
-      widget.authService.shouldRefreshStats = false;
-      _controller.initialize();
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      final now = DateTime.now();
+      if (_lastResumeTime == null ||
+          now.difference(_lastResumeTime!).inSeconds > 2) {
+        _lastResumeTime = now;
+        _controller.refreshInBackground();
+      }
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
-  List<CategoryItemM3> _categories() {
-    final cfg = _controller.configDto;
-    if (cfg == null) return const <CategoryItemM3>[];
-    return cfg.categories
-        .map((c) => CategoryItemM3(
-              id: c.index.toString(),
-              title: c.slug,
-              svgPath: c.picture,
-            ))
-        .toList(growable: false);
+  // --------------------------------------------------------------------------
+  // Navigation Handlers
+  // --------------------------------------------------------------------------
+
+  void _onBottomNavTapped(int index) {
+    setState(() => _currentIndex = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+    // Force refresh stats when user explicitly taps Me Tab
+    // (bypasses debounce since this is an intentional user action)
+    if (index == 1) {
+      _controller.refreshInBackground(force: true);
+    }
   }
+
+  void _onPageChanged(int index) {
+    setState(() => _currentIndex = index);
+  }
+
+  // --------------------------------------------------------------------------
+  // Game Action Handlers
+  // --------------------------------------------------------------------------
 
   Future<void> _onPrimaryAction() async {
     try {
-      if (_controller.isLocked) {
-        await _createGame();
-      } else {
-        await _joinRandomGame();
-      }
+      await _createGame();
     } catch (_) {
       // errors surfaced elsewhere
     }
@@ -86,7 +136,8 @@ class _MainScreenState extends State<MainScreen> {
       final String gameId = await _controller.createGame(
           nQuestions: AppConfig.defaultQuestionCount);
       if (!mounted) return;
-      Navigator.of(context).push(
+      Navigator.of(context)
+          .push(
         PageRouteBuilder(
           pageBuilder: (_, __, ___) => LobbyScreenController(
             gameId: gameId,
@@ -116,7 +167,15 @@ class _MainScreenState extends State<MainScreen> {
             );
           },
         ),
-      );
+      )
+          .then((_) {
+        // Refresh stats and user limits when returning from Party game
+        // (stats and hosting count may have changed)
+        if (mounted) {
+          _controller.refreshInBackground(force: true);
+          context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
+        }
+      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
@@ -124,296 +183,342 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  Future<void> _joinRandomGame() async {
-    try {
-      final String gameId = await _controller.joinRandomGame(
-          nQuestions: AppConfig.defaultQuestionCount);
-      if (!mounted) return;
-      Navigator.of(context).push(
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => LobbyScreenController(
-            gameId: gameId,
-            realtime: _controller.buildRealtimeAdapter(),
-            api: widget.apiService,
-          ),
-          transitionDuration: const Duration(milliseconds: 300),
-          reverseTransitionDuration: const Duration(milliseconds: 300),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1.0, 0.0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeInOut,
-              )),
-              child: child,
-            );
+  // --------------------------------------------------------------------------
+  // Settings Handlers
+  // --------------------------------------------------------------------------
+
+  void _toggleSettings() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SettingsSheet(
+        onSignOut: _handleSignOut,
+        onDeleteAccount: _handleDeleteAccount,
+        isAnonymous: widget.authService.isAnonymous,
+        onCreateAccount: _handleCreateAccount,
+        email: widget.authService.currentUser?.email,
+        currentLocale: widget.authService.locale,
+        onLocaleChanged: _handleLocaleChanged,
+        subscriptionTier:
+            widget.authService.currentUser?.subscriptionTier ?? 'FREE',
+        onUpgradeSubscription: _handleUpgradeSubscription,
+      ),
+    );
+  }
+
+  void _handleUpgradeSubscription() {
+    final subscriptionService = context.read<SubscriptionService>();
+    Navigator.of(context)
+        .push(
+      MaterialPageRoute(
+        builder: (_) => PaywallScreen(
+          subscriptionService: subscriptionService,
+          isAnonymous: widget.authService.isAnonymous,
+          onAuthRequired: () {
+            Navigator.of(context).pop(); // Close paywall
+            context.push('/upgrade-account');
           },
         ),
-      );
+      ),
+    )
+        .then((purchased) async {
+      if (purchased == true && mounted) {
+        // Refresh subscription state after successful purchase
+        context.read<SubscriptionProvider>().refresh();
+        // Refresh auth token to update subscriptionTier for settings sheet
+        await widget.authService.refreshAccessToken();
+        // Refresh controller to update user limits for party card
+        _controller.refreshInBackground(force: true);
+        setState(() {});
+      }
+    });
+  }
+
+  Future<void> _handleLocaleChanged(String newLocale) async {
+    try {
+      await widget.apiService.setUserLocale(locale: newLocale);
+      if (mounted) setState(() {});
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update locale: $e')),
+        );
+      }
     }
   }
+
+  Future<void> _handleSignOut() async {
+    // Clear preload cache to prevent stale stats for next user
+    widget.preloadService?.clearCache();
+    await widget.authService.signOut();
+    if (!mounted) return;
+    context.go('/sign-in');
+  }
+
+  void _handleCreateAccount() {
+    context.push('/upgrade-account');
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    if (widget.authService.isAnonymous) return;
+
+    final AppTheme appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => StyledDialog(
+        message: 'Delete Account?',
+        secondaryMessage: 'This action cannot be undone.',
+        primaryButtonLabel: 'Delete',
+        primaryButtonColor: appTheme.danger,
+        onPrimaryPressed: () => Navigator.of(context).pop(true),
+        secondaryButtonLabel: 'Cancel',
+        onSecondaryPressed: () => Navigator.of(context).pop(false),
+        showAsDialog: true,
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        // Clear preload cache to prevent stale stats for next user
+        widget.preloadService?.clearCache();
+        await widget.authService.deleteAccount();
+        if (!mounted) return;
+        context.go('/sign-in');
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting account: $e')),
+        );
+      }
+    }
+  }
+
+  void _handleEditProfile() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ProfileSheet(
+        apiService: widget.apiService,
+        currentDisplayName: widget.authService.currentUser?.displayName,
+        currentAvatarUrl: widget.authService.currentUser?.picture,
+        onSave: (displayName, avatarUrl) async {
+          // Refresh user data to update the UI
+          await widget.authService.refreshAccessToken();
+          if (mounted) setState(() {});
+        },
+      ),
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // Build Helpers
+  // --------------------------------------------------------------------------
+
+  Widget _buildMeIcon(AppTheme appTheme) {
+    final user = widget.authService.currentUser;
+    if (user?.picture == null) {
+      return const Icon(Icons.person);
+    }
+
+    return AvatarWidget(
+      imageUrl: user!.picture,
+      size: 24,
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // Build Method
+  // --------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        final items = _categories();
-        final AppTheme appTheme =
-            Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: _controller),
+      ],
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          final AppTheme appTheme = Theme.of(context).extension<AppTheme>() ??
+              AppTheme.defaultTheme();
 
-        final ThemeData themed = Theme.of(context).copyWith(
-          scaffoldBackgroundColor: appTheme.bgDark,
-          appBarTheme: AppBarTheme(
-            backgroundColor: appTheme.bgDark,
-            foregroundColor: appTheme.text,
-            elevation: 0,
-          ),
-          extensions: <ThemeExtension<dynamic>>[
-            const AppFont(), // Use default fonts (Barlow & Jura)
-            appTheme,
-          ],
-        );
-
-        if (_controller.isLoading) {
-          return Theme(
-            data: themed,
-            child: const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
+          final ThemeData themed = Theme.of(context).copyWith(
+            scaffoldBackgroundColor: appTheme.bgDark,
+            appBarTheme: AppBarTheme(
+              backgroundColor: appTheme.bgDark,
+              foregroundColor: appTheme.text,
+              elevation: 0,
             ),
+            extensions: <ThemeExtension<dynamic>>[
+              const AppFont(),
+              appTheme,
+            ],
           );
-        }
 
-        if (_controller.errorMessage != null) {
-          return Theme(
+          if (_controller.isLoading) {
+            return Theme(
+              data: themed,
+              child: const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              ),
+            );
+          }
+
+          if (_controller.errorMessage != null) {
+            return Theme(
+              data: themed,
+              child: Scaffold(
+                body: Center(child: Text(_controller.errorMessage!)),
+              ),
+            );
+          }
+
+          return AnimatedTheme(
             data: themed,
-            child: Scaffold(
-              body: Center(
-                child: Text(_controller.errorMessage!),
-              ),
-            ),
-          );
-        }
-
-        return AnimatedTheme(
-          data: themed,
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeInOutCubic,
-          child: Scaffold(
-            body: AnimatedContainer(
-              duration: const Duration(milliseconds: 240),
-              curve: Curves.easeInOutCubic,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [appTheme.bgLight, appTheme.bg, appTheme.bgDark],
-                  stops: const [0.0, 0.25, 1.0],
-                ),
-              ),
-              child: Stack(
-                children: [
-                  SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                          left: 12, right: 12, top: 24, bottom: 48),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          TopBarLockAvatar(
-                            avatarUrl: widget.authService.currentUser?.picture,
-                            displayName:
-                                widget.authService.currentUser?.displayName,
-                          ),
-                          const Spacer(),
-                          Stack(
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeInOutCubic,
+            child: ResponsiveContainer(
+              backgroundColor: appTheme.bgDark,
+              safeAreaBottom:
+                  false, // BottomNavigationBar handles bottom safe area
+              child: Scaffold(
+                body: Stack(
+                  children: [
+                    Column(
+                      children: [
+                        Expanded(
+                          child: PageView(
+                            controller: _pageController,
+                            onPageChanged: _onPageChanged,
+                            physics: const NeverScrollableScrollPhysics(),
                             children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      appTheme.highlight,
-                                      appTheme.border,
-                                      appTheme.borderMuted,
-                                    ],
-                                    stops: const [0.0, 0.5, 1.0],
+                              ClipRect(
+                                child: GamesTab(
+                                  displayName: widget
+                                      .authService.currentUser?.displayName,
+                                  onPartyCardTapped: () => showPartyBottomSheet(
+                                    context: context,
+                                    controller: _controller,
+                                    onPrimaryAction: _onPrimaryAction,
+                                    isAnonymous: widget.authService.isAnonymous,
+                                    onAuthRequired: () {
+                                      Navigator.of(context)
+                                          .pop(); // Close paywall
+                                      Navigator.of(context)
+                                          .pop(); // Close party sheet
+                                      context.push('/upgrade-account');
+                                    },
                                   ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Container(
-                                  margin: const EdgeInsets.all(
-                                      1), // 1px border effect
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        // ignore: deprecated_member_use
-                                        appTheme.bgLight,
-                                        appTheme.bg,
-                                      ],
-                                      stops: const [0.0, 0.7],
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(
-                                        left: 24.0,
-                                        right: 24.0,
-                                        top: 12.0,
-                                        bottom: 24.0),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              'Party',
-                                              style: AppFont.primaryTextStyle(
-                                                context,
-                                                fontSize: 48,
-                                                fontWeight: FontWeight.w600,
-                                                color: appTheme.text,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              'Multiplayer round of 5 questions.',
-                                              style: AppFont.primaryTextStyle(
-                                                context,
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w300,
-                                                color: appTheme.border,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 20),
-                                            Divider(
-                                              height: 1,
-                                              thickness: 1,
-                                              color: appTheme.border
-                                                  .withOpacity(0.3),
-                                            ),
-                                          ],
-                                        ),
-                                        CategoryCarouselM3(
-                                          categories: items,
-                                          initialIndex:
-                                              _controller.selectedCategoryIndex,
-                                          onCategorySelected:
-                                              _controller.selectCategoryIndex,
-                                          onCenteredIndexChanged:
-                                              _controller.selectCategoryIndex,
-                                          startColor: HSLColor.fromColor(
-                                              appTheme.primary),
-                                        ),
-                                        const SizedBox(height: 0),
-                                        SelectorWidget(
-                                          options: _controller.difficulties
-                                              .map((d) => SelectorOption(
-                                                    label: d.slug,
-                                                    value: d.name,
-                                                    iconUrl: d.picture,
-                                                  ))
-                                              .toList(),
-                                          selected:
-                                              _controller.selectedDifficulty,
-                                          onChanged: (value) {
-                                            if (value == null ||
-                                                value ==
-                                                    _controller
-                                                        .selectedDifficulty) {
-                                              _controller
-                                                  .selectDifficulty(null);
-                                            } else {
-                                              _controller
-                                                  .selectDifficulty(value);
-                                            }
-                                          },
-                                          allowNoSelection: true,
-                                        ),
-                                        const SizedBox(height: 24),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            LockToggleChip(
-                                              isLocked: _controller.isLocked,
-                                              onToggle: _controller.toggleLock,
-                                            ),
-                                            const SizedBox(width: 24),
-                                            Expanded(
-                                              child: PrimaryCta(
-                                                isLoading:
-                                                    _controller.isSubmitting,
-                                                onPressed: _onPrimaryAction,
-                                                isLocked: _controller.isLocked,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                  onSurvivalCardTapped: () {
+                                    context.push('/pre-survival').then((_) {
+                                      if (mounted) {
+                                        _controller.refreshInBackground(
+                                            force: true);
+                                      }
+                                    });
+                                  },
                                 ),
                               ),
-                              Positioned(
-                                top: 20,
-                                right: 24,
-                                child: VerticalPercentileText(
-                                  percentile:
-                                      _controller.resolvedPercentile == 0
-                                          ? null
-                                          : _controller.resolvedPercentile,
+                              ClipRect(
+                                child: MeTab(
+                                  avatarUrl:
+                                      widget.authService.currentUser?.picture,
+                                  displayName: widget
+                                      .authService.currentUser?.displayName,
+                                  isAnonymous: widget.authService.isAnonymous,
+                                  onCreateAccount: _handleCreateAccount,
+                                  onEditProfile: _handleEditProfile,
+                                  playerStats:
+                                      _controller.playerStatsDto?.stats,
+                                  onStatsTapped: () {
+                                    final stats =
+                                        _controller.playerStatsDto?.stats;
+                                    final ranks =
+                                        _controller.configDto?.ranks ?? [];
+                                    if (stats != null && ranks.isNotEmpty) {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => RanksScreen(
+                                            playerStats: stats,
+                                            ranks: ranks,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
                                 ),
                               ),
                             ],
                           ),
-                          const Spacer(),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ),
-                  // Debug button to launch onboarding tutorial
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: SafeArea(
-                      child: Opacity(
-                        opacity: 0.2,
+                    // Settings FAB
+                    Positioned(
+                      bottom: 12,
+                      right: 12,
+                      child: Material(
+                        color: Colors.transparent,
                         child: IconButton(
-                          icon:
-                              Icon(Icons.help_outline, color: appTheme.borderMuted),
-                          tooltip: 'Launch Onboarding Tutorial',
-                          onPressed: () {
-                            Navigator.of(context).pushNamed('/onboarding');
-                          },
+                          onPressed: _toggleSettings,
+                          splashColor: Colors.transparent,
+                          highlightColor: appTheme.borderMuted,
+                          icon: SvgPicture.asset(
+                            'assets/icons/gear.svg',
+                            colorFilter: ColorFilter.mode(
+                                appTheme.border, BlendMode.srcIn),
+                            width: 36,
+                            height: 36,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                    // Tutorial button
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: SafeArea(
+                        child: Opacity(
+                          opacity: 0.5,
+                          child: IconButton(
+                            icon: Icon(Icons.help_outline, color: appTheme.bg),
+                            tooltip: 'Launch Onboarding Tutorial',
+                            onPressed: () {
+                              context.push('/onboarding');
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                bottomNavigationBar: BottomNavigationBar(
+                  currentIndex: _currentIndex,
+                  onTap: _onBottomNavTapped,
+                  backgroundColor: appTheme.bg,
+                  selectedItemColor: appTheme.text,
+                  unselectedItemColor: appTheme.textMuted,
+                  showSelectedLabels: true,
+                  showUnselectedLabels: true,
+                  items: [
+                    const BottomNavigationBarItem(
+                      icon: Icon(Icons.home_filled),
+                      label: 'Games',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: _buildMeIcon(appTheme),
+                      label: 'Me',
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

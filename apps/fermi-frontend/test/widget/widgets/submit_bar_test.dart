@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fermi_frontend/screens/question_v2/widgets/submit_bar.dart';
-import 'package:fermi_frontend/screens/question_v2/models/question_state.dart';
+import 'package:fermi_frontend/screens/question_v2/models/question_pane_state.dart';
+
 import 'package:fermi_frontend/widgets/main_button.dart';
 import 'package:fermi_frontend/widgets/circular_determinate_spinner.dart';
 
@@ -122,7 +123,8 @@ void main() {
 
       // Act
       await pumpWithMaterialApp(tester, widget);
-      await tester.pump(); // Use pump() instead of pumpAndSettle() for loading animations
+      await tester
+          .pump(); // Use pump() instead of pumpAndSettle() for loading animations
 
       // Assert
       expect(find.byType(MainButton), findsOneWidget);
@@ -432,7 +434,8 @@ void main() {
 
       // Act
       await pumpWithMaterialApp(tester, widget);
-      await tester.pump(); // Use pump() instead of pumpAndSettle() for loading animations
+      await tester
+          .pump(); // Use pump() instead of pumpAndSettle() for loading animations
 
       // Try to tap the loading button
       await tester.tap(find.byType(MainButton));

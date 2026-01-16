@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/services/game_realtime.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:fermi_frontend/utils/number_decompose.dart';
 
 /// Production Firestore-backed implementation of GameRealtime.
 class FirestoreGameRealtime implements GameRealtime {
@@ -44,6 +44,12 @@ class FirestoreGameRealtime implements GameRealtime {
   // Controllers to allow re-emitting on locale changes
   final Map<String, StreamController<RevealedQuestion>> _revealedControllers =
       <String, StreamController<RevealedQuestion>>{};
+  // Track subscriptions for revealedQuestion streams to prevent leaks
+  final Map<String, StreamSubscription> _baseStreamSubscriptions =
+      <String, StreamSubscription>{};
+  // Cache unit ID to abbreviation mapping per question for converting other players' answers
+  final Map<String, Map<String, String>> _unitIdToAbbreviationByQuestion =
+      <String, Map<String, String>>{};
 
   @override
   Stream<GameSnapshot> watchGame(String gameId) {
@@ -56,9 +62,7 @@ class FirestoreGameRealtime implements GameRealtime {
           isHost: false,
           questionNumber: 0,
           nQuestions: 0,
-          durationSeconds: 0,
           players: <String, PlayerSummary>{},
-          isPrivate: false,
           progressAnswered: <String, bool>{},
           allAnswered: false,
         );
@@ -121,10 +125,6 @@ class FirestoreGameRealtime implements GameRealtime {
         }
       }
 
-      // Read per-question duration (seconds) from authoritative game doc field
-      int durationSeconds = (data['question_duration_s'] as num?)?.toInt() ?? 0;
-
-      final bool isPrivate = (data['private'] as bool?) ?? false;
       final String? joinUrl = data['join_url'] as String?;
 
       // Progress answered map
@@ -148,19 +148,26 @@ class FirestoreGameRealtime implements GameRealtime {
         _currentUidByGame[gameId] = currentQuestionUid;
       }
 
+      // Parse created_at timestamp for lobby timer sync
+      final Timestamp? createdAtTs = data['created_at'] as Timestamp?;
+      final DateTime? createdAt = createdAtTs?.toDate();
+
+      // Parse max_players for tier-based limits
+      final int? maxPlayers = (data['max_players'] as num?)?.toInt();
+
       return GameSnapshot(
         state: state,
         isHost: isHost,
         questionNumber: questionNumber,
         nQuestions: nQuestions,
-        durationSeconds: durationSeconds,
         players: players,
-        isPrivate: isPrivate,
         joinUrl: joinUrl,
         progressAnswered: answered,
         allAnswered: allAnswered,
         currentQuestionUid: currentQuestionUid,
         questionUids: _questionUidsByGame[gameId] ?? const <String>[],
+        createdAt: createdAt,
+        maxPlayers: maxPlayers,
       );
     });
   }
@@ -199,6 +206,10 @@ class FirestoreGameRealtime implements GameRealtime {
   @override
   Stream<RevealedQuestion> revealedQuestion(String gameId, int questionIndex) {
     final String key = '$gameId:$questionIndex';
+
+    // Cancel existing subscription for this key if it exists
+    _baseStreamSubscriptions[key]?.cancel();
+
     final controller = _revealedControllers.putIfAbsent(
         key, () => StreamController<RevealedQuestion>.broadcast());
 
@@ -218,12 +229,12 @@ class FirestoreGameRealtime implements GameRealtime {
       baseStream = col.where('revealed', isEqualTo: true).limit(1).snapshots();
     }
 
-    baseStream.where((qs) => qs.docs.isNotEmpty).listen((qs) {
+    // Store the subscription to prevent leaks
+    _baseStreamSubscriptions[key] =
+        baseStream.where((qs) => qs.docs.isNotEmpty).listen((qs) {
       final Map<String, dynamic> raw = qs.docs.first.data();
       _lastQuestionRawByKey[key] = raw;
-      controller.add(_mapQuestionDocToRevealed(raw));
-    }, onError: (Object err, StackTrace st) {
-      debugPrint('[rt] question stream error: $err');
+      controller.add(_mapQuestionDocToRevealed(raw, key));
     });
 
     return controller.stream;
@@ -250,7 +261,15 @@ class FirestoreGameRealtime implements GameRealtime {
           .where((qs) {
         final bool has = qs.docs.isNotEmpty;
         return has;
-      }).map((qs) => _mapPlayersAnswersDoc(qs.docs.first.data()));
+      }).map((qs) {
+        final String key = '$gameId:$questionIndex';
+        final Map<String, String>? unitMapping =
+            _unitIdToAbbreviationByQuestion[key];
+        return _mapPlayersAnswersDoc(
+          qs.docs.first.data(),
+          unitIdToAbbr: unitMapping,
+        );
+      });
     }
 
     return col
@@ -260,7 +279,15 @@ class FirestoreGameRealtime implements GameRealtime {
         .where((qs) {
       final bool has = qs.docs.isNotEmpty;
       return has;
-    }).map((qs) => _mapPlayersAnswersDoc(qs.docs.first.data()));
+    }).map((qs) {
+      final String key = '$gameId:$questionIndex';
+      final Map<String, String>? unitMapping =
+          _unitIdToAbbreviationByQuestion[key];
+      return _mapPlayersAnswersDoc(
+        qs.docs.first.data(),
+        unitIdToAbbr: unitMapping,
+      );
+    });
   }
 
   @override
@@ -302,7 +329,7 @@ class FirestoreGameRealtime implements GameRealtime {
     _lastQuestionRawByKey.forEach((String key, Map<String, dynamic> raw) {
       final StreamController<RevealedQuestion>? c = _revealedControllers[key];
       if (c != null && !c.isClosed) {
-        c.add(_mapQuestionDocToRevealed(raw));
+        c.add(_mapQuestionDocToRevealed(raw, key));
       }
     });
   }
@@ -381,53 +408,34 @@ class FirestoreGameRealtime implements GameRealtime {
     // Backend now treats unitless as null; use empty string for UI
     final String unit = (data['unit'] as String?) ?? '';
     final AnswerValue parsedAnswer = _parseBackendAnswer(rawNumber, unit);
+    // Extract paragraph (SerpAPI AI response JSON) for answer walkthrough
+    final String? paragraph = data['paragraph'] as String?;
     return RevealPayload(
       correct: parsedAnswer,
+      paragraph: paragraph,
     );
   }
 
   /// Converts a backend answer (single number) to UI format (number + OM).
   /// Backend stores 1000 as {number: 1000}, UI needs {number: 1, om: 'K'}.
+  /// Applies capping for values outside displayable range (>999T or <1).
   AnswerValue _parseBackendAnswer(double rawNumber, String unit) {
-    if (rawNumber == 0) {
-      return AnswerValue(number: 0, orderOfMagnitude: '', unit: unit);
-    }
-
-    // Order of magnitude symbols in ascending order
-    const omSymbols = ['', 'K', 'M', 'B', 'T', 'Qa'];
-
-    // Find the appropriate order of magnitude
-    double absNumber = rawNumber.abs();
-    int omIndex = 0;
-
-    // Divide by 1000 until we get a number < 1000
-    while (absNumber >= 1000 && omIndex < omSymbols.length - 1) {
-      absNumber /= 1000;
-      omIndex++;
-    }
-
-    // Round to nearest integer and clamp to 1-999 range
-    int displayNumber = absNumber.round();
-    if (displayNumber < 1) displayNumber = 1;
-    if (displayNumber > 999) displayNumber = 999;
-
-    // Preserve sign
-    if (rawNumber < 0) displayNumber = -displayNumber;
-
-    return AnswerValue(
-      number: displayNumber,
-      orderOfMagnitude: omSymbols[omIndex],
-      unit: unit,
-    );
+    return decomposeNumber(rawNumber, unit);
   }
 
-  PlayersAnswersSnapshot _mapPlayersAnswersDoc(Map<String, dynamic> data) {
+  PlayersAnswersSnapshot _mapPlayersAnswersDoc(
+    Map<String, dynamic> data, {
+    Map<String, String>? unitIdToAbbr,
+  }) {
     final Map<String, dynamic> playersResults =
         data['players_results'] as Map<String, dynamic>? ?? {};
+
     final Map<String, AnswerValue> submitted = <String, AnswerValue>{};
     final Map<String, double> scores = <String, double>{};
     final Map<String, AnswerValue> correct = <String, AnswerValue>{};
     final Map<String, double> percentiles = <String, double>{};
+    final Map<String, Map<String, AnswerValue>> convertedAnswers =
+        <String, Map<String, AnswerValue>>{};
 
     playersResults.forEach((String playerId, dynamic v) {
       final Map<String, dynamic> entry =
@@ -436,9 +444,13 @@ class FirestoreGameRealtime implements GameRealtime {
           entry['answer'] as Map<String, dynamic>?;
       if (ans != null) {
         final double rawNumber = (ans['number'] as num?)?.toDouble() ?? 0;
+        // The backend may return unit IDs in answer field
+        // Convert to abbreviations using the cached mapping
+        final String unitId = (ans['unit'] as String?) ?? '';
+        final String unit = unitIdToAbbr?[unitId] ?? unitId;
         final AnswerValue parsedAnswer = _parseBackendAnswer(
           rawNumber,
-          (ans['unit'] as String?) ?? '',
+          unit,
         );
         submitted[playerId] = parsedAnswer;
       }
@@ -446,9 +458,13 @@ class FirestoreGameRealtime implements GameRealtime {
           entry['correct_answer'] as Map<String, dynamic>?;
       if (corr != null) {
         final double rawNumber = (corr['number'] as num?)?.toDouble() ?? 0;
+        // The backend may return unit IDs in correct_answer field
+        // Convert to abbreviations using the cached mapping
+        final String unitId = (corr['unit'] as String?) ?? '';
+        final String unit = unitIdToAbbr?[unitId] ?? unitId;
         final AnswerValue parsedAnswer = _parseBackendAnswer(
           rawNumber,
-          (corr['unit'] as String?) ?? '',
+          unit,
         );
         correct[playerId] = parsedAnswer;
       }
@@ -458,11 +474,37 @@ class FirestoreGameRealtime implements GameRealtime {
       } else if (scoreRaw is Map<String, dynamic>) {
         // Expect backend to provide {number: <float>, quantile: <float>}
         final num? number = scoreRaw['number'] as num?;
-        if (number != null) scores[playerId] = number.toDouble();
+        if (number != null) {
+          scores[playerId] = number.toDouble();
+        }
         final num? quantile = scoreRaw['quantile'] as num?;
         if (quantile != null) {
           percentiles[playerId] = quantile.toDouble();
         }
+      } else {}
+
+      // Parse converted_answers for this player
+      final Map<String, dynamic>? convertedRaw =
+          entry['converted_answers'] as Map<String, dynamic>?;
+      if (convertedRaw != null) {
+        final Map<String, AnswerValue> playerConverted =
+            <String, AnswerValue>{};
+        convertedRaw.forEach((String otherPlayerId, dynamic otherAns) {
+          if (otherAns is Map<String, dynamic>) {
+            final double rawNumber =
+                (otherAns['number'] as num?)?.toDouble() ?? 0;
+            // The backend returns unit IDs in converted_answers
+            // Convert to abbreviations using the cached mapping
+            final String unitId = (otherAns['unit'] as String?) ?? '';
+            final String unit = unitIdToAbbr?[unitId] ?? unitId;
+            final AnswerValue parsedAnswer = _parseBackendAnswer(
+              rawNumber,
+              unit,
+            );
+            playerConverted[otherPlayerId] = parsedAnswer;
+          }
+        });
+        convertedAnswers[playerId] = playerConverted;
       }
     });
 
@@ -473,10 +515,14 @@ class FirestoreGameRealtime implements GameRealtime {
       allAnswered: allAnswered,
       correct: correct,
       percentiles: percentiles,
+      convertedAnswers: convertedAnswers,
     );
   }
 
-  RevealedQuestion _mapQuestionDocToRevealed(Map<String, dynamic> data) {
+  RevealedQuestion _mapQuestionDocToRevealed(
+    Map<String, dynamic> data, [
+    String? cacheKey,
+  ]) {
     final String text = (data['text'] as String?) ?? '';
     List<String> tags = (data['tags'] as List<dynamic>? ?? const <dynamic>[])
         .whereType<String>()
@@ -514,6 +560,22 @@ class FirestoreGameRealtime implements GameRealtime {
     final Map<String, String> idToAbbr = <String, String>{};
     if (unitsRaw is Map<String, dynamic>) {
       final String locale = (resolveLocale?.call() ?? 'US').toUpperCase();
+
+      // Build idToAbbr for ALL locales (needed for converting other players' answers)
+      // This ensures we can display abbreviations for players using different unit systems
+      for (final localeEntry in unitsRaw.entries) {
+        final List<dynamic>? localeUnits = localeEntry.value as List<dynamic>?;
+        if (localeUnits == null) continue;
+        for (final e in localeUnits.whereType<Map<String, dynamic>>()) {
+          final String? id = e['id'] as String?;
+          final String? abbr = e['abbreviation'] as String?;
+          if (id != null && abbr != null) {
+            idToAbbr[id] = abbr;
+          }
+        }
+      }
+
+      // Process current locale for UI display (tape units, options, abbrToId)
       final List<dynamic>? region = unitsRaw[locale] as List<dynamic>? ??
           unitsRaw['US'] as List<dynamic>?;
       final Iterable<Map<String, dynamic>> entries =
@@ -531,7 +593,6 @@ class FirestoreGameRealtime implements GameRealtime {
             unitOptions[abbr] = abbr;
           }
           abbrToId[abbr] = id;
-          idToAbbr[id] = abbr;
         }
       }
       units = abbrs;
@@ -543,6 +604,11 @@ class FirestoreGameRealtime implements GameRealtime {
       for (final String ab in abbrs) {
         unitOptions[ab] = ab;
       }
+    }
+
+    // Cache the unit ID to abbreviation mapping for use when parsing player answers
+    if (cacheKey != null && idToAbbr.isNotEmpty) {
+      _unitIdToAbbreviationByQuestion[cacheKey] = idToAbbr;
     }
 
     // If no explicit tags array is provided, synthesize from category/difficulty/year
@@ -558,7 +624,6 @@ class FirestoreGameRealtime implements GameRealtime {
                           index: 0,
                           name: category,
                           slug: category,
-                          theme: const {},
                           picture: '',
                         ))
                 .slug ??
@@ -595,5 +660,26 @@ class FirestoreGameRealtime implements GameRealtime {
       category: category,
       myVoteVerdict: myVoteVerdict,
     );
+  }
+
+  /// Dispose all subscriptions and close all controllers to prevent memory leaks.
+  void dispose() {
+    // Cancel all base stream subscriptions
+    for (final sub in _baseStreamSubscriptions.values) {
+      sub.cancel();
+    }
+    _baseStreamSubscriptions.clear();
+
+    // Close all StreamControllers (guard against double-dispose)
+    for (final controller in _revealedControllers.values) {
+      if (!controller.isClosed) {
+        controller.close();
+      }
+    }
+    _revealedControllers.clear();
+
+    // Clear caches
+    _lastQuestionRawByKey.clear();
+    _unitIdToAbbreviationByQuestion.clear();
   }
 }

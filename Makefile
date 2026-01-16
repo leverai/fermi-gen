@@ -55,14 +55,14 @@ test-etl:
 .PHONY: test-frontend-unit
 test-frontend-unit:
 	@cd apps/fermi-frontend && \
-	flutter test test/unit/ \
+	fvm flutter test test/unit/ \
 	  --dart-define=API_BASE_URL=http://localhost:8000 \
 	  --dart-define=SUPPRESS_TEST_LOGS=true
 
 .PHONY: test-frontend-widget
 test-frontend-widget:
 	@cd apps/fermi-frontend && \
-	flutter test test/widget/ \
+	fvm flutter test test/widget/ \
 	  --dart-define=SUPPRESS_TEST_LOGS=true
 
 # ============================================================================
@@ -139,15 +139,85 @@ run-frontend:
 	export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080; \
 	export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099; \
 	export GOOGLE_CLOUD_PROJECT=fermi-local; \
+	export REVENUECAT_WEBHOOK_SECRET=test_lWemzPXwFDcNwckcycCYXkiVuDk; \
 	$(MAKE) migrate; \
 	echo "Seeding questions..." && \
-	uv run --package fermi-db python scripts/seed_test_questions.py --file apps/fermi-api/tests/data/test_questions.json; \
+	uv run --package fermi-db python scripts/seed_test_questions.py --file apps/fermi-api/tests/data/test_questions.json --no-dq-history; \
 	docker compose up -d api && \
-	echo "Launching Flutter app..." && \
+	until (curl -s http://localhost:8000/api/v1/health/health) 2>/dev/null; do sleep 1; done && \
 	cd apps/fermi-frontend && \
-	fvm flutter run -t lib/main.dart \
+	fvm flutter run --flavor dev -t lib/main.dart \
 	  --dart-define=USE_EMULATORS=true \
 	  --dart-define=FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
 	  --dart-define=FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
 	  --dart-define=API_BASE_URL=http://localhost:8000/api/v1 \
+	  --dart-define=REVENUECAT_ANDROID_API_KEY=goog_nlfyHlphbqbWfeqdPYtzBVVgkJJ \
 	  --dart-define=SUPPRESS_TEST_LOGS=true
+
+# Build dev APK for Firebase App Distribution
+.PHONY: build-frontend-android-dev
+build-frontend-android-dev:
+	cd apps/fermi-frontend && \
+	fvm flutter clean && \
+	fvm flutter pub get && \
+	cd android && ./gradlew clean && cd ../ && \
+	fvm flutter build apk \
+	  --release \
+	  --flavor dev \
+	  --dart-define=API_BASE_URL=https://fermi-api-bwuxx6eogq-uc.a.run.app/api/v1 \
+	  --dart-define=USE_EMULATORS=false \
+	  --dart-define=SUPPRESS_TEST_LOGS=true \
+	  --dart-define=REVENUECAT_ANDROID_API_KEY=goog_nlfyHlphbqbWfeqdPYtzBVVgkJJ
+
+# Build prod AAB for Google Play Store
+.PHONY: build-frontend-android-prod
+build-frontend-android-prod:
+	cd apps/fermi-frontend && \
+	fvm flutter clean && \
+	fvm flutter pub get && \
+	cd android && ./gradlew clean && cd ../ && \
+	fvm flutter build appbundle \
+	  --release \
+	  --flavor prod \
+	  --dart-define=API_BASE_URL=https://fermi-api-prod-uc.a.run.app/api/v1 \
+	  --dart-define=USE_EMULATORS=false \
+	  --dart-define=SUPPRESS_TEST_LOGS=true \
+	  --dart-define=REVENUECAT_ANDROID_API_KEY=goog_nlfyHlphbqbWfeqdPYtzBVVgkJJ
+
+.PHONY: run-frontend-web
+run-frontend-web:
+	@echo "Bring up db and emulators..." && \
+	docker compose up -d db emulators && \
+	echo "Waiting for emulators (8080, 9099) and db..." && \
+	until (</dev/tcp/127.0.0.1/8080) 2>/dev/null; do sleep 1; done; \
+	until (</dev/tcp/127.0.0.1/9099) 2>/dev/null; do sleep 1; done; \
+	until docker compose exec -T db pg_isready -U postgres >/dev/null; do sleep 1; done; \
+	docker compose exec -T db psql -U postgres -c 'CREATE DATABASE "fermi-db";' 2>/dev/null || true && \
+	echo "Running migrations..." && \
+	export DATABASE_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/fermi-db; \
+	export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080; \
+	export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099; \
+	export GOOGLE_CLOUD_PROJECT=fermi-local; \
+	$(MAKE) migrate; \
+	echo "Seeding questions..." && \
+	uv run --package fermi-db python scripts/seed_test_questions.py --file apps/fermi-api/tests/data/test_questions.json --no-dq-history; \
+	docker compose up -d api && \
+	until (curl -s http://localhost:8000/api/v1/health/health) 2>/dev/null; do sleep 1; done && \
+	echo "Launching Flutter web app..." && \
+	cd apps/fermi-frontend && \
+	fvm flutter run -d chrome \
+	  --dart-define=USE_EMULATORS=true \
+	  --dart-define=FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
+	  --dart-define=FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
+	  --dart-define=API_BASE_URL=http://localhost:8000/api/v1 \
+	  --dart-define=SUPPRESS_TEST_LOGS=true \
+	  --dart-define=REVENUECAT_ANDROID_API_KEY=goog_nlfyHlphbqbWfeqdPYtzBVVgkJJ
+
+.PHONY: update-icons
+update-icons:
+	@echo "Regenerating app icons from assets/icons/..." && \
+	cd apps/fermi-frontend && \
+	fvm flutter pub get && \
+	fvm flutter pub run flutter_launcher_icons -f flutter_launcher_icons-dev.yaml && \
+	fvm flutter pub run flutter_launcher_icons -f flutter_launcher_icons-prod.yaml && \
+	echo "✓ Icons successfully updated for Android and iOS (dev and prod flavors)"

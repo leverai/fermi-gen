@@ -5,7 +5,10 @@ import logging
 from fastapi import APIRouter
 
 from app.config import get_config
-from app.schemas.requests import QuestionLiteralRequest, QuestionLLMRequest
+from app.schemas.requests import (
+    InsertLiteralQuestionsRequest,
+    QuestionPipelineFromSeedsRequest,
+)
 from app.schemas.responses import QuestionResponse
 from app.services.question_service import (
     insert_literal_questions,
@@ -18,7 +21,7 @@ router = APIRouter()
 
 
 @router.post('/insert_literal', response_model=QuestionResponse)
-async def insert_literal(request: QuestionLiteralRequest) -> QuestionResponse:
+async def insert_literal(request: InsertLiteralQuestionsRequest) -> QuestionResponse:
     """Insert user-provided questions directly.
 
     Questions will be:
@@ -45,7 +48,7 @@ async def insert_literal(request: QuestionLiteralRequest) -> QuestionResponse:
         result = await insert_literal_questions(
             question_texts=request.questions,
             provider=request.provider,
-            config=config,
+            similarity_threshold=config.question_similarity_threshold,
         )
 
         logger.info(f'Literal question insertion successful: {result}')
@@ -60,7 +63,7 @@ async def insert_literal(request: QuestionLiteralRequest) -> QuestionResponse:
 
 
 @router.post('/insert_llm', response_model=QuestionResponse)
-async def insert_llm(request: QuestionLLMRequest) -> QuestionResponse:
+async def insert_llm(request: QuestionPipelineFromSeedsRequest) -> QuestionResponse:
     """Generate questions using LLM and seeds.
 
     Process:
@@ -89,7 +92,10 @@ async def insert_llm(request: QuestionLLMRequest) -> QuestionResponse:
             num_seeds=request.num_seeds,
             questions_per_seed=request.questions_per_seed,
             mode=request.mode,
-            config=config,
+            model=request.question_model,
+            model_provider=request.question_model_provider,
+            temperature=request.question_temperature,
+            similarity_threshold=config.question_similarity_threshold,
         )
 
         logger.info(f'LLM question generation successful: {result}')

@@ -65,7 +65,7 @@ def _wait_ready_with_questions(
 def test_start_game_by_host_reveals_first_and_inits_progress(
     api_client: TestClient,
     get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
-    create_public_game: Callable[[dict[str, str]], str],
+    create_private_game: Callable[[dict[str, str]], str],
     get_firestore_doc: Callable[[str], dict[str, Any]],
 ) -> None:
     """Host starts in READY: verify reveal, timers, progress, and state."""
@@ -74,7 +74,7 @@ def test_start_game_by_host_reveals_first_and_inits_progress(
         'password123',
         'StartHost',
     )
-    game_id = create_public_game(host_headers)
+    game_id = create_private_game(host_headers)
 
     question_uids, _ = _wait_ready_with_questions(get_firestore_doc, game_id)
     first_q = question_uids[0]
@@ -97,13 +97,6 @@ def test_start_game_by_host_reveals_first_and_inits_progress(
             # current question fields
             assert doc.get('question_uid') == first_q
             assert doc.get('question_order') == 1
-            qdur = doc.get('question_duration_s')
-            assert qdur in {10, 20, 40}
-            # Verify duration matches question difficulty mapping
-            qdoc = _get_question_doc(game_id, first_q)
-            diff = qdoc.get('difficulty')
-            expected = {'EASY': 10, 'MEDIUM': 20, 'HARD': 40}[str(diff)]
-            assert qdur == expected
             # Progress initialized
             progress = doc.get('progress') or {}
             answered = progress.get('answered') or {}

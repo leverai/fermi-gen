@@ -6,9 +6,8 @@ from fastapi import APIRouter
 from fermi_db.dal import DatabaseClient
 from fermi_db.session import session_context
 
-from app.config import get_config
-from app.schemas.requests import EnrichmentRequest
-from app.schemas.responses import EnrichmentResponse
+from app.schemas.requests import EnrichRequest
+from app.schemas.responses import EnrichmentResponse, EnrichmentResult
 from app.services.enrichment_service import enrich_categories, enrich_difficulties
 
 logger = logging.getLogger(__name__)
@@ -17,7 +16,7 @@ router = APIRouter()
 
 
 @router.post('/category', response_model=EnrichmentResponse)
-async def enrich_category(request: EnrichmentRequest) -> EnrichmentResponse:
+async def enrich_category(request: EnrichRequest) -> EnrichmentResponse:
     """Enrich questions with category classifications.
 
     Args:
@@ -32,10 +31,10 @@ async def enrich_category(request: EnrichmentRequest) -> EnrichmentResponse:
     )
 
     try:
-        config = get_config()
         result = await enrich_categories(
             limit=request.num_questions,
-            config=config,
+            model=request.model,
+            model_provider=request.model_provider,
         )
 
         logger.info(
@@ -53,7 +52,7 @@ async def enrich_category(request: EnrichmentRequest) -> EnrichmentResponse:
 
 
 @router.post('/difficulty', response_model=EnrichmentResponse)
-async def enrich_difficulty(request: EnrichmentRequest) -> EnrichmentResponse:
+async def enrich_difficulty(request: EnrichRequest) -> EnrichmentResponse:
     """Enrich questions with difficulty classifications.
 
     Args:
@@ -68,10 +67,10 @@ async def enrich_difficulty(request: EnrichmentRequest) -> EnrichmentResponse:
     )
 
     try:
-        config = get_config()
         result = await enrich_difficulties(
             limit=request.num_questions,
-            config=config,
+            model=request.model,
+            model_provider=request.model_provider,
         )
 
         logger.info(
@@ -90,27 +89,37 @@ async def enrich_difficulty(request: EnrichmentRequest) -> EnrichmentResponse:
 
 @router.post('/join_all', response_model=EnrichmentResponse)
 async def join_all() -> EnrichmentResponse:
-    """Refresh the materialized view (join pipeline tables).
+    """Sync the fermi table with new enriched questions.
+
+    Inserts questions that have:
+    - Successful answers
+    - All three LLM answers
+    - Are not yet in the fermi table
+
+    New questions are inserted with status = PENDING_REVIEW.
 
     Returns:
-        EnrichmentResponse with success status
+        EnrichmentResponse with count of new questions inserted
 
     """
-    logger.info('Received request to refresh materialized view')
+    logger.info('Received request to sync fermi table')
 
     try:
         async with session_context() as session:
             db_client = DatabaseClient(session)
-            await db_client.enrichment.refresh_materialized_view()
+            count = await db_client.enrichment.sync_fermi_table()
 
-        logger.info('Materialized view refresh successful')
+        logger.info(f'Fermi table sync successful: {count} questions added')
         return EnrichmentResponse(
             success=True,
-            result=None,
+            result=EnrichmentResult(
+                enriched=count,
+                skipped=0,
+            ),
         )
 
     except Exception as exc:
-        logger.error(f'Materialized view refresh failed: {exc}', exc_info=True)
+        logger.error(f'Fermi table sync failed: {exc}', exc_info=True)
         return EnrichmentResponse(
             success=False,
             error=str(exc),

@@ -1,117 +1,72 @@
+/// Response model for player stats from [GET /game/get_player_stats].
 class PlayerStatsResponse {
   final String playerId;
-  final PlayerQuantiles playerQuantiles;
+  final PlayerStats stats;
 
-  const PlayerStatsResponse(
-      {required this.playerId, required this.playerQuantiles});
+  const PlayerStatsResponse({required this.playerId, required this.stats});
 
   factory PlayerStatsResponse.fromJson(Map<String, dynamic> json) {
-    final Map<String, dynamic> stats =
-        (json['stats'] as Map<String, dynamic>? ?? const {});
     return PlayerStatsResponse(
       playerId: json['player_id']?.toString() ?? '',
-      playerQuantiles: PlayerQuantiles.fromJson(
-          stats['player_quantiles'] as Map<String, dynamic>? ?? const {}),
+      stats: PlayerStats.fromJson(
+          json['stats'] as Map<String, dynamic>? ?? const {}),
     );
   }
 }
 
-class PlayerQuantiles {
-  final List<CategoryDifficultyQuantile> byCategoryAndDifficulty;
-  final List<CategoryQuantile> byCategory;
-  final List<DifficultyQuantile> byDifficulty;
-  final num? overall;
+/// Player rank based on average percentile.
+class RankInfo {
+  /// Rank tier ID (1-5).
+  final int id;
 
-  const PlayerQuantiles({
-    required this.byCategoryAndDifficulty,
-    required this.byCategory,
-    required this.byDifficulty,
-    required this.overall,
+  /// Rank name (e.g., 'Fermi Master').
+  final String name;
+
+  /// URL to the rank image.
+  final String picture;
+
+  const RankInfo({
+    required this.id,
+    required this.name,
+    required this.picture,
   });
 
-  factory PlayerQuantiles.fromJson(Map<String, dynamic> json) {
-    final List<dynamic> byCd =
-        json['by_category_and_difficulty'] as List<dynamic>? ?? const [];
-    final List<dynamic> byC = json['by_category'] as List<dynamic>? ?? const [];
-    final List<dynamic> byD =
-        json['by_difficulty'] as List<dynamic>? ?? const [];
-    return PlayerQuantiles(
-      byCategoryAndDifficulty: byCd
-          .whereType<Map<String, dynamic>>()
-          .map(CategoryDifficultyQuantile.fromJson)
-          .toList(growable: false),
-      byCategory: byC
-          .whereType<Map<String, dynamic>>()
-          .map(CategoryQuantile.fromJson)
-          .toList(growable: false),
-      byDifficulty: byD
-          .whereType<Map<String, dynamic>>()
-          .map(DifficultyQuantile.fromJson)
-          .toList(growable: false),
-      overall: json['overall'] as num?,
+  factory RankInfo.fromJson(Map<String, dynamic> json) {
+    return RankInfo(
+      id: json['id'] as int? ?? 1,
+      name: json['name'] as String? ?? 'Observer',
+      picture: json['picture'] as String? ?? '',
     );
   }
 }
 
-class CategoryDifficultyQuantile {
-  final String category;
-  final String difficulty;
-  final num? avgQuantile;
-  final num? avgPercentile;
+/// Player statistics.
+class PlayerStats {
+  final int totalPartyGames;
+  final int totalDailyGuesses;
+  final int totalSurvivalRuns;
+  final int averagePercentile;
+  final RankInfo rank;
+  final int level;
 
-  const CategoryDifficultyQuantile({
-    required this.category,
-    required this.difficulty,
-    this.avgQuantile,
-    this.avgPercentile,
+  const PlayerStats({
+    required this.totalPartyGames,
+    required this.totalDailyGuesses,
+    required this.totalSurvivalRuns,
+    required this.averagePercentile,
+    required this.rank,
+    required this.level,
   });
 
-  factory CategoryDifficultyQuantile.fromJson(Map<String, dynamic> json) {
-    return CategoryDifficultyQuantile(
-      category: json['category']?.toString() ?? '',
-      difficulty: json['difficulty']?.toString() ?? '',
-      avgQuantile: json['avg_quantile'] as num?,
-      avgPercentile: json['avg_percentile'] as num?,
-    );
-  }
-}
-
-class CategoryQuantile {
-  final String category;
-  final num? avgQuantile;
-  final num? avgPercentile;
-
-  const CategoryQuantile({
-    required this.category,
-    this.avgQuantile,
-    this.avgPercentile,
-  });
-
-  factory CategoryQuantile.fromJson(Map<String, dynamic> json) {
-    return CategoryQuantile(
-      category: json['category']?.toString() ?? '',
-      avgQuantile: json['avg_quantile'] as num?,
-      avgPercentile: json['avg_percentile'] as num?,
-    );
-  }
-}
-
-class DifficultyQuantile {
-  final String difficulty;
-  final num? avgQuantile;
-  final num? avgPercentile;
-
-  const DifficultyQuantile({
-    required this.difficulty,
-    this.avgQuantile,
-    this.avgPercentile,
-  });
-
-  factory DifficultyQuantile.fromJson(Map<String, dynamic> json) {
-    return DifficultyQuantile(
-      difficulty: json['difficulty']?.toString() ?? '',
-      avgQuantile: json['avg_quantile'] as num?,
-      avgPercentile: json['avg_percentile'] as num?,
+  factory PlayerStats.fromJson(Map<String, dynamic> json) {
+    return PlayerStats(
+      totalPartyGames: json['total_party_games'] as int? ?? 0,
+      totalDailyGuesses: json['total_daily_guesses'] as int? ?? 0,
+      totalSurvivalRuns: json['total_survival_runs'] as int? ?? 0,
+      averagePercentile: json['average_percentile'] as int? ?? 0,
+      rank:
+          RankInfo.fromJson(json['rank'] as Map<String, dynamic>? ?? const {}),
+      level: json['level'] as int? ?? 1,
     );
   }
 }

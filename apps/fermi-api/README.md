@@ -93,13 +93,6 @@ The entire state of a game is stored in a Firestore `games` collection document.
 - `GAME_FINISHED` (8): Officially ended
 - `GAME_ABORTED` (9): Aborted (all players left)
 
-**Question Durations:**
-- Easy: 10 seconds
-- Medium: 20 seconds
-- Hard: 40 seconds
-
-Frontend must auto-submit answers when the deadline expires.
-
 For complete schema details, see **[Architecture Documentation](docs/ARCHITECTURE.md#real-time-game-state)**.
 
 ## API Endpoints
@@ -210,8 +203,7 @@ Creates a new private game. The user who creates the game becomes the host.
         "n_questions": 6,
         "category": "PLANET_EARTH", // RequestCategory value; use None for all categories
         "difficulty": "MEDIUM"       // or null
-      },
-      "is_private": true
+      }
     }
     ```
 -   **Response (200 OK):** `IdModel`
@@ -223,31 +215,6 @@ Creates a new private game. The user who creates the game becomes the host.
 -   **Side Effects:**
     -   A new game document is created in Firestore.
     -   A background task is started to fetch questions for the game. The `state` field will be updated to `LOBBY_NOT_READY` initially, and then to `LOBBY_READY` when the questions are fetched.
-
-#### `POST /game/join_random`
-Joins a random public game that matches the specified settings, or creates a new one if no suitable game is found.
-
--   **Request Body:** `GameJoinRandomRequest`
-    ```json
-    {
-      "resource_id": str | None = None
-      "question_round_settings": {
-        "n_questions": 6,
-        "category": <category or null>,
-        "difficulty": null
-      }
-    }
-    ```
--   **Response (200 OK):** `IdModel`
-    ```json
-    {
-      "resource_id": "string"
-    }
-    ```
--   **Side Effects:**
-    -   If a game is joined, the new player is added to the `players` map in the game document. The `state` is set to `LOBBY_NOT_READY`.
-    -   A background task is started to (re)fetch questions. The `state` will be updated to `LOBBY_READY` when done.
-    -   If a new game is created, the behavior is the same as `/game/create` with `is_private: false`.
 
 #### `POST /game/join`
 Joins a specific game by its ID.
@@ -384,44 +351,45 @@ Ends the game. This can only be done by the host.
     -   A background task is started to archive the game results to the database.
 
 #### `POST /game/get_player_stats`
-Retrieves a player's statistics.
+Retrieves the current authenticated user's statistics.
 
--   **Request Body:** `GetPlayerStatsRequest`
-    ```json
-    {
-      "player_id": "string"
-    }
-    ```
+-   **Request Body:** None (empty body `{}`). The endpoint automatically uses the authenticated user's Firebase UID from the JWT token.
 -   **Response (200 OK):** `GetPlayerStatsResponse`
     ```json
     {
       "player_id": "string",
       "stats": {
-        "player_quantiles": {
-          "by_category_and_difficulty": [
-            {
-              "category": "string",
-              "difficulty": "string",
-              "avg_percentile": "number"
-            }
-          ],
-          "by_category": [
-            {
-              "category": "string",
-              "avg_percentile": "number"
-            }
-          ],
-          "by_difficulty": [
-            {
-              "difficulty": "string",
-              "avg_percentile": "number"
-            }
-          ],
-          "overall": "number"
-        }
+        "total_party_games": 42,
+        "total_daily_guesses": 15,
+        "average_percentile": 75,
+        "rank": {
+          "id": 3,
+          "name": "Analyst",
+          "picture": "https://<host>/static/ranks/3.svg"
+        },
+        "level": 1
       }
     }
     ```
+
+Notes:
+- `total_party_games`: Number of party mode games the player has participated in
+- `total_daily_guesses`: Number of daily questions the player has answered
+- `average_percentile`: Overall average percentile across all party games (0-100)
+- `rank`: Player rank based on average percentile, includes:
+  - `id`: Tier ID (1-5)
+  - `name`: Tier name (Observer, Guesstimator, Analyst, Strategist, Fermi Master)
+  - `picture`: URL to the rank image
+- `level`: Player level (always 1, not yet implemented)
+
+**Rank Tiers:**
+| Tier | Percentile Range | Name |
+|------|------------------|------|
+| 1 | 0-39% | Observer |
+| 2 | 40-74% | Guesstimator |
+| 3 | 75-89% | Analyst |
+| 4 | 90-97% | Strategist |
+| 5 | 98-100% | Fermi Master |
 
 #### `POST /question/upvote` and `POST /question/downvote`
 Set or toggle a user's vote on a question. The backend stores per‑user votes in a `questions_votes` table. Upvote/downvote counts are computed from this table; there are no aggregate counters on `fermi_questions`. The resulting verdict is returned.
@@ -448,6 +416,192 @@ Notes:
   - current: NO_VOTE; action: UPVOTE -> verdict: UPVOTE (1)
   - current: DOWNVOTE; action: UPVOTE -> verdict: NO_VOTE (0)
 
+---
+
+### Daily Question Endpoints
+
+The Daily Question (DQ) mode serves a single question to all users daily with synchronized timing and leaderboard functionality.
+
+**Key Concepts:**
+- Window: 8 AM - 8 PM US Central Time
+- Answer Deadline: 30 seconds after starting (or window end, whichever is sooner)
+- Grace periods: 5s after AD, 20s after window end
+- All timestamps in UTC (converted at API layer)
+- Separate storage from Party mode
+
+#### `GET /daily_question/status`
+Get the current daily question status and timing information.
+
+-   **Request:** (No body)
+-   **Response (200 OK):** `DQStatusResponse`
+    ```json
+    {
+      "window_status": "ACTIVE",  // NOT_STARTED, ACTIVE, CLOSED
+      "seconds_until_window_end": 3600.5,
+      "question_date": "2025-12-15",
+      "user_status": "NOT_STARTED",  // NOT_STARTED, IN_PROGRESS, SUBMITTED, MISSED
+      "has_results": false
+    }
+    ```
+
+#### `POST /daily_question/start`
+Start the daily question for the current user. Returns the question with deadline.
+
+-   **Request:** (No body)
+-   **Response (200 OK):** `DQQuestionResponse`
+    ```json
+    {
+      "question": {
+        "question_uid": "uuid-string",
+        "text": "How many...",
+        "category": "PLANET_EARTH",
+        "difficulty": "MEDIUM",
+        "unit_hint": "kilometers"
+      },
+      "answer_deadline_utc": "2025-12-15T20:30:45.123Z",
+      "seconds_to_answer": 30.0
+    }
+    ```
+-   **Errors:**
+    -   `409 Conflict`: Window closed or user already started
+
+#### `POST /daily_question/answer`
+Submit an answer for the daily question.
+
+-   **Request Body:** `DQAnswerRequest`
+    ```json
+    {
+      "answer": {
+        "number": 100,
+        "unit": "kilometers"
+      }
+    }
+    ```
+-   **Response (200 OK):** `DQSubmitResponse`
+    ```json
+    {
+      "submitted": true,
+      "score": 85.5,
+      "message": "Answer submitted successfully. Results available after 8 PM CT."
+    }
+    ```
+-   **Errors:**
+    -   `409 Conflict`: Deadline passed, not started, or already submitted
+
+#### `GET /daily_question/results`
+Get results for today's daily question (available after window closes).
+
+-   **Request:** (No body)
+-   **Response (200 OK):** `DQResultsResponse`
+    ```json
+    {
+      "question_date": "2025-12-15",
+      "question_uid": "uuid-string",
+      "question_text": "How many...",
+      "correct_answer": {
+        "number": 100,
+        "unit": "kilometers"
+      },
+      "user_answer": {
+        "number": 95,
+        "unit": "kilometers"
+      },
+      "user_score": 85.5,
+      "user_rank": 42,
+      "total_participants": 150,
+      "leaderboard": [
+        {
+          "rank": 1,
+          "display_name": null,
+          "score": 100.0,
+          "time_taken_s": 15.2
+        }
+      ]
+    }
+    ```
+-   **Errors:**
+    -   `409 Conflict`: Results not yet available
+
+#### `GET /daily_question/history`
+Get the user's past daily question results (only DQs the user participated in).
+
+-   **Request:** Query parameter `limit` (default: 30)
+-   **Response (200 OK):** `DQHistoryResponse`
+    ```json
+    {
+      "history": [
+        {
+          "question_date": "2025-12-14",
+          "question_text": "How many...",
+          "user_answer": {
+            "number": 95,
+            "unit": "kilometers"
+          },
+          "correct_answer": {
+            "number": 100,
+            "unit": "kilometers"
+          },
+          "score": 85.5,
+          "rank": 42,
+          "total_participants": 150
+        }
+      ]
+    }
+    ```
+
+#### `GET /daily_question/archive`
+Get all past daily questions with user participation status (for carousel and archive view).
+
+Unlike `/history`, this endpoint returns **all** closed DQs regardless of whether the user participated, making it suitable for displaying the full DQ timeline in the UI.
+
+-   **Request:** Query parameter `limit` (default: 30)
+-   **Response (200 OK):** `DQArchiveResponse`
+    ```json
+    {
+      "items": [
+        {
+          "question_date": "2025-12-14",
+          "question_text": "How many...",
+          "total_participants": 150,
+          "user_participated": true,
+          "user_score": 85.5,
+          "user_rank": 42
+        },
+        {
+          "question_date": "2025-12-13",
+          "question_text": "What is the...",
+          "total_participants": 200,
+          "user_participated": false,
+          "user_score": null,
+          "user_rank": null
+        }
+      ]
+    }
+    ```
+
+**Key differences from `/history`:**
+- Returns all closed DQs, not just user's participated DQs
+- Includes `user_participated` boolean flag
+- `user_score` and `user_rank` are `null` if user didn't participate
+- Designed for carousel/archive UI that shows all DQs
+
+### User Endpoints
+
+#### `POST /user/delete`
+Deletes the authenticated user and all associated data from the database.
+
+-   **Request:** (No body)
+-   **Response (200 OK):** Literal[200]
+-   **Errors:**
+    -   `401 Unauthorized`: If the access token is missing or invalid.
+-   **Side Effects:**
+    -   The user record is deleted from the `user` table.
+    -   All associated data is deleted:
+        -   `user_question_history` entries for the user
+        -   `answer_events` entries for the user
+        -   `questions_votes` entries for the user
+    -   The operation is idempotent: calling it multiple times has no additional effect after the first successful deletion.
+
 #### `POST /user/set_locale`
 Setting the user's locale to US/EU
 
@@ -459,6 +613,45 @@ Setting the user's locale to US/EU
     ```
 -   **Response (200 OK):** Literal[200]
 
+### Assets Endpoints
+
+#### `GET /assets/avatars`
+
+-   **Request:** (No body)
+-   **Response (200 OK):** `GetAvatarsResponse`
+
+
+### Local Testing
+
+For local development and testing, use the `manage_dq.py` script to manage daily questions:
+
+```bash
+# List available DQ questions
+python scripts/manage_dq.py list
+
+# Create today's daily question (picks next available question)
+python scripts/manage_dq.py create
+
+# Manually start the DQ window (set status to ACTIVE)
+python scripts/manage_dq.py start
+
+# Manually end the DQ window (set status to CLOSED)
+python scripts/manage_dq.py end
+
+# Advance to next day: close current DQ, shift date back, create new DQ
+python scripts/manage_dq.py advance
+
+# Mark some fermi questions as daily question candidates
+python scripts/manage_dq.py seed --count 10
+```
+
+**Testing Workflow:**
+1. Start with a clean slate: `make run-frontend` uses `--no-dq-history` flag to avoid creating past DQ entries
+2. Create today's DQ: `python scripts/manage_dq.py create`
+3. Test the active DQ flow
+4. To test history/archive: Use `python scripts/manage_dq.py advance` to create past DQs
+
+---
 
 ## Game Flow Walkthrough
 

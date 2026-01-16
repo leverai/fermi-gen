@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
-import 'package:fermi_frontend/screens/question_v2/models/question_state.dart';
+import 'package:fermi_frontend/screens/question_v2/models/question_pane_state.dart';
+
 import 'package:fermi_frontend/widgets/circular_determinate_spinner.dart';
 
 class SubmitBar extends StatelessWidget {
@@ -41,7 +42,6 @@ class SubmitBar extends StatelessWidget {
             key: submitButtonKey,
             onPressed: onSubmit,
             label: MainButtonLabel.submit,
-            showSpacebarGlyph: true,
           ),
         );
       case QuestionPaneState.locked:
@@ -63,7 +63,6 @@ class SubmitBar extends StatelessWidget {
                 child: MainButton(
                   onPressed: onNext,
                   label: MainButtonLabel.finish,
-                  showSpacebarGlyph: true,
                   controller: mainButtonController,
                 ),
               ),
@@ -99,7 +98,6 @@ class SubmitBar extends StatelessWidget {
               child: MainButton(
                 onPressed: isHost ? onNext : null,
                 label: MainButtonLabel.next,
-                showSpacebarGlyph: true,
                 isLoading: false,
                 controller: mainButtonController,
               ),

@@ -1,11 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Required for network requests in all build types -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Required for in-app purchases -->
+    <uses-permission android:name="com.android.vending.BILLING"/>
+
     <application
-        android:label="fermi_frontend"
+        android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
-            android:name="com.guesstimate.guesstimate.MainActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -26,12 +32,44 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- Deep linking intent filter -->
+            <!-- Deep linking intent filter for game invites -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="guesstimate" android:host="invite" />
+            </intent-filter>
+
+            <!-- Deep linking intent filter for Daily Question invites -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="guesstimate" android:host="dq" />
+            </intent-filter>
+
+            <!-- App Links for HTTPS URLs - Game invites -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="guesstimate.leverai.tech" android:pathPrefix="/invite/game" />
+            </intent-filter>
+
+            <!-- App Links for HTTPS URLs - Daily Question invites -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="guesstimate.leverai.tech" android:pathPrefix="/dq" />
+            </intent-filter>
+
+            <!-- ChottuLink App Links -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="guesstimate.chottu.link" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
@@ -42,7 +80,7 @@
 
         <provider
             android:name="com.google.firebase.provider.FirebaseInitProvider"
-            android:authorities="com.guesstimate.guesstimate.firebaseinitprovider"
+            android:authorities="${applicationId}.firebaseinitprovider"
             tools:node="remove" />
     </application>
 

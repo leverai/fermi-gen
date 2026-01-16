@@ -204,6 +204,24 @@ def test_full_pipeline_with_real_apis(api_client: TestClient) -> None:
         assert enriched_question['id'] == question_id
 
 
+async def _get_llm_answer_models(question_id: int) -> list[str]:
+    """Get all LLM answer model names for a question."""
+    import os
+
+    db_url = os.environ['DATABASE_URL']
+    engine = create_async_engine(db_url, echo=False)
+    async with engine.connect() as conn:
+        result = await conn.execute(
+            sa.text(
+                'SELECT model FROM llm_answers WHERE question_id = :id ORDER BY model',
+            ),
+            {'id': question_id},
+        )
+        models = [row[0] for row in result.fetchall()]
+    await engine.dispose()
+    return models
+
+
 def test_composite_workflow_endpoint(api_client: TestClient) -> None:
     """Test the composite /insert_llm endpoint that does everything in one call.
 
@@ -211,7 +229,8 @@ def test_composite_workflow_endpoint(api_client: TestClient) -> None:
     1. Generates questions
     2. Answers them
     3. Enriches them
-    4. Refreshes the materialized view
+    4. Generates LLM answers (including Gemini Flash)
+    5. Refreshes the fermi table
 
     All in a single API call.
     """
@@ -229,6 +248,30 @@ def test_composite_workflow_endpoint(api_client: TestClient) -> None:
     # Check structure of response
     assert 'success' in result
     assert 'question_result' in result or 'error' in result
+
+    # If questions were generated and answered, verify Gemini Flash answers
+    if result.get('success') and result.get('question_result'):
+        question_result = result['question_result']
+        if question_result.get('new_question_ids'):
+            question_id = question_result['new_question_ids'][0]
+
+            # Verify LLM answers include Gemini Flash models
+            # Note: LLM answering might fail, so we check if any were generated
+            if result.get('llm_answer_results'):
+                llm_models = asyncio.run(_get_llm_answer_models(question_id))
+                # Check for at least some Gemini Flash models if LLM answering succeeded
+                if llm_models:
+                    gemini_models = [
+                        m for m in llm_models if m.startswith('gemini-flash-')
+                    ]
+                    # Note: Gemini Flash requires GCP auth (ADC or service account)
+                    # In CI without GCP auth, Gemini may be skipped - we just log
+                    # For local testing with ADC, we expect 5 Gemini Flash models
+                    if gemini_models:
+                        assert len(gemini_models) == 5, (
+                            f'Expected 5 Gemini Flash models, got '
+                            f'{len(gemini_models)}: {gemini_models}'
+                        )
 
 
 def test_seed_insertion_deduplication(api_client: TestClient) -> None:

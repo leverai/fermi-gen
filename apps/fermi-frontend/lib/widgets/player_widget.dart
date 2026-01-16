@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fermi_frontend/theme/colormap.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:text_scroll/text_scroll.dart';
+import 'package:fermi_frontend/models/rank.dart';
 import 'player_score.dart';
 import 'player_score_controller.dart';
 import 'player_widget_controller.dart';
-import 'rank_widget.dart';
-import 'submitted_answer_chip.dart';
+import 'answer_chip.dart';
 import 'player_confetti_overlay.dart';
 import 'player_ring_progress.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'question_deadline_progress_tracker.dart';
+import 'avatar_widget.dart';
 
 enum PlayerStatus { waiting, ready, number, answer, none }
 
@@ -81,7 +81,6 @@ class PlayerWidget extends StatefulWidget {
     this.showNameChip = false,
     this.showRankIcons = false,
     this.rankOverride,
-    this.rankAnimationStyle = RankAnimationStyle.none,
     this.isSelf = false,
     this.deadlineProgressTracker,
   });
@@ -100,11 +99,9 @@ class PlayerWidget extends StatefulWidget {
   /// (0=gold, 1=silver, 2=bronze). Ignored when [showRankIcons] is false.
   final Rank? rankOverride;
 
-  /// Selects the animation style used by the rank icon when shown.
-  final RankAnimationStyle rankAnimationStyle;
-
-  /// When true, shows a ring around the avatar using the theme's foreground color.
-  /// If the player is also a host, the host ring (golden) takes precedence.
+  /// When true, shows a ring around the avatar using the theme's info color.
+  /// When false, shows a ring using the theme's border color.
+  /// Host status is indicated separately via the ring gap color (primary for host).
   final bool isSelf;
 
   /// Notifier for deadline progress
@@ -120,8 +117,10 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   late int _currentScore;
   late int _currentRoundScore;
   int? _lastIncrement;
-  bool _nameVisible = false;
   bool _showConfetti = false;
+
+  /// Incremented on tap to trigger a new scroll animation via key change
+  int _scrollTriggerCount = 0;
 
   @override
   void initState() {
@@ -184,18 +183,12 @@ class _PlayerWidgetState extends State<PlayerWidget> {
           _lastIncrement = newRoundScore;
         });
       }
-    } else if (_currentRoundScore != 0 || _lastIncrement != null) {
-      _statusScoreController.setScore?.call(0);
-      setState(() {
-        _currentRoundScore = 0;
-        _lastIncrement = null;
-      });
     }
-    if (!widget.showNameChip ||
-        widget.playerState.displayName == null ||
-        widget.playerState.displayName!.isEmpty) {
-      _nameVisible = false;
-    }
+    // NOTE: We intentionally do NOT clear _lastIncrement when newRoundScore is null.
+    // The controller's setRoundScore() is the authoritative source for transient score state.
+    // If the controller wants to clear the transient chip, it calls setRoundScore(0).
+    // This prevents race conditions where widget rebuilds with stale PlayerState.roundScore
+    // clear the transient chip before the next rebuild with correct roundScore arrives.
   }
 
   void _handleSetRoundScore(int newRoundScore) {
@@ -256,12 +249,15 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final isIncrementVisible = _lastIncrement != null;
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
     // Use text-muted from app theme for name chip
     final Color nameColor = appTheme.textMuted;
+
+    // Spacing between elements
+    const double verticalSpacing = 12.0;
+
     return Material(
       type: MaterialType.transparency,
       child: InkWell(
@@ -270,221 +266,129 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         highlightColor: Colors.transparent,
         hoverColor: Colors.transparent,
         onTap: () {
-          if (!widget.showNameChip ||
-              (widget.playerState.displayName == null ||
-                  widget.playerState.displayName!.isEmpty)) {
-            return;
+          // Trigger scroll animation on tap if name is present
+          if (widget.showNameChip &&
+              widget.playerState.displayName != null &&
+              widget.playerState.displayName!.isNotEmpty) {
+            setState(() {
+              _scrollTriggerCount++;
+            });
           }
-          setState(() {
-            _nameVisible = !_nameVisible;
-          });
         },
         child: SizedBox(
-          width: 100,
-          height: 160,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              const double avatarSize = 70.0;
-              // Overflow distance for name chip (top) and transient score chip (bottom)
-              // These elements overflow the widget bounds to avoid reserving space
-              const double overflowDistance = 24;
-              final double totalH = constraints.maxHeight;
-              final double avatarTop = (totalH - avatarSize) / 2;
-              return Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned.fill(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      clipBehavior: Clip.none,
-                      children: [
-                        _buildAvatar(),
-                        Positioned(
-                          top: avatarTop - 22.0,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _buildStatusIndicator(),
-                            ],
-                          ),
-                        ),
-                        Positioned(
-                          bottom: totalH - (avatarTop + avatarSize) + 18.0,
-                          left: 4,
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 260),
-                            curve: Curves.easeInOut,
-                            opacity: (widget.showRankIcons &&
-                                    widget.rankOverride != null)
-                                ? 1.0
-                                : 0.0,
-                            child: IgnorePointer(
-                              ignoring: !(widget.showRankIcons &&
-                                  widget.rankOverride != null),
-                              child: widget.rankOverride != null
-                                  ? RankWidget(
-                                      key: ValueKey<String>(
-                                          'rank_${widget.playerState.playerId}_${widget.rankOverride}'),
-                                      rank: widget.rankOverride!,
-                                      animationStyle: widget.rankAnimationStyle,
-                                      show: widget.showRankIcons,
-                                    )
-                                  : const SizedBox(width: 38, height: 38),
-                            ),
-                          ),
-                        ),
-                        if (widget.showScoreOverlay &&
-                            widget.playerState.score != null)
-                          Positioned(
-                            top: avatarTop + avatarSize - 10.0,
-                            left: 0,
-                            right: 0,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                PlayerScore(
-                                  key: const ValueKey('running_score_overlay'),
-                                  initialScore: _currentScore,
-                                  controller: _scoreOverlayController,
-                                ),
-                              ],
-                            ),
-                          ),
-                        Positioned(
-                          bottom: -overflowDistance,
-                          left: 0,
-                          right: 0,
-                          child: Center(
-                            child: IgnorePointer(
-                              ignoring: !isIncrementVisible,
-                              child: AnimatedOpacity(
-                                duration: const Duration(milliseconds: 280),
-                                curve: Curves.easeInQuad,
-                                opacity: isIncrementVisible ? 1.0 : 0.0,
-                                child: AnimatedSlide(
-                                  duration: const Duration(milliseconds: 320),
-                                  curve: Curves.easeInQuad,
-                                  offset: isIncrementVisible
-                                      ? const Offset(0, 0.0)
-                                      : const Offset(0, -0.4),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _lastIncrement = null;
-                                      });
-                                    },
-                                    child: Builder(builder: (context) {
-                                      // Transient shows per-question score only
-                                      // Use per-question round score color (same as answer chip)
-                                      int visibleRound =
-                                          widget.playerState.roundScore ??
-                                              _currentRoundScore;
-                                      if (visibleRound < 0) visibleRound = 0;
-                                      final Color fg =
-                                          scoreToColor(visibleRound);
-                                      return Text(
-                                        '+${_formatWithCommas(visibleRound)}',
-                                        style: AppFont.secondaryTextStyle(
-                                          context,
-                                          fontWeight: FontWeight.w300,
-                                          fontSize: 14.0,
-                                          color: fg,
-                                        ),
-                                      );
-                                    }),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (widget.showNameChip &&
-                      (widget.playerState.displayName?.isNotEmpty ?? false))
+          width: 90,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. Score Overlay (Top)
+              //  Use a consistent height container or condition to avoid layout jumps if needed,
+              //  but user said "Everything should look exactly the same", implying persistent score?
+              //  The previous code showed score if `showScoreOverlay` and `score != null`.
+              if (widget.showScoreOverlay &&
+                  widget.playerState.score != null) ...[
+                PlayerScore(
+                  key: const ValueKey('running_score_overlay'),
+                  initialScore: _currentScore,
+                  controller: _scoreOverlayController,
+                  incrementAmount: _lastIncrement,
+                  showIncrement: _lastIncrement != null && _lastIncrement! > 0,
+                  rank: (widget.showRankIcons && widget.rankOverride != null)
+                      ? widget.rankOverride
+                      : null,
+                ),
+                const SizedBox(height: verticalSpacing),
+              ] else ...[
+                // If we want to reserve space or not?
+                // "Distance from ring top to score..." implies score is distinct.
+                // If no score, maybe no spacing?
+                // Let's assume conditional is fine.
+                // If there's no score, should we maintain the gap?
+                // Previously it was absolute positioned top: 4.
+                // If we want to EXACTLY match "ring top to score = ring bottom to name",
+                // we should just put the spacer here.
+              ],
+
+              // 2. Avatar + Status + Confetti (Middle)
+              SizedBox(
+                height: 80, // Allow space for overlaps? Avatar is 70.
+                // With chip overlapping bottom, we need to ensure clip behavior allows it.
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment:
+                      Alignment.center, // Center the avatar in this block
+                  children: [
+                    _buildAvatar(), // The main avatar ring
+
+                    // Status Indicator (AnswerChip)
+                    // Previous logic: top = avatarTop + avatarSize - 12.
+                    // Here we want it overlapping the bottom of the avatar.
+                    // Avatar is ~70 height. We want chip top at 70 - 12 = 58?
+                    // Or just anchor to bottom.
                     Positioned(
-                      top: _isStatusIndicatorVisible()
-                          ? -overflowDistance
-                          : avatarTop -
-                              36.0, // 24px above avatar (avatarTop - 24.0 was at edge, need another 24px)
-                      left: 0,
-                      right: 0,
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 120),
-                        curve: Curves.easeInOut,
-                        opacity: _nameVisible ? 1.0 : 0.0,
-                        child: AnimatedSlide(
-                          duration: const Duration(milliseconds: 120),
-                          curve: Curves.easeInOut,
-                          offset: _nameVisible
-                              ? const Offset(0, 0.0)
-                              : const Offset(0, 0.4),
-                          child: Center(
-                            child: SizedBox(
-                              width: 92.0,
-                              child: _nameVisible
-                                  ? TextScroll(
-                                      key: ValueKey(
-                                          widget.playerState.displayName),
-                                      widget.playerState.displayName!,
-                                      delayBefore: const Duration(seconds: 1),
-                                      pauseBetween: const Duration(seconds: 1),
-                                      pauseOnBounce: const Duration(seconds: 1),
-                                      mode: TextScrollMode.bouncing,
-                                      style: AppFont.primaryTextStyle(
-                                        context,
-                                        fontWeight: FontWeight.w300,
-                                        fontSize: 14.0,
-                                        color: nameColor,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      selectable: false,
-                                    )
-                                  : Text(
-                                      key: ValueKey(
-                                          widget.playerState.displayName),
-                                      widget.playerState.displayName!,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      softWrap: false,
-                                      textAlign: TextAlign.center,
-                                      style: AppFont.primaryTextStyle(
-                                        context,
-                                        fontWeight: FontWeight.w300,
-                                        fontSize: 14.0,
-                                        color: nameColor,
-                                      ),
-                                    ),
-                            ),
+                      bottom: 0, // This puts bottom of chip at bottom of stack
+                      // If Stack height is 80 and Avatar is 70 centered (top 5, bottom 5),
+                      // Then bottom 0 is 5px below avatar bottom.
+                      // Let's rely on alignment.
+                      child: Transform.translate(
+                        offset:
+                            const Offset(24, 4), // Shifted 24px right, 4px down
+                        // Let's just use Stack with Alignment.bottomCenter?
+                        child: _buildStatusIndicator(),
+                      ),
+                    ),
+
+                    // Confetti
+                    if (_showConfetti)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: PlayerConfettiOverlay(
+                            onComplete: _handleClearConfetti,
                           ),
                         ),
                       ),
-                    ),
-                  // Confetti overlay for highest scorer
-                  if (_showConfetti)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: PlayerConfettiOverlay(
-                          onComplete: _handleClearConfetti,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
+                  ],
+                ),
+              ),
+
+              // 3. Name (Bottom)
+              if (widget.showNameChip &&
+                  (widget.playerState.displayName?.isNotEmpty ?? false)) ...[
+                const SizedBox(height: verticalSpacing),
+                SizedBox(
+                  width: 92.0,
+                  child: TextScroll(
+                    // Key includes scrollTriggerCount to restart animation on tap
+                    key: ValueKey(
+                        '${widget.playerState.displayName}_$_scrollTriggerCount'),
+                    widget.playerState.displayName!,
+                    delayBefore: const Duration(milliseconds: 500),
+                    pauseBetween: Duration.zero,
+                    pauseOnBounce: const Duration(milliseconds: 500),
+                    mode: TextScrollMode.bouncing,
+                    numberOfReps: 1,
+                    style: AppFont.primaryTextStyle(context,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12.0,
+                        color: nameColor),
+                    textAlign: TextAlign.center,
+                    selectable: false,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
     );
   }
 
-  String _formatWithCommas(int number) {
-    return number.toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-  }
+  // String _formatWithCommas(int number) {
+  //   return number.toString().replaceAllMapped(
+  //         RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+  //         (Match m) => '${m[1]},',
+  //       );
+  // }
 
   Widget _buildAvatar() {
     const avatarSize = 70.0;
@@ -493,78 +397,17 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    // Use app theme's bg color for SVG background
-    final Color svgBackgroundColor = appTheme.bg;
-
-    // Build the avatar content based on whether it's SVG or raster image
-    Widget avatarContent;
-    final String? avatarUrl = widget.playerState.avatarUrl;
-
-    if (avatarUrl != null && avatarUrl.toLowerCase().endsWith('.svg')) {
-      // Handle SVG images with flutter_svg
-      // Use Container with circular shape and background color (theme fg)
-      // BoxFit.contain ensures the entire square SVG is visible inside the circle
-      avatarContent = Container(
-        width: avatarSize,
-        height: avatarSize,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: svgBackgroundColor,
-        ),
-        child: ClipOval(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: SvgPicture.network(
-              avatarUrl,
-              fit: BoxFit.contain,
-              placeholderBuilder: (context) => Container(
-                color: appTheme.bgLight,
-                child: const Center(
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    } else if (avatarUrl != null) {
-      // Handle raster images (PNG, JPEG, etc.) from network
-      avatarContent = Container(
-        width: avatarSize,
-        height: avatarSize,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          image: DecorationImage(
-            image: NetworkImage(avatarUrl),
-            fit: BoxFit.cover,
-          ),
-        ),
-      );
-    } else {
-      // Handle null avatarUrl - use default user SVG icon
-      avatarContent = Container(
-        width: avatarSize,
-        height: avatarSize,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: svgBackgroundColor,
-        ),
-        child: ClipOval(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: SvgPicture.asset(
-              'assets/icons/user.svg',
-              fit: BoxFit.contain,
-              colorFilter: ColorFilter.mode(
-                // ignore: deprecated_member_use
-                Colors.white.withOpacity(0.7),
-                BlendMode.srcIn,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+    // Use AvatarWidget for consistent avatar rendering across the app.
+    // AvatarWidget handles SVG vs raster detection and animal-group scaling.
+    final avatarContent = AvatarWidget(
+      imageUrl: widget.playerState.avatarUrl,
+      size: avatarSize,
+      placeholder: Icon(
+        Icons.person,
+        size: avatarSize * 0.5,
+        color: appTheme.borderMuted,
+      ),
+    );
 
     // If no tracker is provided, we are in a context without a countdown, so we
     // show a static ring for all players. The color will be determined by role.
@@ -575,6 +418,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         ringProgress: 0.0, // Inverts to a full ring
         isSelf: widget.isSelf,
         isHost: widget.playerState.isHost,
+        rank: widget.showRankIcons ? widget.rankOverride : null,
         child: avatarContent,
       );
     }
@@ -589,24 +433,12 @@ class _PlayerWidgetState extends State<PlayerWidget> {
           ringProgress: ringProgress,
           isSelf: widget.isSelf,
           isHost: widget.playerState.isHost,
+          rank: widget.showRankIcons ? widget.rankOverride : null,
           child: child!,
         );
       },
       child: avatarContent,
     );
-  }
-
-  bool _isStatusIndicatorVisible() {
-    switch (widget.playerState.status) {
-      case PlayerStatus.waiting:
-      case PlayerStatus.ready:
-      case PlayerStatus.none:
-        return false;
-      case PlayerStatus.number:
-        return true;
-      case PlayerStatus.answer:
-        return widget.playerState.submittedAnswer != null;
-    }
   }
 
   Widget _buildStatusIndicator() {
@@ -617,23 +449,19 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         // Ring handles this feedback now
         return const SizedBox.shrink();
       case PlayerStatus.number:
-        // Prefer per-question round score from state when available (e.g., review)
-        int visibleRound = widget.playerState.roundScore ?? _currentRoundScore;
-        if (visibleRound < 0) visibleRound = 0; // clamp
-        final Color bg = scoreToColor(visibleRound);
-        return PlayerScore(
-          initialScore: _currentRoundScore,
-          controller: _statusScoreController,
-          backgroundColor: bg,
-        );
       case PlayerStatus.answer:
+        // Both number and answer status now show AnswerChip
         final ans = widget.playerState.submittedAnswer;
         if (ans == null) return const SizedBox.shrink();
         // Prefer per-question round score from state when available (e.g., review)
         int visibleRound = widget.playerState.roundScore ?? _currentRoundScore;
         if (visibleRound < 0) visibleRound = 0; // clamp
         final Color bg = scoreToColor(visibleRound);
-        return SubmittedAnswerChip(answer: ans, backgroundColor: bg);
+        return AnswerChip(
+          answer: ans,
+          score: visibleRound,
+          backgroundColor: bg,
+        );
       case PlayerStatus.none:
         return const SizedBox.shrink();
     }

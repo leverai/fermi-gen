@@ -49,9 +49,7 @@ void main() {
         isHost: false,
         questionNumber: 1,
         nQuestions: testQuestionCount,
-        durationSeconds: 15,
         players: {},
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 
@@ -85,9 +83,7 @@ void main() {
         isHost: false,
         questionNumber: 2, // Question index 1 (0-based)
         nQuestions: testQuestionCount,
-        durationSeconds: 15,
         players: {},
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 
@@ -147,9 +143,7 @@ void main() {
         isHost: false,
         questionNumber: 1,
         nQuestions: testQuestionCount,
-        durationSeconds: 15,
         players: {},
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 
@@ -177,9 +171,7 @@ void main() {
         isHost: false,
         questionNumber: 2,
         nQuestions: testQuestionCount,
-        durationSeconds: 15,
         players: {},
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 
@@ -208,9 +200,7 @@ void main() {
         isHost: false,
         questionNumber: 1,
         nQuestions: testQuestionCount,
-        durationSeconds: 15,
         players: {},
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 
@@ -260,9 +250,7 @@ void main() {
         isHost: false,
         questionNumber: 1,
         nQuestions: testQuestionCount,
-        durationSeconds: 15,
         players: {},
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 
@@ -296,9 +284,7 @@ void main() {
         isHost: false,
         questionNumber: 2,
         nQuestions: testQuestionCount,
-        durationSeconds: 15,
         players: {},
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 
@@ -356,9 +342,7 @@ void main() {
         isHost: false,
         questionNumber: 1,
         nQuestions: testQuestionCount,
-        durationSeconds: 15,
         players: {},
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 
@@ -387,9 +371,7 @@ void main() {
         isHost: false,
         questionNumber: 2,
         nQuestions: testQuestionCount,
-        durationSeconds: 15,
         players: {},
-        isPrivate: false,
         questionUids: ['q1', 'q2', 'q3'],
       ));
 

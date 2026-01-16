@@ -1,18 +1,32 @@
 """FastAPI dependencies."""
 
+import logging
 from functools import lru_cache
+from typing import TYPE_CHECKING, Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Header, HTTPException, status
 from fermi_db.dal import DatabaseClient
+from fermi_db.repositories.party_hosting_repository import PartyHostingRepository
+from fermi_db.repositories.subscription_repository import SubscriptionRepository
 from fermi_db.repositories.user_repository import UserRepository
 from fermi_db.session import get_session
 from google.cloud.firestore_v1.async_client import AsyncClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.core.config import settings
 from app.services.auth import AuthService
+from app.services.daily_question.service import DailyQuestionService
 from app.services.game.service import GameService
 from app.services.scoring import ScoringService
+from app.services.subscription import SubscriptionService
 from app.services.user import UserService
+
+if TYPE_CHECKING:
+    from fermi_db.repositories.survival_run_repository import SurvivalRunRepository
+
+    from app.services.survival import SurvivalService
+
+logger = logging.getLogger(__name__)
 
 
 @lru_cache
@@ -36,6 +50,13 @@ def get_game_service(db_client: DatabaseClient = Depends(get_db_client)) -> Game
     return GameService(db_client=db_client)
 
 
+def get_daily_question_service(
+    db_client: DatabaseClient = Depends(get_db_client),  # noqa: B008
+) -> DailyQuestionService:
+    """Get an instance of the DailyQuestionService."""
+    return DailyQuestionService(db_client=db_client)
+
+
 @lru_cache
 def get_scoring_service() -> ScoringService:
     """Get an instance of the ScoringService."""
@@ -56,3 +77,80 @@ def get_user_service(
 ) -> UserService:
     """Get an instance of the UserService."""
     return UserService(user_repository=user_repository)
+
+
+def get_subscription_repository(
+    session: AsyncSession = Depends(get_session),  # noqa: B008
+) -> SubscriptionRepository:
+    """Get an instance of the SubscriptionRepository."""
+    return SubscriptionRepository(session)
+
+
+def get_party_hosting_repository(
+    session: AsyncSession = Depends(get_session),  # noqa: B008
+) -> PartyHostingRepository:
+    """Get an instance of the PartyHostingRepository."""
+    return PartyHostingRepository(session)
+
+
+def get_survival_run_repository(
+    session: AsyncSession = Depends(get_session),  # noqa: B008
+) -> 'SurvivalRunRepository':
+    """Get an instance of the SurvivalRunRepository."""
+    from fermi_db.repositories.survival_run_repository import SurvivalRunRepository
+
+    return SurvivalRunRepository(session)
+
+
+def get_subscription_service(
+    subscription_repository: SubscriptionRepository = Depends(  # noqa: B008
+        get_subscription_repository,
+    ),
+    user_repository: UserRepository = Depends(get_user_repository),  # noqa: B008
+) -> SubscriptionService:
+    """Get an instance of the SubscriptionService."""
+    return SubscriptionService(
+        subscription_repository=subscription_repository,
+        user_repository=user_repository,
+    )
+
+
+def get_survival_service(
+    db_client: DatabaseClient = Depends(get_db_client),  # noqa: B008
+) -> 'SurvivalService':
+    """Get an instance of the SurvivalService."""
+    from app.services.survival import SurvivalService
+
+    return SurvivalService(db_client=db_client)
+
+
+async def verify_scheduler_secret(
+    x_scheduler_secret: Annotated[str | None, Header()] = None,
+) -> None:
+    """Verify Cloud Scheduler shared secret header.
+
+    This provides defense-in-depth for scheduler endpoints, in addition to
+    OIDC authentication configured at Cloud Run/IAM level.
+
+    Set SCHEDULER_SECRET environment variable and configure Cloud Scheduler
+    to send it in the X-Scheduler-Secret header.
+    """
+    if not settings.scheduler_secret:
+        # If secret is not configured, log warning but allow request
+        # (assumes OIDC is handling auth at Cloud Run level)
+        logger.warning(
+            'SCHEDULER_SECRET not configured - relying solely on Cloud Run IAM/OIDC',
+        )
+        return
+
+    if not x_scheduler_secret:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Missing X-Scheduler-Secret header',
+        )
+
+    if x_scheduler_secret != settings.scheduler_secret:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Invalid scheduler secret',
+        )

@@ -7,6 +7,7 @@ This document describes the architecture, design decisions, and implementation d
 - [Overview](#overview)
 - [Project Structure](#project-structure)
 - [Authentication & API Integration](#authentication--api-integration)
+- [Subscription Management](#subscription-management)
 - [Real-time Game State](#real-time-game-state)
 - [Screen Architecture](#screen-architecture)
   - [Main Screen](#main-screen)
@@ -17,6 +18,7 @@ This document describes the architecture, design decisions, and implementation d
 - [Answer Input System](#answer-input-system)
 - [Theming System](#theming-system)
 - [Visual Behaviors](#visual-behaviors)
+- [Deep Links & Cross-Platform Invites](#deep-links--cross-platform-invites)
 - [Development Guidelines](#development-guidelines)
 - [Design Decisions](#design-decisions)
 
@@ -68,41 +70,47 @@ apps/fermi-frontend/
     │   └── player_stats.dart         # Player statistics
     ├── screens/
     │   ├── main/
-    │   │   ├── main_screen.dart
+    │   │   ├── main_screen.dart      # Main screen with tab navigation
     │   │   ├── main_screen_controller.dart
     │   │   └── widgets/
-    │   │       ├── top_bar_lock_avatar.dart
-    │   │       ├── percentile_panel.dart
-    │   │       └── primary_cta.dart
+    │   │       ├── games_tab.dart            # Games tab content
+    │   │       ├── me_tab.dart               # Me tab with user profile
+    │   │       ├── party_bottom_sheet.dart   # Party game settings sheet
+    │   │       ├── daily_question_carousel.dart
+    │   │       ├── daily_question_card.dart
+    │   │       ├── daily_question_archive_sheet.dart
+    │   │       ├── primary_cta.dart
+    │   │       └── top_bar_lock_avatar.dart
     │   ├── lobby/
     │   │   ├── lobby_screen.dart
     │   │   └── lobby_screen_controller.dart
-    │   ├── question_v2/                    # NEW: Question Screen V2 (current)
+    │   ├── daily_question/                   # Daily Question feature
+    │   │   ├── daily_question_screen.dart
+    │   │   └── daily_question_results_screen.dart
+    │   ├── question_v2/                      # Question Screen V2 (current)
     │   │   ├── question_screen_v2.dart
     │   │   ├── question_screen_v2_controller.dart
+    │   │   ├── controllers/                  # Manager classes
+    │   │   │   ├── animation_state_manager.dart
+    │   │   │   ├── answer_submission_handler.dart
+    │   │   │   ├── confetti_manager.dart
+    │   │   │   ├── game_timer_manager.dart
+    │   │   │   ├── navigation_coordinator.dart
+    │   │   │   ├── player_state_manager.dart
+    │   │   │   └── question_state_manager.dart
+    │   │   ├── models/
+    │   │   │   ├── question_state.dart
+    │   │   │   └── question_pane_state.dart
     │   │   └── widgets/
     │   │       ├── game_carousel.dart
     │   │       ├── game_card.dart
     │   │       └── quick_access_bar.dart
-    │   └── question/                       # Legacy V1 (kept for reference)
-    │       ├── question_screen.dart
-    │       ├── question_screen_controller.dart
-    │       ├── question_pane.dart
-    │       ├── models/
-    │       │   ├── question_view_model.dart
-    │       │   ├── answer_result.dart
-    │       │   └── question_flow_controller.dart
-    │       ├── widgets/
-    │       │   ├── players_header.dart
-    │       │   ├── question_pane_body.dart
-    │       │   ├── submit_bar.dart
-    │       │   └── pane_bindings.dart
-    │       └── helpers/
-    │           ├── layout_calculator.dart
-    │           └── snack.dart
+    │   └── question/                         # Legacy V1 (reference only)
+    │       └── ...
     ├── services/
     │   ├── api_service.dart
     │   ├── auth_service.dart
+    │   ├── daily_question_service.dart
     │   ├── player_stats_service.dart
     │   ├── game_realtime.dart
     │   ├── firestore_game_realtime.dart
@@ -111,6 +119,8 @@ apps/fermi-frontend/
     │   └── demo/
     │       ├── demo_game_realtime.dart
     │       └── demo_synth.dart
+    ├── controllers/
+    │   └── daily_question_controller.dart
     ├── state/
     │   └── question_pane_controller.dart
     ├── theme/
@@ -119,12 +129,13 @@ apps/fermi-frontend/
     │   ├── colormap.dart            # Score/percentile to color lerp (danger→success)
     │   └── layout_constants.dart    # Sizing/spacing constants
     └── widgets/
-        ├── answer_widget.dart          # Unified answer input (digits + OM + unit)
-        ├── answer_mirror_text.dart     # Human-readable answer display
-        ├── digit_wheels.dart           # Three-digit scrollable wheels with numpad
-        ├── om_label.dart               # Order of magnitude selector
+        ├── avatar_widget.dart          # Reusable avatar (SVG/raster support)
+        ├── answer_accuracy_scale.dart  # Continuous logarithmic slider (1 to 999T)
+        ├── slider_text_mirror.dart     # Real-time value display (e.g., "124 Million")
+        ├── percentile_widget.dart      # Compact "Top X%" display with animations
         ├── unit_tape.dart              # Unit selector with locale toggle
         ├── styled_dialog.dart          # Reusable dialog with gradient borders
+        ├── settings_menu.dart          # Settings menu (sign out, delete account)
         ├── animated_like_dislike.dart  # Question voting with animations
         ├── circular_determinate_spinner.dart # Progress indicators
         ├── player_widget.dart          # Avatar, status, score display
@@ -158,9 +169,27 @@ apps/fermi-frontend/
 
 ### Authentication Flow
 
-1. User signs in via `firebase_ui_auth` screens.
+The app supports two authentication modes: **anonymous** (default) and **permanent accounts** (email/Google).
+
+#### Anonymous Authentication (Default)
+
+1. **Automatic Sign-In**: On first launch (after onboarding), if no user exists, the app automatically signs in anonymously via `AuthService.signInAnonymously()`.
+2. **Seamless Experience**: Anonymous users can immediately play games without creating an account.
+3. **Account Upgrade**: Anonymous users can upgrade to a permanent account via the settings menu:
+   - Settings menu shows "Create Account" button for anonymous users
+   - Navigates to `AuthScreen` which uses `SignInScreen` from `firebase_ui_auth`
+   - Firebase automatically links the anonymous account with the new credential (email/password or Google)
+   - Firebase UID remains the same, preserving all game data and progress
+4. **Token Exchange**: Anonymous users exchange Firebase ID tokens for backend access tokens just like regular users.
+
+#### Permanent Account Authentication
+
+1. User signs in via `firebase_ui_auth` screens (email/password or Google).
 2. `AuthService.exchangeToken()` exchanges the Firebase ID token for a backend access token (JWT) via `POST /auth/token`.
 3. `ApiService` includes the access token in all subsequent requests as `Authorization: Bearer <ACCESS_TOKEN>`.
+
+#### Common Flow (Both Anonymous and Permanent)
+
 4. Game endpoints used by `MainScreenController`:
    - `GET /game/config` → font; categories with theme and pictures; difficulties
    - `POST /game/get_player_stats` → percentile stats (used to compute a 0..100 percentile int)
@@ -170,9 +199,154 @@ apps/fermi-frontend/
    - `POST /question/upvote`, `/question/de_upvote`, `/question/downvote`, `/question/de_downvote`.
    - Units: questions expose `units` as `UnitInfo` per region (US/EU). UI displays `abbreviation` in the unit tape and full names in the selector popup; submissions send the unit `id` (or `null` when unitless). The locale toggle (integrated into the unit selector popup) lets users switch US/EU, which persists via `POST /user/set_locale` and triggers a backend fetch for updated unit options.
 
+#### Account Linking
+
+When an anonymous user signs in with email/Google from the upgrade screen:
+- Firebase UI Auth automatically handles credential linking via `CredentialLinked` action
+- The anonymous account is upgraded to a permanent account
+- All game data associated with the Firebase UID is preserved
+- `AuthService.linkWithCredential()` can also be used programmatically for custom linking flows
+
 ### API Service
 
 `ApiService` issues authorized HTTP requests with `Authorization: Bearer <ACCESS_TOKEN>`. All successful responses return a `200 OK` status code. Errors are communicated via standard `4xx` and `5xx` status codes with a JSON body containing a `detail` field.
+
+### Subscription Management
+
+The app integrates with RevenueCat for in-app purchases and subscription management via the `purchases_flutter` SDK.
+
+#### Configuration
+
+| Item | Value |
+|------|-------|
+| SDK Package | `purchases_flutter` |
+| Entitlement ID | `Guesstimate Pro` |
+| Offering | `default` |
+| Products | `$rc_monthly`, `$rc_annual`, `$rc_lifetime` |
+
+#### Service
+
+`SubscriptionService` (`lib/services/subscription_service.dart`) handles:
+- SDK initialization with platform-specific API keys
+- User login/logout synced with Firebase UID
+- Entitlement checking (`isPro`)
+- Fetching offerings for paywall display
+- Purchase and restore flows
+
+#### API Keys
+
+API keys are injected via `--dart-define` at build time:
+- `REVENUECAT_ANDROID_API_KEY`: Google Play API key (starts with `goog_*`)
+- `REVENUECAT_IOS_API_KEY`: App Store API key (starts with `appl_*`)
+
+#### User Flow
+
+1. On app launch, `SubscriptionService.initialize()` configures the SDK
+2. After Firebase auth, `SubscriptionService.login(firebaseUid)` links the user
+3. User navigates to Settings → Subscription to open `PaywallScreen`
+4. `PaywallScreen` fetches offerings and displays available packages
+5. User taps a package → `purchasePackage()` completes the purchase
+6. On success, entitlements are immediately active (RevenueCat handles receipt validation)
+7. RevenueCat sends webhook to backend to sync subscription status to database
+
+#### Critical: Firebase UID Sync Requirement
+
+**`SubscriptionService.login(firebaseUid)` must be called after every auth state change** to ensure purchases are attributed to the correct user. This includes:
+
+| Event | Location | Why |
+|-------|----------|-----|
+| Anonymous sign-in | `main.dart:_ensureAuthenticated()` | Initial app launch |
+| `UserCreated` | `app_router.dart:_buildSignInScreen()` | New account via email/Google |
+| `SignedIn` | `app_router.dart:_buildSignInScreen()` | Returning user sign-in |
+| `CredentialLinked` | `app_router.dart:_buildSignInScreen()` | Anonymous → permanent upgrade |
+| `CredentialLinked` | `app_router.dart:_buildUpgradeAccountScreen()` | Upgrade from settings |
+| `SignedIn` | `app_router.dart:_buildUpgradeAccountScreen()` | Sign-in from upgrade screen |
+
+**Failure to call `login()` after credential linking** will cause purchases to be attributed to the anonymous RevenueCat user ID instead of the Firebase UID, breaking webhook user lookups.
+
+The `login()` method is safe to call multiple times with the same UID (RevenueCat handles this gracefully).
+
+#### Paywall Screen
+
+`PaywallScreen` (`lib/screens/paywall_screen.dart`) displays available subscription packages with a Neubrutalist-styled UI:
+
+**Features:**
+- **Dynamic Metadata**: Fetches FREE/PRO benefits from RevenueCat Offering metadata (allows remote updates without app redeployment)
+- **Benefits Comparison**: Side-by-side FREE vs PRO comparison table
+- **Product Cards**: Displays monthly, yearly, and lifetime options with:
+  - Price from Play Store (`StoreProduct.priceString`)
+  - Savings badge for yearly plan (calculated vs monthly)
+  - "BEST VALUE" badge for popular package (configurable via metadata)
+  - Free trial text (if configured in Play Store offers)
+  - Product description from Play Store
+- **Promo Banner**: Optional promotional text from metadata
+- **Restore Purchases**: Link to restore previous purchases
+
+**RevenueCat Offering Metadata Structure:**
+
+Configure in RevenueCat Dashboard → Products → Offerings → `default` → Metadata:
+
+```json
+{
+  "free_benefits": ["1 Daily Question", "3 Party Games per Day", "Limited Archive Access"],
+  "pro_benefits": ["Unlimited Party Games", "Full Daily Question Archive", "No Ads"],
+  "popular_package": "$rc_annual",
+  "promo_text": "Save 50% with yearly!"
+}
+```
+
+| Field | Purpose |
+|-------|---------|
+| `free_benefits` | Listed in FREE column of comparison table |
+| `pro_benefits` | Listed in PRO column with checkmarks |
+| `popular_package` | Package identifier for "BEST VALUE" badge |
+| `promo_text` | Promotional banner displayed at top |
+
+**Play Store Console Setup:**
+
+For subscriptions, configure:
+- **Benefits**: Listed in Google Play purchase UI (not exposed to app)
+- **Description**: Shown in app via `StoreProduct.description`
+- **Offers** (optional): Free trials or intro pricing via base plan offers
+
+#### Testing
+
+- **Sandbox Testing**: Use Google Play sandbox (test accounts in Play Console License testing)
+- **Sandbox Renewals**: Subscriptions renew every 5 minutes in sandbox mode
+- **No Real Charges**: License tester accounts are never charged
+
+#### Feature Gating
+
+The app uses `SubscriptionProvider` to cache and check Pro status for feature gating.
+
+**SubscriptionProvider** (`lib/providers/subscription_provider.dart`):
+- Caches `isPro` status after checking RevenueCat entitlements
+- Provides `refresh()` method to sync with RevenueCat
+- Called in `main.dart` after auth state changes
+
+**Gating Pattern**:
+```dart
+// In screen build() method:
+Consumer<SubscriptionProvider>(
+  builder: (context, subProvider, _) {
+    if (widget.isPostTake && !subProvider.isPro) {
+      // Show lock icon, gate feature
+    }
+  },
+)
+```
+
+**Currently Gated Features**:
+- **Post-Take Daily Questions**: FREE users see a lock icon on the Start button; tapping opens PaywallScreen
+
+**Local Development Testing**:
+
+When running with `USE_EMULATORS=true`, a "Dev: Pro Mode" toggle appears in Settings (Gameplay section):
+- **Auto**: Uses RevenueCat's actual status (default)
+- **Pro**: Forces `isPro = true` for testing pro features
+- **Free**: Forces `isPro = false` for testing gating UI
+
+This toggle uses `SubscriptionProvider.setDevOverride(bool? isPro)` which only works in emulator mode.
 
 ---
 
@@ -205,6 +379,66 @@ This ensures the pane always displays the currently active question's revealed a
 ### Demo Adapter
 
 `lib/services/demo/demo_game_realtime.dart` provides a deterministic demo adapter for local development that simulates game events without requiring backend connectivity.
+
+---
+
+
+## Widget Documentation
+
+### Core Answer Display Widgets
+
+#### AnswerAccuracyScale
+
+**Purpose**: Displays answers on a logarithmic scale with animated reveal functionality.
+
+**Features**:
+- **Logarithmic scale**: Range 0-15 (representing 1 to 1 Trillion)
+- **Tick marks**: Shows ticks for each order of magnitude with labels (K, M, B, T)
+- **Dual indicators**: User answer (static) and correct answer (animated)
+- **Text boxes**: Displays formatted values above/below the scale
+- **Scientific notation**: Automatically uses scientific notation for out-of-bounds values
+- **Animated reveal**: Correct answer indicator spawns from user answer and animates to correct position
+
+**Usage**: Replaces the legacy `AnswerMirrorText` widget in `GameCard`. Used in Question Screen V2 for displaying and revealing answers.
+
+**Props**:
+- `currentAnswer`: Current user input (AnswerValue)
+- `submittedAnswer`: Submitted answer after lock (AnswerValue?)
+- `revealedAnswer`: Correct answer at reveal time (AnswerValue?)
+- `revealedColor`: Color for reveal animation (Color?)
+- `editable`: Whether the question is still editable (bool)
+
+#### PercentileWidget
+
+**Purpose**: Compact "Top X%" display with animated digit transitions.
+
+**Features**:
+- **Inverted percentile**: Displays `100 - percentile` as "Top X%"
+- **Animated digits**: Smooth transitions when percentile changes
+- **Color mapping**: Inverted color scale (1% = success/best, 99% = danger/worst)
+- **Compact layout**: 24px height, borderless, transparent background
+- **Typography**: "Top" (12px, weight 400) + digits (16px, weight 600) + "%"
+
+**Usage**: Main screen percentile panel and question screen player percentile display.
+
+**Props**:
+- `percentile`: Percentile value 0-100 (int?)
+- `visible`: Visibility control without layout shifts (bool)
+- `animate`: Enable/disable digit animations (bool)
+
+### UI Components
+
+#### SettingsMenu
+
+**Purpose**: Settings menu overlay with user account actions.
+
+**Features**:
+- **Sign out**: Signs out current user and returns to auth screen
+- **Delete account**: Deletes user account with confirmation dialog
+- **Styled dialog**: Uses `StyledDialog` for confirmation prompts
+- **Error handling**: Shows SnackBar for errors
+
+**Usage**: Accessible from main screen via settings FAB button.
 
 ---
 
@@ -335,33 +569,65 @@ Question Screen V2 orchestrates one round (or a sequence of rounds) of the Fermi
 ### Directory Layout
 
 - `question_screen_v2.dart`: Main screen widget; arranges players row, carousel, quick-access bar, and action button in a column layout.
-- `question_screen_v2_controller.dart`: Centralized controller (`ChangeNotifier`) that manages all game state, caches historical data, and coordinates carousel navigation. Provides `currentAnswerController` getter for quick-access bar integration.
+- `question_screen_v2_controller.dart`: Centralized orchestration controller (`ChangeNotifier`) that delegates to specialized manager classes. Provides public API for UI and coordinates stream subscriptions.
+- `controllers/` - **Manager Classes** (refactored from monolithic controller):
+  - `question_state_manager.dart`: Manages question state cache, display answer priority logic, and state queries
+  - `player_state_manager.dart`: Manages player controllers, player summaries, and player state updates
+  - `animation_state_manager.dart`: Manages reveal animations with correct start/end values
+  - `game_timer_manager.dart`: Manages all game timers (deadline, auto-next, review mode activation)
+  - `confetti_manager.dart`: Manages game-end and per-question confetti state and triggers
+  - `answer_submission_handler.dart`: Handles answer submission logic, validation, and unit conversion
+  - `navigation_coordinator.dart`: Manages carousel navigation and question index changes
 - `widgets/game_carousel.dart`: Horizontal carousel widget using `PageView` with `DotsIndicator` for question navigation.
 - `widgets/carousel_page_wrapper.dart`: Wrapper widget using `AutomaticKeepAliveClientMixin` to preserve card state when scrolled away.
 - `widgets/game_card.dart`: Composite widget containing question text, answer input, and feedback (like widget).
 - `widgets/quick_access_bar.dart`: Draggable quick-access bar widget that fills space between carousel and submit button. Triggers numpad input when dragged up, closes bottom sheets when dragged down.
+- `models/question_state.dart`: Data model for per-question state.
+- `models/question_pane_state.dart`: Enum for question pane UI state.
 
 **Related services and state**:
 - `services/game_realtime.dart`: Backend-agnostic realtime interface.
 - `services/firestore_game_realtime.dart`: Firestore implementation.
-- `widgets/answer_widget.dart`: Unified answer input component.
+- `widgets/answer_accuracy_scale.dart`: Logarithmic scale answer input.
+- `widgets/answer_controller.dart`: Minimal controller for reveal animations.
 - `widgets/players_row.dart`: Player chips row widget.
 - `widgets/submit_bar.dart`: Submit/Next/Finish action button.
 
 ### High-Level Architecture
 
-**Centralized State Management**:
-- Single `QuestionScreenV2Controller` is the source of truth for the entire game session
-- Historical state caching: `Map<int, QuestionState>` stores complete state for every question
-- UI widgets receive immutable state from the controller; no complex calculations in widgets
-- **Per-Question State Retention**: Each question maintains its own state (`userAnswer`, `submittedAnswers`, `scores`, etc.) that persists as cards scroll away
+**Refactored Controller Architecture** (as of Nov 2024):
+
+The `QuestionScreenV2Controller` has been refactored from a monolithic 1577-line class into a lean orchestration layer (~700 lines) that delegates to specialized manager classes. This follows the Single Responsibility Principle and improves maintainability, testability, and code organization.
+
+**Manager-Based Design**:
+- **`QuestionStateManager`**: Owns the question state cache (`Map<int, QuestionState>`) and provides state query methods with correct priority logic (animation > revealed > user > default)
+- **`PlayerStateManager`**: Manages player widget controllers, player summaries, and player state updates from game snapshots
+- **`AnimationStateManager`**: Handles reveal animations with correct start/end values and display format conversion
+- **`GameTimerManager`**: Consolidates ALL timer logic (deadline auto-submit, auto-next countdown, review mode activation delay)
+- **`ConfettiManager`**: Manages game-end confetti for top 3 players and per-question confetti for highest scorers
+- **`AnswerSubmissionHandler`**: Handles answer submission with validation, unit conversion (abbreviation → ID), and fallback logic
+- **`NavigationCoordinator`**: Manages carousel `PageController`, question index changes, and answer controller synchronization
+
+**Controller Responsibilities** (orchestration only):
+- Initialize and coordinate all managers
+- Subscribe to game stream (`watchGame`) and delegate to managers
+- Bind question-specific streams (`QuestionPaneBindings`)
+- Provide public API that delegates to managers
+- Handle locale changes and vote actions
+- Manage stream subscriptions and disposal
 
 **State Flow**:
 1. **Backend → Controller**: `watchGame` stream updates controller state
-2. **Controller → Cache**: Question states cached as they're revealed (question text, answers, scores, player states)
-3. **Controller → UI**: UI reads from controller's cached state for any question index (not just current)
-4. **User Action → Controller**: User interactions call controller methods, which update state for the current question
-5. **Controller → Backend**: Controller calls `realtime` methods
+2. **Controller → Managers**: Controller delegates updates to appropriate managers
+3. **Managers → State**: Managers update their internal state (question cache, player controllers, etc.)
+4. **Controller → UI**: UI reads from controller's public API, which delegates to managers
+5. **User Action → Controller → Managers**: User interactions call controller methods, which delegate to managers
+6. **Managers → Backend**: Managers call `realtime` methods for backend updates
+
+**Historical State Caching**:
+- `QuestionStateManager` stores complete state for every question in `Map<int, QuestionState>`
+- UI widgets receive immutable state from the controller; no complex calculations in widgets
+- **Per-Question State Retention**: Each question maintains its own state (`userAnswer`, `submittedAnswers`, `scores`, etc.) that persists as cards scroll away
 
 **Carousel Navigation**:
 - Uses `PageView` with `PageController` for programmatic navigation
@@ -438,6 +704,9 @@ class QuestionState {
 
 ### Timer System
 
+**GameTimerManager**:
+All timer logic is encapsulated in `GameTimerManager`, which exposes methods to start/stop timers and streams/callbacks for events.
+
 **Deadline Timer (Auto-Submit)**:
 - Uses `QuestionDeadlineProgressTracker` to track progress from 0.0 to 1.0
 - Starts when question becomes active (in `_handleQuestion()` or `_onQuestionIndexChanged()`)
@@ -478,8 +747,9 @@ class QuestionState {
 Each `GameCard` contains:
 - **Question-Answer Card** (with border):
   - Question widget (text + tags, no border)
-  - Answer mirror text
-  - Answer widget (digits + OM + unit)
+  - Answer accuracy scale (logarithmic slider for answer input)
+  - Slider text mirror (displays current value)
+  - Unit tape (unit selector with locale toggle)
 - **Feedback Row** (appears after reveal, same styling as card):
   - Like/dislike widget (right-aligned)
 
@@ -624,7 +894,7 @@ The Question screen orchestrates one round (or a sequence of rounds) of the Ferm
 ### State Machine (Pane)
 
 - `started`
-  - Editable `AnswerWidget`, timer active once duration > 0.
+  - Editable `AnswerAccuracyScale`, timer active once duration > 0.
   - Transitions:
     - On submit: `locked`
     - On deadline: `locked` (auto-submit current value)
@@ -694,7 +964,7 @@ WatchGame updates never overwrite an already revealed answer state (prevents fli
 - User swipe enabled on the carousel; page index is local.
 - Submit/Next disabled; Finish button persists across panes and exits to Main.
 - Deadlines and auto-next suppressed.
-- Pane immediately reveals the correct value and applies the per-question score color to `AnswerWidget`.
+- Pane immediately reveals the correct value and applies the per-question score color to the answer display.
 - Player UI mirrors the viewed question:
   - `SubmittedAnswerChip` background uses the per-question round score color.
   - Transient score text shows the per-question round score (no +/-), colored identically.
@@ -707,7 +977,7 @@ WatchGame updates never overwrite an already revealed answer state (prevents fli
 - No category-based theming; unified theme system ensures visual consistency.
 
 **Answer reveal colors**:
-- On reveal, the `AnswerWidget` animates digits, order-of-magnitude, and unit to the correct answer and tints all three to a shade from the RdYlGn scale computed from the player's per-question score.
+- On reveal, the `AnswerAccuracyScale` animates the correct answer indicator to its position on the logarithmic scale. The unit tape hides its tap and scroll indicators.
 - Player chips' submitted answer capsules use the same RdYlGn shade for background.
 
 ### Error Handling & Logging
@@ -773,68 +1043,67 @@ WatchGame updates never overwrite an already revealed answer state (prevents fli
 
 ## Answer Input System
 
-The unified `AnswerWidget` combines digit wheels, order of magnitude (OM), and unit selection into a single cohesive component with a modern styled appearance.
+The answer input system has been simplified to use a continuous logarithmic slider as the primary input method, complemented by a unit selector for dimensional questions.
 
 ### Structure
 
-- Layout: `[digit][digit][digit][OM][unit]` - all elements in one horizontal row
-- Responsive width: Elements stretch to fill parent width with flex ratio 7:2:2 (digits:OM:unit)
-  - Flex 7 for DigitWheels accounts for 3 equal digits + 24px internal spacing
-  - Flex 2 each for OM and unit ensures all 5 elements appear equal width
-  - 12px spacing preserved between all sections
-  - Unit area always rendered (empty placeholder when no units) to prevent layout shifts
-- Positioning: Located in lower portion of screen for thumb accessibility (with 100px top spacer)
-- Styling: Transparent background, rounded corners (12px)
-- Padding: 12px horizontal, 12px vertical inside the border
-- Controller: `AnswerController` provides unified API (`currentValue`, `jumpTo()`, `animateTo()`, `reveal()`)
-- Model: `AnswerValue` (from `models/answer_value.dart`) represents complete answer state
-- Mirror text: Human-readable display above widget (e.g., "123 million meters") with smooth animated width transitions
+- **Primary Input**: `AnswerAccuracyScale` - A continuous logarithmic slider spanning 1 to 999T (Trillion)
+- **Unit Selection**: `UnitTape` - Displays current unit and opens bottom sheet selector when tapped
+- **Value Display**: `SliderTextMirror` - Real-time text display of slider value (e.g., "124 Million")
+- **Layout**: Horizontal row with `SliderTextMirror` (left) and `UnitTape` (right), positioned below the slider
+- **Model**: `AnswerValue` (from `models/answer_value.dart`) represents complete answer state
 
-### Drag-to-Open-Numpad Feature
+### Continuous Logarithmic Slider
 
-- Draggable quick-access bar positioned between the game carousel and submit button
-- Fills available vertical space to provide a large, accessible drag target
-- Visual feedback: Circular progress indicator + "Show numpad" text + up arrow
-- Threshold: 80px drag distance triggers keyboard on first digit
-- Instagram-style pull-to-refresh UX pattern
-- When dragged down, closes any open bottom sheets (OM or unit selectors)
-- Implemented as a separate `QuickAccessBar` widget for better separation of concerns
+The `AnswerAccuracyScale` widget provides a continuous logarithmic scale for answer input:
+
+- **Range**: 1 to 999T (10^0 to 10^15)
+- **Precision**: Any integer value from 1-999 within each order of magnitude
+- **Examples**: 1, 42, 157, 999, 1K, 42K, 157K, 999K, 1M, etc.
+- **Interaction**: Tap or drag to select value
+- **Visual Feedback**: Real-time position indicator and value display
+- **Scale Labels**: K, M, B, T markers at major tick positions
+
+### Value Display (SliderTextMirror)
+
+The `SliderTextMirror` widget displays the current slider value in human-readable format:
+
+- **Format**: Number + order of magnitude word (e.g., "42 Thousand", "157 Million")
+- **Special Cases**: Values 1-999 display as just the number (e.g., "42", "157")
+- **Styling**: Uses `AppFont` for consistent typography
+- **Updates**: Real-time synchronization with slider position
+- **Location**: Left side of answer row, below the slider
+
+### Unit Selection (UnitTape)
+
+The `UnitTape` widget handles unit display and selection:
+
+- **Display**: Shows current unit abbreviation (e.g., "km", "mi")
+- **Interaction**: Tap to open bottom sheet selector
+- **Selector**: Full unit names with locale toggle (US/EU)
+- **Locale Toggle**: Integrated "U.S. Units" checkbox in selector
+- **Backend Sync**: Switching locale fetches new unit options via API
+- **Unitless Questions**: Hidden automatically when no units available
+- **Location**: Right side of answer row, below the slider
 
 ### Pre-Reveal Theming (AppTheme-Based)
 
-- Widget background: Transparent
-- Digit text: `textMuted`
-- Digit borders: Transparent (visible only when focused/dragging)
-- Digit backgrounds: Transparent
-- Scrolling/auto-scroll borders: `info` (blue accent, consistent across all components)
-- Focused text: `info`
-- OM label text: `textMuted`
-- OM label background: Transparent
-- OM label borders: Transparent (visible only when focused)
+- Slider track: `border` color
+- Slider thumb: `info` color (blue accent)
+- Slider labels: `textMuted`
+- Mirror text: `text` color
 - Unit tape text: `textMuted`
 - Unit tape background: Transparent
-- Unit tape borders: Transparent (visible only when focused)
 - Tap indicators: `border` color (fade out on reveal)
-
-### Interactive Flow
-
-- User drags up from quick-access bar (between carousel and submit button) → Numpad appears (quick access)
-- User taps digit → Numpad appears → Enter 3 digits → OM selector slides up from bottom
-- User selects OM → Unit selector slides up from bottom (includes locale toggle)
-- User can also tap OM or unit directly to open their respective selectors
-- User drags down on quick-access bar → Closes any open bottom sheets
-- Screen content slides up when selectors appear (like keyboard behavior)
-- Selectors auto-close on selection, deadline, or outside tap
-- Unit selector highlights the currently selected unit (synchronized with unit tape display)
 
 ### Reveal Behavior
 
-- Digits animate to correct number; text color changes to score-based color
-- OM animates to correct value; text color changes to score-based color
-- Unit animates to correct abbreviation; text color changes to score-based color
-- Tap indicators fade out (only visual change during reveal)
+- Slider animates to correct answer position
+- Revealed answer indicator appears with score-based color
+- Submitted answer indicator shows player's answer
+- Mirror text freezes to show submitted value (for comparison)
 - All text colors change to score-interpolated color (danger→success gradient)
-- Digit borders fade out completely
+- Tap indicators fade out
 - The displayed correct value is taken from `players_results.{player_id}.correct_answer` (already in the user's locale/unit)
 
 ### Unit & Locale Handling
@@ -845,45 +1114,18 @@ The unified `AnswerWidget` combines digit wheels, order of magnitude (OM), and u
 - Switching locale fetches new unit options from backend; selector updates reactively
 - When unitless questions, unit tape is hidden automatically
 
-### Interactive Input System
+### Screen Adaptation
 
-**Digit input (numpad)**:
-- Tap any digit wheel → OS-native keyboard/numpad appears
-- Sequential input: Enter digits 0-9, automatically advances to next digit
-- Visual feedback: Focused digits show `secondary` color for text and borders
-- Auto-chain: After entering the last digit → OM selector automatically opens
-
-**OM selector (bottom sheet)**:
-- Slides up from bottom like a keyboard
-- Options: "None", "Thousand", "Million", "Billion", "Trillion", "Quadrillion"
-- Center-aligned chips for thumb accessibility
-- Auto-chain: After selecting OM → Unit selector automatically opens (if units available)
-- Visual feedback: OM label shows `secondary` color when selector is active
-
-**Unit selector (bottom sheet)**:
-- Slides up from bottom with integrated locale toggle
-- Locale toggle: Single "U.S. Units" checkbox (checked = US, unchecked = EU)
-- Unit options: Shows full names from `unitOptions` map
-- Unit tape: Displays abbreviations (e.g., "mi", "km")
-- Switching locale triggers backend fetch; options update reactively via `ValueNotifier`
-- Visual feedback: Unit tape shows `secondary` color when selector is active
-
-**Screen adaptation**:
-- Keyboard and selectors slide screen content upward via `Matrix4.translationValues`
+- Bottom sheet selectors slide screen content upward via `Matrix4.translationValues`
 - Combined offset: `keyboardHeight + bottomSheetHeight`
 - Submit button and progress indicators remain visible
 - Smooth animations synchronized with keyboard timing (100ms linear)
 - `BottomSheetHeightProvider` tracks custom bottom sheet heights
 
-**Interaction modes**:
-- Scrolling: All wheels (digits, OM, unit) support direct scroll input
-- Tap-to-select: Open selector popups for quick selection
-- Auto-chain: Smooth flow from digits → OM → unit
-- Selectors auto-close: On selection, deadline, or outside tap/swipe
+### Answer Mirror Text Behavior
 
-### Answer Mirror Text
+During reveal, the mirror text freezes to show the player's submitted answer (making it easy to compare against the animated correct answer on the slider). Resumes live mirroring on the next question.
 
-During reveal, the mirror text freezes to show the player's submitted answer (making it easy to compare against the animated correct answer in the answer widget). Resumes live mirroring on the next question.
 
 ---
 
@@ -998,7 +1240,7 @@ The reserved feedback area animates between feedback (post-reveal) and locale to
 
 ### Answer Reveal
 
-`AnswerWidget` animates digits, order-of-magnitude, and unit to the correct value and tints all three using a RdYlGn color derived from the local player's per-question score.
+At reveal time, the `AnswerAccuracyScale` shows the correct answer indicator at its position on the logarithmic scale. The color is derived from the local player's per-question score using the RdYlGn color map.
 
 ### Confetti
 
@@ -1079,11 +1321,88 @@ The reserved feedback area animates between feedback (post-reveal) and locale to
 - **Server validates but doesn't enforce**: Trade-off: trust client to submit on time
 - **Graceful degradation**: Backend has short grace period for late submissions
 
+### Why Anonymous Authentication?
+
+- **Reduced barrier to entry**: Users can start playing immediately without account creation
+- **Seamless upgrade path**: Anonymous accounts can be upgraded to permanent accounts without data loss
+- **Preserved user experience**: All game data is preserved when upgrading (Firebase UID remains constant)
+- **Flexible user journey**: Users can try the app before committing to account creation
+
 ### Why Dual Storage (PostgreSQL + Firestore)?
 
 From backend architecture:
 - **Firestore**: Real-time synchronization, automatic conflict resolution, scalable for concurrent games
 - **PostgreSQL**: Complex queries for question selection, materialized views for analytics, relational integrity
+
+---
+
+## Deep Links & Cross-Platform Invites
+
+The app supports cross-platform invite links that work seamlessly across web, Android, and iOS platforms.
+
+### URL Structure
+
+Invite URLs use API trampoline endpoints that detect the platform and redirect appropriately:
+
+- **Game Invites**: `{API_BASE_URL}/api/v1/game/invite/{game_id}`
+- **Daily Question**: `{API_BASE_URL}/api/v1/daily_question/invite/{YYYY-MM-DD}`
+
+The trampoline pages detect the user's platform and:
+- **Android**: Use intent URIs for reliable app launching (handles Chrome/WebView edge cases)
+- **iOS**: Use custom scheme with App Store fallback
+- **Other**: Use custom scheme with Play Store fallback
+
+### Platform Behavior
+
+| Platform | Behavior |
+|----------|----------|
+| **Web Browser** | Trampoline redirects to custom scheme; if app not installed, falls back to app store |
+| **Android (app installed)** | Intent URI launches app directly via Android system |
+| **iOS (app installed)** | Custom scheme launches app |
+| **Mobile (no app)** | Redirects to appropriate app store after timeout |
+
+### Implementation
+
+**DeepLinkService** (`lib/services/deep_link_service.dart`):
+- Handles both custom scheme (`guesstimate://`) and HTTPS URLs
+- Parses URL paths to extract game IDs or DQ dates
+- Stores pending invites for post-authentication handling
+- On web, checks initial URL path on app load
+
+**Backend URL Generation**:
+- Game service generates invite URLs using `request.base_url` (dynamically adapts to environment)
+- Daily Question service generates invite URLs using `request.base_url`
+- Frontend transforms `localhost` to `10.0.2.2` for Android emulator testing
+
+**Native App Configuration**:
+
+- **Android**: `AndroidManifest.xml` includes intent filters for `guesstimate://` custom scheme
+- **iOS**: `Info.plist` includes URL scheme configuration
+- Custom scheme URLs: `guesstimate://invite/{game_id}`, `guesstimate://dq/{date}`
+
+### Flow
+
+1. User shares invite link (generated by backend using request's base URL)
+2. Recipient clicks link
+3. Browser loads trampoline page from API
+4. Trampoline detects platform and redirects:
+   - Android: Uses intent URI for reliable app launch
+   - iOS: Uses custom scheme with fallback
+5. App receives deep link via `app_links` package
+6. `DeepLinkService` parses URL and triggers appropriate navigation
+7. If user not authenticated, invite is stored as pending
+8. After authentication, pending invite is processed
+
+### Local Development
+
+For Android emulator testing:
+- Backend serves trampoline at `http://10.0.2.2:8000/api/v1/game/invite/{id}`
+- Frontend transforms `localhost` URLs to `10.0.2.2` before sharing
+- Intent URIs ensure Chrome reliably launches the app
+
+### Backwards Compatibility
+
+The app maintains support for legacy custom scheme URLs (`guesstimate://invite/{id}`) for backwards compatibility with existing shared links.
 
 ---
 

@@ -1,7 +1,10 @@
 """Configuration for the Fermi ETL Pipeline."""
 
+from typing import Literal
+
+from dotenv import load_dotenv
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ETLConfig(BaseSettings):
@@ -10,6 +13,8 @@ class ETLConfig(BaseSettings):
     Merges configuration from seed, ask, and answer pipelines.
     Environment variables must be provided (no defaults for required fields).
     """
+
+    model_config = SettingsConfigDict(extra='ignore', env_file='.env')
 
     # Database
     database_url: str = Field(
@@ -21,6 +26,14 @@ class ETLConfig(BaseSettings):
     openai_api_key: str = Field(..., description='OpenAI API key')
     serp_api_key: str = Field(..., description='SerpAPI key')
 
+    # Gpt answering parameters
+    gpt_answer_models: tuple[
+        (Literal['gpt-5.1'], Literal['gpt-5-mini'], Literal['gpt-5-nano'])
+    ] = Field(
+        default=('gpt-5.1', 'gpt-5-mini', 'gpt-5-nano'),
+        description='LLM models for question answering',
+    )
+
     # Similarity thresholds
     seed_similarity_threshold: float = Field(
         default=0.1,
@@ -31,61 +44,6 @@ class ETLConfig(BaseSettings):
         description='Cosine distance threshold for question uniqueness',
     )
 
-    # Pipeline parameters
-    question_generation_model: str = Field(
-        default='gpt-5-nano',
-        description='LLM model for question generation',
-    )
-    question_generation_model_provider: str = Field(
-        default='openai',
-        description='LLM model provider for question generation (e.g., openai, ollama)',
-    )
-
-    # Answer generation parameters
-    location_model: str = Field(
-        default='gpt-5-nano',
-        description='Model for location selection',
-    )
-    extraction_model: str = Field(
-        default='gpt-5-nano',
-        description='Model for answer extraction',
-    )
-    model_provider: str = Field(
-        default='openai',
-        description='Model provider for answer generation',
-    )
-    confidence_threshold: float = Field(
-        default=0.8,
-        description='Minimum confidence threshold for answers',
-    )
-    category_model: str = Field(
-        default='gpt-5-nano',
-        description='Model for category enrichment',
-    )
-    category_model_provider: str = Field(
-        default='openai',
-        description='Model provider for category enrichment',
-    )
-    difficulty_model: str = Field(
-        default='gpt-5-nano',
-        description='Model for difficulty enrichment',
-    )
-    difficulty_model_provider: str = Field(
-        default='openai',
-        description='Model provider for difficulty enrichment',
-    )
-
-    class Config:
-        """Pydantic config.
-
-        The env_file is set to '.env' by default, but can be overridden
-        by loading a different env file before instantiating this class
-        (e.g., in test fixtures or main.py).
-        """
-
-        env_file = '.env'
-        extra = 'ignore'
-
 
 def get_config() -> ETLConfig:
     """Get ETL pipeline configuration from environment variables.
@@ -94,4 +52,5 @@ def get_config() -> ETLConfig:
     in the Config class. If you need to use a different env file (e.g., for tests),
     load it explicitly before calling this function using load_dotenv().
     """
+    load_dotenv(override=False)
     return ETLConfig()  # type: ignore

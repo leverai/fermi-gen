@@ -321,7 +321,6 @@ def _seed_questions_once() -> None:
             'run',
             '--package',
             'fermi-db',
-            'python',
             'scripts/seed_test_questions.py',
             '--file',
             str(test_data_path),
@@ -348,6 +347,65 @@ def get_api_auth_headers(
         )
         resp.raise_for_status()
         access_token = resp.json()['access_token']
+        return {'Authorization': f'Bearer {access_token}'}
+
+    return _make
+
+
+@pytest.fixture
+def get_pro_api_auth_headers(
+    api_client: TestClient,
+    create_emulator_user_and_get_token: Callable[[str, str, str], dict[str, Any]],
+) -> Callable[[str, str, str], dict[str, str]]:
+    """Return a factory that creates a Pro user and returns API access token headers.
+
+    The user is created with an active Pro subscription in the database.
+    Use this for testing tier-gated endpoints like post-take.
+    """
+    import asyncio
+
+    from fermi_db.models.subscription import SubscriptionPlatform, SubscriptionTier
+    from fermi_db.repositories.subscription_repository import SubscriptionRepository
+    from fermi_db.repositories.user_repository import UserRepository
+    from sqlmodel.ext.asyncio.session import AsyncSession
+
+    def _make(email: str, password: str, display_name: str) -> dict[str, str]:
+        # First create normal user and get headers
+        token_info = create_emulator_user_and_get_token(email, password, display_name)
+        firebase_token = token_info['idToken']
+        firebase_uid = token_info['localId']
+        resp = api_client.post(
+            '/api/v1/auth/token',
+            headers={'Authorization': f'Bearer {firebase_token}'},
+        )
+        resp.raise_for_status()
+        access_token = resp.json()['access_token']
+
+        # Now add Pro subscription directly to DB
+        # Create a fresh engine to avoid event loop conflicts
+        async def _add_subscription() -> None:
+            db_url = os.environ.get(
+                'DATABASE_URL',
+                'sqlite+aiosqlite:///./guesstimate.db',
+            )
+            engine = create_async_engine(db_url, echo=False)
+            async with AsyncSession(engine) as session:
+                user_repo = UserRepository(session)
+                sub_repo = SubscriptionRepository(session)
+                user = await user_repo.get_by_firebase_uid(firebase_uid)
+                if user and user.id:
+                    await sub_repo.upsert_subscription(
+                        user_id=user.id,
+                        revenuecat_user_id=firebase_uid,
+                        tier=SubscriptionTier.PRO,
+                        product_id='test_pro_subscription',
+                        platform=SubscriptionPlatform.PROMOTIONAL,
+                        is_active=True,
+                    )
+                await session.commit()
+            await engine.dispose()
+
+        asyncio.run(_add_subscription())
         return {'Authorization': f'Bearer {access_token}'}
 
     return _make
@@ -465,57 +523,156 @@ def list_firestore_subcollection_docs() -> Callable[[str, str], list[str]]:
 
 
 @pytest.fixture
+def get_players_results_doc() -> Callable[[str, str], dict[str, Any]]:
+    """Return a callable that fetches a players_results document by question_uid.
+
+    Usage: ``doc = get_players_results_doc(game_id, question_uid)``
+    """
+
+    def _get(game_id: str, question_uid: str) -> dict[str, Any]:
+        project = os.environ['GOOGLE_CLOUD_PROJECT']
+        fs_host = os.environ['FIRESTORE_EMULATOR_HOST']
+        base = f'http://{fs_host}/v1/projects/{project}/databases/(default)/documents'
+
+        def _convert(node: Any) -> Any:
+            if isinstance(node, dict):
+                if 'mapValue' in node:
+                    fields = node['mapValue'].get('fields', {})
+                    return {k: _convert(v) for k, v in fields.items()}
+                if 'arrayValue' in node:
+                    vals = node['arrayValue'].get('values', [])
+                    return [_convert(v) for v in vals]
+                if 'integerValue' in node:
+                    try:
+                        return int(node['integerValue'])
+                    except Exception:
+                        return node['integerValue']
+                if 'doubleValue' in node:
+                    try:
+                        return float(node['doubleValue'])
+                    except Exception:
+                        return node['doubleValue']
+                for k in (
+                    'stringValue',
+                    'booleanValue',
+                    'nullValue',
+                    'timestampValue',
+                ):
+                    if k in node:
+                        return node[k]
+                return {k: _convert(v) for k, v in node.items()}
+            return node
+
+        # Poll up to ~5s for eventual consistency
+        import time
+
+        for _ in range(50):
+            r = httpx.get(
+                f'{base}/games/{game_id}/players_results/{question_uid}',
+                headers={
+                    'Authorization': 'Bearer owner',
+                    'X-Goog-User-Project': project,
+                },
+                timeout=2.0,
+            )
+            if r.status_code == 200:
+                data = r.json()
+                if 'fields' in data:
+                    fields = data['fields']
+                    return {k: _convert(v) for k, v in fields.items()}
+                return data
+            time.sleep(0.1)
+        return {}
+
+    return _get
+
+
+@pytest.fixture
+def get_answer_doc() -> Callable[[str, str], dict[str, Any]]:
+    """Return a callable that fetches an answer document by question_uid.
+
+    Usage: ``doc = get_answer_doc(game_id, question_uid)``
+    """
+
+    def _get(game_id: str, question_uid: str) -> dict[str, Any]:
+        project = os.environ['GOOGLE_CLOUD_PROJECT']
+        fs_host = os.environ['FIRESTORE_EMULATOR_HOST']
+        base = f'http://{fs_host}/v1/projects/{project}/databases/(default)/documents'
+
+        def _convert(node: Any) -> Any:
+            if isinstance(node, dict):
+                if 'mapValue' in node:
+                    fields = node['mapValue'].get('fields', {})
+                    return {k: _convert(v) for k, v in fields.items()}
+                if 'arrayValue' in node:
+                    vals = node['arrayValue'].get('values', [])
+                    return [_convert(v) for v in vals]
+                if 'integerValue' in node:
+                    try:
+                        return int(node['integerValue'])
+                    except Exception:
+                        return node['integerValue']
+                if 'doubleValue' in node:
+                    try:
+                        return float(node['doubleValue'])
+                    except Exception:
+                        return node['doubleValue']
+                for k in (
+                    'stringValue',
+                    'booleanValue',
+                    'nullValue',
+                    'timestampValue',
+                ):
+                    if k in node:
+                        return node[k]
+                return {k: _convert(v) for k, v in node.items()}
+            return node
+
+        # Poll up to ~5s for eventual consistency
+        import time
+
+        for _ in range(50):
+            r = httpx.get(
+                f'{base}/games/{game_id}/answers/{question_uid}',
+                headers={
+                    'Authorization': 'Bearer owner',
+                    'X-Goog-User-Project': project,
+                },
+                timeout=2.0,
+            )
+            if r.status_code == 200:
+                data = r.json()
+                if 'fields' in data:
+                    fields = data['fields']
+                    return {k: _convert(v) for k, v in fields.items()}
+                return data
+            time.sleep(0.1)
+        return {}
+
+    return _get
+
+
+@pytest.fixture
 def create_private_game(api_client: TestClient) -> Callable[[dict[str, str]], str]:
     """Return a callable that creates a private game and returns its id.
 
     The callable signature is ``(headers) -> game_id``. Optional kwargs may be
-    supplied for ``n_questions``, ``category``, and ``difficulty``.
+    supplied for ``n_questions``, ``categories``, and ``difficulty``.
     """
 
     def _create(
         headers: dict[str, str],
         *,
         n_questions: int = 3,
-        category: str | None = None,
+        categories: list[str] | None = None,
         difficulty: str | None = None,
     ) -> str:
         payload = {
             'question_round_settings': {
                 'n_questions': n_questions,
-                'category': category,
+                'categories': categories,
                 'difficulty': difficulty,
             },
-            'is_private': True,
-        }
-        resp = api_client.post('/api/v1/game/create', json=payload, headers=headers)
-        resp.raise_for_status()
-        return resp.json()['resource_id']
-
-    return _create
-
-
-@pytest.fixture
-def create_public_game(api_client: TestClient) -> Callable[[dict[str, str]], str]:
-    """Return a callable that creates a public game and returns its id.
-
-    The callable signature is ``(headers) -> game_id``. Optional kwargs may be
-    supplied for ``n_questions``, ``category``, and ``difficulty``.
-    """
-
-    def _create(
-        headers: dict[str, str],
-        *,
-        n_questions: int = 3,
-        category: str | None = None,
-        difficulty: str | None = None,
-    ) -> str:
-        payload = {
-            'question_round_settings': {
-                'n_questions': n_questions,
-                'category': category,
-                'difficulty': difficulty,
-            },
-            'is_private': False,
         }
         resp = api_client.post('/api/v1/game/create', json=payload, headers=headers)
         resp.raise_for_status()

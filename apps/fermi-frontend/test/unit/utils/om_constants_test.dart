@@ -11,7 +11,6 @@ void main() {
       expect(orderOfMagnitudeMultipliers['M'], 1000000);
       expect(orderOfMagnitudeMultipliers['B'], 1000000000);
       expect(orderOfMagnitudeMultipliers['T'], 1000000000000);
-      expect(orderOfMagnitudeMultipliers['Qa'], 1000000000000000);
     });
 
     test('should return 1 for empty OM', () {
@@ -76,7 +75,6 @@ void main() {
       expect(orderOfMagnitudeMultipliers['M'], 1000000); // 1000^2
       expect(orderOfMagnitudeMultipliers['B'], 1000000000); // 1000^3
       expect(orderOfMagnitudeMultipliers['T'], 1000000000000); // 1000^4
-      expect(orderOfMagnitudeMultipliers['Qa'], 1000000000000000); // 1000^5
     });
   });
 }
