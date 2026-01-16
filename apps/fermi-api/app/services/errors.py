@@ -17,3 +17,9 @@ class InvalidJWTError(AuthError):
     """Raised when an invalid JWT is provided."""
 
     pass
+
+
+class TokenTooOldError(AuthError):
+    """Raised when a token is too old to be refreshed."""
+
+    pass

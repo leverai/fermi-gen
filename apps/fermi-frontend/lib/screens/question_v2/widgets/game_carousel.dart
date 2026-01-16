@@ -70,7 +70,10 @@ class GameCarousel extends StatelessWidget {
                           width: originalCardWidth,
                           child: CarouselPageWrapper(
                             index: index,
-                            child: itemBuilder(context, index, index),
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: itemBuilder(context, index, index),
+                            ),
                           ),
                         ),
                       );
@@ -82,8 +85,7 @@ class GameCarousel extends StatelessWidget {
           ),
           // Dots indicator - positioned 24px below the question_answer card bottom
           Positioned(
-            bottom: 24 -
-                6, // 24px from question_answer card bottom (48px feedback row - 24px)
+            bottom: 16,
             left: 0,
             right: 0,
             child: Center(
@@ -92,14 +94,10 @@ class GameCarousel extends StatelessWidget {
                 position: currentIndex,
                 decorator: DotsDecorator(
                   color: enableUserSwipe
-                      ?
-                      // ignore: deprecated_member_use
-                      appTheme.primary.withOpacity(0.3)
-                      :
-                      // ignore: deprecated_member_use
-                      appTheme.highlight.withOpacity(0.3),
+                      ? appTheme.primaryMuted
+                      : appTheme.borderMuted,
                   activeColor:
-                      enableUserSwipe ? appTheme.primary : appTheme.highlight,
+                      enableUserSwipe ? appTheme.primary : appTheme.border,
                   size: const Size.square(6.0),
                   activeSize: const Size(10.0, 6.0),
                   spacing: const EdgeInsets.all(4.0),

@@ -7,7 +7,7 @@ import 'package:fermi_frontend/theme/app_font.dart';
 /// Can be configured to allow no selection or enforce a default selection.
 /// Uses AppTheme colors:
 /// - Unselected: `bg` background, `border` text
-/// - Selected: `bgDark` background, `text` text with shadow
+/// - Selected: `bgDark` background, `text` text with border
 ///
 /// The grid contains a configurable number of columns and as many rows as needed.
 /// Chips always have equal widths and heights.
@@ -48,9 +48,10 @@ class SelectorWidget extends StatelessWidget {
   /// The grid will create as many rows as needed to display all options.
   final int columns;
 
-  static const double _chipHeight = 40.0;
-  static const double _spacing = 4.0;
-  static const double _fontSize = 16.0;
+  static const double _chipHeight =
+      44.0; // Reduced to allow for 2px padding top/bottom (48 - 4)
+  static const double _spacing = 0.0;
+  static const double _fontSize = 14.0;
 
   Widget _buildIcon(String? iconUrl, IconData? icon, Color color) {
     if (iconUrl != null) {
@@ -83,10 +84,10 @@ class SelectorWidget extends StatelessWidget {
     // Wrap in container with styling
     final container = Container(
       decoration: BoxDecoration(
-        color: appTheme.bgLight,
-        borderRadius: BorderRadius.circular(13),
+        color: appTheme.bgDark,
+        borderRadius: BorderRadius.circular(12), // High radius for pill shape
       ),
-      padding: const EdgeInsets.all(_spacing),
+      padding: const EdgeInsets.all(2), // 2px padding on all sides
       child: LayoutBuilder(
         builder: (context, constraints) {
           // Calculate chip width based on available space (after padding)
@@ -126,12 +127,11 @@ class SelectorWidget extends StatelessWidget {
       );
     }
 
-    // For fill parent mode, ensure minimum height of 48px (for single row)
-    // This ensures the row in main_screen.dart maintains 48px height
-    return ConstrainedBox(
-      constraints: const BoxConstraints(
-        minHeight: 48.0,
-      ),
+    // For fill parent mode, constrain to exact height based on number of rows
+    // This prevents GridView from adding any extra padding
+    // Total height = (chip height * rows) + padding top + padding bottom
+    return SizedBox(
+      height: (_chipHeight * numRows) + 4.0,
       child: container,
     );
   }
@@ -139,6 +139,8 @@ class SelectorWidget extends StatelessWidget {
   Widget _buildChip(
       BuildContext context, AppTheme appTheme, SelectorOption option) {
     final bool isSelected = selected == option.value;
+
+    final color = isSelected ? appTheme.text : appTheme.textMuted;
 
     return GestureDetector(
       onTap: () {
@@ -148,26 +150,11 @@ class SelectorWidget extends StatelessWidget {
             : option.value);
       },
       child: Container(
+        height: _chipHeight,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? appTheme.bg : appTheme.bgLight,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    // ignore: deprecated_member_use
-                    color: appTheme.text.withOpacity(0.1),
-                    blurRadius: 4,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 0),
-                  ),
-                  BoxShadow(
-                    // ignore: deprecated_member_use
-                    color: appTheme.bgDark.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
+          color: isSelected ? appTheme.bg : Colors.transparent,
+          borderRadius: BorderRadius.circular(11),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -177,9 +164,9 @@ class SelectorWidget extends StatelessWidget {
               _buildIcon(
                 option.iconUrl,
                 option.icon,
-                isSelected ? appTheme.text : appTheme.border,
+                color,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 6),
             ],
             Flexible(
               child: Text(
@@ -188,7 +175,7 @@ class SelectorWidget extends StatelessWidget {
                   context,
                   fontSize: _fontSize,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected ? appTheme.text : appTheme.border,
+                  color: color,
                   height: 1.2,
                 ).copyWith(letterSpacing: 0.8),
                 textAlign: TextAlign.center,

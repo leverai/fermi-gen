@@ -155,6 +155,38 @@ Refresh the `fermi` materialized view to reflect latest data.
 
 **Request:** Empty body
 
+### LLM Answers (`/llm_answers`)
+
+#### `POST /gpt-5.1`
+Generate LLM answers for unanswered questions using gpt-5.1 model.
+
+```json
+{"num_questions": 50}
+```
+
+#### `POST /gpt-5-mini`
+Generate LLM answers using gpt-5-mini model.
+
+```json
+{"num_questions": 50}
+```
+
+#### `POST /gpt-5-nano`
+Generate LLM answers using gpt-5-nano model.
+
+```json
+{"num_questions": 50}
+```
+
+#### `POST /all`
+Generate LLM answers using all three models (gpt-5.1, gpt-5-mini, gpt-5-nano).
+
+```json
+{"num_questions": 50}
+```
+
+**Note:** LLM answering requires questions to have successful SerpAPI answers first. For dimensional questions (with units), the LLM is provided with the appropriate unit set to choose from.
+
 ### Composite Workflows
 
 #### `POST /insert_llm`
@@ -193,11 +225,14 @@ Environment variables (see `env.example`):
 ### Optional (with defaults)
 - `SEED_SIMILARITY_THRESHOLD` (0.1): Threshold for seed uniqueness
 - `QUESTION_SIMILARITY_THRESHOLD` (0.15): Threshold for question uniqueness
-- `QUESTION_GENERATION_MODEL` (gpt-4o-mini): LLM for question generation
-- `LOCATION_MODEL` (gpt-4o-mini): Model for location selection
-- `EXTRACTION_MODEL` (gpt-4o): Model for answer extraction
-- `MODEL_PROVIDER` (openai): Model provider
-- `CONFIDENCE_THRESHOLD` (0.8): Minimum confidence for answers
+
+### Endpoint Arguments (with defaults)
+Model parameters are passed as request arguments rather than environment variables:
+- `question_model` (o3): LLM for question generation
+- `location_model` (gpt-5-mini): Model for location selection
+- `extraction_model` (gpt-5-mini): Model for answer extraction
+- `model_provider` (openai): Model provider
+- `confidence_threshold` (0.8): Minimum confidence for answers
 
 ## Workflows
 

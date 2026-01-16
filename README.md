@@ -1,6 +1,6 @@
-# **The Fermi Game**
+# **Guesstimate: Not Trivia!**
 
-This project contains the ETL pipeline, back-end infrastructure, and front-end for The Fermi Game—a trivia experience built around fascinating Fermi questions.
+This project contains the ETL pipeline, back-end infrastructure, and front-end for Guesstimate—a social estimation experience built around fascinating Fermi questions.
 
 **What is a Fermi Question?**
 

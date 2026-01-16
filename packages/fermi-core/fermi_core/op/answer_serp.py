@@ -1,4 +1,4 @@
-"""Answer Fermi questions using SerpAPI and LLM agents."""
+"""Answer Fermi questions using SerpAPI Google AI Mode and LLM agents."""
 
 import asyncio
 import logging
@@ -19,10 +19,9 @@ from fermi_core.prompts import (
 from fermi_core.schemas.answer import ExtractInfoState
 from fermi_core.schemas.serp import (
     ExtractedInfo,
+    GoogleAIModeResult,
     LocationSelection,
-    SerpAIOverviewX,
     SerpAnswer,
-    SerpSearchResult,
     SnippetCandidate,
 )
 from fermi_core.utils import create_generic_chain
@@ -30,25 +29,58 @@ from fermi_core.utils import create_generic_chain
 logger = logging.getLogger(__name__)
 
 
-async def asearch_google(
+def _flatten_text_blocks(text_blocks: list[dict[str, Any]]) -> str:
+    """Recursively extract all snippets from text_blocks.
+
+    Handles nested structures with 'list' fields and extracts all 'snippet' values.
+    Joins them with spaces to create a comprehensive answer paragraph.
+
+    Args:
+        text_blocks: List of text block dictionaries from SerpAPI AI Overview
+
+    Returns:
+        Single string with all snippets concatenated
+
+    """
+    snippets: list[str] = []
+
+    def extract_snippets(blocks: list[dict[str, Any]]) -> None:
+        """Recursively extract snippets from blocks and nested lists."""
+        for block in blocks:
+            # Extract snippet from current block
+            if snippet := block.get('snippet'):
+                snippets.append(snippet)
+
+            # Recursively extract from nested lists
+            if nested_list := block.get('list'):
+                extract_snippets(nested_list)
+
+    extract_snippets(text_blocks)
+    return ' '.join(snippets)
+
+
+async def asearch_google_ai_mode(
     query: str,
     gl: str = 'us',
-) -> SerpSearchResult:
-    """Execute a standard Google search using SerpAPI.
+) -> GoogleAIModeResult:
+    """Execute a Google AI Mode search using SerpAPI.
+
+    Uses engine="google_ai_mode" which provides a dedicated AI response.
+    Single request, always returns structured text_blocks.
 
     Uses SERP_API_KEY environment variable (required).
-    Always uses hl="en" for language and engine="google".
+    Always uses hl="en" for language.
 
     Risk mitigation:
     - Truncates query to 500 chars (SerpAPI limit)
     - Raises SerpAPIError on API errors
 
     Args:
-        query: The search query
+        query: The search query (Fermi problem)
         gl: Location/country code (default: "us")
 
     Returns:
-        SerpSearchResult with ai_overview and/or related_questions
+        GoogleAIModeResult with text_blocks and references
 
     Raises:
         SerpAPIError: If SerpAPI returns an error or API key is missing
@@ -61,12 +93,12 @@ async def asearch_google(
     # Truncate query to SerpAPI limit
     truncated_query = query[:500]
 
-    # Build search params for standard Google search
+    # Build search params for Google AI Mode engine
     params = {
-        'q': truncated_query,
+        'q': f'How to estimate the following problem step by step: {truncated_query}',
         'gl': gl,
         'hl': 'en',
-        'engine': 'google',
+        'engine': 'google_ai_mode',
         'api_key': api_key,
     }
 
@@ -83,121 +115,40 @@ async def asearch_google(
             raise SerpAPIError(f'SerpAPI error: {search["error"]}')
 
         # Convert to our schema
-        return SerpSearchResult.model_validate(search)
+        return GoogleAIModeResult.model_validate(search)
 
     except Exception as exc:
         if isinstance(exc, SerpAPIError):
             raise
-        logger.error(f'Google search failed: {exc}')
-        raise SerpAPIError(f'Google search failed: {exc}') from exc
+        logger.error(f'Google AI Mode search failed: {exc}')
+        raise SerpAPIError(f'Google AI Mode search failed: {exc}') from exc
 
 
-async def asearch_google_ai_overview(
-    page_token: str,
-) -> SerpSearchResult:
-    """Execute a Google AI Overview extra request using SerpAPI.
-
-    This is used when the initial search returns an AI Overview that requires
-    an additional request (indicated by page_token field).
-
-    Uses SERP_API_KEY environment variable (required).
-    Uses engine="google_ai_overview".
-
-    Args:
-        page_token: The page token from initial search's AI Overview
-
-    Returns:
-        SerpSearchResult with the full AI Overview
-
-    Raises:
-        SerpAPIError: If SerpAPI returns an error or API key is missing
-
-    """
-    api_key = os.environ.get('SERP_API_KEY')
-    if not api_key:
-        raise SerpAPIError('SERP_API_KEY environment variable not set')
-
-    # Build search params for AI Overview engine
-    params = {
-        'page_token': page_token,
-        'engine': 'google_ai_overview',
-        'api_key': api_key,
-    }
-
-    try:
-        # Run search in executor to avoid blocking
-        loop = asyncio.get_event_loop()
-        search = await loop.run_in_executor(
-            None,
-            lambda: GoogleSearch(params).get_dict(),
-        )
-
-        # Check for error in response
-        if 'error' in search:
-            raise SerpAPIError(f'SerpAPI error: {search["error"]}')
-
-        # Convert to our schema
-        return SerpSearchResult.model_validate(search)
-
-    except Exception as exc:
-        if isinstance(exc, SerpAPIError):
-            raise
-        logger.error(f'Google AI Overview search failed: {exc}')
-        raise SerpAPIError(f'Google AI Overview search failed: {exc}') from exc
-
-
-async def aextract_snippet_candidate(
-    search_result: SerpSearchResult,
+def extract_snippet_candidate(
+    result: GoogleAIModeResult,
 ) -> SnippetCandidate:
-    """Extract the best snippet candidate from search results.
+    """Extract snippet from Google AI Mode result.
 
-    Priority:
-    1. AI Overview snippet (if available and ready)
-    2. AI Overview via extra request (if isinstance SerpAIOverviewX)
-    3. First related question's snippet (fallback)
+    Simplified extraction - AI Mode always returns text_blocks directly,
+    no page token fallback needed.
 
     Args:
-        search_result: The search result from SerpAPI
+        result: The Google AI Mode result from SerpAPI
 
     Returns:
-        SnippetCandidate with snippet, metadata, and source
+        SnippetCandidate with snippet and metadata
 
     Raises:
-        NoSnippetFoundError: If no suitable snippet found
+        NoSnippetFoundError: If no text_blocks or empty snippet
 
     """
-    if not search_result.ai_overview:
-        raise NoSnippetFoundError('No AI overview found in search results')
-
-    # Get actual AI overview if a page token was returned
-    ai_overview = search_result.ai_overview
-    if isinstance(ai_overview, SerpAIOverviewX):
-        logger.info('AI Overview requires extra request, fetching...')
-        extra_result = await asearch_google_ai_overview(ai_overview.page_token)
-        if not extra_result.ai_overview or isinstance(
-            extra_result.ai_overview,
-            SerpAIOverviewX,
-        ):
-            raise NoSnippetFoundError('Extra request did not return valid AI overview')
-        ai_overview = extra_result.ai_overview
-
-    if not ai_overview.snippet:
-        # Try to get snippet from first related question
-        if not search_result.related_questions:
-            raise NoSnippetFoundError('No related questions found in search results')
-        first_related = search_result.related_questions[0]
-        if not first_related.snippet:
-            raise NoSnippetFoundError('No snippet found in first related question')
-        return SnippetCandidate(
-            snippet=first_related.snippet,
-            metadata=first_related.model_dump(),
-            source='related_question',
-        )
+    if not result.text_blocks:
+        raise NoSnippetFoundError('No text_blocks found in AI Mode result')
 
     return SnippetCandidate(
-        snippet=ai_overview.snippet,
-        metadata=ai_overview.model_dump(),
-        source='ai_overview',
+        snippet_json=result.snippet_json,
+        metadata={'text_blocks': result.text_blocks, 'references': result.references},
+        source='ai_mode',
     )
 
 
@@ -210,7 +161,7 @@ async def aget_questions_answers_serp(
     confidence_threshold: float = 0.8,
     **model_kwargs: Any,
 ) -> list[SerpAnswer | BaseException]:
-    """Answer a batch of Fermi questions using SerpAPI.
+    """Answer a batch of Fermi questions using SerpAPI Google AI Mode.
 
     Uses LangChain's abatch for LLM operations (network efficient).
     Uses asyncio.gather for non-Runnable async operations (SerpAPI calls).
@@ -261,17 +212,17 @@ async def aget_questions_answers_serp(
         f'Location selection: {len(valid_with_location)}/{len(questions)} succeeded',
     )
 
-    # Step 2: Batch SerpAPI searches (asyncio.gather - not a Runnable)
+    # Step 2: Batch Google AI Mode searches (asyncio.gather - not a Runnable)
     search_results = await asyncio.gather(
         *[
-            asearch_google(query=questions[idx], gl=loc.gl)
+            asearch_google_ai_mode(query=questions[idx], gl=loc.gl)
             for idx, loc in valid_with_location
         ],
         return_exceptions=True,
     )
 
     # Track which have valid search results
-    valid_with_search: list[tuple[int, SerpSearchResult]] = []
+    valid_with_search: list[tuple[int, GoogleAIModeResult]] = []
     for (idx, _), search_result in zip(
         valid_with_location,
         search_results,
@@ -286,29 +237,17 @@ async def aget_questions_answers_serp(
         return [results[i] for i in range(n_questions)]  # All failed search
 
     logger.info(
-        f'SerpAPI searches: {len(valid_with_search)}/{len(questions)} succeeded',
+        f'Google AI Mode searches: {len(valid_with_search)}/{len(questions)} succeeded',
     )
 
-    # Step 3: Batch snippet extraction (asyncio.gather)
-    snippet_candidates = await asyncio.gather(
-        *[
-            aextract_snippet_candidate(search_result)
-            for _, search_result in valid_with_search
-        ],
-        return_exceptions=True,
-    )
-
-    # Track which have valid snippets
+    # Step 3: Extract snippets (synchronous now - no extra requests needed)
     valid_with_snippet: list[tuple[int, SnippetCandidate]] = []
-    for (idx, _), snippet in zip(
-        valid_with_search,
-        snippet_candidates,
-        strict=False,
-    ):
-        if isinstance(snippet, BaseException):
-            results[idx] = snippet
-        else:
+    for idx, search_result in valid_with_search:
+        try:
+            snippet = extract_snippet_candidate(search_result)
             valid_with_snippet.append((idx, snippet))
+        except NoSnippetFoundError as exc:
+            results[idx] = exc
 
     if not valid_with_snippet:
         return [results[i] for i in range(n_questions)]  # All failed snippet extraction
@@ -331,7 +270,7 @@ async def aget_questions_answers_serp(
         [
             ExtractInfoState(
                 question=questions[idx],
-                paragraph=snippet.snippet,
+                paragraph=_flatten_text_blocks(snippet.metadata['text_blocks']),
             )
             for idx, snippet in valid_with_snippet
         ],
@@ -358,12 +297,13 @@ async def aget_questions_answers_serp(
             )
         else:
             # Success! Build SerpAnswer
-            number, unit = extracted_info.to_base_unit()
+            # Note: unit conversion to base units happens automatically
+            # in ExtractedInfo's model_validator
             results[idx] = SerpAnswer(
-                number=number,
-                unit=unit,
-                snippet=snippet.snippet,
-                used_ai_overview=(snippet.source == 'ai_overview'),
+                number=extracted_info.number,
+                unit=extracted_info.unit,
+                snippet=snippet.snippet_json,
+                used_ai_overview=True,  # Always true with AI Mode
                 metadata=snippet.metadata,
                 confidence=extracted_info.confidence,
             )

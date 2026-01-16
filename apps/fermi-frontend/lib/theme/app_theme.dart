@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 /// to RGB Color objects using Flutter's HSLColor class.
 @immutable
 class AppTheme extends ThemeExtension<AppTheme> {
-  // Background colors (dark theme)
+  // Background colors
   final Color bgDark;
   final Color bg;
   final Color bgLight;
@@ -23,16 +23,29 @@ class AppTheme extends ThemeExtension<AppTheme> {
   final Color borderMuted;
 
   // Brand colors
+  // Brand colors
   final Color primary;
   final Color primaryMuted;
   final Color secondary;
   final Color secondaryMuted;
+  final Color survival;
+  final Color survivalMuted;
 
   // Semantic colors
   final Color danger;
   final Color warning;
   final Color success;
-  final Color info;
+
+  // Rank colors
+  final Color gold;
+  final Color silver;
+  final Color bronze;
+
+  // Neubrutalism specific properties
+  final double borderWidth;
+  final double borderRadius;
+  final Offset shadowOffset;
+  final Color shadowColor;
 
   const AppTheme({
     required this.bgDark,
@@ -47,141 +60,113 @@ class AppTheme extends ThemeExtension<AppTheme> {
     required this.primaryMuted,
     required this.secondary,
     required this.secondaryMuted,
+    required this.survival,
+    required this.survivalMuted,
     required this.danger,
     required this.warning,
     required this.success,
-    required this.info,
+    required this.gold,
+    required this.silver,
+    required this.bronze,
+    this.borderWidth = 1.0,
+    this.borderRadius = 16.0, // Increased radius for softer look
+    this.shadowOffset =
+        const Offset(0, 4), // Soft drop shadow instead of brutalist offset
+    this.shadowColor = const Color(0x40000000), // Soft black shadow
   });
 
-  /// Default theme with HSL colors (dark-green-tee configuration)
+  /// Default theme with "Happy Dark" colors
   factory AppTheme.defaultTheme() {
     return AppTheme(
-      // hsl(349, 7%, 4%) - Very dark (bgDark)
-      bgDark: const HSLColor.fromAHSL(1.0, 349, 0.07, 0.04).toColor(),
-      // hsl(349, 7%, 8%) - Dark (bg)
-      bg: const HSLColor.fromAHSL(1.0, 349, 0.07, 0.08).toColor(),
-      // hsl(349, 7%, 12%) - Slightly lighter dark (bgLight)
-      bgLight: const HSLColor.fromAHSL(1.0, 349, 0.07, 0.12).toColor(),
-      // hsl(349, 7%, 91%) - Almost white (text)
-      text: const HSLColor.fromAHSL(1.0, 349, 0.07, 0.91).toColor(),
-      // hsl(349, 7%, 100%) - White (textMuted)
-      textMuted: const HSLColor.fromAHSL(1.0, 349, 0.07, 1.0).toColor(),
-      // hsl(349, 7%, 41%) - Medium gray (highlight)
-      highlight: const HSLColor.fromAHSL(1.0, 349, 0.07, 0.41).toColor(),
-      // hsl(349, 7%, 52%) - Light gray (border)
-      border: const HSLColor.fromAHSL(1.0, 349, 0.07, 0.52).toColor(),
-      // hsl(349, 7%, 40%) - Medium-light gray (borderMuted)
-      borderMuted: const HSLColor.fromAHSL(1.0, 349, 0.07, 0.32).toColor(),
-      // hsl(146, 17%, 59%) - Green (primary)
-      primary: const HSLColor.fromAHSL(1.0, 146, 0.17, 0.59).toColor(),
-      // hsl(146, 17%, 29.5%) - Dark green (primaryMuted)
-      primaryMuted: const HSLColor.fromAHSL(1.0, 146, 0.04, 0.40).toColor(),
-      // hsl(221, 79%, 76%) - Light blue (secondary)
-      secondary: const HSLColor.fromAHSL(1.0, 221, 0.79, 0.76).toColor(),
-      // hsl(221, 79%, 38%) - Medium blue (secondaryMuted)
-      secondaryMuted: const HSLColor.fromAHSL(1.0, 221, 0.79, 0.38).toColor(),
-      // hsl(9, 26%, 64%) - Reddish (danger)
-      danger: const HSLColor.fromAHSL(1.0, 9, 0.26, 0.64).toColor(),
-      // hsl(52, 19%, 57%) - Yellowish (warning)
-      warning: const HSLColor.fromAHSL(1.0, 52, 0.19, 0.57).toColor(),
-      // hsl(146, 17%, 59%) - Greenish (success)
-      success: const HSLColor.fromAHSL(1.0, 146, 0.17, 0.59).toColor(),
-      // hsl(217, 28%, 65%) - Blueish (info)
-      info: const HSLColor.fromAHSL(1.0, 252, 0.17, 0.59).toColor(),
+      // Backgrounds - Cool Slate Dark
+      bgDark: const HSLColor.fromAHSL(1.0, 220, 0.20, 0.10).toColor(),
+      bg: const HSLColor.fromAHSL(1.0, 220, 0.20, 0.14).toColor(),
+      bgLight: const HSLColor.fromAHSL(1.0, 220, 0.20, 0.18).toColor(),
+
+      // Text - Soft White & Cool Grey
+      text: const HSLColor.fromAHSL(1.0, 220, 0.20, 0.95).toColor(),
+      textMuted: const HSLColor.fromAHSL(1.0, 220, 0.15, 0.65).toColor(),
+
+      // UI Elements
+      highlight: const HSLColor.fromAHSL(1.0, 220, 0.20, 0.45).toColor(),
+      border: const HSLColor.fromAHSL(1.0, 220, 0.15, 0.4).toColor(),
+      borderMuted: const HSLColor.fromAHSL(1.0, 220, 0.15, 0.35).toColor(),
+
+      // Brand (Daily) - Soft Vibrant Indigo
+      primary: const HSLColor.fromAHSL(1.0, 250, 0.70, 0.65).toColor(),
+      primaryMuted: const HSLColor.fromAHSL(1.0, 250, 0.50, 0.25).toColor(),
+
+      // Secondary (Party) - Soft Vibrant Pink
+      secondary: const HSLColor.fromAHSL(1.0, 330, 0.80, 0.65).toColor(),
+      secondaryMuted: const HSLColor.fromAHSL(1.0, 330, 0.60, 0.25).toColor(),
+
+      // Survival - Soft Vibrant Orange
+      survival: const HSLColor.fromAHSL(1.0, 30, 0.90, 0.60).toColor(),
+      survivalMuted: const HSLColor.fromAHSL(1.0, 30, 0.70, 0.25).toColor(),
+
+      // Semantic
+      danger:
+          const HSLColor.fromAHSL(1.0, 350, 0.80, 0.65).toColor(), // Soft Red
+      warning:
+          const HSLColor.fromAHSL(1.0, 45, 0.90, 0.60).toColor(), // Soft Yellow
+      success:
+          const HSLColor.fromAHSL(1.0, 150, 0.60, 0.55).toColor(), // Soft Green
+
+      // Rank Colors
+      gold: const HSLColor.fromAHSL(1.0, 45, 0.90, 0.60).toColor(),
+      silver: const HSLColor.fromAHSL(1.0, 210, 0.20, 0.75).toColor(),
+      bronze: const HSLColor.fromAHSL(1.0, 30, 0.60, 0.50).toColor(),
+
+      // Shadow
+      shadowColor:
+          Basics.black.withOpacity(0.2), // Use simple opacity for soft shadows
+      shadowOffset: const Offset(0, 4),
     );
   }
 
-  /// Creates a theme from configuration values.
-  ///
-  /// All colors are directly specified via HSL values - no computation.
-  factory AppTheme.fromConfig({
-    required double bgH,
-    required double bgS,
-    required double bgL,
-    required double bgLightH,
-    required double bgLightS,
-    required double bgLightL,
-    required double bgDarkH,
-    required double bgDarkS,
-    required double bgDarkL,
-    required double primaryH,
-    required double primaryS,
-    required double primaryL,
-    required double primaryMutedH,
-    required double primaryMutedS,
-    required double primaryMutedL,
-    required double secondaryH,
-    required double secondaryS,
-    required double secondaryL,
-    required double secondaryMutedH,
-    required double secondaryMutedS,
-    required double secondaryMutedL,
-    required double textH,
-    required double textS,
-    required double textL,
-    required double textMutedH,
-    required double textMutedS,
-    required double textMutedL,
-    required double successH,
-    required double successS,
-    required double successL,
-    required double dangerH,
-    required double dangerS,
-    required double dangerL,
-    required double highlightH,
-    required double highlightS,
-    required double highlightL,
-    required double borderH,
-    required double borderS,
-    required double borderL,
-    required double borderMutedH,
-    required double borderMutedS,
-    required double borderMutedL,
-  }) {
-    // Keep warning and info from default theme
-    final defaultTheme = AppTheme.defaultTheme();
-    final warning = defaultTheme.warning;
-    final info = defaultTheme.info;
-
+  /// Light theme with "Happy Light" colors
+  factory AppTheme.lightTheme() {
     return AppTheme(
-      bgDark: HSLColor.fromAHSL(1.0, bgDarkH, bgDarkS, bgDarkL.clamp(0.0, 1.0))
-          .toColor(),
-      bg: HSLColor.fromAHSL(1.0, bgH, bgS, bgL.clamp(0.0, 1.0)).toColor(),
+      // Backgrounds - Warm Soft White
+      bgDark:
+          const HSLColor.fromAHSL(1.0, 40, 0.10, 0.80).toColor(), // Off-white
+      bg: const HSLColor.fromAHSL(1.0, 40, 0.10, 0.85).toColor(), // Near white
       bgLight:
-          HSLColor.fromAHSL(1.0, bgLightH, bgLightS, bgLightL.clamp(0.0, 1.0))
-              .toColor(),
-      text:
-          HSLColor.fromAHSL(1.0, textH, textS, textL.clamp(0.0, 1.0)).toColor(),
-      textMuted: HSLColor.fromAHSL(
-              1.0, textMutedH, textMutedS, textMutedL.clamp(0.0, 1.0))
-          .toColor(),
-      highlight: HSLColor.fromAHSL(
-              1.0, highlightH, highlightS, highlightL.clamp(0.0, 1.0))
-          .toColor(),
-      border: HSLColor.fromAHSL(1.0, borderH, borderS, borderL.clamp(0.0, 1.0))
-          .toColor(),
-      borderMuted: HSLColor.fromAHSL(
-              1.0, borderMutedH, borderMutedS, borderMutedL.clamp(0.0, 1.0))
-          .toColor(),
-      primary:
-          HSLColor.fromAHSL(1.0, primaryH, primaryS, primaryL.clamp(0.0, 1.0))
-              .toColor(),
-      primaryMuted: HSLColor.fromAHSL(
-              1.0, primaryMutedH, primaryMutedS, primaryMutedL.clamp(0.0, 1.0))
-          .toColor(),
-      secondary: HSLColor.fromAHSL(
-              1.0, secondaryH, secondaryS, secondaryL.clamp(0.0, 1.0))
-          .toColor(),
-      secondaryMuted: HSLColor.fromAHSL(1.0, secondaryMutedH, secondaryMutedS,
-              secondaryMutedL.clamp(0.0, 1.0))
-          .toColor(),
-      danger: HSLColor.fromAHSL(1.0, dangerH, dangerS, dangerL.clamp(0.0, 1.0))
-          .toColor(),
-      warning: warning,
-      success:
-          HSLColor.fromAHSL(1.0, successH, successS, successL.clamp(0.0, 1.0))
-              .toColor(),
-      info: info,
+          const HSLColor.fromAHSL(1.0, 0, 0.0, 0.90).toColor(), // Pure white
+
+      // Text - Dark Slate
+      text: const HSLColor.fromAHSL(1.0, 220, 0.30, 0.15).toColor(),
+      textMuted: const HSLColor.fromAHSL(1.0, 220, 0.15, 0.55).toColor(),
+
+      // UI Elements
+      highlight: const HSLColor.fromAHSL(1.0, 220, 0.20, 0.55).toColor(),
+      border: const HSLColor.fromAHSL(1.0, 220, 0.15, 0.65).toColor(),
+      borderMuted: const HSLColor.fromAHSL(1.0, 220, 0.10, 0.75).toColor(),
+
+      // Brand (Daily) - Deep Vibrant Indigo
+      primary: const HSLColor.fromAHSL(1.0, 250, 0.70, 0.55).toColor(),
+      primaryMuted: const HSLColor.fromAHSL(1.0, 250, 0.50, 0.3).toColor(),
+
+      // Secondary (Party) - Deep Vibrant Pink
+      secondary: const HSLColor.fromAHSL(1.0, 330, 0.80, 0.55).toColor(),
+      secondaryMuted: const HSLColor.fromAHSL(1.0, 330, 0.60, 0.3).toColor(),
+
+      // Survival - Deep Vibrant Orange
+      survival: const HSLColor.fromAHSL(1.0, 30, 0.90, 0.5).toColor(),
+      survivalMuted: const HSLColor.fromAHSL(1.0, 30, 0.70, 0.90).toColor(),
+
+      // Semantic
+      danger: const HSLColor.fromAHSL(1.0, 350, 0.80, 0.55).toColor(),
+      warning: const HSLColor.fromAHSL(1.0, 45, 0.90, 0.50).toColor(),
+      success: const HSLColor.fromAHSL(1.0, 150, 0.60, 0.45).toColor(),
+
+      // Rank Colors
+      gold: const HSLColor.fromAHSL(1.0, 45, 0.90, 0.55).toColor(),
+      silver: const HSLColor.fromAHSL(1.0, 210, 0.20, 0.60).toColor(),
+      bronze: const HSLColor.fromAHSL(1.0, 30, 0.60, 0.55).toColor(),
+
+      shadowColor: Basics.black.withOpacity(0.1),
+      shadowOffset: const Offset(0, 2),
     );
   }
 
@@ -199,10 +184,18 @@ class AppTheme extends ThemeExtension<AppTheme> {
     Color? primaryMuted,
     Color? secondary,
     Color? secondaryMuted,
+    Color? survival,
+    Color? survivalMuted,
     Color? danger,
     Color? warning,
     Color? success,
-    Color? info,
+    Color? gold,
+    Color? silver,
+    Color? bronze,
+    double? borderWidth,
+    double? borderRadius,
+    Offset? shadowOffset,
+    Color? shadowColor,
   }) {
     return AppTheme(
       bgDark: bgDark ?? this.bgDark,
@@ -217,10 +210,18 @@ class AppTheme extends ThemeExtension<AppTheme> {
       primaryMuted: primaryMuted ?? this.primaryMuted,
       secondary: secondary ?? this.secondary,
       secondaryMuted: secondaryMuted ?? this.secondaryMuted,
+      survival: survival ?? this.survival,
+      survivalMuted: survivalMuted ?? this.survivalMuted,
       danger: danger ?? this.danger,
       warning: warning ?? this.warning,
       success: success ?? this.success,
-      info: info ?? this.info,
+      gold: gold ?? this.gold,
+      silver: silver ?? this.silver,
+      bronze: bronze ?? this.bronze,
+      borderWidth: borderWidth ?? this.borderWidth,
+      borderRadius: borderRadius ?? this.borderRadius,
+      shadowOffset: shadowOffset ?? this.shadowOffset,
+      shadowColor: shadowColor ?? this.shadowColor,
     );
   }
 
@@ -242,10 +243,29 @@ class AppTheme extends ThemeExtension<AppTheme> {
       primaryMuted: Color.lerp(primaryMuted, other.primaryMuted, t)!,
       secondary: Color.lerp(secondary, other.secondary, t)!,
       secondaryMuted: Color.lerp(secondaryMuted, other.secondaryMuted, t)!,
+      survival: Color.lerp(survival, other.survival, t)!,
+      survivalMuted: Color.lerp(survivalMuted, other.survivalMuted, t)!,
       danger: Color.lerp(danger, other.danger, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       success: Color.lerp(success, other.success, t)!,
-      info: Color.lerp(info, other.info, t)!,
+      gold: Color.lerp(gold, other.gold, t)!,
+      silver: Color.lerp(silver, other.silver, t)!,
+      bronze: Color.lerp(bronze, other.bronze, t)!,
+      borderWidth: lerpDouble(borderWidth, other.borderWidth, t)!,
+      borderRadius: lerpDouble(borderRadius, other.borderRadius, t)!,
+      shadowOffset: Offset.lerp(shadowOffset, other.shadowOffset, t)!,
+      shadowColor: Color.lerp(shadowColor, other.shadowColor, t)!,
     );
   }
+}
+
+class Basics {
+  static const Color black = Colors.black;
+}
+
+double? lerpDouble(double? a, double? b, double t) {
+  if (a == null && b == null) return null;
+  a ??= 0.0;
+  b ??= 0.0;
+  return a + (b - a) * t;
 }

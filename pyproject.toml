@@ -23,7 +23,7 @@ members = [
     "apps/*",
     "packages/*",
 ]
-exclude = ["apps/sandbox", "apps/fermi-frontend"]
+exclude = ["apps/sandbox", "apps/fermi-frontend", "apps/fermi-migrations"]
 
 [dependency-groups]
 dev = [
@@ -73,7 +73,6 @@ ignore = [
     "ANN401",  # dynamic type not allowed
 ]
 exclude = ["prompts.py"]
-
 
 
 [tool.ruff.lint.isort]

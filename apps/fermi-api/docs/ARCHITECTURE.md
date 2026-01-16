@@ -21,17 +21,30 @@ This document describes the architecture, design decisions, and internal working
   - [Low Level](#low-level)
   - [Example Walkthrough](#example-walkthrough)
   - [Additional Logic](#additional-logic)
-- [Design Decisions](#design-decisions)
+- [Daily Question Mode](#daily-question-mode)
+  - [Architecture](#architecture)
+  - [Workflow](#workflow)
+  - [Service Layer](#service-layer)
+  - [API Endpoints](#api-endpoints)
+  - [Post-Take Feature](#post-take-feature)
+  - [Results and Leaderboard](#results-and-leaderboard)
+  - [Push Notifications](#push-notifications)
+  - [Invite/Share Deep Links](#inviteshare-deep-links)
+  - [Firestore Schema](#firestore-schema)
+  - [Key Differences from Party Mode](#key-differences-from-party-mode)
+  - [Scheduled Jobs](#scheduled-jobs)
+- [Survival Mode](#survival-mode)
 
 ---
 
 ## Overview
 
-The Fermi API is a FastAPI application that exposes RESTful endpoints for The Fermi Game. It's comprised of three main services:
+The Fermi API is a FastAPI application that exposes RESTful endpoints for The Fermi Game. It's comprised of four main services:
 
 - **auth**: Authentication (token exchange) endpoint. Firebase integrated.
 - **game**: Game-related endpoints for creating, joining, and playing games.
 - **user**: User-related endpoints for profile and settings.
+- **webhooks**: External service webhooks (RevenueCat for subscription management).
 
 The backend uses a dual-storage approach:
 - **PostgreSQL**: Stores questions, user history, answer analytics, and persistent data.
@@ -50,7 +63,8 @@ apps/fermi-api/
 │   │   ├── auth.py
 │   │   ├── game.py
 │   │   ├── user.py
-│   │   └── question.py
+│   │   ├── question.py
+│   │   └── webhooks.py
 │   ├── core/             # Configuration and database setup
 │   │   ├── config.py
 │   │   └── database.py
@@ -61,7 +75,8 @@ apps/fermi-api/
 │   └── services/         # Business logic
 │       ├── auth.py
 │       ├── game.py
-│       └── user.py
+│       ├── user.py
+│       └── subscription.py
 ├── static/               # Static assets (avatars, categories, difficulties)
 ├── tests/                # Test suite
 │   ├── api/
@@ -89,6 +104,7 @@ The game service uses the `fermi-db` Data Access Layer (DAL) to interact with Po
 - **`answer_events`**: Contains answering events from all players.
 - **`answers_quantiles`**: Materialized view of `answer_events` that computes quantiles of scores. This helps show quick stats to players on how they compare to others.
 - **`questions_votes`**: Stores per-user upvotes/downvotes on questions.
+- **`subscriptions`**: Tracks user subscription status and tier (synced from RevenueCat).
 
 ### Firestore Collections
 
@@ -118,6 +134,121 @@ Authentication is handled via JWT bearer tokens. Clients must first authenticate
 **Protected Endpoints:**
 
 All game and user endpoints require a valid JWT access token. The backend validates the token on each request and extracts the user's `firebase_uid` for authorization checks.
+
+---
+
+## Subscription Management
+
+The API integrates with RevenueCat to manage subscription tiers and feature gating.
+
+### Architecture
+
+```
+┌─────────────┐      ┌──────────────┐      ┌─────────────┐
+│   Flutter   │──────│  RevenueCat  │──────│   Backend   │
+│     App     │      │    Cloud     │      │    API      │
+└─────────────┘      └──────────────┘      └─────────────┘
+       │                    │                     │
+       │ SDK purchase       │                     │
+       ├───────────────────>│                     │
+       │                    │ Webhook POST        │
+       │                    ├────────────────────>│
+       │                    │                     │ Update DB
+       │                    │                     ├──────────┐
+       │                    │                     │          │
+       │                    │         200 OK      │<─────────┘
+       │ entitlements       │<────────────────────┤
+       │<───────────────────┤                     │
+```
+
+- **Frontend**: RevenueCat Flutter SDK (`purchases_flutter`) handles purchases and entitlement checks
+- **Backend**: PostgreSQL `subscriptions` table stores subscription status synced via webhooks
+- **Webhook**: RevenueCat sends events to `/api/v1/webhooks/revenuecat` when subscription status changes
+
+### RevenueCat Configuration
+
+| Item | Value |
+|------|-------|
+| Entitlement ID | `Guesstimate Pro` |
+| Offering | `default` |
+| Products | `pro:pro-monthly`, `pro_yearly:pro-yearly`, `pro_lifetime` |
+
+### Subscription Tiers
+
+- **FREE**: Default tier with limited features
+- **PRO**: Premium tier with full feature access (lifetime, monthly, or annual)
+
+### Webhook Flow
+
+1. User purchases subscription via RevenueCat SDK in Flutter app
+2. RevenueCat processes purchase and sends webhook event to backend
+3. Backend validates webhook secret and updates `subscriptions` table
+4. User's subscription tier is included in auth responses (`/auth/token`, `/auth/refresh`)
+
+### Webhook Payload Structure
+
+RevenueCat sends events with nested structure:
+
+```json
+{
+  "api_version": "1.0",
+  "event": {
+    "type": "INITIAL_PURCHASE",
+    "app_user_id": "firebase_uid_here",
+    "original_app_user_id": "firebase_uid_here",
+    "subscriber": {
+      "entitlements": {
+        "Guesstimate Pro": {
+          "is_active": true,
+          "product_identifier": "pro:pro-monthly",
+          "store": "PLAY_STORE",
+          "expires_date": "2025-02-03T12:00:00Z"
+        }
+      }
+    }
+  }
+}
+```
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `REVENUECAT_WEBHOOK_SECRET` | Bearer token for webhook authentication. Must match RevenueCat webhook Authorization header. |
+
+### Subscription Service
+
+Located in `app/services/subscription.py`:
+- `SubscriptionService`: Handles webhook events and updates subscription records
+- Parses RevenueCat `event.subscriber` to extract tier, product_id, platform, expiration dates
+
+**Supported Event Types:**
+
+| Event Type | Description | Handling |
+|------------|-------------|----------|
+| `INITIAL_PURCHASE` | First subscription purchase | Updates subscription to PRO |
+| `RENEWAL` | Subscription renewed | Updates expiration date |
+| `CANCELLATION` | User cancelled (but still active until expiration) | Marks as cancelled |
+| `EXPIRATION` | Subscription expired | Updates subscription to FREE |
+| `PRODUCT_CHANGE` | User changed subscription plan | Updates product_id |
+| `TRANSFER` | Subscription transferred between users (restore on different account) | Special handling - see below |
+
+**TRANSFER Event Handling:**
+
+`TRANSFER` events occur when a user restores purchases on a different app_user_id than the original purchaser (e.g., same Google account but different Firebase login). These events have a unique structure:
+
+- No `app_user_id` field (unlike other events)
+- Contains `transferred_from`: array of user IDs losing the subscription
+- Contains `transferred_to`: array of user IDs receiving the subscription
+
+The service:
+1. Activates subscriptions for all users in `transferred_to` array
+2. Deactivates subscriptions for all users in `transferred_from` array
+3. Logs unrecognized user IDs (may be anonymous aliases)
+
+### Database Schema
+
+See [`packages/fermi-db/docs/SCHEMA.md`](../../packages/fermi-db/docs/SCHEMA.md#subscription-tables) for the `subscriptions` table schema.
 
 ---
 
@@ -166,7 +297,6 @@ The structure of a game document is defined by the `GameDoc` schema (`apps/fermi
 - `question_uids` (array of strings): An ordered list of the UIDs for the questions in the game.
 - `question_uid` (string): The UID of the current question.
 - `question_number` (number): The number of the current question (1-indexed).
-- `question_duration_s` (timestamp, optional): The duration of the current question.
 - `host` (string): The `firebase_uid` of the host player.
 - `players` (map): A map where keys are `firebase_uid`s and values are `GamePlayer` objects.
   - `GamePlayer` Schema:
@@ -177,13 +307,13 @@ The structure of a game document is defined by the `GameDoc` schema (`apps/fermi
     - `rank` (number): The player's current rank in the game.
     - `is_host` (boolean): Whether the player is the host.
     - `is_active` (boolean): Whether the player is currently active in the game.
-- `full` (boolean): Whether the game is full and cannot accept new players.
+- `max_players` (number): Maximum players allowed in this game (5 for FREE, 20 for PRO). Determined by host's subscription tier at game creation and remains fixed.
+- `full` (boolean): Whether the game is full and cannot accept new players (i.e., player count equals `max_players`).
 - `progress` (map): An `AnswersProgress` object showing the progress of answers for the current question.
   - `AnswersProgress` Schema:
     - `answered` (map): A map where keys are `firebase_uid`s and values are booleans indicating if the player has answered.
     - `all_answered` (boolean): Whether all active players have answered the current question.
 - `join_url` (string): The URL to join the game.
-- `private` (boolean): Whether the game is private.
 - `version_uid` (string): A UID for the current set of questions to prevent race conditions.
 
 ### Subcollections
@@ -227,6 +357,7 @@ The structure of a game document is defined by the `GameDoc` schema (`apps/fermi
       - `answer` (`AnswerBare`): The player's submitted answer (unit id or `null`).
       - `correct_answer` (`AnswerBare`): The correct answer (unit id or `null`).
       - `score` (`Score`): The score the player received for their answer.
+      - `converted_answers` (map): A map where keys are other players' `firebase_uid`s and values are their answers converted to this player's unit. This allows each player to compare all answers in their preferred unit system. Always populated, even for dimensionless questions.
   - `revealed` (boolean): Whether the results are visible to players.
 
 ### Game States
@@ -241,16 +372,6 @@ The `state` field in the game document drives the game's flow. The frontend shou
 - `QUESTION_LAST_FINISHED` (6): All players have answered the last question. The UI should display the final results. The game is now over.
 - `GAME_FINISHED` (8): The game has been officially ended by the host. The final scores are displayed, and the game results are being archived.
 - `GAME_ABORTED` (9): The game was aborted, for example, because all players left.
-
-### Question Durations
-
-Each question has a duration by which players must submit their answers. The duration is determined on the backend side by the question's difficulty:
-
-- **Easy:** 10 seconds
-- **Medium:** 20 seconds
-- **Hard:** 40 seconds
-
-The frontend should enforce this deadline. When the `question_duration_s` field is set in the game document, the frontend should start a timer of that duration in seconds. If the player has not submitted their answer when the timer expires, the frontend must automatically submit the answer currently in the input field via the `/game/answer` endpoint. The backend will not detect late submissions, so it's the frontend's responsibility to submit a question before the deadline.
 
 ---
 
@@ -272,11 +393,9 @@ Under the hood, the game state is managed in a Firestore `games` collection whic
 
 This section describes the typical game flow logic:
 
-**0. Player creates/joins a game**
+**0. Player creates a game**
 
-In the main screen the player configures the game's category, difficulty, and privacy, then create/join a game of those settings.
-- If private, the game is created and not joined, and the player becomes host.
-- If no active game matches the configured settings, a new one is created and the player becomes host.
+In the main screen the player configures the game's category and difficulty, then creates a private game. The player becomes the host.
 
 **1. Host starts a game**
 
@@ -299,7 +418,6 @@ Game starts and the first question gets revealed. Game becomes in `QUESTION_N` (
 **6. Player answers the question**
 
 Now, the host submits their answer to the question. Logic checks if all active players have answered the question (False in this case), state becomes `QUESTION_N_FINISHED`.
-- Each question has a deadline. If the deadline is reached, players' current answers should be submitted as they are by the frontend. Any late submissions will raise an error and break the game's flow.
 
 **7. All players' answers are submitted**
 
@@ -329,6 +447,308 @@ State becomes `QUESTION_LAST_FINISHED` and the game is considered over.
 
 **Backend communication:**
 - All back-end communication with the database (for questions and answers) is done through the DAL in `fermi-db`.
+**Example:**
+- User 1 answers first → rank 1
+- User 2 answers with same score → rank 1 (tie)
+- User 3 answers with lower score → rank 3 (not rank 2, because two users are ahead)
+
+---
+
+## Daily Question Mode
+
+The Daily Question (DQ) mode serves a single question to all users daily with synchronized timing and leaderboard functionality.
+
+### Architecture
+
+**Storage:**
+- Questions marked with `is_daily_question=true` in `fermi` table
+- `daily_questions` table tracks daily question state
+- `daily_question_answers` table stores user answers (separate from `answer_events`)
+- Firestore `daily_questions/{date}` document for real-time state
+
+**Timing (UTC):**
+
+For a calendar date X, the backend defines a 24-hour window divided into three phases:
+
+| Status | Time Range (UTC) | Description |
+|--------|------------------|-------------|
+| NOT_STARTED | 2AM date X → 12PM date X | Question scheduled but not yet active |
+| ACTIVE | 12PM date X → 2AM date X+1 | Question is active, users can participate |
+| CLOSED | After 2AM date X+1 | Question closed, results available |
+
+**Deadlines:**
+- Answer Deadline: 30 seconds after starting (or window end, whichever is sooner)
+- Grace Periods: 5s after Answer Deadline, 20s after window end
+
+### Workflow
+
+```mermaid
+sequenceDiagram
+    participant Scheduler
+    participant Backend
+    participant Firestore
+    participant Frontend
+    participant User
+
+    Note over Scheduler,Firestore: 2AM UTC - Schedule Today's DQ
+    Scheduler->>Backend: Trigger close/schedule job
+    Backend->>Backend: Close yesterday's DQ, compute ranks
+    Backend->>Firestore: Set yesterday's status=CLOSED, results_ready=true
+    Backend->>Backend: Schedule today's DQ
+    Backend->>Firestore: Create doc with status=NOT_STARTED
+
+    Note over Scheduler,Firestore: 12PM UTC - Activate Today's DQ
+    Scheduler->>Backend: Trigger activate job
+    Backend->>Firestore: Set status=ACTIVE
+
+    Note over Frontend,User: User Opens App
+    Frontend->>Backend: GET /archive/week
+    Backend-->>Frontend: {items: {dates → participated}, today: "YYYY-MM-DD"}
+    Frontend->>Firestore: Subscribe to today's DQ doc
+    Firestore-->>Frontend: Real-time status updates
+
+    Note over Frontend,User: User Takes DQ (when ACTIVE)
+    User->>Frontend: Press "Start"
+    Frontend->>Backend: POST /start
+    Backend->>Firestore: Create user session
+    Backend-->>Frontend: Question + deadline
+    User->>Frontend: Enter answer
+    Frontend->>Backend: POST /answer
+    Backend->>Backend: Score answer
+    Backend->>Firestore: Delete user session
+    Backend-->>Frontend: Score confirmation
+```
+
+### Service Layer
+
+Located in `app/services/daily_question/`:
+- `timing.py`: UTC timing utilities and deadline calculations
+- `schemas.py`: Pydantic models and TypedDicts for API responses
+- `firestore_writer.py`: Real-time Firestore document management
+- `service.py`: Main `DailyQuestionService` orchestrating DQ flow
+
+### API Endpoints
+
+**User-Facing Endpoints** (require authentication):
+
+| Endpoint | Method | Purpose | Request/Response |
+|----------|--------|---------|------------------|
+| `/daily_question/start` | POST | Start question, returns deadline (only when ACTIVE) | Response: `DQQuestionResponse` |
+| `/daily_question/answer` | POST | Submit answer within deadline | Request: `DQAnswerRequest`, Response: `DQSubmitResponse` |
+| `/daily_question/results` | GET | Get today's results (only when CLOSED) | Response: `DQResultsResponse` |
+| `/daily_question/results/{date}` | GET | Get results for a specific date | Query: `include_post_takes` (default: true), Response: `DQResultsResponse` |
+| `/daily_question/archive/week` | GET | Lite archive for carousel (past 7 days + today) | Response: `DQLiteArchiveResponse` |
+| `/daily_question/archive/month` | GET | Lite archive for calendar view | Query: `year`, `month`, Response: `DQLiteArchiveResponse` |
+| `/daily_question/post_take/{date}/start` | POST | Start a post-take for a closed DQ | Response: `DQQuestionResponse` |
+| `/daily_question/post_take/{date}/answer` | POST | Submit post-take answer and get immediate results | Request: `DQPostTakeAnswerRequest`, Response: `DQPostTakeResultsResponse` |
+| `/daily_question/invite/{date}` | GET | Deep link trampoline for DQ invites | Returns HTML that opens app or falls back to app stores |
+
+**Scheduler-Only Endpoints** (no authentication, protected by Cloud Run IAM):
+
+| Endpoint | Method | Purpose | When Called |
+|----------|--------|---------|-------------|
+| `/daily_question/close_and_schedule` | POST | End today's DQ and schedule the next one | Cloud Scheduler at 2AM UTC |
+| `/daily_question/activate` | POST | Activate the scheduled DQ for this date | Cloud Scheduler at 12PM UTC |
+
+**Note**: The frontend gets DQ status (NOT_STARTED/ACTIVE/CLOSED) by subscribing to the Firestore document, not via API.
+
+All request/response schemas are defined in `app/services/daily_question/schemas.py`.
+
+### Post-Take Feature
+
+Post-take allows **Pro subscribers only** to take past daily questions they missed.
+
+**Tier Gating:**
+
+The post-take endpoints use `get_authenticated_user` dependency which fetches user and subscription tier in a single JOIN query. Non-Pro users receive `403 Forbidden` with message "Archive access requires Pro subscription".
+
+```python
+# In daily_question.py endpoints
+auth_user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)]
+
+# AuthenticatedUser provides:
+# - auth_user.user: The User model
+# - auth_user.tier: SubscriptionTier (FREE or PRO)
+# - auth_user.is_pro: Convenience property for tier check
+```
+
+**Key Differences from Live Participation:**
+
+- **No Firestore Session**: Post-take doesn't create a `user_sessions` document. The frontend tracks `started_at` locally and sends it with the answer.
+- **Immediate Results**: Post-take submissions return results immediately (`DQPostTakeResultsResponse`) instead of waiting for the DQ to close.
+- **Dynamic Ranking**: Post-take entries use dynamic rank computation (DENSE_RANK) since they're added after ranks are computed.
+- **Leaderboard Integration**: Post-take entries appear in leaderboards with `is_post_take=true` flag. They can be filtered out using `include_post_takes=false` query parameter.
+
+**Workflow:**
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant Database
+
+    Note over User,Database: User selects past DQ from archive
+    User->>Frontend: Tap past DQ card
+    Frontend->>Backend: POST /post_take/{date}/start
+    Backend->>Database: Check DQ exists and is CLOSED
+    Backend->>Database: Verify user hasn't answered
+    Backend-->>Frontend: Question + 30s deadline
+    Frontend->>Frontend: Start local timer
+
+    Note over User,Database: User submits answer
+    User->>Frontend: Enter answer
+    Frontend->>Backend: POST /post_take/{date}/answer<br/>{answer, started_at}
+    Backend->>Backend: Validate deadline (started_at + 30s + grace)
+    Backend->>Backend: Score answer
+    Backend->>Backend: Compute dynamic rank
+    Backend->>Database: Store answer (is_post_take=true)
+    Backend->>Database: Increment XP (score // 100)
+    Backend-->>Frontend: Immediate results + leaderboard
+```
+
+**Restrictions:**
+
+- Only available for CLOSED DQs (not SCHEDULED or ACTIVE)
+- Users cannot post-take a DQ they've already participated in
+- Deadline is fixed at 30 seconds from `started_at` (no window end consideration)
+
+### Results and Leaderboard
+
+**Results Access Gating:**
+
+Users must have participated in a DQ to view its results. The backend checks `daily_question_answers` table and returns `403 Forbidden` if the user hasn't answered.
+
+**Ranking System:**
+
+- **Pre-take entries**: Ranks are computed and stored during the close/schedule job (2AM UTC) using DENSE_RANK to handle ties correctly.
+- **Post-take entries**: Ranks are computed dynamically using DENSE_RANK when requested, since they're added after initial ranking.
+- **Tie Handling**: Multiple users with the same score receive the same rank (e.g., two users with rank 1, next user gets rank 3).
+
+**Leaderboard Display:**
+
+- Top 10 entries are returned by default
+- Each entry includes:
+  - `rank`: User's rank (1-indexed)
+  - `player`: Display name and avatar URL
+  - `score`: User's score
+  - `time_taken_s`: Time from start to submission
+  - `is_post_take`: Whether this was a post-take entry
+  - `is_current_user`: Whether this is the requesting user's entry
+
+**XP Increment:**
+
+Users receive XP based on their score: `xp_increment = score // 100`. This applies to both live participation and post-take submissions.
+
+**Unit Conversion:**
+
+Results display answers in the user's preferred unit system:
+- If user participated: Correct answer converted to user's submitted unit
+- If user didn't participate: Correct answer converted to user's locale (US/EU) base unit
+
+### Push Notifications
+
+The Daily Question feature sends two types of push notifications:
+
+1. **DQ Activated Notification** (`send_dq_activated_notification()`):
+   - Sent when DQ becomes ACTIVE (12PM UTC)
+   - Notifies users that today's question is available
+   - Triggered in `DailyQuestionService._activate_scheduled_dq_for_date()`
+
+2. **DQ Results Ready Notification** (`send_dq_results_ready_notification()`):
+   - Sent when results are ready (2AM UTC after close/schedule job)
+   - Notifies users who participated that results are available
+   - Triggered in `DailyQuestionService._close_dq_for_date()`
+
+Both notifications are sent via the notification service (`app/services/notification.py`).
+
+### Invite/Share Deep Links
+
+The DQ feature supports sharing via deep links that open the app directly to a specific daily question.
+
+**Trampoline Endpoint:**
+
+`GET /daily_question/invite/{date}` returns an HTML page that:
+- Detects the user's platform (iOS/Android/Other)
+- Attempts to open the app using the appropriate deep link scheme
+- Falls back to app stores if the app is not installed
+
+**Deep Link Format:**
+
+- **Custom Scheme**: `guesstimate://dq/{YYYY-MM-DD}`
+- **Android Intent URI**: `intent://dq/{YYYY-MM-DD}#Intent;scheme=guesstimate;package=tech.leverai.guesstimate;S.browser_fallback_url={play_store_url};end`
+
+**Invite URL Storage:**
+
+When a DQ is activated, the backend generates an invite URL and stores it in the Firestore document's `invite_url` field. The URL can be:
+- A ChottuLink short URL (if `INVITE_URL_BASE` is configured)
+- The API trampoline endpoint (for local development)
+
+### Firestore Schema
+
+**Document: `daily_questions/{YYYY-MM-DD}`**
+```json
+{
+  "question_uid": "uuid-string",
+  "status": "NOT_STARTED",  // or "ACTIVE" or "CLOSED"
+  "window_start": "2025-12-17T12:00:00Z",
+  "window_end": "2025-12-18T02:00:00Z",
+  "results_ready": false,  // Set to true when ranks are computed (2AM UTC)
+  "invite_url": "https://..."  // Added when status becomes ACTIVE (12PM UTC)
+}
+```
+
+**Field Transitions:**
+
+- `status`: `NOT_STARTED` → `ACTIVE` (at 12PM UTC) → `CLOSED` (at 2AM UTC next day)
+- `results_ready`: `false` → `true` (at 2AM UTC when ranks are computed)
+- `invite_url`: Added when status becomes `ACTIVE` (12PM UTC)
+
+**Subcollection: `daily_questions/{date}/user_sessions/{user_id}`**
+
+Created when user starts, deleted when user submits:
+```json
+{
+  "started_at": "2025-12-17T14:30:00Z",
+  "answer_deadline": "2025-12-17T14:30:30Z",
+  "submitted": false
+}
+```
+
+### Key Differences from Party Mode
+
+| Aspect | Party Mode | Daily Question Mode |
+|--------|-----------|---------------------|
+| Question Pool | `is_daily_question=false` | `is_daily_question=true` |
+| Answer Storage | `answer_events` | `daily_question_answers` |
+| User History | Updates `user_question_history` | Does NOT update history |
+| Timing | Per-game, host-controlled | Global, synchronized (UTC) |
+| Leaderboard | Per-game | Global daily |
+| Status Updates | Via API | Via Firestore subscription |
+
+### Scheduled Jobs
+
+Daily Question lifecycle is managed by Cloud Run jobs (triggered by Cloud Scheduler):
+
+1. **Close/Schedule Job** (2:00 AM UTC):
+   - Closes yesterday's DQ in Firestore (`status=CLOSED`)
+   - Computes and updates ranks for all answers
+   - Sets `results_ready=true` in Firestore
+   - Schedules today's DQ in database
+   - Creates today's Firestore document (`status=NOT_STARTED`)
+
+2. **Activate Job** (12:00 PM UTC):
+   - Updates today's DQ status to ACTIVE in database
+   - Updates Firestore document (`status=ACTIVE`)
+   - Adds `invite_url` to Firestore document for sharing
+   - Sends push notification to users that DQ is active
+
+---
+
+## Survival Mode
+
+Single-player mode where players answer timed questions until they fail.
+See [SURVIVAL_MODE.md](SURVIVAL_MODE.md) for details.
 
 ---
 
@@ -357,6 +777,56 @@ State becomes `QUESTION_LAST_FINISHED` and the game is considered over.
 - Better UX with local countdown
 - Server validates but doesn't enforce
 - Trade-off: trust client to submit on time
+
+---
+
+## Bot Players
+
+The backend supports bot players per game. Bots are powered by LLM-generated answers stored in the `fermi` table.
+
+### Bot Identifiers
+
+| Bot ID | Name | Model |
+|--------|------|-------|
+| `bot-gpt51` | GPT 5.1 | Most capable GPT |
+| `bot-gpt5mini` | GPT 5 Mini | Mid-tier GPT |
+| `bot-gpt5nano` | GPT 5 Nano | Smallest GPT |
+| `bot-gemini1` | RoboMcBotface | Casual Gemini Flash |
+| `bot-gemini2` | Toast-R2 | Casual Gemini Flash |
+| `bot-gemini3` | Sir Beeps-a-Lot | Casual Gemini Flash |
+| `bot-gemini4` | GiggleByte | Casual Gemini Flash |
+| `bot-gemini5` | Wheely Big Cheese | Casual Gemini Flash |
+
+### How Bots Work
+
+1. **Adding Bots**: Host calls `POST /game/add_bots` with `bot_ids` (list of bot IDs) in lobby state
+2. **Auto-Submit**: When `start_game` or `next_question` is called, bot answers are automatically submitted via background task
+3. **Answer Source**: Bot answers come from `fermi.{model_key}_number` and `fermi.{model_key}_unit` columns
+4. **Display**: Bots appear in `players` and `players_results` like regular players
+
+### Statistics Integrity
+
+Bot answers are **excluded** from:
+- `answer_events` table (preserves quantile statistics)
+- `user_question_history` table (no history for bots)
+
+This is handled in `GameAnalyticsGateway.archive_game_results()`.
+
+### Frontend Integration
+
+```typescript
+// Add specific bots to a game
+POST /v1/game/add_bots
+{
+  "resource_id": "game123",
+  "bot_ids": ["bot-gpt51", "bot-gemini2"]
+}
+```
+
+Bots are identified by `player_id` starting with `bot-`. The frontend should:
+- Display bot avatars from `picture` URL
+- Show bot names (e.g., "GPT 5.1", "RoboMcBotface")
+- Treat bot answers like any other player's answers in the reveal UI
 
 ---
 

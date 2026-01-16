@@ -30953,7 +30953,7 @@
             "question_id": 1,
             "number": 37000000,
             "unit": null,
-            "snippet": "Tokyo is the most populous metropolitan area in the world with approximately 37 million people.",
+            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"Tokyo is the most populous metropolitan area in the world with approximately 37 million people.\"}]}",
             "used_ai_overview": true,
             "success": true,
             "serp_metadata": {
@@ -30964,7 +30964,7 @@
             "question_id": 2,
             "number": 117000000000,
             "unit": null,
-            "snippet": "An estimated 117 billion people have ever lived on Earth based on demographic modeling.",
+            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"An estimated 117 billion people have ever lived on Earth based on demographic modeling.\"}]}",
             "used_ai_overview": true,
             "success": true,
             "serp_metadata": {
@@ -30975,7 +30975,7 @@
             "question_id": 3,
             "number": 280000000,
             "unit": null,
-            "snippet": "There are approximately 280 million registered vehicles in the United States.",
+            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"There are approximately 280 million registered vehicles in the United States.\"}]}",
             "used_ai_overview": false,
             "success": true,
             "serp_metadata": {
@@ -30985,8 +30985,8 @@
         {
             "question_id": 4,
             "number": 41000000,
-            "unit": "kilometer",
-            "snippet": "The world has approximately 41 million kilometers of paved roads.",
+            "unit": "mile",
+            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"The world has approximately 41 million kilometers of paved roads.\"}]}",
             "used_ai_overview": false,
             "success": true,
             "serp_metadata": {
@@ -30997,7 +30997,7 @@
             "question_id": 5,
             "number": 100,
             "unit": "acre",
-            "snippet": "Americans consume about 100 acres worth of pizza per day, roughly 350 slices per second.",
+            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"Americans consume about 100 acres worth of pizza per day, roughly 350 slices per second.\"}]}",
             "used_ai_overview": true,
             "success": true,
             "serp_metadata": {
@@ -31008,7 +31008,7 @@
             "question_id": 6,
             "number": 10000000,
             "unit": "ton",
-            "snippet": "Global coffee consumption is approximately 10 million tons per year.",
+            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"Global coffee consumption is approximately 10 million tons per year.\"}]}",
             "used_ai_overview": false,
             "success": true,
             "serp_metadata": {
@@ -31019,7 +31019,7 @@
             "question_id": 7,
             "number": 100000000000,
             "unit": null,
-            "snippet": "The Milky Way galaxy contains an estimated 100 billion stars.",
+            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"The Milky Way galaxy contains an estimated 100 billion stars.\"}]}",
             "used_ai_overview": true,
             "success": true,
             "serp_metadata": {
@@ -31030,7 +31030,7 @@
             "question_id": 8,
             "number": 600,
             "unit": null,
-            "snippet": "As of 2024, approximately 600 people have traveled to space.",
+            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"As of 2024, approximately 600 people have traveled to space.\"}]}",
             "used_ai_overview": true,
             "success": true,
             "serp_metadata": {
@@ -31041,7 +31041,7 @@
             "question_id": 9,
             "number": 3000000000000,
             "unit": null,
-            "snippet": "Scientists estimate there are approximately 3 trillion trees on Earth.",
+            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"Scientists estimate there are approximately 3 trillion trees on Earth.\"}]}",
             "used_ai_overview": true,
             "success": true,
             "serp_metadata": {
@@ -31051,8 +31051,8 @@
         {
             "question_id": 10,
             "number": 150000000,
-            "unit": "ton",
-            "snippet": "There are an estimated 150 million metric tons of plastic in the oceans.",
+            "unit": "metric_ton",
+            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"There are an estimated 150 million metric tons of plastic in the oceans.\"}]}",
             "used_ai_overview": false,
             "success": true,
             "serp_metadata": {
@@ -31063,7 +31063,7 @@
             "question_id": 11,
             "number": 385000,
             "unit": null,
-            "snippet": "Approximately 385,000 babies are born worldwide every day.",
+            "snippet": "{'\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"Approximately 385,000 babies are born worldwide every day.\"}]}",
             "used_ai_overview": true,
             "success": true,
             "serp_metadata": {
@@ -31074,7 +31074,7 @@
             "question_id": 12,
             "number": 100000,
             "unit": null,
-            "snippet": "Around 100,000 commercial flights take off daily around the world.",
+            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"Around 100,000 commercial flights take off daily around the world.\"}]}",
             "used_ai_overview": false,
             "success": true,
             "serp_metadata": {
@@ -31085,7 +31085,7 @@
             "question_id": 13,
             "number": 65000000000,
             "unit": null,
-            "snippet": "Global chicken consumption exceeds 65 billion birds per year.",
+            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"Global chicken consumption exceeds 65 billion birds per year.\"}]}",
             "used_ai_overview": true,
             "success": true,
             "serp_metadata": {
@@ -31094,9 +31094,9 @@
         },
         {
             "question_id": 14,
-            "number": 4.011e16,
+            "number": 4.011e+16,
             "unit": "meter",
-            "snippet": "Proxima Centauri, the nearest star to Earth (excluding the Sun), is 4.24 light-years away (approximately 4.01 × 10^16 meters).",
+            "snippet": "{\"text_blocks\": [{\"type\": \"paragraph\", \"snippet\": \"Proxima Centauri, the nearest star to Earth (excluding the Sun), is 4.24 light-years away (approximately 4.01 \u00d7 10^16 meters).\"}]}",
             "used_ai_overview": true,
             "success": true,
             "serp_metadata": {
@@ -31106,13 +31106,735 @@
         {
             "question_id": 15,
             "number": 1.335e+18,
-            "unit": "meter ** 3",
-            "snippet": "The oceans contain approximately 1.335 billion cubic kilometers of water.",
+            "unit": "metric_ton",
+            "snippet": "{\n    \"text_blocks\": [\n        {\n            \"type\": \"paragraph\",\n            \"snippet\": \"The speed of light ( $c$) is derived from Maxwell\u2019s equations by transforming them into the wave equation for electric and magnetic fields in a vacuum.\",\n            \"snippet_latex\": [\n                \"c\"\n            ],\n            \"reference_indexes\": [\n                2,\n                0\n            ]\n        },\n        {\n            \"type\": \"heading\",\n            \"snippet\": \"1. Maxwell's Equations in Free Space\"\n        },\n        {\n            \"type\": \"paragraph\",\n            \"snippet\": \"In a vacuum where there are no charges ( $\\\\rho =0$) and no currents ( $J=0$), the equations are:\",\n            \"snippet_latex\": [\n                \"\\\\rho =0\",\n                \"J=0\"\n            ],\n            \"reference_indexes\": [\n                4,\n                7,\n                8,\n                9,\n                10\n            ]\n        },\n        {\n            \"type\": \"list\",\n            \"list\": [\n                {\n                    \"snippet\": \"Gauss's Law: $\\\\nabla \\\\cdot \\\\mathbf{E}=0$\",\n                    \"snippet_latex\": [\n                        \"\\\\nabla \\\\cdot \\\\mathbf{E}=0\"\n                    ]\n                },\n                {\n                    \"snippet\": \"Gauss's Law for Magnetism: $\\\\nabla \\\\cdot \\\\mathbf{B}=0$\",\n                    \"snippet_latex\": [\n                        \"\\\\nabla \\\\cdot \\\\mathbf{B}=0\"\n                    ]\n                },\n                {\n                    \"snippet\": \"Faraday's Law: $\\\\nabla \\\\times \\\\mathbf{E}=-\\\\frac{\\\\partial \\\\mathbf{B}}{\\\\partial t}$\",\n                    \"snippet_latex\": [\n                        \"\\\\nabla \\\\times \\\\mathbf{E}=-\\\\frac{\\\\partial \\\\mathbf{B}}{\\\\partial t}\"\n                    ]\n                },\n                {\n                    \"snippet\": \"Amp\u00e8re-Maxwell Law: $\\\\nabla \\\\times \\\\mathbf{B}=\\\\mu _{0}\\\\epsilon _{0}\\\\frac{\\\\partial \\\\mathbf{E}}{\\\\partial t}$\",\n                    \"snippet_latex\": [\n                        \"\\\\nabla \\\\times \\\\mathbf{B}=\\\\mu _{0}\\\\epsilon _{0}\\\\frac{\\\\partial \\\\mathbf{E}}{\\\\partial t}\"\n                    ]\n                }\n            ],\n            \"reference_indexes\": [\n                11,\n                12,\n                13,\n                14,\n                15\n            ]\n        },\n        {\n            \"type\": \"heading\",\n            \"snippet\": \"2. Deriving the Wave Equation\"\n        },\n        {\n            \"type\": \"paragraph\",\n            \"snippet\": \"To isolate the electric field ( $\\\\mathbf{E}$), take the curl of Faraday's Law: $\\\\nabla \\\\times (\\\\nabla \\\\times \\\\mathbf{E})=\\\\nabla \\\\times \\\\left(-\\\\frac{\\\\partial \\\\mathbf{B}}{\\\\partial t}\\\\right)$\",\n            \"snippet_latex\": [\n                \"\\\\mathbf{E}\",\n                \"\\\\nabla \\\\times (\\\\nabla \\\\times \\\\mathbf{E})=\\\\nabla \\\\times \\\\left(-\\\\frac{\\\\partial \\\\mathbf{B}}{\\\\partial t}\\\\right)\"\n            ]\n        },\n        {\n            \"type\": \"paragraph\",\n            \"snippet\": \"Using the vector identity $\\\\nabla \\\\times (\\\\nabla \\\\times \\\\mathbf{E})=\\\\nabla (\\\\nabla \\\\cdot \\\\mathbf{E})-\\\\nabla ^{2}\\\\mathbf{E}$ and substituting Gauss's Law ( $\\\\nabla \\\\cdot \\\\mathbf{E}=0$): $-\\\\nabla ^{2}\\\\mathbf{E}=-\\\\frac{\\\\partial }{\\\\partial t}(\\\\nabla \\\\times \\\\mathbf{B})$\",\n            \"snippet_latex\": [\n                \"\\\\nabla \\\\times (\\\\nabla \\\\times \\\\mathbf{E})=\\\\nabla (\\\\nabla \\\\cdot \\\\mathbf{E})-\\\\nabla ^{2}\\\\mathbf{E}\",\n                \"\\\\nabla \\\\cdot \\\\mathbf{E}=0\",\n                \"-\\\\nabla ^{2}\\\\mathbf{E}=-\\\\frac{\\\\partial }{\\\\partial t}(\\\\nabla \\\\times \\\\mathbf{B})\"\n            ]\n        },\n        {\n            \"type\": \"paragraph\",\n            \"snippet\": \"Substitute the Amp\u00e8re-Maxwell Law for $\\\\nabla \\\\times \\\\mathbf{B}$: $-\\\\nabla ^{2}\\\\mathbf{E}=-\\\\frac{\\\\partial }{\\\\partial t}\\\\left(\\\\mu _{0}\\\\epsilon _{0}\\\\frac{\\\\partial \\\\mathbf{E}}{\\\\partial t}\\\\right)\\\\implies \\\\nabla ^{2}\\\\mathbf{E}=\\\\mu _{0}\\\\epsilon _{0}\\\\frac{\\\\partial ^{2}\\\\mathbf{E}}{\\\\partial t^{2}}$\",\n            \"snippet_latex\": [\n                \"\\\\nabla \\\\times \\\\mathbf{B}\",\n                \"-\\\\nabla ^{2}\\\\mathbf{E}=-\\\\frac{\\\\partial }{\\\\partial t}\\\\left(\\\\mu _{0}\\\\epsilon _{0}\\\\frac{\\\\partial \\\\mathbf{E}}{\\\\partial t}\\\\right)\\\\implies \\\\nabla ^{2}\\\\mathbf{E}=\\\\mu _{0}\\\\epsilon _{0}\\\\frac{\\\\partial ^{2}\\\\mathbf{E}}{\\\\partial t^{2}}\"\n            ]\n        },\n        {\n            \"type\": \"heading\",\n            \"snippet\": \"3. Identifying the Speed\"\n        },\n        {\n            \"type\": \"paragraph\",\n            \"snippet\": \"The standard form of a 3D wave equation is $\\\\nabla ^{2}f=\\\\frac{1}{v^{2}}\\\\frac{\\\\partial ^{2}f}{\\\\partial t^{2}}$, where $v$ is the wave velocity. Comparing this to the derived equation: $\\\\frac{1}{v^{2}}=\\\\mu _{0}\\\\epsilon _{0}\\\\implies v=\\\\frac{1}{\\\\sqrt{\\\\mu _{0}\\\\epsilon _{0}}}$\",\n            \"snippet_latex\": [\n                \"\\\\nabla ^{2}f=\\\\frac{1}{v^{2}}\\\\frac{\\\\partial ^{2}f}{\\\\partial t^{2}}\",\n                \"v\",\n                \"\\\\frac{1}{v^{2}}=\\\\mu _{0}\\\\epsilon _{0}\\\\implies v=\\\\frac{1}{\\\\sqrt{\\\\mu _{0}\\\\epsilon _{0}}}\"\n            ]\n        },\n        {\n            \"type\": \"paragraph\",\n            \"snippet\": \"By plugging in the measured values for vacuum permittivity ( $\\\\epsilon _{0}\\\\approx 8.854\\\\times 10^{-12}\\\\text{\\\\ F/m}$) and vacuum permeability ( $\\\\mu _{0}=4\\\\pi \\\\times 10^{-7}\\\\text{\\\\ T}\\\\cdot \\\\text{m/A}$), the calculated speed is approximately 299,792,458 m/s, matching the known speed of light.\",\n            \"snippet_latex\": [\n                \"\\\\epsilon _{0}\\\\approx 8.854\\\\times 10^{-12}\\\\text{\\\\ F/m}\",\n                \"\\\\mu _{0}=4\\\\pi \\\\times 10^{-7}\\\\text{\\\\ T}\\\\cdot \\\\text{m/A}\"\n            ],\n            \"reference_indexes\": [\n                2,\n                0,\n                3\n            ]\n        }\n    ],\n    \"references\": [\n        {\n            \"title\": \"How to Derive the Speed of Light from Maxwell's Equations\",\n            \"link\": \"https://www.wikihow.com/Derive-the-Speed-of-Light-from-Maxwell%27s-Equations#:~:text=Using%20the%20BAC%2DCAB%20identity,positive%20and%20negative%20directions%2C%20respectively.\",\n            \"snippet\": \"Jul 3, 2024 \u2014 Substitute the Ampere-Maxwell Law. * Using the BAC-CAB identity \u2207 \u00d7 ( \u2207 \u00d7 E ) = \u2207 ( \u2207 \u22c5 E ) \u2212 \u2207 2 E {\\\\displaystyle \\\\nab...\",\n            \"source\": \"wikiHow\",\n            \"index\": 0\n        },\n        {\n            \"title\": \"How do you get the speed of light from Maxwell's equations?\",\n            \"link\": \"https://www.reddit.com/r/AskPhysics/comments/1fe5cgb/how_do_you_get_the_speed_of_light_from_maxwells/#:~:text=Comments%20Section,which%20is%20the%20wave%20equation.\",\n            \"snippet\": \"Sep 10, 2024 \u2014 You derive the wave equation for electric and magnetic fields. Since all wave equations contain a constant term (the s...\",\n            \"source\": \"Reddit\",\n            \"index\": 1\n        },\n        {\n            \"title\": \"Maxwell's equations and light\",\n            \"link\": \"https://web.pa.msu.edu/courses/2000fall/phy232/lectures/emwaves/maxwell.html#:~:text=Using%20some%20not%2Dso%2Dsimple,has%20revolutionized%20our%20technological%20civilization.\",\n            \"snippet\": \"Using some not-so-simple calculus, Maxwell's equations can be used to show that the electric and magnetic fields obey wave equatio...\",\n            \"source\": \"Michigan State University\",\n            \"index\": 2\n        },\n        {\n            \"title\": \"Maxwell's Equations and the Speed of Light | Doc Physics\",\n            \"link\": \"https://www.youtube.com/watch?v=8PE5GEXqmT8&t=71\",\n            \"snippet\": \"Feb 11, 2013 \u2014 field dotted. along some length as you're going along that length then you get this thing which is like mu * epsilon k...\",\n            \"source\": \"YouTube\",\n            \"index\": 3\n        },\n        {\n            \"title\": \"Deriving the speed of light from Maxwell's equations\",\n            \"link\": \"https://astrophytheory.com/2017/09/18/deriving-the-speed-of-light-from-maxwells-equations/#:~:text=We%20are%20all%20familiar%20with,these%20assumptions%2C%20we%20arrive%20at\",\n            \"snippet\": \"Sep 17, 2017 \u2014 We are all familiar with the concept of the speed of light. It is the speed beyond which no object may travel. Many se...\",\n            \"source\": \"astrophytheory.com\",\n            \"index\": 4\n        },\n        {\n            \"title\": \"Speed of Light From Maxwell's Equations | Physics Van | Illinois\",\n            \"link\": \"https://van.physics.illinois.edu/ask/listing/31670#:~:text=c2%20is%201/(,without%20media%20was%20known%20before.\",\n            \"snippet\": \"Dec 15, 2015 \u2014 c2 is 1/(mu*epsilon) where mu is the magnetic permeability and epsilon is the electric permittivity of free space. A w...\",\n            \"source\": \"University of Illinois Urbana-Champaign\",\n            \"index\": 5\n        },\n        {\n            \"title\": \"How did Maxwell derive the speed of light through Ampere, Gauss, ...\",\n            \"link\": \"https://www.quora.com/How-did-Maxwell-derive-the-speed-of-light-through-Ampere-Gauss-and-Faradays-equations\",\n            \"snippet\": \"Jan 19, 2014 \u2014 Let's imagine a lonely ray of light travelling through space along the x-axis. * We have Ampere's law for Magnetic Fie...\",\n            \"source\": \"Quora\",\n            \"index\": 6\n        },\n        {\n            \"title\": \"Derive the electromagnetic wave equation for both electric and magnetic fields in vacuum.\",\n            \"link\": \"https://www.gauthmath.com/solution/1804245091037189/Q2-Derive-the-Electromagnetic-wave-equation-in-term-of-the-magnetic-field-\",\n            \"snippet\": \"Explanation: To derive the electromagnetic wave equation for both electric and magnetic fields in a vacuum, we start from Maxwell'\",\n            \"source\": \"Gauth\",\n            \"index\": 7\n        },\n        {\n            \"title\": \"Deriving the speed of light from Maxwell's equations\",\n            \"link\": \"https://www.youtube.com/watch?v=tA6PipY1c74&t=418\",\n            \"snippet\": \"in words what this tells us is that magnetic fields are caused by currents. and by changing electric fields. okay elec...\",\n            \"source\": \"YouTube\",\n            \"index\": 8\n        },\n        {\n            \"title\": \"Explain the propagation of em wave in free space. Also, show th...\",\n            \"link\": \"https://askfilo.com/user-question-answers-smart-solutions/17-explain-the-propagation-of-em-wave-in-free-space-also-3338353231313537#:~:text=Propagation%20of%20Electromagnetic%20Waves%20in%20Free%20Space,and%20no%20currents%20(%20J%20=%200).\",\n            \"snippet\": \"Propagation of Electromagnetic Waves in Free Space Maxwell's equations predict that time-varying electric and magnetic...\",\n            \"source\": \"Filo\",\n            \"index\": 9\n        },\n        {\n            \"title\": \"Drive various Maxwel's equation in vacuum \\\\u0026 nonconducing medium.\",\n            \"link\": \"https://askfilo.com/user-question-answers-smart-solutions/drive-various-maxwels-equation-in-vacuum-and-nonconducing-3431383335323433#:~:text=1.%20Maxwell's%20Equations%20in%20Vacuum%20In%20vacuum%2C,density%20%CF%81=%200%20Current%20density%20J=%200\",\n            \"snippet\": \"1. Maxwell's Equations in Vacuum In vacuum, there are no free charges or currents, so: Charge density \u03c1\\\\u003d 0 Current dens...\",\n            \"source\": \"Filo\",\n            \"index\": 10\n        },\n        {\n            \"title\": \"Maxwell's Equations and Electromagnetic Waves | Principles of Physics III Class Notes\",\n            \"link\": \"https://fiveable.me/principles-physics-iii-thermal-physics-waves/unit-3/maxwells-equations-electromagnetic-waves/study-guide/V8KClRcvNaIiFjnb#:~:text=3.1%20Maxwell's%20Equations%20and%20Electromagnetic%20Waves%20Gauss's,differential%20form%20for%20charge%2Dfree%20and%20current%2Dfree%20region\",\n            \"snippet\": \"3.1 Maxwell's Equations and Electromagnetic Waves Gauss's law for electricity: \u2207 \u22c5 E \\\\u003d \u03c1 \u03b5 0 \\\\nabla \\\\cdot \\\\mathbf{E} \\\\u003d\",\n            \"source\": \"Fiveable\",\n            \"index\": 11\n        },\n        {\n            \"title\": \"Gauss' law for magnetism - wikidoc\",\n            \"link\": \"https://wikidoc.org/index.php/Gauss%27_law_for_magnetism#:~:text=Differential%20form.%20The%20differential%20form%20for%20Gauss',denotes%20divergence%2C%20B%20is%20the%20magnetic%20field.\",\n            \"snippet\": \"Differential form. The differential form for Gauss' law for magnetism is the following: \\\\u003cmath\\\\u003e\\\\nabla\\\\cdot\\\\mathbf{B} \\\\u003d 0...\",\n            \"source\": \"wikidoc\",\n            \"index\": 12\n        },\n        {\n            \"title\": \"Magnetic monopole - Wikipedia\",\n            \"link\": \"https://en.wikipedia.org/wiki/Magnetic_monopole#:~:text=In%20SI%20units%20Name%20Without%20magnetic%20monopoles,%5Ccdot%20%5Cmathbf%20%7BB%7D%20=%5Crho%20_%7B%5Cmathrm%20%7Bm%7D%20%7D%7D\",\n            \"snippet\": \"In SI units Name Without magnetic monopoles With magnetic monopoles Name Without magnetic monopoles Weber convention Gauss's law f...\",\n            \"source\": \"Wikipedia\",\n            \"index\": 13\n        },\n        {\n            \"title\": \"Maxwell's equations in nLab\",\n            \"link\": \"https://ncatlab.org/nlab/show/Maxwell's+equations#:~:text=4.%20In%20terms%20of%20the%20Faraday%20bivector,%5Cmathbf%7B%5Cnabla%7D%20%5Ccdot%20B%20=%200%20Amp%C3%A8re%2DMaxwell%20law:\",\n            \"snippet\": \"4. In terms of the Faraday bivector F F electric Gauss's law: \u2207 \u22c5 E \\\\u003d \u03c1 \\\\mathbf{\\\\nabla} \\\\cdot E \\\\u003d \\\\rho Faraday's law: ...\",\n            \"source\": \"nLab\",\n            \"index\": 14\n        },\n        {\n            \"title\": \"Electric field - Wikipedia\",\n            \"link\": \"https://en.wikipedia.org/wiki/Electric_field#:~:text=In%20addition%2C%20the%20Maxwell%E2%80%93Faraday%20equation%20states%20%E2%88%87,%7BE%7D%20=%2D%7B%5Cfrac%20%7B%5Cpartial%20%5Cmathbf%20%7BB%7D%20%7D%7B%5Cpartial%20t%7D%7D.%7D\",\n            \"snippet\": \"In addition, the Maxwell\u2013Faraday equation states \u2207 \u00d7 E \\\\u003d \u2212 \u2202 B \u2202 t . {\\\\displaystyle \\\\nabla \\\\times \\\\mathbf {E} \\\\u003d-{\\\\frac {\\\\partial \\\\\",\n            \"source\": \"Wikipedia\",\n            \"index\": 15\n        }\n    ]\n}",
             "used_ai_overview": false,
             "success": true,
             "serp_metadata": {
                 "source": "test"
             }
+        }
+    ],
+    "llm_answers": [
+        {
+            "question_id": 1,
+            "model": "gpt-5.1",
+            "number": 27750000.0,
+            "unit": null
+        },
+        {
+            "question_id": 1,
+            "model": "gpt-5-mini",
+            "number": 18500000.0,
+            "unit": null
+        },
+        {
+            "question_id": 1,
+            "model": "gpt-5-nano",
+            "number": 9250000.0,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gpt-5.1",
+            "number": 87750000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gpt-5-mini",
+            "number": 58500000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gpt-5-nano",
+            "number": 29250000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gpt-5.1",
+            "number": 210000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gpt-5-mini",
+            "number": 140000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gpt-5-nano",
+            "number": 70000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 4,
+            "model": "gpt-5.1",
+            "number": 30750000.0,
+            "unit": "mile"
+        },
+        {
+            "question_id": 4,
+            "model": "gpt-5-mini",
+            "number": 20500000.0,
+            "unit": "kilometer"
+        },
+        {
+            "question_id": 4,
+            "model": "gpt-5-nano",
+            "number": 10250000.0,
+            "unit": "meter"
+        },
+        {
+            "question_id": 5,
+            "model": "gpt-5.1",
+            "number": 75.0,
+            "unit": "acre"
+        },
+        {
+            "question_id": 5,
+            "model": "gpt-5-mini",
+            "number": 50.0,
+            "unit": "acre"
+        },
+        {
+            "question_id": 5,
+            "model": "gpt-5-nano",
+            "number": 25.0,
+            "unit": "acre"
+        },
+        {
+            "question_id": 6,
+            "model": "gpt-5.1",
+            "number": 7500000.0,
+            "unit": "ton"
+        },
+        {
+            "question_id": 6,
+            "model": "gpt-5-mini",
+            "number": 5000000.0,
+            "unit": "ton"
+        },
+        {
+            "question_id": 6,
+            "model": "gpt-5-nano",
+            "number": 2500000.0,
+            "unit": "ton"
+        },
+        {
+            "question_id": 7,
+            "model": "gpt-5.1",
+            "number": 75000000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 7,
+            "model": "gpt-5-mini",
+            "number": 50000000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 7,
+            "model": "gpt-5-nano",
+            "number": 25000000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gpt-5.1",
+            "number": 450.0,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gpt-5-mini",
+            "number": 300.0,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gpt-5-nano",
+            "number": 150.0,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gpt-5.1",
+            "number": 2250000000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gpt-5-mini",
+            "number": 1500000000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gpt-5-nano",
+            "number": 750000000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 10,
+            "model": "gpt-5.1",
+            "number": 112500000.0,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 10,
+            "model": "gpt-5-mini",
+            "number": 75000000.0,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 10,
+            "model": "gpt-5-nano",
+            "number": 37500000.0,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 11,
+            "model": "gpt-5.1",
+            "number": 288750.0,
+            "unit": null
+        },
+        {
+            "question_id": 11,
+            "model": "gpt-5-mini",
+            "number": 192500.0,
+            "unit": null
+        },
+        {
+            "question_id": 11,
+            "model": "gpt-5-nano",
+            "number": 96250.0,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gpt-5.1",
+            "number": 75000.0,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gpt-5-mini",
+            "number": 50000.0,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gpt-5-nano",
+            "number": 25000.0,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gpt-5.1",
+            "number": 48750000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gpt-5-mini",
+            "number": 32500000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gpt-5-nano",
+            "number": 16250000000.0,
+            "unit": null
+        },
+        {
+            "question_id": 14,
+            "model": "gpt-5.1",
+            "number": 3.00825e+16,
+            "unit": "meter"
+        },
+        {
+            "question_id": 14,
+            "model": "gpt-5-mini",
+            "number": 2.0055e+16,
+            "unit": "meter"
+        },
+        {
+            "question_id": 14,
+            "model": "gpt-5-nano",
+            "number": 1.00275e+16,
+            "unit": "meter"
+        },
+        {
+            "question_id": 15,
+            "model": "gpt-5.1",
+            "number": 1.00125e+18,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 15,
+            "model": "gpt-5-mini",
+            "number": 6.675e+17,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 15,
+            "model": "gpt-5-nano",
+            "number": 3.3375e+17,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 1,
+            "model": "gemini-1.5-flash-001",
+            "number": 13285742.94139522,
+            "unit": null
+        },
+        {
+            "question_id": 1,
+            "model": "gemini-1.5-flash-002",
+            "number": 13916644.023896087,
+            "unit": null
+        },
+        {
+            "question_id": 1,
+            "model": "gemini-1.5-flash-003",
+            "number": 225458473.15244824,
+            "unit": null
+        },
+        {
+            "question_id": 1,
+            "model": "gemini-1.5-flash-004",
+            "number": 127720292.69907114,
+            "unit": null
+        },
+        {
+            "question_id": 1,
+            "model": "gemini-1.5-flash-005",
+            "number": 3218782.9494238403,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gemini-1.5-flash-001",
+            "number": 87435366626.9834,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gemini-1.5-flash-002",
+            "number": 436040038000.44794,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gemini-1.5-flash-003",
+            "number": 395558689858.4922,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gemini-1.5-flash-004",
+            "number": 214783707464.81677,
+            "unit": null
+        },
+        {
+            "question_id": 2,
+            "model": "gemini-1.5-flash-005",
+            "number": 296126690050.4233,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gemini-1.5-flash-001",
+            "number": 276899748.263862,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gemini-1.5-flash-002",
+            "number": 2083504280.0698748,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gemini-1.5-flash-003",
+            "number": 24341056.45109602,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gemini-1.5-flash-004",
+            "number": 84095405.99530682,
+            "unit": null
+        },
+        {
+            "question_id": 3,
+            "model": "gemini-1.5-flash-005",
+            "number": 188396795.08531794,
+            "unit": null
+        },
+        {
+            "question_id": 4,
+            "model": "gemini-1.5-flash-001",
+            "number": 168136026.96292743,
+            "unit": "mile"
+        },
+        {
+            "question_id": 4,
+            "model": "gemini-1.5-flash-002",
+            "number": 6311933.327321579,
+            "unit": "mile"
+        },
+        {
+            "question_id": 4,
+            "model": "gemini-1.5-flash-003",
+            "number": 24571971.623617005,
+            "unit": "mile"
+        },
+        {
+            "question_id": 4,
+            "model": "gemini-1.5-flash-004",
+            "number": 21228653.697834823,
+            "unit": "mile"
+        },
+        {
+            "question_id": 4,
+            "model": "gemini-1.5-flash-005",
+            "number": 213846505.61078072,
+            "unit": "mile"
+        },
+        {
+            "question_id": 5,
+            "model": "gemini-1.5-flash-001",
+            "number": 30.21234263091429,
+            "unit": "acre"
+        },
+        {
+            "question_id": 5,
+            "model": "gemini-1.5-flash-002",
+            "number": 25.751366359761306,
+            "unit": "acre"
+        },
+        {
+            "question_id": 5,
+            "model": "gemini-1.5-flash-003",
+            "number": 11.397951807115026,
+            "unit": "acre"
+        },
+        {
+            "question_id": 5,
+            "model": "gemini-1.5-flash-004",
+            "number": 130.51397088211996,
+            "unit": "acre"
+        },
+        {
+            "question_id": 5,
+            "model": "gemini-1.5-flash-005",
+            "number": 19.61469881915908,
+            "unit": "acre"
+        },
+        {
+            "question_id": 6,
+            "model": "gemini-1.5-flash-001",
+            "number": 19177527.526773363,
+            "unit": "ton"
+        },
+        {
+            "question_id": 6,
+            "model": "gemini-1.5-flash-002",
+            "number": 1087786.1168470706,
+            "unit": "ton"
+        },
+        {
+            "question_id": 6,
+            "model": "gemini-1.5-flash-003",
+            "number": 1968751.526578961,
+            "unit": "ton"
+        },
+        {
+            "question_id": 6,
+            "model": "gemini-1.5-flash-004",
+            "number": 12323353.046487652,
+            "unit": "ton"
+        },
+        {
+            "question_id": 6,
+            "model": "gemini-1.5-flash-005",
+            "number": 1783795.919293086,
+            "unit": "ton"
+        },
+        {
+            "question_id": 7,
+            "model": "gemini-1.5-flash-001",
+            "number": 255566766868.77643,
+            "unit": null
+        },
+        {
+            "question_id": 7,
+            "model": "gemini-1.5-flash-002",
+            "number": 128971773664.07379,
+            "unit": null
+        },
+        {
+            "question_id": 7,
+            "model": "gemini-1.5-flash-003",
+            "number": 212448361108.67776,
+            "unit": null
+        },
+        {
+            "question_id": 7,
+            "model": "gemini-1.5-flash-004",
+            "number": 11020241574.644485,
+            "unit": null
+        },
+        {
+            "question_id": 7,
+            "model": "gemini-1.5-flash-005",
+            "number": 32886505551.44629,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gemini-1.5-flash-001",
+            "number": 273.00404257126826,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gemini-1.5-flash-002",
+            "number": 81.45839673503205,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gemini-1.5-flash-003",
+            "number": 684.0822404813918,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gemini-1.5-flash-004",
+            "number": 2982.2617168908746,
+            "unit": null
+        },
+        {
+            "question_id": 8,
+            "model": "gemini-1.5-flash-005",
+            "number": 145.61632548143817,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gemini-1.5-flash-001",
+            "number": 914670892530.2212,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gemini-1.5-flash-002",
+            "number": 487149409006.8253,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gemini-1.5-flash-003",
+            "number": 2601235013664.568,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gemini-1.5-flash-004",
+            "number": 7629648552897.448,
+            "unit": null
+        },
+        {
+            "question_id": 9,
+            "model": "gemini-1.5-flash-005",
+            "number": 7197088231052.509,
+            "unit": null
+        },
+        {
+            "question_id": 10,
+            "model": "gemini-1.5-flash-001",
+            "number": 480544747.99840045,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 10,
+            "model": "gemini-1.5-flash-002",
+            "number": 14212421.499075832,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 10,
+            "model": "gemini-1.5-flash-003",
+            "number": 82735633.82651655,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 10,
+            "model": "gemini-1.5-flash-004",
+            "number": 27987093.529931318,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 10,
+            "model": "gemini-1.5-flash-005",
+            "number": 18474756.87576636,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 11,
+            "model": "gemini-1.5-flash-001",
+            "number": 80819.8187335223,
+            "unit": null
+        },
+        {
+            "question_id": 11,
+            "model": "gemini-1.5-flash-002",
+            "number": 1240417.4398316143,
+            "unit": null
+        },
+        {
+            "question_id": 11,
+            "model": "gemini-1.5-flash-003",
+            "number": 352832.65026810364,
+            "unit": null
+        },
+        {
+            "question_id": 11,
+            "model": "gemini-1.5-flash-004",
+            "number": 242196.4801009242,
+            "unit": null
+        },
+        {
+            "question_id": 11,
+            "model": "gemini-1.5-flash-005",
+            "number": 215217.03428397607,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gemini-1.5-flash-001",
+            "number": 24726.154775876188,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gemini-1.5-flash-002",
+            "number": 118836.2696367326,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gemini-1.5-flash-003",
+            "number": 333054.8819777896,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gemini-1.5-flash-004",
+            "number": 21202.756353511537,
+            "unit": null
+        },
+        {
+            "question_id": 12,
+            "model": "gemini-1.5-flash-005",
+            "number": 8320.846431589362,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gemini-1.5-flash-001",
+            "number": 215825943551.19733,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gemini-1.5-flash-002",
+            "number": 59758471203.49345,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gemini-1.5-flash-003",
+            "number": 17533061073.417477,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gemini-1.5-flash-004",
+            "number": 18564014777.42593,
+            "unit": null
+        },
+        {
+            "question_id": 13,
+            "model": "gemini-1.5-flash-005",
+            "number": 15077893649.351906,
+            "unit": null
+        },
+        {
+            "question_id": 14,
+            "model": "gemini-1.5-flash-001",
+            "number": 3544735002115228.5,
+            "unit": "meter"
+        },
+        {
+            "question_id": 14,
+            "model": "gemini-1.5-flash-002",
+            "number": 5058365770202088.0,
+            "unit": "meter"
+        },
+        {
+            "question_id": 14,
+            "model": "gemini-1.5-flash-003",
+            "number": 8.893072520702165e+16,
+            "unit": "meter"
+        },
+        {
+            "question_id": 14,
+            "model": "gemini-1.5-flash-004",
+            "number": 1.2576200683218646e+17,
+            "unit": "meter"
+        },
+        {
+            "question_id": 14,
+            "model": "gemini-1.5-flash-005",
+            "number": 1.1707066923236098e+17,
+            "unit": "meter"
+        },
+        {
+            "question_id": 15,
+            "model": "gemini-1.5-flash-001",
+            "number": 5.879879597473542e+18,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 15,
+            "model": "gemini-1.5-flash-002",
+            "number": 2.4931739945871843e+17,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 15,
+            "model": "gemini-1.5-flash-003",
+            "number": 6.950100529477296e+18,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 15,
+            "model": "gemini-1.5-flash-004",
+            "number": 7.723813495483201e+18,
+            "unit": "metric_ton"
+        },
+        {
+            "question_id": 15,
+            "model": "gemini-1.5-flash-005",
+            "number": 2.7760139426346204e+18,
+            "unit": "metric_ton"
         }
     ]
 }

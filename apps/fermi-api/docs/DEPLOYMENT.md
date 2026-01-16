@@ -26,9 +26,6 @@ This document describes the deployment configuration and process for the Fermi A
 
 The Fermi API is deployed to Google Cloud Run with separate environments for development and production:
 
-- **Development**: `fermi-api-dev` (auto-deploys from `develop` branch)
-- **Production**: `fermi-api-prod` (auto-deploys from `main` branch)
-
 The deployment uses:
 - **Cloud Run**: Serverless container platform
 - **Cloud SQL**: PostgreSQL 17 database
@@ -106,6 +103,7 @@ DATABASE_URL: <from Secret Manager: database-url-dev>
 JWT_SECRET_KEY: <from Secret Manager: fermi-api-jwt>
 GOOGLE_CLOUD_PROJECT: guesstimate-5483f
 USE_EMULATORS: false
+WEB_BASE_URL: https://guesstimate.leverai.tech
 # DO NOT SET: FIRESTORE_EMULATOR_HOST, FIREBASE_AUTH_EMULATOR_HOST
 ```
 
@@ -120,8 +118,19 @@ DATABASE_URL: <from Secret Manager: database-url-prod>
 JWT_SECRET_KEY: <from Secret Manager: fermi-api-jwt>
 GOOGLE_CLOUD_PROJECT: guesstimate-5483f
 USE_EMULATORS: false
+WEB_BASE_URL: https://guesstimate.leverai.tech
 # DO NOT SET: FIRESTORE_EMULATOR_HOST, FIREBASE_AUTH_EMULATOR_HOST
 ```
+
+### Web Base URL Configuration
+
+The `WEB_BASE_URL` environment variable controls where invite links point. This should be set to your Firebase Hosting domain (e.g., `https://guesstimate.leverai.tech`) to enable cross-platform deep links.
+
+**Invite URL Format:**
+- Game invites: `{WEB_BASE_URL}/invite/game/{game_id}`
+- Daily Question: `{WEB_BASE_URL}/dq/{YYYY-MM-DD}`
+
+These URLs work across all platforms (web, Android, iOS) and automatically route to the appropriate app or web interface.
 
 ### Firebase Configuration
 
@@ -192,12 +201,7 @@ gcloud run services logs read fermi-api-dev --region=us-central1
 
 ```bash
 # Development
-SERVICE_URL=$(gcloud run services describe fermi-api-dev \
-  --region=us-central1 \
-  --format='value(status.url)')
-
-# Production
-SERVICE_URL=$(gcloud run services describe fermi-api-prod \
+SERVICE_URL=$(gcloud run services describe fermi-api \
   --region=us-central1 \
   --format='value(status.url)')
 ```
@@ -313,7 +317,7 @@ Error: Firebase emulators not ready
 **Recent logs:**
 
 ```bash
-gcloud run services logs read fermi-api-dev \
+gcloud run services logs read fermi-api \
   --region=us-central1 \
   --limit=50
 ```
@@ -321,7 +325,7 @@ gcloud run services logs read fermi-api-dev \
 **Filter by severity:**
 
 ```bash
-gcloud run services logs read fermi-api-dev \
+gcloud run services logs read fermi-api \
   --region=us-central1 \
   --log-filter='severity>=ERROR'
 ```
@@ -329,7 +333,7 @@ gcloud run services logs read fermi-api-dev \
 **Follow logs in real-time:**
 
 ```bash
-gcloud run services logs tail fermi-api-dev \
+gcloud run services logs tail fermi-api \
   --region=us-central1
 ```
 

@@ -8,8 +8,7 @@ ASK_PROMPT = ChatPromptTemplate.from_messages(
         (
             'human',
             (
-                'Generate a batch of {num_questions} Fermi questions.'
-                'Your seed: **{seed}**'
+                'Generate a batch of no more than {num_questions} questions. Your seed: **{seed}**'
             ),
         ),
     ],
@@ -24,7 +23,7 @@ EXTRACT_INFO_PROMPT = ChatPromptTemplate.from_messages(
         ),
         (
             'human',
-            'Analyze the following paragraph and extract the required information.\n'
+            'Analyze the following Question and Answer Paragraph, and extract the required information.\n'
             'Question: **{question}**\n'
             'Answer Paragraph: **{paragraph}**\n',
         ),
@@ -69,6 +68,20 @@ DIFFICULTY_PROMPT = ChatPromptTemplate.from_messages(
         (
             'human',
             'Assess the difficulty of the following Fermi question: **{question}**',
+        ),
+    ],
+)
+
+
+LLM_ANSWER_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            'system',
+            (Path(__file__).parent / 'LLM_ANSWER_PROMPT.md').read_text(),
+        ),
+        (
+            'human',
+            'Answer the following Fermi question: **{question}**\nUnit: **{answer_unit}**',
         ),
     ],
 )

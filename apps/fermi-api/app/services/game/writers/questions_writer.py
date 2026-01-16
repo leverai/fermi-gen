@@ -31,7 +31,7 @@ class GameQuestionsWriter:
         writer: 'Writeable',
         questions_docs: Iterable['QuestionDoc'],
         answers_docs: Iterable['AnswerDoc'],
-        request_category: RequestCategory | None,
+        request_categories: list[RequestCategory] | None,
         game_difficulty: QuestionDifficulty | None,
     ) -> list[str]:
         """Create questions and answers documents, and set question_uids."""
@@ -57,7 +57,7 @@ class GameQuestionsWriter:
             game_ref,
             {
                 'question_uids': question_uids,
-                'category': request_category,
+                'categories': request_categories,
                 'difficulty': game_difficulty,
                 'n_questions': len(question_uids),
             },
@@ -70,7 +70,6 @@ class GameQuestionsWriter:
         writer: 'Writeable',
         question_uid: str,
         question_order: int,
-        timeout_seconds: int | None,
     ) -> None:
         """Reveal the question and update game doc."""
         writer.update(
@@ -83,8 +82,24 @@ class GameQuestionsWriter:
             {
                 'question_uid': question_uid,
                 'question_order': question_order,
-                'question_duration_s': timeout_seconds,
             },
+        )
+
+    def reveal_answer(
+        self,
+        game_ref: 'AsyncDocumentReference',
+        writer: 'Writeable',
+        question_uid: str,
+    ) -> None:
+        """Reveal the answer document to enable answer walkthrough in frontend.
+
+        Sets revealed=True on the answers collection document. This triggers
+        the frontend's revealsForQuestion stream to emit, which provides the
+        paragraph (answer walkthrough) data to the UI.
+        """
+        writer.update(
+            game_ref.collection('answers').document(question_uid),
+            {'revealed': True},
         )
 
     def clear_questions(

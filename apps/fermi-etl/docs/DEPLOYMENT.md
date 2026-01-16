@@ -109,17 +109,10 @@ SERP_API_KEY: <from Secret Manager: serp-api-key>
 # Semantic deduplication thresholds
 SEED_SIMILARITY_THRESHOLD: "0.1"           # Cosine distance for seed uniqueness
 QUESTION_SIMILARITY_THRESHOLD: "0.15"      # Cosine distance for question uniqueness
-
-# LLM model configuration
-QUESTION_GENERATION_MODEL: "gpt-4o-mini"   # Model for question generation
-QUESTION_GENERATION_MODEL_PROVIDER: "openai"
-LOCATION_MODEL: "gpt-4o-mini"              # Model for location selection in answers
-EXTRACTION_MODEL: "gpt-4o"                 # Model for answer extraction
-MODEL_PROVIDER: "openai"
-
-# Answer confidence threshold
-CONFIDENCE_THRESHOLD: "0.8"                # Minimum confidence for accepting answers
 ```
+
+> [!NOTE]
+> Model configuration (question_model, location_model, extraction_model, etc.) is now passed as request arguments rather than environment variables. This allows runtime configuration per-request.
 
 ### Environment-Specific Configuration
 
@@ -156,10 +149,10 @@ CONFIDENCE_THRESHOLD: "0.8"                # Minimum confidence for accepting an
 https://github.com/MhdMartini/fermi-gen/actions
 
 # Check service status
-gcloud run services describe fermi-etl-dev --region=us-central1
+gcloud run services describe fermi-etl --region=us-central1
 
 # View logs
-gcloud run services logs read fermi-etl-dev --region=us-central1
+gcloud run services logs read fermi-etl --region=us-central1
 ```
 
 ### To Production
@@ -205,13 +198,7 @@ git push
 ### Get Service URL
 
 ```bash
-# Development
-SERVICE_URL=$(gcloud run services describe fermi-etl-dev \
-  --region=us-central1 \
-  --format='value(status.url)')
-
-# Production
-SERVICE_URL=$(gcloud run services describe fermi-etl-prod \
+SERVICE_URL=$(gcloud run services describe fermi-etl \
   --region=us-central1 \
   --format='value(status.url)')
 ```
@@ -355,7 +342,7 @@ Timeout after 300s
 **Recent logs:**
 
 ```bash
-gcloud run services logs read fermi-etl-dev \
+gcloud run services logs read fermi-etl \
   --region=us-central1 \
   --limit=50
 ```
@@ -363,7 +350,7 @@ gcloud run services logs read fermi-etl-dev \
 **Filter by severity:**
 
 ```bash
-gcloud run services logs read fermi-etl-dev \
+gcloud run services logs read fermi-etl \
   --region=us-central1 \
   --log-filter='severity>=ERROR'
 ```
@@ -371,14 +358,14 @@ gcloud run services logs read fermi-etl-dev \
 **Follow logs in real-time:**
 
 ```bash
-gcloud run services logs tail fermi-etl-dev \
+gcloud run services logs tail fermi-etl \
   --region=us-central1
 ```
 
 **Filter by specific endpoint:**
 
 ```bash
-gcloud run services logs read fermi-etl-dev \
+gcloud run services logs read fermi-etl \
   --region=us-central1 \
   --log-filter='textPayload=~"POST /insert_llm"'
 ```

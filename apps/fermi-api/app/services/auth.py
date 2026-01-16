@@ -2,27 +2,31 @@
 
 import json
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
 import firebase_admin
 import httpx
+import pytz
 from fastapi import Request
 from fermi_core import utcnow_naive
 from fermi_db.models.user import User
 from fermi_db.repositories.user_repository import UserRepository
 from firebase_admin import auth
 from jose import jwt
+from jose.exceptions import JWTError
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
 from app.core.config import settings
 from app.schemas.auth import Token
-from app.services.errors import InvalidFirebaseTokenError
-from app.services.utils import (
-    enrich_firebase_claims,
+from app.services.errors import (
+    InvalidFirebaseTokenError,
+    InvalidJWTError,
+    TokenTooOldError,
 )
+from app.services.utils import enrich_firebase_claims
 
 if TYPE_CHECKING:
     from fastapi import Response
@@ -74,7 +78,7 @@ class AuthService:
     ) -> str:
         """Create an access token."""
         expire = utcnow_naive() + (expires_delta or settings.jwt_exp)
-        to_encode.update({'exp': expire})
+        to_encode.update({'exp': expire, 'iat': utcnow_naive()})
         encoded_jwt = await run_in_threadpool(
             jwt.encode,  # type: ignore[arg-type]
             claims=to_encode,
@@ -146,25 +150,46 @@ class AuthService:
         session: AsyncSession,
         token_str: str,
     ) -> tuple[User, Token]:
-        """Decode an existing access token (ignoring expiration) and mint a new one.
+        """Decode an existing access token and mint a new one.
 
         This allows refreshing tokens without requiring the client to hold the
         Firebase ID token. We verify signature with the configured secret and
         algorithm but disable exp verification to allow expired tokens within
-        a grace-less, stateless flow. The caller is responsible for guarding
-        this endpoint appropriately.
+        a grace-less, stateless flow. However, we enforce a maximum token age
+        to prevent indefinite refresh of very old tokens.
+
+        Raises:
+            TokenTooOldError: If the token is older than jwt_max_refresh_age.
+            InvalidJWTError: If the token is malformed, has invalid signature, or
+                missing required claims.
+            InvalidFirebaseTokenError: If the user doesn't exist.
+
         """
         # Decode without verifying expiration; still verify signature/alg
-        payload: dict[str, Any] = await run_in_threadpool(
-            jwt.decode,  # type: ignore[arg-type]
-            token_str,
-            settings.jwt_secret_key,
-            [settings.jwt_algorithm],
-            options={'verify_exp': False},
-        )
+        try:
+            payload: dict[str, Any] = await run_in_threadpool(
+                jwt.decode,  # type: ignore[arg-type]
+                token_str,
+                settings.jwt_secret_key,
+                [settings.jwt_algorithm],
+                options={'verify_exp': False},
+            )
+        except JWTError as exc:
+            raise InvalidJWTError from exc
+
         user_id = payload.get('user_id')
         if not isinstance(user_id, int):
-            raise InvalidFirebaseTokenError
+            raise InvalidJWTError
+
+        # Check token age to prevent infinite refresh.
+        # jose returns iat as a Unix timestamp (int). If iat is missing (legacy
+        # tokens issued before we added it), allow refresh for backward compat.
+        iat: int | None = payload.get('iat')
+        if iat is not None:
+            iat_dt = datetime.fromtimestamp(iat, tz=pytz.UTC).replace(tzinfo=None)
+            token_age = utcnow_naive() - iat_dt
+            if token_age > settings.jwt_max_refresh_age:
+                raise TokenTooOldError
 
         # Ensure the user still exists
         user_repo = UserRepository(session)

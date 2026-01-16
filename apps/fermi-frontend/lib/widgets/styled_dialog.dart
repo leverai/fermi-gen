@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
@@ -28,6 +30,7 @@ class StyledDialog extends StatelessWidget {
     this.onSecondaryPressed,
     this.showAsDialog = true,
     this.primaryButtonWidget,
+    this.leftWidget,
   });
 
   /// Primary message text displayed at the top of the dialog.
@@ -61,6 +64,9 @@ class StyledDialog extends StatelessWidget {
   /// Useful for custom formatting like step counters with `RichText`.
   final Widget? primaryButtonWidget;
 
+  /// Optional widget to display on the far left of the button row.
+  final Widget? leftWidget;
+
   @override
   Widget build(BuildContext context) {
     final appTheme =
@@ -71,8 +77,13 @@ class StyledDialog extends StatelessWidget {
     if (showAsDialog) {
       return Dialog(
         backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 48),
-        child: content,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 540),
+            child: content,
+          ),
+        ),
       );
     }
 
@@ -82,167 +93,157 @@ class StyledDialog extends StatelessWidget {
   Widget _buildContent(BuildContext context, AppTheme appTheme) {
     final container = Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomCenter,
-          colors: [
-            appTheme.border,
-            appTheme.borderMuted,
-            appTheme.borderMuted,
-          ],
-          stops: const [0.0, 0.5, 1.0],
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Container(
-        margin: const EdgeInsets.all(1), // 1px border effect
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomCenter,
-            colors: [
-              appTheme.bgLight,
-              appTheme.bg,
-            ],
-            stops: const [0.0, 1.0],
+        color: appTheme.bgLight,
+        borderRadius: BorderRadius.circular(appTheme.borderRadius),
+        boxShadow: [
+          BoxShadow(
+            color: appTheme.shadowColor,
+            offset: appTheme.shadowOffset,
+            blurRadius: 0, // Hard shadow
           ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Primary message
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Primary message
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                message,
+                textAlign: TextAlign.left,
+                style: AppFont.primaryTextStyle(
+                  context,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: appTheme.text,
+                  height: 1.5,
+                ).copyWith(
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ),
+            // Secondary message (if provided)
+            if (secondaryMessage != null) ...[
+              const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  message,
+                  secondaryMessage!,
                   textAlign: TextAlign.left,
                   style: AppFont.primaryTextStyle(
                     context,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: appTheme.text,
-                    height: 1.5,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w300,
+                    color: appTheme
+                        .textMuted, // Use textMuted for better visibility
+                    height: 1.4,
                   ).copyWith(
-                    letterSpacing: 0.4,
+                    decoration: TextDecoration.none,
                   ),
                 ),
               ),
-              // Secondary message (if provided)
-              if (secondaryMessage != null) ...[
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    secondaryMessage!,
-                    textAlign: TextAlign.left,
-                    style: AppFont.primaryTextStyle(
-                      context,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w300,
-                      color: appTheme.highlight,
-                      height: 1.4,
-                    ).copyWith(
-                      decoration: TextDecoration.none,
-                    ),
-                  ),
-                ),
-              ],
-              // Buttons
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // Secondary button (if provided)
-                  if (secondaryButtonLabel != null &&
-                      onSecondaryPressed != null)
-                    SizedBox(
-                      height: 12 * 4,
-                      width: 12 * 9,
-                      child: OutlinedButton(
-                        onPressed: onSecondaryPressed,
-                        style: ButtonStyle(
-                          side: WidgetStateProperty.all(BorderSide.none),
-                          minimumSize: WidgetStateProperty.all(
-                            const Size(240, 48),
-                          ),
-                          maximumSize: WidgetStateProperty.all(
-                            const Size(240, 48),
-                          ),
-                          padding: WidgetStateProperty.all(EdgeInsets.zero),
-                          shape: WidgetStateProperty.all(
-                            RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+            ],
+            // Buttons
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (leftWidget != null) ...[
+                  leftWidget!,
+                  const Spacer(),
+                ],
+                // Secondary button (if provided)
+                if (secondaryButtonLabel != null && onSecondaryPressed != null)
+                  SizedBox(
+                    height: 48,
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        splashColor: appTheme.highlight.withOpacity(0.2),
+                        highlightColor: Colors
+                            .transparent, // optional: avoids the grey hold highlight
+                        onTap: onSecondaryPressed,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Center(
+                            child: Text(
+                              secondaryButtonLabel!,
+                              textAlign: TextAlign.center,
+                              style: AppFont.primaryTextStyle(
+                                context,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ).copyWith(
+                                  letterSpacing: 0.2,
+                                  color: appTheme.textMuted),
                             ),
                           ),
-                          overlayColor: WidgetStateProperty.resolveWith<Color?>(
-                            (Set<WidgetState> states) {
-                              if (states.contains(WidgetState.hovered) ||
-                                  states.contains(WidgetState.pressed)) {
-                                return appTheme.border;
-                              }
-                              return null;
-                            },
-                          ),
                         ),
-                        child: Text(
-                          secondaryButtonLabel!,
+                      ),
+                    ),
+                  ),
+                if (secondaryButtonLabel != null && onSecondaryPressed != null)
+                  const SizedBox(width: 16),
+                // Primary button
+                SizedBox(
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: onPrimaryPressed,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryButtonColor,
+                      foregroundColor: appTheme.bgLight,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      shadowColor: Colors
+                          .transparent, // We'll handle shadow manually if needed, or just flat
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                    ).copyWith(
+                      overlayColor: WidgetStateProperty.resolveWith<Color?>(
+                        (Set<WidgetState> states) {
+                          if (states.contains(WidgetState.pressed)) {
+                            return appTheme.text.withOpacity(0.2);
+                          }
+                          return Colors.transparent;
+                        },
+                      ),
+                    ),
+                    child: primaryButtonWidget ??
+                        Text(
+                          primaryButtonLabel,
                           style: AppFont.primaryTextStyle(
                             context,
                             fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            color: appTheme.highlight,
+                            fontWeight: FontWeight.w600,
+                            color: appTheme.bgLight, // Contrast text
                           ).copyWith(letterSpacing: 0.2),
                         ),
-                      ),
-                    ),
-                  if (secondaryButtonLabel != null &&
-                      onSecondaryPressed != null)
-                    const SizedBox(width: 24),
-                  // Primary button
-                  SizedBox(
-                    height: 12 * 4,
-                    width: 12 * 9,
-                    child: ElevatedButton(
-                      onPressed: onPrimaryPressed,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryButtonColor,
-                        foregroundColor: appTheme.bg,
-                        minimumSize: const Size(240, 48),
-                        maximumSize: const Size(240, 48),
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: primaryButtonWidget ??
-                          Text(
-                            primaryButtonLabel,
-                            style: AppFont.primaryTextStyle(
-                              context,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              color: appTheme.bg,
-                            ).copyWith(letterSpacing: 0.2),
-                          ),
-                    ),
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
 
-    // When not showing as dialog, add 28px horizontal margin and fill parent width
+    // When not showing as dialog, add 4px horizontal margin and constrain width
     if (!showAsDialog) {
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 28),
-        child: container,
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 540),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            child: container,
+          ),
+        ),
       );
     }
 

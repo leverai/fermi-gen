@@ -104,6 +104,8 @@ class QuestionVotesRepository(BaseRepository):
         """Return verdicts for a collection of user ids.
         Return object is like {firebase_uid: VoteVerdict}.
         Note, if user hasn't voted, return 0 for the verdict.
+
+        # TODO: Only get verdict back
         """
         verdicts: dict[str, VoteVerdict] = dict.fromkeys(user_ids, VoteVerdict.NO_VOTE)
         stmt = select(QuestionVote).where(
@@ -118,3 +120,17 @@ class QuestionVotesRepository(BaseRepository):
             },
         )
         return verdicts
+
+    async def get_player_vote_verdict(
+        self,
+        question_uid: UUID,
+        user_firebase_uid: str,
+    ) -> VoteVerdict:
+        """Return a player's vote verdict for a question."""
+        stmt = select(QuestionVote.verdict).where(
+            (QuestionVote.question_uid == question_uid)
+            & (QuestionVote.user_firebase_uid == user_firebase_uid),
+        )
+        result = await self.session.exec(stmt)
+        verdict = result.one_or_none()
+        return VoteVerdict(verdict) if verdict is not None else VoteVerdict.NO_VOTE

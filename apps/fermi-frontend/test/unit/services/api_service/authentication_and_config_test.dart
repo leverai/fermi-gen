@@ -45,7 +45,38 @@ void main() {
       );
 
       // ACT
-      await apiService.createGame(isPrivate: true);
+      await apiService.createGame();
+
+      // ASSERT - verified by expect in MockClient callback
+    });
+
+    test('should include traceparent header for cross-service tracing',
+        () async {
+      // ARRANGE
+      final mockClient = MockClient((request) async {
+        // Verify traceparent header exists and follows W3C format
+        final traceparent = request.headers['traceparent'];
+        expect(traceparent, isNotNull);
+
+        // Format: version-traceId-parentId-flags (e.g., 00-xxx-xxx-01)
+        final parts = traceparent!.split('-');
+        expect(parts.length, 4, reason: 'traceparent should have 4 parts');
+        expect(parts[0], '00', reason: 'version should be 00');
+        expect(parts[1].length, 32, reason: 'traceId should be 32 hex chars');
+        expect(parts[2].length, 16, reason: 'parentId should be 16 hex chars');
+        expect(parts[3], '01', reason: 'flags should be 01 (sampled)');
+
+        return http.Response('{"resource_id": "game-123"}', 200);
+      });
+
+      final apiService = ApiService(
+        authService: mockAuthService,
+        client: mockClient,
+        apiBaseUrl: 'http://test-api',
+      );
+
+      // ACT
+      await apiService.createGame();
 
       // ASSERT - verified by expect in MockClient callback
     });
@@ -76,7 +107,7 @@ void main() {
       );
 
       // ACT
-      final result = await apiService.createGame(isPrivate: true);
+      final result = await apiService.createGame();
 
       // ASSERT
       verify(() => mockAuthService.refreshAccessToken()).called(1);
@@ -112,7 +143,7 @@ void main() {
       );
 
       // ACT
-      await apiService.createGame(isPrivate: true);
+      await apiService.createGame();
 
       // ASSERT
       expect(callCount, 2);
@@ -134,7 +165,7 @@ void main() {
 
       // ACT & ASSERT
       expect(
-        () => apiService.createGame(isPrivate: true),
+        () => apiService.createGame(),
         throwsA(isA<Exception>().having(
           (e) => e.toString(),
           'message',
@@ -160,7 +191,7 @@ void main() {
 
       // ACT & ASSERT
       expect(
-        () => apiService.createGame(isPrivate: true),
+        () => apiService.createGame(),
         throwsA(isA<Exception>().having(
           (e) => e.toString(),
           'message',
@@ -303,17 +334,15 @@ void main() {
         expect(request.url.path, '/game/get_player_stats');
         expect(request.method, 'POST');
         final body = jsonDecode(request.body);
-        expect(body['player_id'], 'player-123');
+        expect(body, isEmpty); // No player_id in request body anymore
         return http.Response(
           jsonEncode({
             'player_id': 'player-123',
             'stats': {
-              'player_quantiles': {
-                'by_category_and_difficulty': [],
-                'by_category': [],
-                'by_difficulty': [],
-                'overall': 0.75
-              }
+              'total_party_games': 10,
+              'total_daily_guesses': 5,
+              'average_percentile': 75,
+              'level': 1
             }
           }),
           200,
@@ -327,7 +356,7 @@ void main() {
       );
 
       // ACT
-      final stats = await apiService.getPlayerStats(playerId: 'player-123');
+      final stats = await apiService.getPlayerStats();
 
       // ASSERT
       expect(stats, isA<Map<String, dynamic>>());
@@ -339,31 +368,10 @@ void main() {
       final json = {
         'player_id': 'player-123',
         'stats': {
-          'player_quantiles': {
-            'by_category_and_difficulty': [
-              {
-                'category': 'GEOGRAPHY',
-                'difficulty': 'EASY',
-                'avg_quantile': 0.75,
-                'avg_percentile': 75.0
-              }
-            ],
-            'by_category': [
-              {
-                'category': 'GEOGRAPHY',
-                'avg_quantile': 0.65,
-                'avg_percentile': 65.0
-              }
-            ],
-            'by_difficulty': [
-              {
-                'difficulty': 'EASY',
-                'avg_quantile': 0.70,
-                'avg_percentile': 70.0
-              }
-            ],
-            'overall': 0.60
-          }
+          'total_party_games': 42,
+          'total_daily_guesses': 15,
+          'average_percentile': 75,
+          'level': 1
         }
       };
 
@@ -372,10 +380,10 @@ void main() {
 
       // ASSERT
       expect(stats.playerId, 'player-123');
-      expect(stats.playerQuantiles.overall, 0.60);
-      expect(stats.playerQuantiles.byCategoryAndDifficulty.length, 1);
-      expect(stats.playerQuantiles.byCategory.length, 1);
-      expect(stats.playerQuantiles.byDifficulty.length, 1);
+      expect(stats.stats.totalPartyGames, 42);
+      expect(stats.stats.totalDailyGuesses, 15);
+      expect(stats.stats.averagePercentile, 75);
+      expect(stats.stats.level, 1);
     });
 
     test('should handle network errors', () async {
@@ -392,7 +400,7 @@ void main() {
 
       // ACT & ASSERT
       expect(
-        () => apiService.getPlayerStats(playerId: 'player-123'),
+        () => apiService.getPlayerStats(),
         throwsA(isA<Exception>().having(
           (e) => e.toString(),
           'message',
@@ -418,7 +426,7 @@ void main() {
 
       // ACT & ASSERT
       expect(
-        () => apiService.getPlayerStats(playerId: 'player-123'),
+        () => apiService.getPlayerStats(),
         throwsA(isA<Exception>().having(
           (e) => e.toString(),
           'message',

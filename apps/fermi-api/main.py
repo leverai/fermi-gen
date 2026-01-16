@@ -10,11 +10,18 @@ from collections.abc import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.api.api import api_router
+from app.api.v1.rate_limit import limiter
 from app.core.config import settings
-from app.core.database import create_db_and_tables
+from app.logging.otel import instrument_fastapi
+from app.logging.setup import setup_api_logging
 from app.version import __version__
+
+# Initialize structured logging and OpenTelemetry before anything else
+setup_api_logging()
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +33,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Ensures async SQLAlchemy engine and pool are disposed cleanly to avoid
     lingering pooled connections triggering GC warnings or teardown hangs.
     """
-    await create_db_and_tables()
     try:
         yield
     finally:
@@ -57,16 +63,24 @@ def create_app() -> FastAPI:
 
 app = create_app()
 
+# Register rate limiter state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Instrument with OpenTelemetry for automatic tracing
+instrument_fastapi(app)
+
 # Define the origins that are allowed to make requests.
-# For development, you can allow all origins with ["*"].
-# For production, you should restrict this to your actual frontend's domain.
+# For production, restrict this to your actual frontend's domain.
 origins = [
-    # Allow your deployed Flutter web app
+    # Deployed Flutter web app
     'https://guesstimate-5483f.web.app',
-    'http://localhost',  # Default Flutter web dev port
-    # You might need to add the specific port Flutter is running on,
-    # which can change. Using "*" is easiest for local dev.
-    '*',
+    # Local development
+    'http://localhost',
+    'http://localhost:8080',
+    'http://localhost:3000',
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:3000',
 ]
 
 # Add the CORS middleware to your application

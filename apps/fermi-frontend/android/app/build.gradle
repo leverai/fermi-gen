@@ -24,9 +24,24 @@ if (flutterVersionName == null) {
 }
 
     android {
-    namespace = "com.guesstimate.guesstimate"
+    namespace = "tech.leverai.guesstimate"
     compileSdk = 35
     ndkVersion = "27.0.12077973"
+
+    flavorDimensions = ["environment"]
+
+    productFlavors {
+        dev {
+            dimension = "environment"
+            applicationId = "tech.leverai.guesstimate.dev"
+            resValue "string", "app_name", "Guesstimate Dev"
+        }
+        prod {
+            dimension = "environment"
+            applicationId = "tech.leverai.guesstimate"
+            resValue "string", "app_name", "Guesstimate"
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -42,16 +57,24 @@ if (flutterVersionName == null) {
     }
 
     defaultConfig {
-        applicationId = "com.guesstimate.guesstimate"
         minSdk = 23
         targetSdk = 35
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
     }
 
+    signingConfigs {
+        release {
+            storeFile file("$System.env.KEYSTORE_FILE")
+            storePassword "$System.env.KEYSTORE_PASSWORD"
+            keyAlias "$System.env.KEY_ALIAS"
+            keyPassword "$System.env.KEY_PASSWORD"
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.debug
+            signingConfig = signingConfigs.release
         }
     }
 }
@@ -65,4 +88,5 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.android.gms:play-services-auth:21.4.0")
     implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.android.play:integrity:1.6.0'
 }

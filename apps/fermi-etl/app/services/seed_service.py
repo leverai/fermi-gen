@@ -9,7 +9,6 @@ from fermi_db.models import Seed
 from fermi_db.session import session_context
 from pydantic import BaseModel
 
-from app.config import ETLConfig
 from app.core.validation import validate_seed
 
 logger = logging.getLogger(__name__)
@@ -38,14 +37,14 @@ class SeedBatchResult(BaseModel):
 async def insert_seed(
     seed_text: str,
     db_client: DatabaseClient,
-    config: ETLConfig,
+    similarity_threshold: float,
 ) -> SeedInsertionResult:
     """Process and insert a single seed if it's unique.
 
     Args:
         seed_text: The raw seed text to process
         db_client: Database client for operations
-        config: ETL configuration
+        similarity_threshold: Similarity threshold for seed uniqueness
 
     Returns:
         SeedInsertionResult with details of the operation
@@ -55,17 +54,18 @@ async def insert_seed(
     preprocessed = seed_text.strip()
 
     # Validate the preprocessed seed
-    is_valid, error_msg = validate_seed(seed_text=preprocessed)
-    if not is_valid:
+    try:
+        preprocessed = validate_seed(seed_text=preprocessed)
+    except AssertionError as exc:
         logger.info(
             f'Seed rejected (validation failed): "{seed_text}" -> '
-            f'"{preprocessed}". Reason: {error_msg}',
+            f'"{preprocessed}". Reason: {exc}',
         )
         return SeedInsertionResult(
             original_text=seed_text,
             preprocessed_text=preprocessed,
             inserted=False,
-            reason=error_msg,
+            reason=str(exc),
         )
 
     # Generate embedding
@@ -81,7 +81,7 @@ async def insert_seed(
     # Try to insert (will check for similarity)
     seed_id = await db_client.seeds.insert_unique_seed(
         seed,
-        threshold=config.seed_similarity_threshold,
+        threshold=similarity_threshold,
     )
 
     if seed_id is None:
@@ -94,8 +94,7 @@ async def insert_seed(
             preprocessed_text=preprocessed,
             inserted=False,
             reason=(
-                'Too similar to existing seed '
-                f'(threshold: {config.seed_similarity_threshold})'
+                f'Too similar to existing seed (threshold: {similarity_threshold})'
             ),
         )
 
@@ -114,23 +113,18 @@ async def insert_seed(
 
 async def insert_seeds(
     seed_texts: list[str],
-    config: ETLConfig | None = None,
+    similarity_threshold: float,
 ) -> SeedBatchResult:
     """Process and insert a batch of seeds.
 
     Args:
         seed_texts: List of raw seed texts to process
-        config: ETL configuration (if None, load from env)
+        similarity_threshold: Similarity threshold for seed uniqueness
 
     Returns:
         SeedBatchResult with statistics and individual results
 
     """
-    if config is None:
-        from app.config import get_config
-
-        config = get_config()
-
     n_seeds = len(seed_texts)
     logger.info(f'Starting batch seed insertion for {n_seeds} seeds...')
 
@@ -142,15 +136,19 @@ async def insert_seeds(
         db_client = DatabaseClient(session)
 
         # Remove duplicates
-        seed_texts_unique = list(
+        seed_texts_unique = list[str](
             {seed_text.strip().lower() for seed_text in seed_texts},
         )
         n_seeds_unique = len(seed_texts_unique)
         logger.info(f'Removed {n_seeds - n_seeds_unique} literal duplicates.')
 
-        # Process each seed
+        # Insert the seeds
         for seed_text in seed_texts_unique:
-            result = await insert_seed(seed_text, db_client, config)
+            result = await insert_seed(
+                seed_text=seed_text,
+                db_client=db_client,
+                similarity_threshold=similarity_threshold,
+            )
             results.append(result)
             if result.inserted:
                 inserted_count += 1

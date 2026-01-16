@@ -1,41 +1,20 @@
 """Schemas for SerpAPI-based answer pipeline."""
 
-from typing import Any, Literal
+import json
+import math
+from typing import Any, Literal, Self
 
 from pint import UnitRegistry
-from pydantic import BaseModel, Field, computed_field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
 ureg = UnitRegistry()
-
-
-def _flatten_text_blocks(text_blocks: list[dict[str, Any]]) -> str:
-    """Recursively extract all snippets from text_blocks.
-
-    Handles nested structures with 'list' fields and extracts all 'snippet' values.
-    Joins them with spaces to create a comprehensive answer paragraph.
-
-    Args:
-        text_blocks: List of text block dictionaries from SerpAPI AI Overview
-
-    Returns:
-        Single string with all snippets concatenated
-
-    """
-    snippets: list[str] = []
-
-    def extract_snippets(blocks: list[dict[str, Any]]) -> None:
-        """Recursively extract snippets from blocks and nested lists."""
-        for block in blocks:
-            # Extract snippet from current block
-            if snippet := block.get('snippet'):
-                snippets.append(snippet)
-
-            # Recursively extract from nested lists
-            if nested_list := block.get('list'):
-                extract_snippets(nested_list)
-
-    extract_snippets(text_blocks)
-    return ' '.join(snippets)
 
 
 # Valid units - curated list matching units.py
@@ -76,6 +55,8 @@ VALID_UNITS = Literal[
     'millennium',
     'fahrenheit',
     'celsius',
+    'bit',
+    'byte',
     'kilobyte',
     'megabyte',
     'gigabyte',
@@ -85,61 +66,33 @@ VALID_UNITS = Literal[
 ]
 
 
-class SerpAIOverview(BaseModel):
-    """AI Overview from Google Search via SerpAPI."""
+class GoogleAIModeResult(BaseModel):
+    """Result from Google AI Mode API.
 
-    text_blocks: list[dict[str, Any]]  # Contains snippets, lists, headings
-    references: list[dict[str, Any]]  # Source references with links
+    The AI Mode engine returns structured text_blocks directly,
+    without the need for page token fallback requests.
+    """
 
-    model_config = {'extra': 'allow'}  # Allow extra fields from SerpAPI
+    model_config = ConfigDict(extra='ignore')  # Ignore extra fields from SerpAPI
+
+    text_blocks: list[dict[str, Any]] = []
+    references: list[dict[str, Any]] = []
 
     @computed_field
     @property
-    def snippet(self) -> str:
-        """Extract complete answer by flattening all text_blocks.
-
-        Recursively extracts all snippets from text_blocks (including nested lists)
-        to create a comprehensive answer paragraph. This ensures we capture the
-        complete answer even when it spans multiple blocks (summary + conclusion).
-
-        Returns:
-            Flattened snippet with all text_blocks content
-
-        """
-        return _flatten_text_blocks(self.text_blocks)
-
-
-class SerpAIOverviewX(BaseModel):
-    """AI Overview value when an extra request is needed."""
-
-    page_token: str
-    serpapi_link: str
-
-
-class SerpRelatedQuestion(BaseModel):
-    """Related question from Google Search."""
-
-    question: str
-    snippet: str | None = None
-
-    model_config = {'extra': 'allow'}  # Allow extra fields from SerpAPI
-
-
-class SerpSearchResult(BaseModel):
-    """Complete search result from SerpAPI - lenient on extra fields."""
-
-    ai_overview: SerpAIOverview | SerpAIOverviewX | None = None
-    related_questions: list[SerpRelatedQuestion] = []
-
-    model_config = {'extra': 'allow'}  # Allow extra fields from SerpAPI
+    def snippet_json(self) -> str:
+        """Json serialized text_blocks."""
+        return json.dumps(
+            {'text_blocks': self.text_blocks, 'references': self.references},
+        )
 
 
 class SnippetCandidate(BaseModel):
     """A candidate snippet extracted from search results."""
 
-    snippet: str
-    metadata: dict[str, Any]  # Full context (ai_overview dict or related_question dict)
-    source: Literal['ai_overview', 'related_question']
+    snippet_json: str
+    metadata: dict[str, Any]  # Full context from AI Mode result
+    source: Literal['ai_mode'] = 'ai_mode'
 
 
 class LocationSelection(BaseModel):
@@ -150,18 +103,59 @@ class LocationSelection(BaseModel):
 
 
 class ExtractedInfo(BaseModel):
-    """Information extracted from snippet - with validated unit."""
+    """Information extracted from snippet - with validated unit.
 
-    number: float = Field(description='Numeric answer in scientific notation')
-    unit: VALID_UNITS = Field(description='Unit from predefined list')
+    Uses separate coefficient and exponent fields to avoid OpenAI structured
+    outputs truncating scientific notation. The number is computed as:
+    number = coefficient * 10^exponent
+    """
+
+    coefficient: float = Field(
+        description=(
+            'The coefficient part of the scientific notation. '
+            'For 27.5 million (2.75e7), this would be 2.75. '
+            'Must be between 1.0 and 10.0 for proper scientific notation.'
+        ),
+        gt=0,
+    )
+    exponent: int = Field(
+        description=(
+            'The exponent (power of 10) in scientific notation. '
+            'For 27.5 million (2.75e7), this would be 7. '
+            'For 3,500 (3.5e3), this would be 3.'
+        ),
+    )
+    unit: VALID_UNITS = Field(description='Unit from predefined list.')
     confidence: float = Field(ge=0, le=1, description='Extraction confidence')
 
-    def to_base_unit(self) -> tuple[float, str | None]:
+    @computed_field
+    @property
+    def number(self) -> float:
+        """Compute the full number from coefficient and exponent."""
+        return self.coefficient * (10**self.exponent)
+
+    @field_validator('unit', mode='after')
+    @classmethod
+    def _no_unit_as_none(cls, v: Literal['dimensionless'] | str) -> str | None:
+        """Convert 'dimensionless' to None."""
+        if v == 'dimensionless':
+            return None
+        return v
+
+    @model_validator(mode='after')
+    def to_base_unit(self) -> Self:
         """Convert to base unit."""
         if self.unit is None:
-            return self.number, None
+            return self
+        # Compute number, convert to base units, then update coefficient/exponent
         quantity_base = ureg.Quantity(self.number, self.unit).to_base_units()
-        return quantity_base.magnitude, str(quantity_base.units)
+        base_number = quantity_base.magnitude
+        assert base_number > 0, 'Base number must be greater than 0'
+        # Recompute coefficient and exponent from base number
+        self.exponent = math.floor(math.log10(base_number))
+        self.coefficient = base_number / (10**self.exponent)
+        self.unit = str(quantity_base.units)  # type: ignore[reportAttributeAccessIssue]
+        return self
 
 
 class SerpAnswer(BaseModel):
@@ -169,7 +163,7 @@ class SerpAnswer(BaseModel):
 
     number: float = Field(description='Numeric answer')
     unit: str | None = Field(description='Unit or None for dimensionless')
-    snippet: str = Field(description='Answer paragraph used')
+    snippet: str = Field(description='SerpAPI response json string.')
     used_ai_overview: bool = Field(
         description='True if ai_overview used, False if related_question',
     )
@@ -181,3 +175,11 @@ class SerpAnswer(BaseModel):
         le=1.0,
         description='Extraction confidence (min 0.8)',
     )
+
+    @field_validator('unit', mode='after')
+    @classmethod
+    def _no_unit_as_none(cls, v: Literal['dimensionless'] | str) -> str | None:
+        """Convert 'dimensionless' to None."""
+        if v == 'dimensionless':
+            return None
+        return v

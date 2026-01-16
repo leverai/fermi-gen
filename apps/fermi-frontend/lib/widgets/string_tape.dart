@@ -33,6 +33,7 @@ class StringTape extends StatefulWidget {
     required this.values,
     this.initialValue,
     this.onSelected,
+    this.onCenteredValueChanged,
     this.itemExtent = 56.0,
     this.enabled = true,
     this.textStyle,
@@ -44,6 +45,8 @@ class StringTape extends StatefulWidget {
   final List<String> values;
   final String? initialValue;
   final ValueChanged<String>? onSelected; // Called when user taps centered item
+  final ValueChanged<String>?
+      onCenteredValueChanged; // Called when centered value changes (scroll)
   final double itemExtent;
   final bool enabled;
   final TextStyle? textStyle;
@@ -80,6 +83,42 @@ class _StringTapeState extends State<StringTape> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant StringTape oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Rebind controller if it changed
+    if (oldWidget.controller != widget.controller) {
+      widget.controller?._bind(
+        jumpTo: _jumpTo,
+        animateTo: _animateTo,
+      );
+    }
+
+    // When values list changes (e.g., locale toggle), reset position
+    // to match the new initialValue
+    if (!_listEquals(oldWidget.values, widget.values)) {
+      final int newIndex = _indexOf(widget.initialValue);
+      if (newIndex != _selectedIndex) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _controller.jumpToItem(newIndex);
+            setState(() => _selectedIndex = newIndex);
+          }
+        });
+      }
+    }
+  }
+
+  // Helper to compare lists
+  bool _listEquals(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   int _indexOf(String? value) {
@@ -167,32 +206,50 @@ class _StringTapeState extends State<StringTape> {
 
     return Stack(
       children: [
-        SizedBox(
-          height: widget.itemExtent *
-              4, // Show 4 items total (1-2 above, center, 1-2 below)
-          child: ListWheelScrollView.useDelegate(
-            controller: _controller,
-            itemExtent: widget.itemExtent,
-            physics: widget.enabled
-                ? const FixedExtentScrollPhysics()
-                : const NeverScrollableScrollPhysics(),
-            perspective: 0.003,
-            diameterRatio:
-                1.5, // Show more items around center (smaller = more visible items)
-            onSelectedItemChanged: (index) {
-              setState(() => _selectedIndex = index);
-            },
-            childDelegate: ListWheelChildBuilderDelegate(
-              builder: (context, index) {
-                if (index < 0 || index >= widget.values.length) return null;
+        GestureDetector(
+          onTapUp: (details) {
+            if (!widget.enabled) return;
+            // Calculate which item was tapped based on Y position
+            final double tapY = details.localPosition.dy;
+            final double centerY =
+                widget.itemExtent * 2; // Center of the 4-item view
+            final double offsetFromCenter = tapY - centerY;
+            final int itemOffset =
+                (offsetFromCenter / widget.itemExtent).round();
+            final int tappedIndex = (_selectedIndex + itemOffset)
+                .clamp(0, widget.values.length - 1);
+            _onItemTapped(tappedIndex);
+          },
+          child: SizedBox(
+            height: widget.itemExtent *
+                4, // Show 4 items total (1-2 above, center, 1-2 below)
+            child: ListWheelScrollView.useDelegate(
+              controller: _controller,
+              itemExtent: widget.itemExtent,
+              physics: widget.enabled
+                  ? const FixedExtentScrollPhysics()
+                  : const NeverScrollableScrollPhysics(),
+              perspective: 0.003,
+              diameterRatio:
+                  1.5, // Show more items around center (smaller = more visible items)
+              onSelectedItemChanged: (index) {
+                setState(() => _selectedIndex = index);
+                // Notify listeners of centered value change (for real-time widget updates)
+                if (index >= 0 && index < widget.values.length) {
+                  widget.onCenteredValueChanged?.call(widget.values[index]);
+                }
+              },
+              childDelegate: ListWheelChildBuilderDelegate(
+                builder: (context, index) {
+                  if (index < 0 || index >= widget.values.length) return null;
 
-                final String value = widget.values[index];
-                final String label = widget.labelBuilder?.call(value) ?? value;
-                final bool isSelected = index == _selectedIndex;
+                  final String value = widget.values[index];
+                  final String label =
+                      widget.labelBuilder?.call(value) ?? value;
+                  final bool isSelected = index == _selectedIndex;
 
-                return GestureDetector(
-                  onTap: () => _onItemTapped(index),
-                  child: Container(
+                  return Container(
+                    height: widget.itemExtent,
                     alignment: Alignment.center,
                     child: Text(
                       label,
@@ -200,10 +257,10 @@ class _StringTapeState extends State<StringTape> {
                           isSelected ? defaultSelectedStyle : defaultTextStyle,
                       textAlign: TextAlign.center,
                     ),
-                  ),
-                );
-              },
-              childCount: widget.values.length,
+                  );
+                },
+                childCount: widget.values.length,
+              ),
             ),
           ),
         ),
@@ -224,8 +281,8 @@ class _StringTapeState extends State<StringTape> {
                         const EdgeInsets.symmetric(horizontal: _pressPadding),
                     height: widget.itemExtent,
                     decoration: BoxDecoration(
-                      color: appTheme.primary,
-                      borderRadius: BorderRadius.circular(8),
+                      color: appTheme.secondary,
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Opacity(
                       opacity: 0, // Hide the text, we only need it for sizing
@@ -244,7 +301,8 @@ class _StringTapeState extends State<StringTape> {
         if (showTopBorder)
           Container(
             height: 1.0,
-            color: appTheme.bgLight,
+            // ignore: deprecated_member_use
+            color: appTheme.borderMuted.withOpacity(.2),
           ),
       ],
     );

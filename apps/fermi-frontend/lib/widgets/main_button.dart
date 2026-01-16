@@ -1,6 +1,9 @@
+// ignore_for_file: deprecated_member_use
+
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/circular_determinate_spinner.dart';
 
@@ -14,7 +17,7 @@ import 'package:fermi_frontend/widgets/circular_determinate_spinner.dart';
 ///   for optimal contrast against the primary color.
 
 /// Allowed labels for the main button.
-enum MainButtonLabel { create, join, start, submit, next, finish }
+enum MainButtonLabel { create, join, start, submit, next, finish, resume }
 
 extension MainButtonLabelText on MainButtonLabel {
   String get text {
@@ -31,6 +34,8 @@ extension MainButtonLabelText on MainButtonLabel {
         return 'Next';
       case MainButtonLabel.finish:
         return 'Finish';
+      case MainButtonLabel.resume:
+        return 'Resume';
     }
   }
 }
@@ -55,7 +60,7 @@ class MainButton extends StatefulWidget {
     this.isLoading = false,
     this.iconAssetPath,
     this.label,
-    this.showSpacebarGlyph = false,
+    this.customLabel,
     this.controller,
   });
 
@@ -79,9 +84,8 @@ class MainButton extends StatefulWidget {
   /// Optional predefined label to display in the center of the button.
   final MainButtonLabel? label;
 
-  /// Whether to render the spacebar-like glyph (a short horizontal line)
-  /// near the bottom of the button face. Defaults to false.
-  final bool showSpacebarGlyph;
+  /// Optional custom label text. When set, overrides the enum-based label.
+  final String? customLabel;
 
   /// Optional controller to programmatically trigger the press animation.
   final MainButtonController? controller;
@@ -103,25 +107,77 @@ class _MainButtonState extends State<MainButton>
 
   VoidCallback? _controllerListener;
 
-  // Baseline design used for spacebar glyph sizing (screen 402x874 -> button 175x48)
-  static const double _baselineScreenWidth = 402.0;
-  static const double _baselineButtonWidth = 175.0;
-
   // Hover overlay color
   static const Color _hoverOverlayColor =
       Color(0x1AFFFFFF); // rgba(255, 255, 255, 0.1)
 
-  // Color helpers to derive edge/face tints from the active theme.
-  Color _darken(Color color, [double amount = 0.1]) {
-    final hsl = HSLColor.fromColor(color);
-    final l = (hsl.lightness - amount).clamp(0.0, 1.0);
-    return hsl.withLightness(l).toColor();
+  // Timer for delayed messages and dots
+  Timer? _loadingTimer;
+  String? _loadingMessage;
+  int _dotCount = 0;
+  Duration _elapsedDuration = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _attachController();
+    if (widget.isLoading) {
+      _startLoadingTimer();
+    }
   }
 
-  Color _lighten(Color color, [double amount = 0.1]) {
-    final hsl = HSLColor.fromColor(color);
-    final l = (hsl.lightness + amount).clamp(0.0, 1.0);
-    return hsl.withLightness(l).toColor();
+  @override
+  void didUpdateWidget(covariant MainButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      _detachController(oldWidget.controller);
+      _attachController();
+    }
+
+    if (!oldWidget.isLoading && widget.isLoading) {
+      _startLoadingTimer();
+    } else if (oldWidget.isLoading && !widget.isLoading) {
+      _stopLoadingTimer();
+    }
+  }
+
+  void _startLoadingTimer() {
+    _elapsedDuration = Duration.zero;
+    _loadingMessage = null;
+    _dotCount = 0;
+
+    // Update every 500ms for dots and message checks
+    _loadingTimer?.cancel();
+    _loadingTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      _elapsedDuration += const Duration(milliseconds: 500);
+      String? newMessage;
+
+      // Determine message based on elapsed time
+      if (_elapsedDuration.inSeconds >= 3) {
+        newMessage = "Still working on it";
+      } else if (_elapsedDuration.inSeconds >= 1) {
+        newMessage = "Getting things ready";
+      }
+
+      setState(() {
+        _loadingMessage = newMessage;
+        // Cycle dots 0-3
+        _dotCount = (_dotCount + 1) % 4;
+      });
+    });
+  }
+
+  void _stopLoadingTimer() {
+    _loadingTimer?.cancel();
+    _loadingTimer = null;
+    _loadingMessage = null;
+    _dotCount = 0;
+    _elapsedDuration = Duration.zero;
   }
 
   void _onTapDown(TapDownDetails details) {
@@ -171,22 +227,13 @@ class _MainButtonState extends State<MainButton>
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
     final Color buttonFaceColor = appTheme.primary;
-    final Color iconFgColor = appTheme.bg;
-    // Derive edge color from the face for consistent depth
-    final Color edgeColor = _darken(buttonFaceColor, 0.28);
 
     // Use fixed height of 48px
-    const double pressOffset = 8;
     const double buttonHeight = 48.0;
-    const double borderRadius = 12.0;
-
-    // Use calculated width for spacebar glyph sizing, but allow button to fill available width
-    final Size screenSize = MediaQuery.of(context).size;
-    final double calculatedButtonWidth =
-        screenSize.width * (_baselineButtonWidth / _baselineScreenWidth);
+    final double borderRadius = appTheme.borderRadius;
 
     return Opacity(
-      opacity: _isEnabled ? 1.0 : 0.4,
+      opacity: _isEnabled ? 1.0 : 0.6,
       child: SizedBox(
         width: double.infinity,
         height: buttonHeight,
@@ -202,39 +249,18 @@ class _MainButtonState extends State<MainButton>
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // 3D Edge (bottom layer)
+                // Shadow Layer (static)
                 Positioned(
-                  top: pressOffset,
-                  left: 0,
-                  right: 0,
+                  top: appTheme.shadowOffset.dy,
+                  left: appTheme.shadowOffset.dx,
+                  right: -appTheme.shadowOffset
+                      .dx, // Extend to match width shift if needed, but here we just offset
+                  bottom: -appTheme.shadowOffset.dy,
                   child: Container(
-                    height: buttonHeight - pressOffset,
+                    height: buttonHeight,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          _lighten(edgeColor, 0.04),
-                          _darken(edgeColor, 0.06),
-                        ],
-                      ),
+                      color: appTheme.primaryMuted,
                       borderRadius: BorderRadius.circular(borderRadius),
-                      boxShadow: [
-                        BoxShadow(
-                          // ignore: deprecated_member_use
-                          color: Colors.black.withOpacity(0.25),
-                          offset: const Offset(0, 16),
-                          blurRadius: 24,
-                          spreadRadius: 0,
-                        ),
-                        BoxShadow(
-                          // ignore: deprecated_member_use
-                          color: Colors.black.withOpacity(0.18),
-                          offset: const Offset(0, 8),
-                          blurRadius: 12,
-                          spreadRadius: 0,
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -242,25 +268,19 @@ class _MainButtonState extends State<MainButton>
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 50),
                   curve: Curves.easeOut,
-                  top: _isPressed ? pressOffset : 0.0,
-                  left: 0,
-                  right: 0,
+                  top: _isPressed ? appTheme.shadowOffset.dy : 0.0,
+                  left: _isPressed ? appTheme.shadowOffset.dx : 0.0,
+                  right: _isPressed
+                      ? -appTheme.shadowOffset.dx
+                      : 0.0, // Keep width consistent
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
                       Container(
-                        height: buttonHeight - pressOffset,
+                        height: buttonHeight,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              _lighten(buttonFaceColor, 0.06),
-                              buttonFaceColor,
-                            ],
-                          ),
+                          color: buttonFaceColor,
                           borderRadius: BorderRadius.circular(borderRadius),
-                          boxShadow: const [], // No glow effect
                         ),
                         child: Stack(
                           children: [
@@ -272,71 +292,45 @@ class _MainButtonState extends State<MainButton>
                                       BorderRadius.circular(borderRadius),
                                 ),
                               ),
-                            // Show content when not loading
-                            if (!widget.isLoading) ...[
-                              // Optional label placed near the top center
-                              if (widget.label != null)
-                                Positioned(
-                                  top: buttonHeight * 0.14,
-                                  left: 0,
-                                  right: 0,
-                                  child: Align(
-                                    alignment: Alignment.topCenter,
-                                    child: Text(
-                                      widget.label!.text,
+                            if (_isPressed)
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: appTheme.textMuted,
+                                  borderRadius:
+                                      BorderRadius.circular(borderRadius),
+                                ),
+                              ),
+                            // Show content
+                            Center(
+                              child: widget.isLoading && _loadingMessage != null
+                                  ? Text(
+                                      "$_loadingMessage${"." * _dotCount}",
                                       textAlign: TextAlign.center,
                                       style: AppFont.primaryTextStyle(context,
                                               fontSize: 14,
-                                              fontWeight: FontWeight.w400,
-                                              color: iconFgColor,
+                                              fontWeight: FontWeight.w600,
+                                              color: appTheme.bg,
                                               decoration: TextDecoration.none)
                                           .copyWith(letterSpacing: 1.5),
-                                    ),
-                                  ),
-                                ),
-                              // Optional custom icon (fallback behavior from earlier API)
-                              if (widget.label == null &&
-                                  widget.iconAssetPath != null)
-                                Center(
-                                  child: ColorFiltered(
-                                    colorFilter: ColorFilter.mode(
-                                      iconFgColor,
-                                      BlendMode.srcIn,
-                                    ),
-                                    child: Image.asset(
-                                      widget.iconAssetPath!,
-                                      width: 24,
-                                      height: 24,
-                                      errorBuilder:
-                                          (context, error, stackTrace) => Icon(
-                                        Icons.space_bar,
-                                        color: iconFgColor,
-                                        size: 24,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              // Optional spacebar-like glyph near the bottom
-                              if (widget.showSpacebarGlyph)
-                                Positioned(
-                                  left: 0,
-                                  right: 0,
-                                  bottom: buttonHeight * 0.18,
-                                  child: Align(
-                                    alignment: Alignment.bottomCenter,
-                                    child: SvgPicture.asset(
-                                      widget.iconAssetPath ??
-                                          'assets/icons/spacebar.svg',
-                                      width: calculatedButtonWidth * 0.30,
-                                      height: 8,
-                                      colorFilter: ColorFilter.mode(
-                                        iconFgColor,
-                                        BlendMode.srcIn,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
+                                    )
+                                  : !widget.isLoading &&
+                                          (widget.customLabel != null ||
+                                              widget.label != null)
+                                      ? Text(
+                                          widget.customLabel ??
+                                              widget.label!.text,
+                                          textAlign: TextAlign.center,
+                                          style: AppFont.primaryTextStyle(
+                                                  context,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: appTheme.bg,
+                                                  decoration:
+                                                      TextDecoration.none)
+                                              .copyWith(letterSpacing: 1.5),
+                                        )
+                                      : const SizedBox.shrink(),
+                            ),
                           ],
                         ),
                       ),
@@ -349,14 +343,13 @@ class _MainButtonState extends State<MainButton>
                             width: 12,
                             height: 12,
                             decoration: BoxDecoration(
-                              // ignore: deprecated_member_use
-                              color: Colors.white.withOpacity(0.3),
+                              color: appTheme.textMuted,
                               shape: BoxShape.circle,
                             ),
                             child: const Center(
                               child: CircularDeterminateSpinner(
                                 progress: null, // null = indeterminate
-                                size: 14,
+                                size: 16,
                               ),
                             ),
                           ),
@@ -370,21 +363,6 @@ class _MainButtonState extends State<MainButton>
         ),
       ),
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _attachController();
-  }
-
-  @override
-  void didUpdateWidget(covariant MainButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      _detachController(oldWidget.controller);
-      _attachController();
-    }
   }
 
   void _attachController() {
@@ -415,6 +393,7 @@ class _MainButtonState extends State<MainButton>
 
   @override
   void dispose() {
+    _stopLoadingTimer();
     _detachController(widget.controller);
     super.dispose();
   }

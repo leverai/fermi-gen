@@ -22,5 +22,10 @@ service cloud.firestore {
         allow get: if request.auth != null && resource.data.revealed == true;
       }
     }
+
+    // Daily Question documents - allow authenticated users to read for real-time status
+    match /daily_questions/{date} {
+      allow read: if request.auth != null;
+    }
   }
 }

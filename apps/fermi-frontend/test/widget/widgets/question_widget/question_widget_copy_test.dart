@@ -13,7 +13,6 @@ void main() {
       const questionText = QuestionDataFixtures.sampleQuestion1;
       const widget = QuestionWidget(
         text: questionText,
-        height: 200,
       );
 
       // Act
@@ -37,7 +36,6 @@ void main() {
       const questionText = QuestionDataFixtures.sampleQuestion1;
       const widget = QuestionWidget(
         text: questionText,
-        height: 200,
       );
 
       // Act

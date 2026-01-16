@@ -1,3 +1,13 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.hatch.version]
+path = "app/version.py"
+
 [project]
 name = "fermi-etl"
 dynamic = ["version"]
@@ -20,9 +30,6 @@ test = [
     "pytest-asyncio>=0.23.0",
     "httpx>=0.27.0",
 ]
-
-[tool.setuptools.dynamic]
-version = { attr = "app.version.__version__" }
 
 [tool.uv.sources]
 fermi-core = { workspace = true }

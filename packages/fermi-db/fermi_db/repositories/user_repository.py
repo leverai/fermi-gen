@@ -1,14 +1,19 @@
 """Repository for user-related database operations."""
 
+import logging
 from typing import Any
 
 from fermi_core import utcnow_naive
-from sqlmodel import select
+from sqlmodel import delete, select
 
+from fermi_db.models.game import AnswerEvent, QuestionVote, UserQuestionHistory
+from fermi_db.models.subscription import Subscription, SubscriptionTier
 from fermi_db.models.user import User
 from fermi_db.schemas import Locale
 
 from . import BaseRepository
+
+logger = logging.getLogger(__name__)
 
 
 class UserRepository(BaseRepository):
@@ -18,12 +23,62 @@ class UserRepository(BaseRepository):
         """Fetch a user by their ID."""
         return await self.session.get(User, user_id)
 
+    async def get_user_with_tier(
+        self,
+        user_id: int,
+    ) -> tuple[User, SubscriptionTier] | None:
+        """Fetch a user and their subscription tier in a single query.
+
+        Uses LEFT JOIN to fetch user and subscription together.
+
+        Args:
+            user_id: The user's database ID.
+
+        Returns:
+            Tuple of (User, SubscriptionTier) if user exists, None otherwise.
+            Returns SubscriptionTier.FREE if no active subscription.
+
+        """
+        stmt = (
+            select(User, Subscription)
+            .outerjoin(Subscription, User.id == Subscription.user_id)
+            .where(User.id == user_id)
+        )
+        result = await self.session.exec(stmt)
+        row = result.one_or_none()
+        if row is None:
+            return None
+
+        user, subscription = row
+        # Determine tier: PRO only if subscription exists and is active
+        tier = SubscriptionTier.FREE
+        if subscription is not None and subscription.is_active:
+            tier = subscription.tier
+        return (user, tier)
+
     async def get_by_firebase_uid(self, firebase_uid: str) -> User | None:
         """Fetch a user by their Firebase UID."""
         result = await self.session.exec(
             select(User).where(User.firebase_uid == firebase_uid),
         )
         return result.one_or_none()
+
+    async def get_by_firebase_uids(self, firebase_uids: list[str]) -> list[User]:
+        """Fetch multiple users by their Firebase UIDs.
+
+        Args:
+            firebase_uids: List of Firebase UIDs to fetch.
+
+        Returns:
+            List of User objects matching the provided UIDs.
+
+        """
+        if not firebase_uids:
+            return []
+        result = await self.session.exec(
+            select(User).where(User.firebase_uid.in_(firebase_uids)),  # type: ignore
+        )
+        return list(result.all())
 
     async def register_user(
         self,
@@ -50,7 +105,7 @@ class UserRepository(BaseRepository):
         """Update a user's info at login: Firebase claims, login streak, updated_at."""
         # Email: update when provided
         user = await self._update_firebase_claims(user, firebase_claims)
-        user = await self._update_login_streak(user)
+        user = self._update_login_streak(user)
         user.updated_at = utcnow_naive()
         self.session.add(user)
         await self.session.commit()
@@ -81,7 +136,32 @@ class UserRepository(BaseRepository):
         await self.session.refresh(user)
         return user
 
-    async def _update_login_streak(self, user: User) -> User:
+    async def update_user(
+        self,
+        user_id: int,
+        display_name: str | None = None,
+        picture: str | None = None,
+    ) -> User:
+        """Update a user's profile."""
+        user = await self.session.get(User, user_id)
+        if user is None:
+            raise ValueError(f'User with id {user_id} not found')
+        if not display_name and not picture:
+            logger.warning('No display_name or picture provided for user %s', user_id)
+            return user
+
+        if display_name is not None:
+            user.display_name = display_name
+        if picture is not None:
+            user.picture = picture
+
+        user.updated_at = utcnow_naive()
+        self.session.add(user)
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user
+
+    def _update_login_streak(self, user: User) -> User:
         """Update the user's login streak based on last login at.
 
         Rules:
@@ -103,3 +183,80 @@ class UserRepository(BaseRepository):
 
         user.last_login_at = now
         return user
+
+    async def delete_user(self, user_id: int) -> None:
+        """Delete a user and all associated data.
+
+        Deletes user-related data in this order:
+        1. user_question_history (where user_id = user's firebase_uid)
+        2. answer_events (where user_firebase_id = user's firebase_uid)
+        3. questions_votes (where user_firebase_uid = user's firebase_uid)
+        4. user table (by id)
+
+        This operation is idempotent - if the user doesn't exist, it returns
+        without error.
+        """
+        # Get user to retrieve firebase_uid
+        user = await self.get_by_id(user_id)
+        if user is None:
+            # Idempotent: user doesn't exist, nothing to delete
+            return
+
+        firebase_uid = user.firebase_uid
+
+        # Delete user-related data in order
+        # 1. Delete user_question_history
+        stmt = delete(UserQuestionHistory).where(
+            UserQuestionHistory.user_id == firebase_uid,  # type: ignore
+        )
+        await self.session.execute(stmt)
+
+        # 2. Delete answer_events
+        stmt = delete(AnswerEvent).where(
+            AnswerEvent.user_firebase_id == firebase_uid,  # type: ignore
+        )
+        await self.session.execute(stmt)
+
+        # 3. Delete questions_votes
+        stmt = delete(QuestionVote).where(
+            QuestionVote.user_firebase_uid == firebase_uid,  # type: ignore
+        )
+        await self.session.execute(stmt)
+
+        # 4. Delete user record
+        await self.session.delete(user)
+        await self.session.commit()
+
+    async def increment_xp(self, firebase_uid: str, amount: int) -> None:
+        """Atomically increment a user's XP.
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+            amount: Amount of XP to add (must be non-negative).
+
+        """
+        if amount < 0:
+            raise ValueError('XP increment must be non-negative')
+        if amount == 0:
+            return
+
+        user = await self.get_by_firebase_uid(firebase_uid)
+        assert user is not None
+        user.xp = user.xp + amount
+        self.session.add(user)
+        # Note: caller should commit
+
+    async def get_xp(self, firebase_uid: str) -> int:
+        """Get a user's current XP.
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+
+        Returns:
+            The user's XP value, or 0 if user not found.
+
+        """
+        user = await self.get_by_firebase_uid(firebase_uid)
+        if user is None:
+            return 0
+        return user.xp

@@ -8,12 +8,13 @@ document updates via managers in a single batch, and commits.
 from typing import TYPE_CHECKING, cast
 
 from fastapi import HTTPException, status
+from opentelemetry import trace
 
+import app.logging.attributes as attrs
 from app.schemas.endpoints import IdModel
 from app.schemas.game import GamePlayer, GameState
 from app.services.game.errors import StateConflictError
 from app.services.game.repositories.game_repo import GameRepository
-from app.services.game.utils import DIFFICULTY_TIMEOUT_SECONDS
 
 if TYPE_CHECKING:
     from fermi_db.models.user import User
@@ -63,8 +64,6 @@ class StartGameUseCase:
                 'question_uids',
                 'n_questions',
                 'state',
-                'difficulty',
-                'private',
             ],
         )
         if not data:
@@ -72,6 +71,13 @@ class StartGameUseCase:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail='Game not found',
             )
+
+        # Set OTel attributes after successful read
+        span = trace.get_current_span()
+        state = GameState(int(data['state']))
+        span.set_attribute(attrs.GAME_STATE, state.name)
+        players = cast(dict[str, GamePlayer], data.get('players', {}))
+        span.set_attribute(attrs.GAME_PLAYER_COUNT, len(players))
 
         # Enforce host-only access
         if data.get('host') != current_user.firebase_uid:
@@ -93,26 +99,14 @@ class StartGameUseCase:
 
         # Reveal first question
         first_q_uid = question_uids[0]
-        # Read difficulty from the specific question document
-        # Difficulty is used to set question's deadline
-        settings = await self._repo.get_questions_settings(
-            game_ref=game_ref,
-            question_uids=[first_q_uid],
-        )
-        difficulty = settings[first_q_uid].difficulty
-        timeout_seconds = (
-            None if data.get('private') else DIFFICULTY_TIMEOUT_SECONDS[difficulty]
-        )
         self._questions.reveal_question(
             game_ref=game_ref,
             writer=batch,
             question_uid=first_q_uid,
             question_order=1,
-            timeout_seconds=timeout_seconds,
         )
 
         # Init progress for all players
-        players = cast(dict[str, GamePlayer], data['players'])
         self._players_answers.init_progress(
             game_ref=game_ref,
             writer=batch,
@@ -120,7 +114,6 @@ class StartGameUseCase:
         )
 
         # Start lifecycle (sets started_at and state)
-        state = GameState(int(data['state']))
         n_questions = int(data['n_questions'])
         try:
             self._lifecycle.start_game(

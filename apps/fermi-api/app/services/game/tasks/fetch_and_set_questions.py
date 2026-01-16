@@ -72,7 +72,7 @@ async def fetch_and_set_questions(
         writer=batch,
         questions_docs=questions_docs,
         answers_docs=answers_docs,
-        request_category=question_round_settings.category,
+        request_categories=question_round_settings.categories,
         game_difficulty=question_round_settings.difficulty,
     )
     logger.debug(f'[Game {game_id}] Set question_uids: {question_uids}')

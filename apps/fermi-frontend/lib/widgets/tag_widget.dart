@@ -46,7 +46,7 @@ class TagWidget extends StatelessWidget {
           style: AppFont.primaryTextStyle(
             context,
             fontSize: 12,
-            fontWeight: FontWeight.w300,
+            fontWeight: FontWeight.w400,
             color: appTheme.borderMuted,
             decoration: TextDecoration.none,
           ).copyWith(

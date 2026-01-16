@@ -41,7 +41,6 @@ class OnboardingRealtime implements GameRealtime {
         isHost: true,
         questionNumber: 1,
         nQuestions: 1,
-        durationSeconds: 0, // No timer in onboarding
         players: {
           'me': PlayerSummary(
             playerId: 'me',
@@ -53,7 +52,6 @@ class OnboardingRealtime implements GameRealtime {
             rank: 1,
           ),
         },
-        isPrivate: false,
         currentQuestionUid: questionUid,
         questionUids: [questionUid],
       ));
@@ -202,6 +200,22 @@ class OnboardingRealtime implements GameRealtime {
   @override
   Future<void> deDownvoteQuestion(String questionUid) async {
     // No-op for onboarding
+  }
+
+  @override
+  void dispose() {
+    if (!_game.isClosed) {
+      _game.close();
+    }
+    if (!_q.isClosed) {
+      _q.close();
+    }
+    if (!_players.isClosed) {
+      _players.close();
+    }
+    if (!_reveal.isClosed) {
+      _reveal.close();
+    }
   }
 
   // ========== Helper methods ==========

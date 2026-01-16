@@ -32,24 +32,23 @@ class _FakeQuantiles:
         return dict(self._values)
 
 
-class _FakeUsersHistory:
+class _FakeFermi:
     def __init__(self, call_log: list[str]) -> None:
         self._call_log = call_log
         self.last_get_params: dict[str, Any] | None = None
-        self.history_calls: list[tuple[list[str], tuple[uuid.UUID, ...]]] = []
 
     async def get_unseen_random_questions(
         self,
         *,
         count: int,
         for_user_ids: list[str],
-        category: QuestionCategory | None,
+        categories: list[QuestionCategory] | None,
         difficulty: QuestionDifficulty | None,
     ) -> list[Any]:
         self.last_get_params = {
             'count': count,
             'for_user_ids': for_user_ids,
-            'category': category,
+            'categories': categories,
             'difficulty': difficulty,
         }
         now = datetime(2024, 1, 1, tzinfo=UTC)
@@ -76,6 +75,12 @@ class _FakeUsersHistory:
                 snippet='p',
             ),
         ]
+
+
+class _FakeUsersHistory:
+    def __init__(self, call_log: list[str]) -> None:
+        self._call_log = call_log
+        self.history_calls: list[tuple[list[str], tuple[uuid.UUID, ...]]] = []
 
     async def add_questions_to_users_history(
         self,
@@ -145,11 +150,28 @@ class _FakeQuestionVotes:
         return dict.fromkeys(user_ids, 1)
 
 
+class _FakeUsers:
+    def __init__(self) -> None:
+        self.xp_store: dict[str, int] = {}
+
+    async def increment_xp(self, firebase_uid: str, amount: int) -> None:
+        """Mock increment_xp that tracks XP in memory."""
+        if firebase_uid not in self.xp_store:
+            self.xp_store[firebase_uid] = 0
+        self.xp_store[firebase_uid] += amount
+
+    async def get_xp(self, firebase_uid: str) -> int:
+        """Mock get_xp that returns stored XP or 0."""
+        return self.xp_store.get(firebase_uid, 0)
+
+
 class _FakeDbClient:
     def __init__(self, call_log: list[str]) -> None:
+        self.fermi = _FakeFermi(call_log)
         self.users_history = _FakeUsersHistory(call_log)
         self.answers = _FakeAnswers(call_log)
         self.question_votes = _FakeQuestionVotes()
+        self.users = _FakeUsers()
 
 
 def test_get_questions_and_answers_docs_general_mapping_and_shapes() -> None:
@@ -159,7 +181,7 @@ def test_get_questions_and_answers_docs_general_mapping_and_shapes() -> None:
 
     qrs = QuestionRoundSettings(
         n_questions=2,
-        category=None,
+        categories=None,
         difficulty=None,
     )
 
@@ -167,9 +189,9 @@ def test_get_questions_and_answers_docs_general_mapping_and_shapes() -> None:
         gw.get_questions_and_answers_docs(user_ids=['u1'], question_round_settings=qrs),
     )
 
-    # DB was called with category None
-    assert db.users_history.last_get_params is not None
-    assert db.users_history.last_get_params['category'] is None
+    # DB was called with categories None
+    assert db.fermi.last_get_params is not None
+    assert db.fermi.last_get_params['categories'] is None
     # Shapes
     assert len(questions_docs) == 2
     assert len(answers_docs) == 2

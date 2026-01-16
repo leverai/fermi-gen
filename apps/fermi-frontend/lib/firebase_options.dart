@@ -17,19 +17,13 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -53,10 +47,33 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCy6SWfIx0GrAWXB0PHQj3ABPyqkDhsaZU',
-    appId: '1:152658366762:android:d7da0587996da61c2ace53',
-    messagingSenderId: '152658366762',
-    projectId: 'guesstimate-5483f',
-    storageBucket: 'guesstimate-5483f.appspot.com',
+    apiKey: 'AIzaSyBTxXAA5eNP0n9vUFn5zoUzSsyCRGj8nZI',
+    appId: '1:811437731406:android:5c7f388e6269748b3c1d1f',
+    messagingSenderId: '811437731406',
+    projectId: 'guesstimate-dev-478820',
+    storageBucket: 'guesstimate-dev-478820.firebasestorage.app',
+  );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyD755WUMnXJcqZQkliW1R0mNh4RlofnfqE',
+    appId: '1:811437731406:web:28ac71a4e2783ef83c1d1f',
+    messagingSenderId: '811437731406',
+    projectId: 'guesstimate-dev-478820',
+    authDomain: 'guesstimate-dev-478820.firebaseapp.com',
+    storageBucket: 'guesstimate-dev-478820.firebasestorage.app',
+    measurementId: 'G-56D6HMHBHS',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyBEuwflWzwOzaGeDUgtLfrptKD6uDJgRqA',
+    appId: '1:811437731406:ios:e1f3f9e84a3e12123c1d1f',
+    messagingSenderId: '811437731406',
+    projectId: 'guesstimate-dev-478820',
+    storageBucket: 'guesstimate-dev-478820.firebasestorage.app',
+    androidClientId:
+        '811437731406-a2shalhol9694hb8pm3859gb50n1tmm0.apps.googleusercontent.com',
+    iosClientId:
+        '811437731406-t4fflfp570e92mh5nsrsgh6kpplpq31a.apps.googleusercontent.com',
+    iosBundleId: 'tech.leverai.guesstimate',
   );
 }

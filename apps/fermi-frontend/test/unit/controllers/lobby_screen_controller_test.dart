@@ -9,6 +9,15 @@ import '../../fixtures/player_data.dart';
 import '../../helpers/mock_factories.dart';
 import 'dart:async';
 
+/// Helper to clean up pending TextScroll timers.
+/// TextScroll creates a timer during widget build that isn't canceled on dispose.
+/// Call this at the end of each test that renders LobbyScreen.
+Future<void> cleanupTextScrollTimers(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox());
+  await tester.binding.delayed(const Duration(seconds: 1));
+  await tester.pump();
+}
+
 void main() {
   setUpAll(() {
     registerFallbackValues();
@@ -73,6 +82,12 @@ void main() {
 
         // ASSERT
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
 
       testWidgets('should update players from game snapshot', (tester) async {
@@ -100,6 +115,9 @@ void main() {
 
         // ASSERT
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
 
       testWidgets('should detect host status from snapshot', (tester) async {
@@ -129,6 +147,9 @@ void main() {
 
         // ASSERT
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
 
       testWidgets('should detect lobby ready state', (tester) async {
@@ -159,13 +180,15 @@ void main() {
 
         // ASSERT
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
 
       testWidgets('should detect private game state', (tester) async {
         // ARRANGE
         final privateSnapshot = GameSnapshotFixtures.lobbyReady(
           currentPlayerId: currentPlayerId,
-          isPrivate: true,
           joinUrl: 'https://example.com/join/abc123',
         );
 
@@ -185,6 +208,9 @@ void main() {
 
         // ASSERT
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
 
       testWidgets('should extract join URL from snapshot', (tester) async {
@@ -192,7 +218,6 @@ void main() {
         const joinUrl = 'https://example.com/join/test123';
         final snapshot = GameSnapshotFixtures.lobbyReady(
           currentPlayerId: currentPlayerId,
-          isPrivate: true,
           joinUrl: joinUrl,
         );
 
@@ -212,6 +237,9 @@ void main() {
 
         // ASSERT
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
     });
 
@@ -251,6 +279,9 @@ void main() {
         // Navigation is triggered in post-frame callback
         // We verify the state transition logic (full navigation rendering tested in widget/integration tests)
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
 
       testWidgets(
@@ -287,6 +318,9 @@ void main() {
         // ASSERT
         // Navigation is triggered in post-frame callback
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
 
       testWidgets('should not navigate twice for same transition',
@@ -325,6 +359,9 @@ void main() {
         // ASSERT
         // The _navigatedToQuestions flag prevents double navigation
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
 
       testWidgets('should pass correct question count to question screen',
@@ -362,6 +399,9 @@ void main() {
         // ASSERT
         // Question count is passed correctly (verified by navigation logic)
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
     });
 
@@ -399,6 +439,9 @@ void main() {
 
         // ASSERT
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
         verifyNever(() => mockApi.startGame(gameId: any(named: 'gameId')));
       });
 
@@ -424,6 +467,9 @@ void main() {
 
         // ASSERT
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
         verifyNever(() => mockApi.startGame(gameId: any(named: 'gameId')));
       });
 
@@ -452,6 +498,9 @@ void main() {
 
         // ASSERT
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
 
       testWidgets('should show error when share URL is missing',
@@ -459,7 +508,6 @@ void main() {
         // ARRANGE
         final snapshot = GameSnapshotFixtures.lobbyReady(
           currentPlayerId: currentPlayerId,
-          isPrivate: true,
           joinUrl: null,
         );
 
@@ -479,6 +527,9 @@ void main() {
 
         // ASSERT
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
     });
 
@@ -510,6 +561,9 @@ void main() {
 
         // ASSERT
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
 
       testWidgets('should handle leave errors', (tester) async {
@@ -539,6 +593,9 @@ void main() {
 
         // ASSERT
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
     });
 
@@ -560,6 +617,9 @@ void main() {
 
         // ASSERT
         expect(find.byType(LobbyScreenController), findsOneWidget);
+
+        // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
       });
     });
   });

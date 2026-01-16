@@ -1,17 +1,19 @@
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
-import 'dart:math';
+import 'package:fermi_frontend/theme/app_theme.dart';
+import 'package:fermi_frontend/services/confetti_sound_service.dart';
 
 /// Displays a full-screen confetti animation for top 3 players.
 ///
-/// The confetti style varies by rank:
-/// - 1st place: Gold confetti with highest density
-/// - 2nd place: Silver confetti with medium density
-/// - 3rd place: Bronze confetti with lower density
+/// The confetti fires in synchronized bursts with sound effects:
+/// - Crowd cheering plays throughout the animation
+/// - Pop sounds play with each confetti burst
 ///
-/// The animation emits particles for 6 seconds, then lets them naturally
-/// fall off screen with gravity. The widget is removed after ~12 seconds
-/// total to allow the particles to fall naturally.
+/// The animation consists of multiple timed bursts over ~3 seconds,
+/// then particles fall naturally with gravity for another ~6 seconds.
+/// Total animation: 9 seconds to match the crowd cheering sound.
 class RankConfettiOverlay extends StatefulWidget {
   const RankConfettiOverlay({
     super.key,
@@ -30,95 +32,158 @@ class RankConfettiOverlay extends StatefulWidget {
 }
 
 class _RankConfettiOverlayState extends State<RankConfettiOverlay> {
-  late ConfettiController _controllerCenter;
-  late ConfettiController _controllerLeft;
-  late ConfettiController _controllerRight;
+  final List<_ConfettiBurst> _bursts = [];
+  final List<Timer> _timers = [];
+  final ConfettiSoundService _soundService = ConfettiSoundService();
+
+  // Burst schedule: [delay in ms, position (0=center, 1=left, 2=right)]
+  // Creates a satisfying sequence of explosions over ~3 seconds
+  static const List<List<int>> _burstSchedule = [
+    [0, 0], // Center burst immediately
+    [150, 1], // Left burst
+    [300, 2], // Right burst
+    [600, 0], // Center again
+    [900, 1], // Left
+    [900, 2], // Right (simultaneous sides)
+    [1500, 0], // Center
+    [2200, 1], // Left
+  ];
 
   @override
   void initState() {
     super.initState();
+    _initializeBursts();
+    _scheduleBursts();
+    _scheduleCleanup();
+  }
 
-    // Emit particles for 6 seconds (increased by 4s from original 2s), then let them naturally fall off screen
-    const emissionDuration = Duration(seconds: 6);
-    _controllerCenter = ConfettiController(duration: emissionDuration);
-    _controllerLeft = ConfettiController(duration: emissionDuration);
-    _controllerRight = ConfettiController(duration: emissionDuration);
+  void _initializeBursts() {
+    // Create a controller for each scheduled burst
+    for (int i = 0; i < _burstSchedule.length; i++) {
+      // Very short duration - just one burst of particles
+      final controller = ConfettiController(
+        duration: const Duration(milliseconds: 100),
+      );
+      final position = _burstSchedule[i][1];
+      _bursts.add(_ConfettiBurst(
+        controller: controller,
+        position: position,
+      ));
+    }
+  }
 
-    // Auto-start the confetti
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _controllerCenter.play();
-      _controllerLeft.play();
-      _controllerRight.play();
-    });
+  void _scheduleBursts() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Initialize sound players first
+      await _soundService.initialize();
 
-    // Wait longer before cleanup to let particles fall naturally off screen
-    // 12 seconds = 6s emission + 6s for particles to fall with gravity
-    const cleanupDelay = Duration(seconds: 12);
-    Future.delayed(cleanupDelay, () {
-      if (mounted) {
-        widget.onComplete?.call();
+      // Start crowd cheering immediately
+      _soundService.startCheering();
+
+      // Schedule each burst
+      for (int i = 0; i < _burstSchedule.length; i++) {
+        final delay = _burstSchedule[i][0];
+        final timer = Timer(Duration(milliseconds: delay), () {
+          if (mounted) {
+            _bursts[i].controller.play();
+            _soundService.playPop();
+          }
+        });
+        _timers.add(timer);
       }
     });
   }
 
+  void _scheduleCleanup() {
+    // Total animation time: 9 seconds to match crowd cheering sound
+    // Last burst at 3000ms + 6s for particles to fall
+    const cleanupDelay = Duration(seconds: 9);
+    final timer = Timer(cleanupDelay, () {
+      if (mounted) {
+        _soundService.stop();
+        widget.onComplete?.call();
+      }
+    });
+    _timers.add(timer);
+  }
+
   @override
   void dispose() {
-    _controllerCenter.dispose();
-    _controllerLeft.dispose();
-    _controllerRight.dispose();
+    for (final timer in _timers) {
+      timer.cancel();
+    }
+    for (final burst in _bursts) {
+      burst.controller.dispose();
+    }
+    _soundService.stop();
     super.dispose();
   }
 
-  /// Returns the confetti configuration based on rank.
-  _RankConfettiConfig _getConfigForRank(int rank) {
+  _BurstConfig _getConfigForRank(int rank, AppTheme theme) {
+    // Standard vibrant "happy" colors
+    final happyColors = [
+      Colors.redAccent,
+      Colors.blueAccent,
+      Colors.greenAccent,
+      Colors.yellowAccent,
+      Colors.orangeAccent,
+      Colors.purpleAccent,
+      Colors.pinkAccent,
+      Colors.cyanAccent,
+      theme.primary,
+      theme.secondary,
+    ];
+
+    Color rankColor;
+    int particles;
+
     switch (rank) {
       case 1:
-        return const _RankConfettiConfig(
-          colors: [
-            Color(0xFFFFD700), // Gold
-            Color(0xFFFFC700),
-            Color(0xFFFFB700),
-            Color(0xFFFFAA00),
-            Color(0xFFFF9500),
-          ],
-          numberOfParticles: 30,
-          emissionFrequency: 0.01,
-          gravity: 0.1,
-        );
+        rankColor = theme.gold;
+        particles = 10;
+        break;
       case 2:
-        return const _RankConfettiConfig(
-          colors: [
-            Color(0xFFC0C0C0), // Silver
-            Color(0xFFD3D3D3),
-            Color(0xFFB8B8B8),
-            Color(0xFFA9A9A9),
-            Color(0xFF9E9E9E),
-          ],
-          numberOfParticles: 20,
-          emissionFrequency: 0.015,
-          gravity: 0.12,
-        );
+        rankColor = theme.silver;
+        particles = 7;
+        break;
       case 3:
-        return const _RankConfettiConfig(
-          colors: [
-            Color(0xFFCD7F32), // Bronze
-            Color(0xFFB87333),
-            Color(0xFFA0522D),
-            Color(0xFF8B4513),
-            Color(0xFF704214),
-          ],
-          numberOfParticles: 15,
-          emissionFrequency: 0.02,
-          gravity: 0.15,
-        );
+        rankColor = theme.bronze;
+        particles = 5;
+        break;
       default:
-        // Fallback (shouldn't happen)
-        return const _RankConfettiConfig(
-          colors: [Colors.grey],
-          numberOfParticles: 10,
-          emissionFrequency: 0.02,
-          gravity: 0.15,
-        );
+        rankColor = Colors.grey;
+        particles = 12;
+    }
+
+    // Mix happy colors with rank color (25% rank color)
+    final int rankColorsCount = (happyColors.length / 3).ceil();
+    final colors = [
+      ...happyColors,
+      ...List.generate(rankColorsCount, (_) => rankColor),
+    ];
+
+    return _BurstConfig(colors: colors, numberOfParticles: particles);
+  }
+
+  Alignment _getAlignmentForPosition(int position) {
+    switch (position) {
+      case 1:
+        return Alignment.bottomLeft;
+      case 2:
+        return Alignment.bottomRight;
+      default:
+        return Alignment.bottomCenter;
+    }
+  }
+
+  double _getBlastDirectionForPosition(int position) {
+    switch (position) {
+      case 1:
+        return -.45 * pi; // Top-right
+      case 2:
+        return -.55 * pi; // Top-left
+      default:
+        return -pi / 2; // Straight up
     }
   }
 
@@ -129,81 +194,45 @@ class _RankConfettiOverlayState extends State<RankConfettiOverlay> {
       return const SizedBox.shrink();
     }
 
-    final config = _getConfigForRank(widget.rank);
+    final theme = Theme.of(context).extension<AppTheme>()!;
+    final config = _getConfigForRank(widget.rank, theme);
 
-    // Explicitly fill the entire available space to ensure confetti covers full screen
     return SizedBox.expand(
       child: Stack(
         clipBehavior: Clip.none,
-        children: [
-          // Center confetti - positioned at absolute top center
-          Align(
-            alignment: Alignment.topCenter,
+        children: _bursts.map((burst) {
+          return Align(
+            alignment: _getAlignmentForPosition(burst.position),
             child: ConfettiWidget(
-              confettiController: _controllerCenter,
-              blastDirection: pi / 2, // Down
-              blastDirectionality: BlastDirectionality.explosive,
-              particleDrag: 0.05,
-              emissionFrequency: config.emissionFrequency,
+              confettiController: burst.controller,
+              blastDirection: _getBlastDirectionForPosition(burst.position),
+              blastDirectionality: BlastDirectionality.directional,
+              particleDrag: 0.015,
+              emissionFrequency: 1.0, // 100% - emit all particles immediately
               numberOfParticles: config.numberOfParticles,
-              gravity: config.gravity,
+              gravity: 0.05,
               shouldLoop: false,
               colors: config.colors,
-              maxBlastForce: 20,
-              minBlastForce: 10,
+              maxBlastForce: burst.position == 0 ? 60 : 80,
+              minBlastForce: burst.position == 0 ? 30 : 40,
             ),
-          ),
-          // Left side confetti - positioned at absolute left center
-          Align(
-            alignment: Alignment.centerLeft,
-            child: ConfettiWidget(
-              confettiController: _controllerLeft,
-              blastDirection: 0, // Right
-              blastDirectionality: BlastDirectionality.directional,
-              particleDrag: 0.05,
-              emissionFrequency: config.emissionFrequency,
-              numberOfParticles: (config.numberOfParticles * 0.6).round(),
-              gravity: config.gravity,
-              shouldLoop: false,
-              colors: config.colors,
-              maxBlastForce: 15,
-              minBlastForce: 8,
-            ),
-          ),
-          // Right side confetti - positioned at absolute right center
-          Align(
-            alignment: Alignment.centerRight,
-            child: ConfettiWidget(
-              confettiController: _controllerRight,
-              blastDirection: pi, // Left
-              blastDirectionality: BlastDirectionality.directional,
-              particleDrag: 0.05,
-              emissionFrequency: config.emissionFrequency,
-              numberOfParticles: (config.numberOfParticles * 0.6).round(),
-              gravity: config.gravity,
-              shouldLoop: false,
-              colors: config.colors,
-              maxBlastForce: 15,
-              minBlastForce: 8,
-            ),
-          ),
-        ],
+          );
+        }).toList(),
       ),
     );
   }
 }
 
-/// Configuration for confetti based on rank.
-class _RankConfettiConfig {
-  const _RankConfettiConfig({
-    required this.colors,
-    required this.numberOfParticles,
-    required this.emissionFrequency,
-    required this.gravity,
-  });
+/// Represents a single confetti burst with its controller and position.
+class _ConfettiBurst {
+  _ConfettiBurst({required this.controller, required this.position});
+  final ConfettiController controller;
+  final int position; // 0=center, 1=left, 2=right
+}
 
+/// Configuration for confetti bursts based on rank.
+class _BurstConfig {
+  const _BurstConfig({required this.colors, required this.numberOfParticles});
   final List<Color> colors;
   final int numberOfParticles;
-  final double emissionFrequency;
-  final double gravity;
 }

@@ -70,7 +70,6 @@ class GameDocQuestions(TypedDict):
     question_uids: list[str]
     question_uid: str
     question_number: int
-    question_duration_s: NotRequired[float | None]
 
 
 class GameDocPlayers(TypedDict):
@@ -79,6 +78,7 @@ class GameDocPlayers(TypedDict):
     host: str
     players: dict[str, GamePlayer]
     full: bool
+    max_players: int
 
 
 class GameDocPlayersAnswers(TypedDict):
@@ -96,7 +96,6 @@ class GameDoc(
     """Game document."""
 
     join_url: str
-    private: bool
     version_uid: str
 
 
@@ -163,6 +162,7 @@ class PlayerResult(TypedDict):
     answer: AnswerBare
     correct_answer: AnswerBare
     score: Score
+    converted_answers: NotRequired[dict[str, AnswerBare]]
 
 
 class PlayersResultsDoc(TypedDict):

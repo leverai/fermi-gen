@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
+import 'package:fermi_frontend/models/rank.dart';
 import 'player_widget.dart';
 
 /// A circular progress ring that wraps player avatar content.
@@ -9,7 +10,8 @@ import 'player_widget.dart';
 /// Features:
 /// - Uses CircularProgressIndicator for smooth progress animation
 /// - Inverts progress for countdown (100→0 display)
-/// - Colors based on ring state and player role (self/host/other)
+/// - Ring color indicates self vs others (info for self, border for others)
+/// - Gap color indicates host status (primary for host, transparent otherwise)
 /// - Maintains consistent dimensions with transparent background
 class PlayerRingProgress extends StatelessWidget {
   const PlayerRingProgress({
@@ -19,6 +21,7 @@ class PlayerRingProgress extends StatelessWidget {
     required this.ringProgress,
     required this.isSelf,
     required this.isHost,
+    this.rank,
   });
 
   final Widget child;
@@ -26,11 +29,12 @@ class PlayerRingProgress extends StatelessWidget {
   final double ringProgress; // 0.0-1.0 from tracker
   final bool isSelf;
   final bool isHost;
+  final Rank? rank;
 
   // Ring dimensions
   static const double avatarSize = 70.0;
   static const double ringGap = 4.0;
-  static const double ringThickness = 4.0;
+  static const double ringThickness = 6.0;
   static const double totalSize =
       avatarSize + (ringGap * 2) + (ringThickness * 2);
 
@@ -47,8 +51,8 @@ class PlayerRingProgress extends StatelessWidget {
         ? (1.0 - ringProgress) // Invert: 100→0
         : 1.0; // Completed/Review: show full
 
-    // Get gap color (matches screen background)
-    final Color ringGapColor = appTheme.bgDark;
+    // Get gap color: host uses primary, others use transparent
+    final Color ringGapColor = isHost ? appTheme.primary : Colors.transparent;
     // ignore: deprecated_member_use
     final Color trackColor = ringColor.withOpacity(0.2);
 
@@ -85,23 +89,31 @@ class PlayerRingProgress extends StatelessWidget {
   }
 
   Color _getRingColor(AppTheme appTheme) {
+    // If rank is set, use rank color (gold/silver/bronze)
+    if (rank != null) {
+      switch (rank!) {
+        case Rank.first:
+          return appTheme.gold;
+        case Rank.second:
+          return appTheme.silver;
+        case Rank.third:
+          return appTheme.bronze;
+      }
+    }
+
+    // Default logic for self/others based on ring state
     switch (ringState) {
       case RingState.countdown:
-        // Countdown phase: host uses info, self uses primary, others use border
-        if (isHost) return appTheme.info;
-        if (isSelf) return appTheme.primary;
-        return appTheme.border; // Other players have a neutral ring
+        // Ring color: self uses info, others use border
+        return isSelf ? appTheme.secondary : appTheme.bgLight;
 
       case RingState.completed:
-        // Completed: host uses info, others use success (green)
-        if (isHost) return appTheme.info;
-        return appTheme.success;
+        // Completed: self uses info, others use success (green)
+        return isSelf ? appTheme.secondary : appTheme.primaryMuted;
 
       case RingState.review:
-        // Review mode: host uses info, self uses primary, others use border
-        if (isHost) return appTheme.info;
-        if (isSelf) return appTheme.primary;
-        return appTheme.border;
+        // Ring color: self uses info, others use border
+        return isSelf ? appTheme.secondary : appTheme.bgLight;
     }
   }
 }

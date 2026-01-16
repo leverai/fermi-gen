@@ -52,6 +52,10 @@ abstract class GameRealtime {
   Future<void> downvoteQuestion(String questionUid);
   Future<void> deDownvoteQuestion(String questionUid);
   Future<void> setUserLocale(String locale) async {}
+
+  /// Dispose resources and cancel subscriptions.
+  /// Should be called when the adapter is no longer needed.
+  void dispose() {}
 }
 
 /// Thin compatibility shim around existing demo-only GameEvents to align with
@@ -70,28 +74,28 @@ class GameSnapshot {
   final bool isHost;
   final int questionNumber; // 1-based
   final int nQuestions;
-  final int durationSeconds; // for current question (0 if not applicable)
   final Map<String, PlayerSummary> players; // playerId -> summary
-  final bool isPrivate; // from game doc 'private'
   final String? joinUrl; // from game doc 'join_url'
   final Map<String, bool> progressAnswered; // current question answered map
   final bool allAnswered;
   final String? currentQuestionUid; // from game doc 'question_uid'
   final List<String> questionUids; // from game doc 'question_uids'
+  final DateTime? createdAt; // from game doc 'created_at' for timer sync
+  final int? maxPlayers; // from game doc 'max_players' for tier-based limits
 
   const GameSnapshot({
     required this.state,
     required this.isHost,
     required this.questionNumber,
     required this.nQuestions,
-    required this.durationSeconds,
     required this.players,
-    required this.isPrivate,
     this.joinUrl,
     this.progressAnswered = const <String, bool>{},
     this.allAnswered = false,
     this.currentQuestionUid,
     this.questionUids = const <String>[],
+    this.createdAt,
+    this.maxPlayers,
   });
 }
 
@@ -136,6 +140,8 @@ class PlayersAnswersSnapshot {
   final bool allAnswered;
   final Map<String, AnswerValue> correct; // playerId -> correct answer
   final Map<String, double> percentiles; // playerId -> percentile (0.0-1.0)
+  final Map<String, Map<String, AnswerValue>>
+      convertedAnswers; // playerId -> (otherPlayerId -> converted answer)
 
   const PlayersAnswersSnapshot({
     required this.submitted,
@@ -143,6 +149,7 @@ class PlayersAnswersSnapshot {
     required this.allAnswered,
     this.correct = const <String, AnswerValue>{},
     this.percentiles = const <String, double>{},
+    this.convertedAnswers = const <String, Map<String, AnswerValue>>{},
   });
 }
 
@@ -150,7 +157,10 @@ class PlayersAnswersSnapshot {
 class RevealPayload {
   final AnswerValue correct;
 
-  const RevealPayload({required this.correct});
+  /// JSON string of SerpAPI AI response for answer walkthrough (may be empty)
+  final String? paragraph;
+
+  const RevealPayload({required this.correct, this.paragraph});
 }
 
 /// Minimal payload for revealed question content.

@@ -17,6 +17,14 @@ class QuestionStatus(StrEnum):
     REJECTED = 'REJECTED'
 
 
+class DailyQuestionStatus(StrEnum):
+    """Status of a daily question."""
+
+    SCHEDULED = 'SCHEDULED'
+    ACTIVE = 'ACTIVE'
+    CLOSED = 'CLOSED'
+
+
 class QuestionDifficulty(StrEnum):
     """Difficulty of a game."""
 
@@ -67,6 +75,12 @@ class AnswerBare(TypedDict):
     unit: str | None
 
 
+class AnswerWithSnippet(AnswerBare):
+    """Player answer with snippet."""
+
+    ai_overview: str
+
+
 class Answer(AnswerBare):
     """The complete answer to a Fermi question."""
 
@@ -75,39 +89,19 @@ class Answer(AnswerBare):
     references: list[AnswerReference]
 
 
-class PlayerPercentileByCategoryAndDifficulty(TypedDict):
-    """Player's average percentile by category and difficulty."""
-
-    category: QuestionCategory
-    difficulty: QuestionDifficulty
-    avg_percentile: int
-
-
-class PlayerPercentileByCategory(TypedDict):
-    """Player's average percentile by category."""
-
-    category: QuestionCategory
-    avg_percentile: int
-
-
-class PlayerPercentile(TypedDict):
-    """Player's average percentiles."""
-
-    by_category_and_difficulty: list[PlayerPercentileByCategoryAndDifficulty]
-    by_category: list[PlayerPercentileByCategory]
-    by_difficulty: list['PlayerPercentileByDifficulty']
-    overall: int
-
-
-class PlayerPercentileByDifficulty(TypedDict):
-    """Player's average percentile by difficulty across all categories."""
-
-    difficulty: QuestionDifficulty
-    avg_percentile: int
-
-
 class Locale(StrEnum):
     """Locale of a user."""
 
     US = 'US'
     EU = 'EU'
+
+
+class GameMode(StrEnum):
+    """Game mode for answer events.
+
+    Used to distinguish which game mode an answer event belongs to.
+    """
+
+    PARTY = 'PARTY'
+    SURVIVAL = 'SURVIVAL'
+    DAILY_QUESTION = 'DAILY_QUESTION'  # Reserved for future use

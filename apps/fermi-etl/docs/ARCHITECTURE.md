@@ -391,12 +391,14 @@ apps/fermi-etl/
 │   │   ├── questions.py
 │   │   ├── answers.py
 │   │   ├── enrichment.py
+│   │   ├── llm_answers.py
 │   │   └── composite.py
 │   ├── services/         # Business logic
 │   │   ├── seed_service.py
 │   │   ├── question_service.py
 │   │   ├── answer_service.py
 │   │   ├── enrichment_service.py
+│   │   ├── llm_answer_service.py
 │   │   └── composite_service.py
 │   ├── core/             # Shared utilities
 │   │   ├── validation.py
@@ -432,6 +434,8 @@ apps/fermi-etl/
 - Comprehensive type hints throughout
 - Pydantic models for validation
 - SQLModel for ORM with type checking
+- Service functions take explicit arguments (not config objects) for clarity and testability
+- Validation functions raise exceptions instead of returning tuples
 
 **Error Handling:**
 - Graceful degradation for API failures

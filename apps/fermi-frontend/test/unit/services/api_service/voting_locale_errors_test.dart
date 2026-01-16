@@ -226,7 +226,7 @@ void main() {
 
       // ACT & ASSERT
       try {
-        await apiService.createGame(isPrivate: true);
+        await apiService.createGame();
         fail('Should have thrown exception');
       } catch (e) {
         expect(e.toString(), contains('Specific error message'));
@@ -327,7 +327,7 @@ void main() {
 
       // ACT & ASSERT
       expect(
-        () => apiService.createGame(isPrivate: true),
+        () => apiService.createGame(),
         throwsA(isA<Exception>().having(
           (e) => e.toString(),
           'message',
@@ -393,7 +393,7 @@ void main() {
       // ACT & ASSERT
       // Should throw when trying to access resource_id as String
       expect(
-        () => apiService.createGame(isPrivate: true),
+        () => apiService.createGame(),
         throwsA(isA<TypeError>()),
       );
     });

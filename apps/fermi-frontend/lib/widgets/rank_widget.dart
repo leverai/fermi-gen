@@ -37,10 +37,11 @@ class RankWidget extends StatelessWidget {
   double get _badgeSize {
     switch (rank) {
       case Rank.first:
+        return 30;
       case Rank.second:
-        return 38;
+        return 34;
       case Rank.third:
-        return 28; // 30% smaller than gold/silver
+        return 34; // ~30% smaller than gold/silver
     }
   }
 

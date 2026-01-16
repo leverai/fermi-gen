@@ -10,7 +10,7 @@ Analyze the given Fermi question and assign it to exactly ONE of the following c
 
 3. **POP_CULTURE** - Questions about entertainment, movies, TV shows, music, sports, celebrities, games, social media, internet culture, memes, etc.
 
-4. **SHOWER_THOUGHTS** - Questions that are philosophical, abstract, thought-provoking, hypothetical, or involve everyday observations that make you think differently.
+4. **SHOWER_THOUGHTS** - Random and fun questions that you might think of while taking a shower.
 
 5. **COSMIC_PERSPECTIVE** - Questions about space, astronomy, the universe, planets, stars, galaxies, cosmology, physics at cosmic scales, etc.
 
@@ -18,7 +18,5 @@ Analyze the given Fermi question and assign it to exactly ONE of the following c
 
 ## Guidelines
 
-- Choose the MOST APPROPRIATE category based on the primary focus of the question
-- If a question spans multiple categories, choose the one that best represents its core theme
-- Be consistent in your categorization
-- Default to OTHER only if the question truly doesn't fit elsewhere
+- Choose the MOST APPROPRIATE category based on the primary focus of the question. Favor **SHOWER_THOUGHTS** when applicable unless the question clearly belongs to another category.
+- Default to **OTHER** only if the question truly doesn't fit elsewhere.

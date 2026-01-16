@@ -19,71 +19,136 @@ You are an expert at analyzing answer paragraphs and extracting the quantitative
 A valid answer paragraph is one which:
 -   Can confidently be viewed as the answer to the provided Fermi Question.
 -   Is clearly giving sufficient information about a *DQ* or *SQ*.
--   The unit in the pargraph (if any) is is one of the units defined below.
+-   The unit in the pargraph (if any) **MUST BE ONE OF THE FOLLOWING**:
+    -   "ounce"
+    -   "pound"
+    -   "ton"
+    -   "gram"
+    -   "kilogram"
+    -   "metric_ton"
+    -   "inch"
+    -   "foot"
+    -   "mile"
+    -   "centimeter"
+    -   "meter"
+    -   "kilometer"
+    -   "foot ** 2"
+    -   "acre"
+    -   "mile ** 2"
+    -   "meter ** 2"
+    -   "hectare"
+    -   "km ** 2"
+    -   "quart"
+    -   "gallon"
+    -   "liter"
+    -   "meter ** 3"
+    -   "foot ** 3"
+    -   "km ** 3"
+    -   "mile ** 3"
+    -   "second"
+    -   "minute"
+    -   "hour"
+    -   "day"
+    -   "week"
+    -   "month"
+    -   "year"
+    -   "century"
+    -   "millennium"
+    -   "fahrenheit"
+    -   "celsius"
+    -   "bit"
+    -   "byte"
+    -   "kilobyte"
+    -   "megabyte"
+    -   "gigabyte"
+    -   "terabyte"
+    -   "petabyte"
 
 #### **Valid paragraph examples:**
 -   Question: How many starts can be seen by the naked eye from Earth on a clear night."
 -   Answer Paragraph: On a clear night, about 2,500 to 4,500 stars are visible to the naked eye from Earth. This number varies based on location and sky conditions. The exact number depends on individual eyesight and local light pollution.
     -   Info extracted:
-        -   `number`: 2.50e3
+        -   `coefficient`: 3.50
+        -   `exponent`: 3
         -   `unit`: "dimensionless"
         -   `confidence`: 1
+    -   Explanation: Average of 2,500-4,500 is 3,500 = 3.50 × 10³
 -   Question: How much is the Sun brighter than a full moon?
 -   Answer Paragraph: The Sun is 400,000 times brighter than the full Moon. This brightness difference is due to the Sun's intense luminosity compared to the Moon's reflected light.
     -   Info extracted:
-        -   `number`: 4.00e5
+        -   `coefficient`: 4.00
+        -   `exponent`: 5
         -   `unit`: "dimensionless"
         -   `confidence`: 1
+    -   Explanation: 400,000 = 4.00 × 10⁵
 -   Question: If we stack the Times Squares with apples, how much would those apples weigh?
 -   Answer Paragraph: It is hard to give an exact answer to this question, but it has been roughly estimated to weigh six thousand tons.
     -   Info extracted:
-        -   `number`: 6.00e3
+        -   `coefficient`: 6.00
+        -   `exponent`: 3
         -   `unit`: "ton"
         -   `confidence`: 1
+    -   Explanation: 6,000 = 6.00 × 10³
 -   Question: How many apples can fit inside the Empire State Building?
 -   Answer Paragraph: It is estimated that the Empire State Building can fit 20k metric tons of apples.
     -   Rationale: Although the question is asking about a SQ (number of apples), the paragraph provides a DQ, providing the weight of apples. The paragraph is considered an acceptable answer to the question, since one can roughly get the number of apples from their weight.
     -   Info extracted:
-        -   `number`: 2.00e4
+        -   `coefficient`: 2.00
+        -   `exponent`: 4
         -   `unit`: "metric_ton"
         -   `confidence`: 1
+    -   Explanation: 20,000 = 2.00 × 10⁴
 
 #### **Invalid paragraphs examples:**
 -   Question: How many leaves can fit inside a 14 million cubic miles of land?
 -   Answer Paragraph: It would be impossible to to know how many leaves can fit inside a 14 million cubic miles of land.
     -   Rationale: The text stating that an answer was not found.
     -   Info extracted:
-        -   `number`: 0
+        -   `coefficient`: 0
+        -   `exponent`: 0
         -   `unit`: "dimensionless"
         -   `confidence`: 0
 -   Question: How many genes are typically shared betwee two first cousins?
 -   Answer Paragraph: Yes, it is very likely that a good solution is found by computing the number of relatives and comparing genetic history.
     -   Rationale: Paragraph does not answer the question.
     -   Info extracted:
-        -   `number`: 0
+        -   `coefficient`: 0
+        -   `exponent`: 0
         -   `unit`: "dimensionless"
         -   `confidence`: 0
 -   Question: How many people can fit inside NYC's City Hall?
 -   Answer Paragraph: It takes 500 people to beat a gorilla.
     -   Rationale: Paragraph does not answer the question.
     -   Info extracted:
-        -   `number`: 0
+        -   `coefficient`: 0
+        -   `exponent`: 0
         -   `unit`: "dimensionless"
         -   `confidence`: 0
 -   Question: How much water flows from the Niagra Falls each minute?
 -   Answer Paragraph: The flow rate of the Niagra falls is estimated around six thousand kooters.
     -   Rationale: Invalid unit "kooters".
     -   Info extracted:
-        -   `number`: 0
+        -   `coefficient`: 0
+        -   `exponent`: 0
         -   `unit`: "dimensionless"
         -   `confidence`: 0
 -   Question: How much water flows from the Niagra Falls each minute?
 -   Answer Paragraph: The flow rate of the Niagra falls is estimated around six thousand.
     -   Rationale: Not giving sufficient information is given about the *DQ*. Particularly, the answer is a DQ but no unit is provided.
     -   Info extracted:
-        -   `number`: 0
+        -   `coefficient`: 0
+        -   `exponent`: 0
         -   `unit`: "dimensionless"
         -   `confidence`: 0
+-   Question: How many mountain peaks could fit into Earth's crust volume-wise?
+-   Answer Paragraph: It's impossible to calculate an exact number because mountains vary in size and shape, and the volume of Earth's crust is not a solid block. However, we can estimate that the total volume of the $7.581\\times 10^{{6}}$. To determine how many mountains could fit, you would need to define what constitutes a "mountain" (e.g., its height and base area) and then estimate the volume of each mountain to divide it into the total crustal volume. Total Continental Crustal Volume: The total volume of continental crust is estimated to be about $7.581\\times 10^{{6}}$ km ${{}}^{{3}}$.
+    -   Rationale: Although the paragraph provides a clear answer, the paragraph is not a direct answer to the question.
+    -   Info extracted:
+        -   `coefficient`: 0
+        -   `exponent`: 0
+        -   `unit`: "dimensionless"
+        -   `confidence`: 0
+
 
 ## **Your Task**
 
@@ -91,56 +156,19 @@ Your task is to read each Question, Answer Paragraph pair I give you and:
     1.  Decide the paragraph's validity.
     2.  Depending on the paragraph's validity, do one of the following:
         1.  If the paragraph is valid:
-            1.  **Extract the most likely numeric answer** from the paragraph.
+            1.  **Extract the most likely numeric answer** from the paragraph using scientific notation components:
                 -   If the paragraph provides a range of values (e.g., "100 to 200"), use the average.
-                -   The number portion of the answer MUST be provided in **Scientific Notation**. For example, if the paragraph says the answer is "1.5 billion", you MUST output "1.50e9".
-            2.  **Extract the most likely unit** from the paragraph IF the paragraph references a *DQ* with a clear unit.
-                -   The extracted unit string **MUST BE ONE OF THE FOLLOWING**:
-                    -   `"ounce"`
-                    -   `"pound"`
-                    -   `"ton"`
-                    -   `"gram"`
-                    -   `"kilogram"`
-                    -   `"metric_ton"`
-                    -   `"inch"`
-                    -   `"foot"`
-                    -   `"mile"`
-                    -   `"centimeter"`
-                    -   `"meter"`
-                    -   `"kilometer"`
-                    -   `"foot ** 2"`
-                    -   `"acre"`
-                    -   `"mile ** 2"`
-                    -   `"meter ** 2"`
-                    -   `"hectare"`
-                    -   `"km ** 2"`
-                    -   `"quart"`
-                    -   `"gallon"`
-                    -   `"liter"`
-                    -   `"meter ** 3"`
-                    -   `"foot ** 3"`
-                    -   `"km ** 3"`
-                    -   `"mile ** 3"`
-                    -   `"second"`
-                    -   `"minute"`
-                    -   `"hour"`
-                    -   `"day"`
-                    -   `"week"`
-                    -   `"month"`
-                    -   `"year"`
-                    -   `"century"`
-                    -   `"millennium"`
-                    -   `"fahrenheit"`
-                    -   `"celsius"`
-                    -   `"kilobyte"`
-                    -   `"megabyte"`
-                    -   `"gigabyte"`
-                    -   `"terabyte"`
-                    -   `"petabyte"`
+                -   Express the answer as `coefficient × 10^exponent` by providing separate `coefficient` and `exponent` fields.
+                -   The `coefficient` should typically be between 1.0 and 10.0.
+                -   Examples of correct conversion:
+                    -   "1.5 billion" → coefficient: 1.50, exponent: 9 (equals 1,500,000,000)
+                    -   "27.5 million" → coefficient: 2.75, exponent: 7 (equals 27,500,000)
+                    -   "400 thousand" → coefficient: 4.00, exponent: 5 (equals 400,000)
+                    -   "3,500" → coefficient: 3.50, exponent: 3 (equals 3,500)
+            2.  **Extract the most likely unit** from the paragraph IF the paragraph references a *DQ* with a clear and recognized unit.
                 -   If the paragraph answers with a *SQ*, you MUST output `"dimensionless"` as the unit.
             3.  **Provide a confidence score** between 0 and 1, to indicate how confident you are about the info extraction.
-
         2.  If the paragraph is not valid:
-            -   Set the numeric answer to 0.
+            -   Set coefficient to 0 and exponent to 0.
             -   Set the unit to 'dimensionless'
             -   Set confidence to 0.

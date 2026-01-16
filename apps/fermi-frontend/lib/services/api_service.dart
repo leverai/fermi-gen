@@ -1,33 +1,50 @@
 import 'dart:convert';
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
+import 'package:fermi_frontend/models/avatar_info.dart';
 import 'package:http/http.dart' as http;
 import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/player_stats.dart';
+import 'package:fermi_frontend/models/survival_models.dart';
+import 'package:fermi_frontend/models/user_limits.dart';
 import 'package:fermi_frontend/utils/env.dart';
 import 'package:fermi_frontend/utils/om_constants.dart';
-import 'package:flutter/foundation.dart';
+import 'package:fermi_frontend/services/tracing_service.dart';
 
 class ApiService {
   final String _apiBaseUrl;
   final AuthService authService;
   final http.Client client;
+  final TracingService _tracing;
 
   ApiService({
     required this.authService,
     http.Client? client,
     String? apiBaseUrl,
+    TracingService? tracing,
   })  : client = client ?? http.Client(),
-        _apiBaseUrl = apiBaseUrl ?? resolveApiBaseUrlOrThrow();
+        _apiBaseUrl = apiBaseUrl ?? resolveApiBaseUrlOrThrow(),
+        _tracing = tracing ?? TracingService.instance;
 
   // --- Auth-aware request helpers ---
+  Future<http.Response> get(String path) => _authGet(path);
+  Future<http.Response> post(String path, Object? body) =>
+      _authPost(path, body);
+
   Future<http.Response> _authGet(String path) async {
+    // Proactive refresh: check token before request
+    if (authService.shouldRefreshToken()) {
+      await authService.refreshAccessToken();
+    }
+
     final String? token = authService.accessToken;
     if (token == null) throw Exception('User is not authorized');
     final Uri uri = Uri.parse('$_apiBaseUrl$path');
+    final String traceparent = _tracing.generateTraceparent();
     http.Response resp = await client.get(uri, headers: {
       'Authorization': 'Bearer $token',
       'Accept': 'application/json',
+      'traceparent': traceparent,
     });
     if (resp.statusCode == 401) {
       final bool refreshed = await authService.refreshAccessToken();
@@ -37,21 +54,29 @@ class ApiService {
       resp = await client.get(uri, headers: {
         'Authorization': 'Bearer $newToken',
         'Accept': 'application/json',
+        'traceparent': traceparent,
       });
     }
     return resp;
   }
 
   Future<http.Response> _authPost(String path, Object? body) async {
+    // Proactive refresh: check token before request
+    if (authService.shouldRefreshToken()) {
+      await authService.refreshAccessToken();
+    }
+
     final String? token = authService.accessToken;
     if (token == null) throw Exception('User is not authorized');
     final Uri uri = Uri.parse('$_apiBaseUrl$path');
+    final String traceparent = _tracing.generateTraceparent();
     http.Response resp = await client.post(
       uri,
       headers: {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
         'Content-Type': 'application/json',
+        'traceparent': traceparent,
       },
       body: jsonEncode(body),
     );
@@ -66,6 +91,7 @@ class ApiService {
           'Authorization': 'Bearer $newToken',
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'traceparent': traceparent,
         },
         body: jsonEncode(body),
       );
@@ -113,12 +139,31 @@ class ApiService {
     return GameConfig.fromJson(raw);
   }
 
-  Future<Map<String, dynamic>> getPlayerStats(
-      {required String playerId}) async {
+  Future<Map<String, dynamic>> getUserLimits() async {
     try {
-      final response = await _authPost('/game/get_player_stats', {
-        'player_id': playerId,
-      });
+      final response = await _authGet('/user/limits');
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body)['detail'];
+        throw Exception('Failed to get user limits: $error');
+      }
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<UserLimits> getUserLimitsTyped() async {
+    final raw = await getUserLimits();
+    final limitsJson = raw['limits'] as Map<String, dynamic>;
+    return UserLimits.fromJson(limitsJson);
+  }
+
+  Future<Map<String, dynamic>> getPlayerStats() async {
+    try {
+      final response = await _authPost('/game/get_player_stats', {});
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -133,15 +178,13 @@ class ApiService {
     }
   }
 
-  Future<PlayerStatsResponse> getPlayerStatsTyped(
-      {required String playerId}) async {
-    final raw = await getPlayerStats(playerId: playerId);
+  Future<PlayerStatsResponse> getPlayerStatsTyped() async {
+    final raw = await getPlayerStats();
     return PlayerStatsResponse.fromJson(raw);
   }
 
   Future<String> createGame({
-    required bool isPrivate,
-    String? category,
+    List<String>? categories,
     String? difficulty,
     int? nQuestions,
   }) async {
@@ -149,10 +192,9 @@ class ApiService {
       final body = {
         'question_round_settings': {
           if (nQuestions != null) 'n_questions': nQuestions,
-          'category': category,
+          'categories': categories,
           'difficulty': difficulty,
         },
-        'is_private': isPrivate,
       };
 
       final response = await _authPost('/game/create', body);
@@ -163,40 +205,6 @@ class ApiService {
       }
       final error = jsonDecode(response.body)['detail'];
       throw Exception('Failed to create game: $error');
-    } on http.ClientException catch (_) {
-      throw Exception('Network error: Please check your connection.');
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  Future<String> joinRandomGame({
-    String? category,
-    String? difficulty,
-    int? nQuestions,
-  }) async {
-    try {
-      final body = {
-        'resource_id': null,
-        'question_round_settings': {
-          if (nQuestions != null) 'n_questions': nQuestions,
-          'category': category,
-          'difficulty': difficulty,
-        },
-      };
-
-      debugPrint(
-          '🔍 joinRandomGame: Sending request body: ${jsonEncode(body)}');
-      final response = await _authPost('/game/join_random', body);
-      debugPrint('🔍 joinRandomGame: Response status: ${response.statusCode}');
-      debugPrint('🔍 joinRandomGame: Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        return (data['resource_id'] as String);
-      }
-      final error = jsonDecode(response.body)['detail'];
-      throw Exception('Failed to join random game: $error');
     } on http.ClientException catch (_) {
       throw Exception('Network error: Please check your connection.');
     } catch (e) {
@@ -307,6 +315,27 @@ class ApiService {
     }
   }
 
+  Future<void> addBots({
+    required String gameId,
+    required List<String> botIds,
+  }) async {
+    try {
+      final response = await _authPost('/game/add_bots', {
+        'resource_id': gameId,
+        'bot_ids': botIds,
+      });
+
+      if (response.statusCode != 200) {
+        final error = _extractErrorMessage(response);
+        throw Exception('Failed to add bots: $error');
+      }
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   // --- Question votes ---
   Future<void> upvoteQuestion({required String questionUid}) async {
     await _postIdModel(path: '/question/upvote', resourceId: questionUid);
@@ -320,8 +349,48 @@ class ApiService {
         final error = _extractErrorMessage(resp);
         throw Exception('Failed to set locale: $error');
       }
-      // Optimistically update client-side auth state
+      // Optimistically updateclient-side auth state
       authService.locale = locale;
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateUserProfile({
+    String? displayName,
+    String? avatarUrl,
+  }) async {
+    try {
+      final resp = await _authPost('/user/update_profile', {
+        'display_name': displayName,
+        'avatar_url': avatarUrl,
+      });
+      if (resp.statusCode != 200) {
+        final error = _extractErrorMessage(resp);
+        throw Exception('Failed to update profile: $error');
+      }
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<AvatarInfo>> getAvatars() async {
+    try {
+      final resp = await _authGet('/assets/avatars');
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        final List<dynamic> avatarsList = data['avatars'];
+        return avatarsList
+            .map((json) => AvatarInfo.fromJson(json as Map<String, dynamic>))
+            .toList();
+      } else {
+        final error = _extractErrorMessage(resp);
+        throw Exception('Failed to load avatars: $error');
+      }
     } on http.ClientException catch (_) {
       throw Exception('Network error: Please check your connection.');
     } catch (e) {
@@ -352,6 +421,110 @@ class ApiService {
         final error = _extractErrorMessage(resp);
         throw Exception('Request $path failed: $error');
       }
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // --- Survival Mode ---
+
+  /// Start a new survival run or resume an existing one.
+  /// Returns the question response with run_id, question data, and deadline.
+  Future<Map<String, dynamic>> survivalCreateOrResume({int? runId}) async {
+    try {
+      final body = <String, dynamic>{};
+      if (runId != null) {
+        body['run_id'] = runId;
+      }
+      final resp = await _authPost('/survival/create_or_resume', body);
+      if (resp.statusCode == 200) {
+        return jsonDecode(resp.body) as Map<String, dynamic>;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to start survival: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Submit an answer for the current survival question.
+  /// Returns pass/fail status, score, and next question info.
+  Future<Map<String, dynamic>> survivalSubmitAnswer({
+    required int runId,
+    required AnswerValue answer,
+  }) async {
+    try {
+      final int resolvedNumber = _applyOmMultiplier(answer);
+      final String? unitOrNull = (answer.unit.isEmpty) ? null : answer.unit;
+      final resp = await _authPost('/survival/answer', {
+        'run_id': runId,
+        'answer': {
+          'number': resolvedNumber,
+          'unit': unitOrNull,
+        },
+      });
+      if (resp.statusCode == 200) {
+        return jsonDecode(resp.body) as Map<String, dynamic>;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to submit survival answer: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get user's survival statistics.
+  Future<Map<String, dynamic>> survivalGetStats() async {
+    try {
+      final resp = await _authGet('/survival/stats');
+      if (resp.statusCode == 200) {
+        return jsonDecode(resp.body) as Map<String, dynamic>;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to get survival stats: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get user's survival streak stats (current and best).
+  Future<Map<String, dynamic>> survivalGetStreakStats() async {
+    try {
+      final resp = await _authGet('/survival/streak');
+      if (resp.statusCode == 200) {
+        return jsonDecode(resp.body) as Map<String, dynamic>;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to get survival streak stats: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get survival mode leaderboard.
+  Future<LeaderboardResponse> survivalGetLeaderboard({
+    int page = 1,
+    int pageSize = 25,
+  }) async {
+    try {
+      final resp = await _authGet(
+          '/survival/leaderboard?page=$page&page_size=$pageSize');
+      if (resp.statusCode == 200) {
+        return LeaderboardResponse.fromJson(
+            jsonDecode(resp.body) as Map<String, dynamic>);
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to get leaderboard: $error');
     } on http.ClientException catch (_) {
       throw Exception('Network error: Please check your connection.');
     } catch (e) {
