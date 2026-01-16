@@ -14,6 +14,9 @@ jobs:
   detect-changes:
     name: Detect Changed Paths
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read  # Allows the action to retrieve the list of changed files
+      contents: read       # Allows the action to checkout the code
     outputs:
       migrations: ${{ steps.filter.outputs.migrations }}
       api: ${{ steps.filter.outputs.api }}
