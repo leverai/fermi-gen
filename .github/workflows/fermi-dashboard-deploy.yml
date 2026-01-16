@@ -1,0 +1,96 @@
+name: Dashboard Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Database environment to use (dev or prod)'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Dashboard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep -oP "__version__ = ['\"]([^'\"]+)['\"]" apps/dashboard/app/version.py | grep -oP "[0-9]+\.[0-9]+\.[0-9]+")
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Extracted version: ${VERSION}"
+
+      - name: Build and push Docker image
+        id: build-image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/dashboard/Dockerfile
+          push: true
+          tags: |
+            ${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-dashboard:${{ github.sha }}
+            ${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-dashboard:${{ steps.version.outputs.version }}
+            ${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-dashboard:latest
+          cache-from: type=registry,ref=${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-dashboard:latest
+          cache-to: type=inline
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ vars.DASHBOARD_SERVICE }}
+          image: ${{ vars.ARTIFACT_REGISTRY_REPO }}/fermi-dashboard:${{ github.sha }}
+          region: ${{ vars.GCP_REGION }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          secrets: |
+            DATABASE_URL_DEV=database-url-dev:latest
+            DATABASE_URL_PROD=database-url-prod:latest
+            AUTH_USERNAME=dashboard-auth-username:latest
+            AUTH_PASSWORD=dashboard-auth-password:latest
+          env_vars: |
+            ENVIRONMENT=${{ inputs.environment }}
+          flags: |
+            --service-account=fermi-api-runner@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+            --add-cloudsql-instances=${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:${{ vars.CLOUD_SQL_INSTANCE_DEV }}
+            --add-cloudsql-instances=${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:${{ vars.CLOUD_SQL_INSTANCE_PROD }}
+            --port=8080
+            --min-instances=0
+            --max-instances=2
+            --memory=512Mi
+            --cpu=1
+            --timeout=60s
+            --concurrency=10
+            --allow-unauthenticated
+            --network=default
+            --subnet=default
+            --vpc-egress=private-ranges-only
+
+      - name: Show deployment URL
+        run: |
+          echo "Dashboard deployed to: ${{ steps.deploy.outputs.url }}"
+          echo "Environment: ${{ inputs.environment }}"
