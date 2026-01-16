@@ -212,6 +212,4 @@ jobs:
             --concurrency=80
             --cpu-boost
             --allow-unauthenticated
-            --network=default
-            --subnet=default
-            --vpc-egress=private-ranges-only
+            ${{ vars.VPC_FLAGS }}

@@ -95,9 +95,7 @@ jobs:
             --task-timeout=600s
             --memory=512Mi
             --cpu=1
-            --network=default
-            --subnet=default
-            --vpc-egress=private-ranges-only
+            ${{ vars.VPC_FLAGS }}
 
   run-migrations:
     name: Run Migrations
