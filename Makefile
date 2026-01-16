@@ -146,7 +146,7 @@ run-frontend:
 	docker compose up -d api && \
 	until (curl -s http://localhost:8000/api/v1/health/health) 2>/dev/null; do sleep 1; done && \
 	cd apps/fermi-frontend && \
-	fvm flutter run -t lib/main.dart \
+	fvm flutter run --flavor dev -t lib/main.dart \
 	  --dart-define=USE_EMULATORS=true \
 	  --dart-define=FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
 	  --dart-define=FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
