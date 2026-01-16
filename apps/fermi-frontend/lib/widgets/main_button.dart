@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 
@@ -109,6 +110,75 @@ class _MainButtonState extends State<MainButton>
   // Hover overlay color
   static const Color _hoverOverlayColor =
       Color(0x1AFFFFFF); // rgba(255, 255, 255, 0.1)
+
+  // Timer for delayed messages and dots
+  Timer? _loadingTimer;
+  String? _loadingMessage;
+  int _dotCount = 0;
+  Duration _elapsedDuration = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _attachController();
+    if (widget.isLoading) {
+      _startLoadingTimer();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant MainButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      _detachController(oldWidget.controller);
+      _attachController();
+    }
+
+    if (!oldWidget.isLoading && widget.isLoading) {
+      _startLoadingTimer();
+    } else if (oldWidget.isLoading && !widget.isLoading) {
+      _stopLoadingTimer();
+    }
+  }
+
+  void _startLoadingTimer() {
+    _elapsedDuration = Duration.zero;
+    _loadingMessage = null;
+    _dotCount = 0;
+
+    // Update every 500ms for dots and message checks
+    _loadingTimer?.cancel();
+    _loadingTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      _elapsedDuration += const Duration(milliseconds: 500);
+      String? newMessage;
+
+      // Determine message based on elapsed time
+      if (_elapsedDuration.inSeconds >= 3) {
+        newMessage = "Still working on it";
+      } else if (_elapsedDuration.inSeconds >= 1) {
+        newMessage = "Getting things ready";
+      }
+
+      setState(() {
+        _loadingMessage = newMessage;
+        // Cycle dots 0-3
+        _dotCount = (_dotCount + 1) % 4;
+      });
+    });
+  }
+
+  void _stopLoadingTimer() {
+    _loadingTimer?.cancel();
+    _loadingTimer = null;
+    _loadingMessage = null;
+    _dotCount = 0;
+    _elapsedDuration = Duration.zero;
+  }
 
   void _onTapDown(TapDownDetails details) {
     if (_isEnabled) {
@@ -230,24 +300,37 @@ class _MainButtonState extends State<MainButton>
                                       BorderRadius.circular(borderRadius),
                                 ),
                               ),
-                            // Show content when not loading
-                            if (!widget.isLoading) ...[
-                              // Custom label or predefined label centered
-                              if (widget.customLabel != null ||
-                                  widget.label != null)
-                                Center(
-                                  child: Text(
-                                    widget.customLabel ?? widget.label!.text,
-                                    textAlign: TextAlign.center,
-                                    style: AppFont.primaryTextStyle(context,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: appTheme.bg,
-                                            decoration: TextDecoration.none)
-                                        .copyWith(letterSpacing: 1.5),
-                                  ),
-                                ),
-                            ],
+                            // Show content
+                            Center(
+                              child: widget.isLoading && _loadingMessage != null
+                                  ? Text(
+                                      "$_loadingMessage${"." * _dotCount}",
+                                      textAlign: TextAlign.center,
+                                      style: AppFont.primaryTextStyle(context,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: appTheme.bg,
+                                              decoration: TextDecoration.none)
+                                          .copyWith(letterSpacing: 1.5),
+                                    )
+                                  : !widget.isLoading &&
+                                          (widget.customLabel != null ||
+                                              widget.label != null)
+                                      ? Text(
+                                          widget.customLabel ??
+                                              widget.label!.text,
+                                          textAlign: TextAlign.center,
+                                          style: AppFont.primaryTextStyle(
+                                                  context,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: appTheme.bg,
+                                                  decoration:
+                                                      TextDecoration.none)
+                                              .copyWith(letterSpacing: 1.5),
+                                        )
+                                      : const SizedBox.shrink(),
+                            ),
                           ],
                         ),
                       ),
@@ -282,21 +365,6 @@ class _MainButtonState extends State<MainButton>
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _attachController();
-  }
-
-  @override
-  void didUpdateWidget(covariant MainButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      _detachController(oldWidget.controller);
-      _attachController();
-    }
-  }
-
   void _attachController() {
     if (widget.controller == null) return;
     _controllerListener = () {
@@ -325,6 +393,7 @@ class _MainButtonState extends State<MainButton>
 
   @override
   void dispose() {
+    _stopLoadingTimer();
     _detachController(widget.controller);
     super.dispose();
   }
