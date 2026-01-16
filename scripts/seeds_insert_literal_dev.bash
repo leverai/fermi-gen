@@ -16,33 +16,46 @@ curl -X POST $SERVICE_URL/seeds/insert_literal \
             "Halloween", "Sushi", "Video Games", "Toilet Paper", "NBA",
             "Ice Cream", "Balloons", "Marvel", "Star Wars", "Batteries",
             "Rubber Ducks", "Toothbrushes", "Donuts", "Skyscrapers", "Teabags",
-            "K-Pop", "Pasta", "Avocados", "Headphones", "Bubble Tea"
+            "K-Pop", "Pasta", "Avocados", "Headphones", "Bubble Tea",
+            "Burgers", "Pigeons", "Emails", "Socks", "Beer",
+            "Birthdays", "Traffic", "Clouds", "Ants", "Coca-Cola",
+            "IKEA", "Barbie", "Passwords", "Straws", "Hot Dogs",
+            "Pencils", "Marathons", "Dishwashers", "E-scooters", "Keys",
+            "Cheese", "Bitcoin", "Gyms", "Laundry", "Lightbulbs",
+            "Zombies", "Crocs", "Pickles", "Vampires", "Pringles",
+            "Elevators", "Bricks", "Teslas", "Zoom", "Karaoke",
+            "Guitars", "Backpacks", "Paperclips", "Shampoo",
+            "Ramen", "Skateboards", "Tattoos", "Yoga", "Perfume",
+            "Diapers", "Glitter", "Confetti", "Pillows", "Lipstick",
         ]
       }'
 
 # Insert manual questions
 curl -X POST $SERVICE_URL/insert_literal \
+  -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
   -H "Content-Type: application/json" \
   -d '{
         "questions": [
-          x"How many Christmas trees are sold in the US each year?",
-          x"How many ornaments are hanging on Christmas trees in the US on Christmas Eve?",
+          "How many Christmas trees are sold in the US each year?",
+          "How many ornaments are hanging on Christmas trees in the US on Christmas Eve?",
           "How many rolls of wrapping paper are used in the US each holiday season?",
-          x"If you laid out all wrapping paper used in the US in December, how many football fields would it cover?",
+          "If you laid out all wrapping paper used in the US in December, how many football fields would it cover?",
           "How many gift tags are written in the US each holiday season?",
           "How many AA batteries are bought in the US in December?",
           "How many candy canes are eaten in the US each year?",
           "How many cups of hot chocolate are consumed in the US in December?",
           "How many gingerbread houses are built in the US each holiday season?",
           "How many ugly Christmas sweaters are worn in the US in December?",
-          x"If you stacked all Christmas cards mailed in the US each year, how tall would the stack be?",
+          "If you stacked all Christmas cards mailed in the US each year, how tall would the stack be?",
           "How many cookies are left out for Santa worldwide on Christmas Eve?",
-          x"How many times is “Jingle Bells” played in the US in December?"
-        ]
+          "How many times is “Jingle Bells” played in the US in December?"
+        ],
+        "provider": "human"
       }'
 
 # Run pipeline from LLM questions
 curl -X POST $SERVICE_URL/insert_llm \
+  -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
   -H "Content-Type: application/json" \
   -d '{
         "num_seeds": 10,
@@ -52,6 +65,7 @@ curl -X POST $SERVICE_URL/insert_llm \
 
 # Insert gemini flash answers
 curl -X POST $SERVICE_URL/llm_answers/gemini-flash \
+  -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
   -H "Content-Type: application/json" \
   -d '{
         "num_questions": 3
@@ -59,5 +73,6 @@ curl -X POST $SERVICE_URL/llm_answers/gemini-flash \
 
 # Sync all
 curl -X POST $SERVICE_URL/enrich/join_all \
+  -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
   -H "Content-Type: application/json" \
   -d '{}'
