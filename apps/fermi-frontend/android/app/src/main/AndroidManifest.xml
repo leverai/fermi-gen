@@ -11,7 +11,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
-            android:name="tech.leverai.guesstimate.MainActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -80,7 +80,7 @@
 
         <provider
             android:name="com.google.firebase.provider.FirebaseInitProvider"
-            android:authorities="tech.leverai.guesstimate.firebaseinitprovider"
+            android:authorities="${applicationId}.firebaseinitprovider"
             tools:node="remove" />
     </application>
 

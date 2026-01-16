@@ -154,15 +154,32 @@ run-frontend:
 	  --dart-define=REVENUECAT_ANDROID_API_KEY=goog_nlfyHlphbqbWfeqdPYtzBVVgkJJ \
 	  --dart-define=SUPPRESS_TEST_LOGS=true
 
-.PHONY: build-frontend-android-release
-build-frontend-android-release:
+# Build dev APK for Firebase App Distribution
+.PHONY: build-frontend-android-dev
+build-frontend-android-dev:
 	cd apps/fermi-frontend && \
-        fvm flutter clean && \
-        fvm flutter pub get && \
-        cd android && ./gradlew clean && cd ../ &&\
+	fvm flutter clean && \
+	fvm flutter pub get && \
+	cd android && ./gradlew clean && cd ../ && \
+	fvm flutter build apk \
+	  --release \
+	  --flavor dev \
+	  --dart-define=API_BASE_URL=https://fermi-api-bwuxx6eogq-uc.a.run.app/api/v1 \
+	  --dart-define=USE_EMULATORS=false \
+	  --dart-define=SUPPRESS_TEST_LOGS=true \
+	  --dart-define=REVENUECAT_ANDROID_API_KEY=goog_nlfyHlphbqbWfeqdPYtzBVVgkJJ
+
+# Build prod AAB for Google Play Store
+.PHONY: build-frontend-android-prod
+build-frontend-android-prod:
+	cd apps/fermi-frontend && \
+	fvm flutter clean && \
+	fvm flutter pub get && \
+	cd android && ./gradlew clean && cd ../ && \
 	fvm flutter build appbundle \
 	  --release \
-	  --dart-define=API_BASE_URL=https://fermi-api-bwuxx6eogq-uc.a.run.app/api/v1 \
+	  --flavor prod \
+	  --dart-define=API_BASE_URL=https://fermi-api-prod-uc.a.run.app/api/v1 \
 	  --dart-define=USE_EMULATORS=false \
 	  --dart-define=SUPPRESS_TEST_LOGS=true \
 	  --dart-define=REVENUECAT_ANDROID_API_KEY=goog_nlfyHlphbqbWfeqdPYtzBVVgkJJ
@@ -201,5 +218,6 @@ update-icons:
 	@echo "Regenerating app icons from assets/icons/..." && \
 	cd apps/fermi-frontend && \
 	fvm flutter pub get && \
-	fvm flutter pub run flutter_launcher_icons && \
-	echo "✓ Icons successfully updated for Android and iOS"
+	fvm flutter pub run flutter_launcher_icons -f flutter_launcher_icons-dev.yaml && \
+	fvm flutter pub run flutter_launcher_icons -f flutter_launcher_icons-prod.yaml && \
+	echo "✓ Icons successfully updated for Android and iOS (dev and prod flavors)"
