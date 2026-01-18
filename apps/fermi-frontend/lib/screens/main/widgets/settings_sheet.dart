@@ -123,12 +123,13 @@ class _SettingsSheetState extends State<SettingsSheet> {
                       showSplash: false,
                       onTap: () {
                         final bool current =
-                            LocalSettingsService.instance.soundEnabled.value;
-                        LocalSettingsService.instance.setSoundEnabled(!current);
+                            LocalSettingsService.instance.feedbackEnabled.value;
+                        LocalSettingsService.instance
+                            .setFeedbackEnabled(!current);
                       },
                       trailing: ValueListenableBuilder<bool>(
                         valueListenable:
-                            LocalSettingsService.instance.soundEnabled,
+                            LocalSettingsService.instance.feedbackEnabled,
                         builder: (context, enabled, _) {
                           return SoundToggleChip(
                             isOn: enabled,

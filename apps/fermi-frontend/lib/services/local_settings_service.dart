@@ -12,12 +12,12 @@ class LocalSettingsService {
   static LocalSettingsService get instance => _instance;
 
   // Keys
-  static const String _keySoundEnabled = 'sound_enabled';
+  static const String _keyFeedbackEnabled = 'feedback_enabled';
   static const String _keyThemeMode = 'theme_mode';
 
   // State
   late final SharedPreferences _prefs;
-  final ValueNotifier<bool> soundEnabled = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> feedbackEnabled = ValueNotifier<bool>(true);
   final ValueNotifier<ThemeMode> themeMode =
       ValueNotifier<ThemeMode>(ThemeMode.system);
 
@@ -33,7 +33,7 @@ class LocalSettingsService {
       _prefs = await SharedPreferences.getInstance();
 
       // Load values
-      soundEnabled.value = _prefs.getBool(_keySoundEnabled) ?? true;
+      feedbackEnabled.value = _prefs.getBool(_keyFeedbackEnabled) ?? true;
 
       final String? savedThemeMode = _prefs.getString(_keyThemeMode);
       if (savedThemeMode != null) {
@@ -45,22 +45,22 @@ class LocalSettingsService {
 
       _isInitialized = true;
       debugPrint(
-          'LocalSettingsService: Initialized. Sound enabled: ${soundEnabled.value}, Theme: ${themeMode.value}');
+          'LocalSettingsService: Initialized. Feedback enabled: ${feedbackEnabled.value}, Theme: ${themeMode.value}');
     } catch (e) {
       debugPrint('LocalSettingsService: Error initializing: $e');
       // Fallback to default values if initialization fails
-      soundEnabled.value = true;
+      feedbackEnabled.value = true;
       themeMode.value = ThemeMode.system;
     }
   }
 
-  /// Toggle sound setting and save to disk.
-  Future<void> setSoundEnabled(bool enabled) async {
+  /// Toggle feedback setting and save to disk.
+  Future<void> setFeedbackEnabled(bool enabled) async {
     if (!_isInitialized) await initialize();
 
-    soundEnabled.value = enabled;
-    await _prefs.setBool(_keySoundEnabled, enabled);
-    debugPrint('LocalSettingsService: Sound set to $enabled');
+    feedbackEnabled.value = enabled;
+    await _prefs.setBool(_keyFeedbackEnabled, enabled);
+    debugPrint('LocalSettingsService: Feedback set to $enabled');
   }
 
   /// Set theme mode and save to disk.

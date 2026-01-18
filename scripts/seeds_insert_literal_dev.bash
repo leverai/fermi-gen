@@ -4,29 +4,19 @@ SERVICE_URL=$(gcloud run services describe fermi-etl \
 
 # Insert Seeds
 curl -X POST $SERVICE_URL/seeds/insert_literal \
+  -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
   -H "Content-Type: application/json" \
   -d '{
         "seeds": [
-            "TikTok", "Pizza", "Taylor Swift", "Coffee", "Emojis",
-            "Cats", "iPhones", "Christmas", "Super Bowl", "Legos",
-            "Spotify", "Airplanes", "YouTube", "Tacos", "Weddings",
-            "Selfies", "Harry Potter", "Uber", "Sneakers", "Popcorn",
-            "Netflix", "Dogs", "Coachella", "Chocolate", "Instagram",
-            "Disneyland", "McDonald'\''s", "Fireworks", "Pokemon", "Amazon",
-            "Halloween", "Sushi", "Video Games", "Toilet Paper", "NBA",
-            "Ice Cream", "Balloons", "Marvel", "Star Wars", "Batteries",
-            "Rubber Ducks", "Toothbrushes", "Donuts", "Skyscrapers", "Teabags",
-            "K-Pop", "Pasta", "Avocados", "Headphones", "Bubble Tea",
-            "Burgers", "Pigeons", "Emails", "Socks", "Beer",
-            "Birthdays", "Traffic", "Clouds", "Ants", "Coca-Cola",
-            "IKEA", "Barbie", "Passwords", "Straws", "Hot Dogs",
-            "Pencils", "Marathons", "Dishwashers", "E-scooters", "Keys",
-            "Cheese", "Bitcoin", "Gyms", "Laundry", "Lightbulbs",
-            "Zombies", "Crocs", "Pickles", "Vampires", "Pringles",
-            "Elevators", "Bricks", "Teslas", "Zoom", "Karaoke",
-            "Guitars", "Backpacks", "Paperclips", "Shampoo",
-            "Ramen", "Skateboards", "Tattoos", "Yoga", "Perfume",
-            "Diapers", "Glitter", "Confetti", "Pillows", "Lipstick",
+          "Plastic Forks", "Paper Straws", "Napkins", "Coasters", "Chopsticks", "Takeout Boxes",
+          "Soy Sauce Packets", "Fortune Cookies", "Pizza Boxes", "Nachos", "Burritos", "Pop-Tarts",
+          "Marshmallows", "Jolly Ranchers", "Tic Tacs", "M&Ms", "Skittles", "Goldfish Crackers",
+          "Beef Jerky", "String Cheese", "Hot Sauce", "Energy Bars", "Granola Bars", "Trail Mix",
+          "Mosquito Bites", "Sunburns", "Tan Lines", "Band-Aids", "Q-Tips", "Cotton Balls", "Floss",
+          "Mouthwash", "Deodorant", "Razors", "Nail Clippers", "Hair Ties", "Hair Dryers", "Straighteners",
+          "Sunscreen", "Bug Spray", "Hand Sanitizer", "Thermometers", "Bathroom Scales", "Dumbbells",
+          "Yoga Mats", "Treadmills", "Jump Ropes", "Hula Hoops", "Frisbees", "Boomerangs", "Kites",
+          "Ping Pong Balls", "Golf Tees", "Whistles", "Medals", "Trophies", "Participation Awards"
         ]
       }'
 
@@ -58,7 +48,7 @@ curl -X POST $SERVICE_URL/insert_llm \
   -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
   -H "Content-Type: application/json" \
   -d '{
-        "num_seeds": 10,
+        "num_seeds": 100,
         "questions_per_seed": 2,
         "mode": "lru"
       }'
