@@ -22,7 +22,7 @@ from app.schemas.survival import (
     SurvivalRunSummary,
     SurvivalStatsResponse,
 )
-from app.services.scoring import ScoringService
+from app.services.scoring import ScoringService, compute_p50_ratio
 
 logger = logging.getLogger(__name__)
 
@@ -248,11 +248,13 @@ class SurvivalService:
             converted_answer = correct_answer
 
         streak = run.questions_answered if passed else run.questions_answered - 1
+        p50_ratio = compute_p50_ratio(pass_threshold)
         return SurvivalAnswerResponse(
             passed=passed,
             score=score,
             percentile=quantile * 100,
             pass_threshold=pass_threshold,
+            p50_ratio=p50_ratio,
             correct_answer=correct_answer,
             converted_correct_answer=converted_answer,
             user_answer=answer,

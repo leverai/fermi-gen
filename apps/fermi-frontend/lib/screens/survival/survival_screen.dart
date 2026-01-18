@@ -14,6 +14,8 @@ import 'package:fermi_frontend/widgets/leave_button.dart';
 import 'package:fermi_frontend/widgets/styled_dialog.dart';
 import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:fermi_frontend/widgets/player_confetti_overlay.dart';
+import 'package:fermi_frontend/utils/number_decompose.dart';
+import 'package:fermi_frontend/models/answer_value.dart';
 
 /// Survival mode screen - single player timed questions until failure.
 class SurvivalScreen extends StatefulWidget {
@@ -344,6 +346,28 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
     // If passed, show Next; if failed, show Finish (isLast=true triggers Finish label)
     final bool isLast = isSubmitted && !(answerResponse?.passed ?? true);
 
+    // Compute acceptable range bounds for scale highlighting (survival mode only)
+    AnswerValue? acceptableRangeLower;
+    AnswerValue? acceptableRangeUpper;
+    if (isSubmitted && answerResponse != null) {
+      final correctAnswer = answerResponse.convertedCorrectAnswer;
+      final p50Ratio = answerResponse.p50Ratio;
+      // Get the raw value of the correct answer
+      final correctRaw = correctAnswer.rawValue ??
+          (correctAnswer.number *
+                  _getOmMultiplier(correctAnswer.orderOfMagnitude))
+              .toDouble();
+      // Compute bounds: [correct / ratio, correct * ratio]
+      final lowerRaw = correctRaw / p50Ratio;
+      final upperRaw = correctRaw * p50Ratio;
+      // Clamp to scale bounds (1 to 999e12)
+      final clampedLower = lowerRaw.clamp(1.0, 999e12);
+      final clampedUpper = upperRaw.clamp(1.0, 999e12);
+      // Decompose to AnswerValue for the scale widget
+      acceptableRangeLower = decomposeNumber(clampedLower, correctAnswer.unit);
+      acceptableRangeUpper = decomposeNumber(clampedUpper, correctAnswer.unit);
+    }
+
     return GameCard(
       questionText: question.text,
       tags: [
@@ -385,6 +409,25 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
       isCurrentQuestion: true, // Single question at a time
       onSubmit: _handleSubmit,
       onNext: _handleNext,
+      // Acceptable range highlighting (survival mode)
+      acceptableRangeLower: acceptableRangeLower,
+      acceptableRangeUpper: acceptableRangeUpper,
     );
+  }
+
+  /// Get the multiplier for an order of magnitude symbol.
+  double _getOmMultiplier(String om) {
+    switch (om) {
+      case 'K':
+        return 1e3;
+      case 'M':
+        return 1e6;
+      case 'B':
+        return 1e9;
+      case 'T':
+        return 1e12;
+      default:
+        return 1.0;
+    }
   }
 }

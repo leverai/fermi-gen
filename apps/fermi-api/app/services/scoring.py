@@ -15,6 +15,17 @@ SCORE_MAX = 6000.0
 ALPHA = 0.5
 
 
+def compute_p50_ratio(p50_score: float) -> float:
+    """Compute the p50 ratio for highlighting acceptable answer range.
+
+    The ratio represents the boundary multiplier: answers within
+    [correct_answer / ratio, correct_answer * ratio] achieve >= p50 score.
+    """
+    if p50_score <= 0:
+        return 1.0
+    return (SCORE_MAX / p50_score) ** (1 / ALPHA)
+
+
 class ScoringService:
     """Service for scoring-related operations."""
 

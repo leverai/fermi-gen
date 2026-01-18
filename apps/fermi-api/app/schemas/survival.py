@@ -58,6 +58,9 @@ class SurvivalAnswerResponse(BaseModel):
     score: float
     percentile: float
     pass_threshold: float  # The p50 score they needed to beat
+    p50_ratio: (
+        float  # Ratio for acceptable answer bounds: [correct/ratio, correct*ratio]
+    )
     correct_answer: AnswerBare
     converted_correct_answer: AnswerBare  # In player's unit
     user_answer: AnswerBare
