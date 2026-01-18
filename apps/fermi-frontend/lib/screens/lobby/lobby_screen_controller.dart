@@ -71,7 +71,7 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
         final int maxPlayers =
             snapshot.maxPlayers ?? 8; // Fallback for legacy games
         final int remainingSpots = maxPlayers - currentPlayerCount;
-        _botsToInvite = min(3, max(0, remainingSpots));
+        _botsToInvite = min(4, max(0, remainingSpots));
         // Lobby: preserve natural order as provided by the snapshot
         _players = snapshot.players.values
             .map((p) => PlayerState(
