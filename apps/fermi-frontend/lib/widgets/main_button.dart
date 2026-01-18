@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 
 import 'package:fermi_frontend/theme/app_font.dart';
@@ -202,6 +203,7 @@ class _MainButtonState extends State<MainButton>
       setState(() {
         _isPressed = false;
       });
+      FeedbackService.instance.buttonPress();
       widget.onPressed?.call();
     }
   }

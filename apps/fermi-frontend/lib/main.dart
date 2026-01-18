@@ -17,6 +17,7 @@ import 'package:fermi_frontend/services/deep_link_service.dart';
 import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/services/subscription_service.dart';
 import 'package:fermi_frontend/services/local_settings_service.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/services/notification_service.dart';
 import 'package:fermi_frontend/providers/subscription_provider.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -49,6 +50,9 @@ Future<void> main() async {
 
     // Initialize local settings early
     await LocalSettingsService.instance.initialize();
+
+    // Initialize feedback service (audio pool)
+    await FeedbackService.instance.initialize();
 
     // Initialize push notifications (Android only)
     await NotificationService.instance.initialize();
