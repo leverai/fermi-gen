@@ -468,8 +468,14 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                     _handlePositionUpdate(localX, w);
                   },
                   onHorizontalDragEnd: (details) {
-                    setState(() {
-                      _isDragging = false;
+                    // Debounce: wait 40ms before ending drag to ignore
+                    // any spurious position changes from finger lift
+                    Future.delayed(const Duration(milliseconds: 60), () {
+                      if (mounted) {
+                        setState(() {
+                          _isDragging = false;
+                        });
+                      }
                     });
                   },
                   onHorizontalDragCancel: () {
