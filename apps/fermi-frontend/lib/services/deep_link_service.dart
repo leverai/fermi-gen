@@ -192,13 +192,37 @@ class DeepLinkService {
       return;
     }
 
-    // Handle ChottuLink URLs: https://guesstimate.chottu.link/party?id=<game_id>
-    // or https://guesstimate.chottu.link/dq?date=<date>
+    // Handle ChottuLink URLs: https://guesstimate.chottu.link/invite?mode=party&id=<game_id>
+    // or https://guesstimate.chottu.link/invite?mode=dq&date=<date>
+    // Also supports legacy: /party?id=<game_id> and /dq?date=<date>
     if (uri.scheme == 'https' && uri.host == 'guesstimate.chottu.link') {
       final pathSegments = uri.pathSegments;
       final queryParams = uri.queryParameters;
 
-      // Party invite: /party?id=<game_id>
+      // Unified invite path: /invite?mode=party|dq&id=<id>|date=<date>
+      if (pathSegments.isNotEmpty && pathSegments[0] == 'invite') {
+        final mode = queryParams['mode'];
+        if (mode == 'party') {
+          final gameId = queryParams['id'];
+          if (gameId != null && gameId.isNotEmpty) {
+            debugPrint(
+                'DeepLinkService: Extracted game ID from ChottuLink: $gameId');
+            _pendingGameId = gameId;
+            onJoinGame(gameId);
+          }
+        } else if (mode == 'dq') {
+          final questionDate = queryParams['date'];
+          if (questionDate != null && questionDate.isNotEmpty) {
+            debugPrint(
+                'DeepLinkService: Extracted DQ date from ChottuLink: $questionDate');
+            _pendingDQDate = questionDate;
+            onJoinDQ(questionDate);
+          }
+        }
+        return;
+      }
+
+      // Legacy: Party invite: /party?id=<game_id>
       if (pathSegments.isNotEmpty && pathSegments[0] == 'party') {
         final gameId = queryParams['id'];
         if (gameId != null && gameId.isNotEmpty) {
@@ -209,7 +233,7 @@ class DeepLinkService {
         }
       }
 
-      // DQ invite: /dq?date=<date>
+      // Legacy: DQ invite: /dq?date=<date>
       if (pathSegments.isNotEmpty && pathSegments[0] == 'dq') {
         final questionDate = queryParams['date'];
         if (questionDate != null && questionDate.isNotEmpty) {

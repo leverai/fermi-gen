@@ -121,6 +121,7 @@ class GamesTab extends StatelessWidget {
                     _buildSurvivalCard(context, appTheme),
                     const SizedBox(height: 24),
                     _buildPartyCard(context, appTheme),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),

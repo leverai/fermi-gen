@@ -1130,7 +1130,7 @@ class DailyQuestionService:
 
         date_str = question_date.strftime('%Y-%m-%d')
         if settings.invite_url_base:
-            invite_url = f'{settings.invite_url_base}/dq?date={date_str}'
+            invite_url = f'{settings.invite_url_base}/invite?mode=dq&date={date_str}'
         else:
             # Local dev: use API trampoline endpoint
             base = str(request.base_url).rstrip('/')
