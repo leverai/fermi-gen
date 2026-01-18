@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -48,6 +49,8 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
   bool _isDragging = false; // Track active drag to prevent recursion
   AnswerValue?
       _lastEmittedValue; // Track last emitted value to prevent duplicates
+  Timer? _dragEndDebounceTimer; // Debounce timer to filter finger-lift jitter
+  AnswerValue? _pendingAnswer; // Answer to commit after debounce
 
   @override
   void initState() {
@@ -89,6 +92,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
 
   @override
   void dispose() {
+    _dragEndDebounceTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -457,6 +461,8 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                     _handlePositionUpdate(localX, w);
                   },
                   onHorizontalDragStart: (details) {
+                    // Cancel any pending commit from previous drag
+                    _dragEndDebounceTimer?.cancel();
                     setState(() {
                       _isDragging = true;
                     });
@@ -465,14 +471,34 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                   },
                   onHorizontalDragUpdate: (details) {
                     final localX = details.localPosition.dx;
+                    // Update visuals immediately, but store pending answer
+                    final sliderValue = _positionToSliderValue(localX, w);
+                    final currentUnit = widget.currentAnswer.unit;
+                    _pendingAnswer =
+                        _sliderToAnswerValue(sliderValue, currentUnit);
                     _handlePositionUpdate(localX, w);
                   },
                   onHorizontalDragEnd: (details) {
+                    // Debounce: wait a short time before committing to filter jitter
+                    _dragEndDebounceTimer?.cancel();
+                    _dragEndDebounceTimer = Timer(
+                      const Duration(milliseconds: 40),
+                      () {
+                        if (_pendingAnswer != null &&
+                            _pendingAnswer != _lastEmittedValue) {
+                          _lastEmittedValue = _pendingAnswer;
+                          widget.onAnswerChanged?.call(_pendingAnswer!);
+                        }
+                        _pendingAnswer = null;
+                      },
+                    );
                     setState(() {
                       _isDragging = false;
                     });
                   },
                   onHorizontalDragCancel: () {
+                    _dragEndDebounceTimer?.cancel();
+                    _pendingAnswer = null;
                     setState(() {
                       _isDragging = false;
                     });
