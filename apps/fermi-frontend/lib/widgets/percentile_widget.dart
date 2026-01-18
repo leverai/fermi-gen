@@ -77,10 +77,7 @@ class _PercentileWidgetState extends State<PercentileWidget>
       return const SizedBox.shrink();
     }
 
-    // Calculate "Top X%" value (inverted percentile)
-    final topPercentile = 100 - widget.percentile!;
-
-    // Get inverted color: use the ORIGINAL percentile (0-100)
+    // Get color: use the ORIGINAL target percentile (0-100)
     // percentile 99 (high score) -> success
     // percentile 1 (low score) -> danger
     final color = percentileToColor(widget.percentile!, theme: appTheme);
@@ -91,33 +88,36 @@ class _PercentileWidgetState extends State<PercentileWidget>
       curve: Curves.easeInOut,
       child: SizedBox(
         height: 24,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // "Top" text
-            Text(
-              'top ',
-              style: AppFont.primaryTextStyle(
-                context,
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                color: appTheme.borderMuted,
-              ),
-            ),
-            // Animated digits
-            AnimatedBuilder(
-              animation: _animation,
-              builder: (context, child) {
-                // Interpolate between previous INVERTED and current INVERTED percentile
-                final start = 100 - (_previousPercentile ?? widget.percentile!);
-                final end = topPercentile;
+        child: AnimatedBuilder(
+          animation: _animation,
+          builder: (context, child) {
+            final startRaw = _previousPercentile ?? widget.percentile!;
+            final endRaw = widget.percentile!;
 
-                final displayValue = widget.animate
-                    ? (start + (_animation.value * (end - start))).round()
-                    : topPercentile;
+            final currentRaw = widget.animate
+                ? (startRaw + (_animation.value * (endRaw - startRaw))).round()
+                : endRaw;
 
-                return Text(
+            final isBottom = currentRaw < 50;
+            final label = isBottom ? 'bottom ' : 'top ';
+            final displayValue = isBottom ? currentRaw : (100 - currentRaw);
+
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // "Top"/"Bottom" text
+                Text(
+                  label,
+                  style: AppFont.primaryTextStyle(
+                    context,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: appTheme.borderMuted,
+                  ),
+                ),
+                // Animated digits
+                Text(
                   '$displayValue',
                   style: AppFont.primaryTextStyle(
                     context,
@@ -125,20 +125,20 @@ class _PercentileWidgetState extends State<PercentileWidget>
                     fontWeight: FontWeight.w600,
                     color: color,
                   ),
-                );
-              },
-            ),
-            // "%" symbol
-            Text(
-              '%',
-              style: AppFont.primaryTextStyle(
-                context,
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                color: color,
-              ),
-            ),
-          ],
+                ),
+                // "%" symbol
+                Text(
+                  '%',
+                  style: AppFont.primaryTextStyle(
+                    context,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: color,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
