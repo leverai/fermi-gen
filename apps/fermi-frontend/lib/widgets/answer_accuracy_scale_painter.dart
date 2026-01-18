@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 
@@ -16,6 +17,8 @@ class ScalePainter extends CustomPainter {
     required this.labelTextStyle,
     this.otherPlayersLogValues = const <String, double>{},
     this.otherPlayersAvatars = const <String, String?>{},
+    this.acceptableRangeLower,
+    this.acceptableRangeUpper,
   });
 
   final double userLogValue;
@@ -26,6 +29,12 @@ class ScalePainter extends CustomPainter {
   final TextStyle labelTextStyle;
   final Map<String, double> otherPlayersLogValues;
   final Map<String, String?> otherPlayersAvatars;
+
+  /// Lower bound of acceptable range (log scale 0-15), for survival mode
+  final double? acceptableRangeLower;
+
+  /// Upper bound of acceptable range (log scale 0-15), for survival mode
+  final double? acceptableRangeUpper;
 
   // Constants
 
@@ -39,6 +48,10 @@ class ScalePainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
     final cy = h / 2;
+
+    // Calculate pulse for size animation (starts at 0, peaks, ends at 0)
+    // We clamp to 0.0 to handle potential negative values from elastic overshoot
+    final sizePulse = math.max(0.0, math.sin(revealProgress * math.pi));
 
     // Paint for the ruler line
     final rulerPaint = Paint()
@@ -70,27 +83,70 @@ class ScalePainter extends CustomPainter {
       // i is the start of decade. i+1 is end.
       // We want dots at i + 1/9, i + 2/9 ... i + 8/9
       if (i < 15) {
-        final dotPaint = Paint()
-          ..color = appTheme.textMuted.withAlpha(50)
-          ..style = PaintingStyle.fill;
-
         for (int j = 1; j <= 8; j++) {
           final sliderVal = i + (j / 9.0);
           final x = padding + (sliderVal / maxLog) * drawWidth;
-          canvas.drawCircle(Offset(x, cy), 1.0, dotPaint);
+
+          // Check if dot is within acceptable range (for survival mode)
+          final bool inAcceptableRange = acceptableRangeLower != null &&
+              acceptableRangeUpper != null &&
+              sliderVal >= acceptableRangeLower! &&
+              sliderVal <= acceptableRangeUpper! &&
+              revealProgress > 0;
+
+          final dotColor = inAcceptableRange
+              ? Color.lerp(
+                  appTheme.textMuted.withAlpha(50),
+                  appTheme.success,
+                  revealProgress,
+                )!
+              : appTheme.textMuted.withAlpha(50);
+
+          // Animated size for acceptable range dots
+          final double dotRadius = inAcceptableRange
+              ? 1.0 + (1.5 * sizePulse) // Grow from 1.0 to 2.5 then back to 1.0
+              : 1.0;
+
+          final dotPaint = Paint()
+            ..color = dotColor
+            ..style = PaintingStyle.fill;
+
+          canvas.drawCircle(Offset(x, cy), dotRadius, dotPaint);
         }
       }
 
       final x = padding + (i / maxLog) * drawWidth;
 
       final isOmBoundary = i % 3 == 0;
-      final currentTickHeight = isOmBoundary ? tickHeight * 1.5 : tickHeight;
+      final baseTickHeight = isOmBoundary ? tickHeight * 1.5 : tickHeight;
+
+      // Check if tick is within acceptable range
+      final bool tickInRange = acceptableRangeLower != null &&
+          acceptableRangeUpper != null &&
+          i.toDouble() >= acceptableRangeLower! &&
+          i.toDouble() <= acceptableRangeUpper! &&
+          revealProgress > 0;
+
+      // Animate tick height for acceptable range
+      final double currentTickHeight = tickInRange
+          ? baseTickHeight * (1.0 + 0.3 * sizePulse) // Pulse by 30%
+          : baseTickHeight;
+
+      final Color tickColor;
+      if (tickInRange) {
+        tickColor = Color.lerp(
+          isOmBoundary ? appTheme.border : appTheme.borderMuted,
+          appTheme.success,
+          revealProgress,
+        )!;
+      } else {
+        tickColor = isOmBoundary ? appTheme.border : appTheme.borderMuted;
+      }
 
       canvas.drawLine(
         Offset(x, cy - currentTickHeight / 2),
         Offset(x, cy + currentTickHeight / 2),
-        tickPaint
-          ..color = isOmBoundary ? appTheme.border : appTheme.borderMuted,
+        tickPaint..color = tickColor,
       );
 
       // Draw Labels
@@ -208,7 +264,8 @@ class ScalePainter extends CustomPainter {
         oldDelegate.appTheme != appTheme ||
         oldDelegate.revealedColor != revealedColor ||
         oldDelegate.labelTextStyle != labelTextStyle ||
-        oldDelegate.otherPlayersLogValues != otherPlayersLogValues;
-    // removed otherPlayersAvatars check
+        oldDelegate.otherPlayersLogValues != otherPlayersLogValues ||
+        oldDelegate.acceptableRangeLower != acceptableRangeLower ||
+        oldDelegate.acceptableRangeUpper != acceptableRangeUpper;
   }
 }

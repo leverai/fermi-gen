@@ -25,6 +25,8 @@ class AnswerAccuracyScale extends StatefulWidget {
     this.otherPlayersAnswers,
     this.currentPlayerAvatarUrl,
     this.onAnswerChanged,
+    this.acceptableRangeLower,
+    this.acceptableRangeUpper,
   });
 
   final AnswerValue currentAnswer;
@@ -35,6 +37,12 @@ class AnswerAccuracyScale extends StatefulWidget {
   final Map<String, AnswerValue>? otherPlayersAnswers;
   final String? currentPlayerAvatarUrl;
   final ValueChanged<AnswerValue>? onAnswerChanged;
+
+  /// Lower bound of acceptable answer range (for survival mode highlighting)
+  final AnswerValue? acceptableRangeLower;
+
+  /// Upper bound of acceptable answer range (for survival mode highlighting)
+  final AnswerValue? acceptableRangeUpper;
 
   @override
   State<AnswerAccuracyScale> createState() => _AnswerAccuracyScaleState();
@@ -368,7 +376,12 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                               (id, ans) =>
                                   MapEntry(id, _getSliderValue(ans))) ??
                           {},
-                      // Removed otherPlayersAvatars from painter as it's no longer used there
+                      acceptableRangeLower: widget.acceptableRangeLower != null
+                          ? _getSliderValue(widget.acceptableRangeLower!)
+                          : null,
+                      acceptableRangeUpper: widget.acceptableRangeUpper != null
+                          ? _getSliderValue(widget.acceptableRangeUpper!)
+                          : null,
                     ),
                   ),
                   // Other players' text boxes moved to carousel in QuestionAnswerCard

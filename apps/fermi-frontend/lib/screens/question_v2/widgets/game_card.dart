@@ -119,6 +119,9 @@ class GameCard extends StatelessWidget {
     this.paragraph,
     this.walkthroughViewed = false,
     this.onWalkthroughViewed,
+    // Survival mode acceptable range highlighting
+    this.acceptableRangeLower,
+    this.acceptableRangeUpper,
   });
 
   final String questionText;
@@ -176,6 +179,12 @@ class GameCard extends StatelessWidget {
 
   /// Callback when the walkthrough is viewed
   final VoidCallback? onWalkthroughViewed;
+
+  /// Lower bound of acceptable answer range (for survival mode highlighting)
+  final AnswerValue? acceptableRangeLower;
+
+  /// Upper bound of acceptable answer range (for survival mode highlighting)
+  final AnswerValue? acceptableRangeUpper;
 
   Widget _buildMainButton(BuildContext context) {
     if (paneState == null) {
@@ -327,6 +336,8 @@ class GameCard extends StatelessWidget {
               paragraph: paragraph,
               walkthroughViewed: walkthroughViewed,
               onWalkthroughViewed: onWalkthroughViewed,
+              acceptableRangeLower: acceptableRangeLower,
+              acceptableRangeUpper: acceptableRangeUpper,
             ),
 
             // Feedback row (right-aligned like widget)

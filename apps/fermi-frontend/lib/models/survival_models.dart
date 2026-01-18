@@ -110,6 +110,7 @@ class SurvivalAnswerResponse {
   final double score;
   final double percentile;
   final double passThreshold;
+  final double p50Ratio;
   final AnswerValue correctAnswer;
   final AnswerValue convertedCorrectAnswer;
   final AnswerValue userAnswer;
@@ -123,6 +124,7 @@ class SurvivalAnswerResponse {
     required this.score,
     required this.percentile,
     required this.passThreshold,
+    required this.p50Ratio,
     required this.correctAnswer,
     required this.convertedCorrectAnswer,
     required this.userAnswer,
@@ -138,6 +140,7 @@ class SurvivalAnswerResponse {
       score: (json['score'] as num).toDouble(),
       percentile: (json['percentile'] as num).toDouble(),
       passThreshold: (json['pass_threshold'] as num).toDouble(),
+      p50Ratio: (json['p50_ratio'] as num?)?.toDouble() ?? 1.0,
       correctAnswer: _parseAnswerValue(json['correct_answer']),
       convertedCorrectAnswer:
           _parseAnswerValue(json['converted_correct_answer']),

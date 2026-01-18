@@ -58,6 +58,9 @@ class QuestionAnswerCard extends StatefulWidget {
     this.paragraph,
     this.walkthroughViewed = false,
     this.onWalkthroughViewed,
+    // Survival mode acceptable range highlighting
+    this.acceptableRangeLower,
+    this.acceptableRangeUpper,
   });
 
   final String questionText;
@@ -94,6 +97,12 @@ class QuestionAnswerCard extends StatefulWidget {
 
   /// Callback when the walkthrough is viewed
   final VoidCallback? onWalkthroughViewed;
+
+  /// Lower bound of acceptable answer range (for survival mode highlighting)
+  final AnswerValue? acceptableRangeLower;
+
+  /// Upper bound of acceptable answer range (for survival mode highlighting)
+  final AnswerValue? acceptableRangeUpper;
 
   @override
   State<QuestionAnswerCard> createState() => _QuestionAnswerCardState();
@@ -543,6 +552,8 @@ class _QuestionAnswerCardState extends State<QuestionAnswerCard>
                   currentPlayerAvatarUrl: widget.currentPlayerAvatarUrl,
                   onAnswerChanged:
                       widget.editable ? widget.onAnswerChanged : null,
+                  acceptableRangeLower: widget.acceptableRangeLower,
+                  acceptableRangeUpper: widget.acceptableRangeUpper,
                 ),
                 // Button widget (if provided)
                 const SizedBox(height: 16),
