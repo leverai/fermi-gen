@@ -126,7 +126,7 @@ class LobbyScreen extends StatelessWidget {
                                 InviteBotsButton(
                                   onPressed: onInviteBots!,
                                   botCount: botsToInvite,
-                                  iconOnly: true,
+                                  // iconOnly: true,
                                 ),
                                 const SizedBox(height: 48),
                               ],
