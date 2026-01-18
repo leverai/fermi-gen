@@ -343,8 +343,8 @@ The app can optionally use a custom domain (e.g., `guesstimate.leverai.tech`) fo
 The app uses ChottuLink for cross-platform deep links in dev/prod environments, with API trampoline endpoints as fallback for local development.
 
 **ChottuLink URLs (Dev/Prod):**
-- Game invites: `https://guesstimate.chottu.link/party?id={game_id}`
-- Daily Question: `https://guesstimate.chottu.link/dq?date={YYYY-MM-DD}`
+- Party: `https://guesstimate.chottu.link/invite?mode=party&id={game_id}`
+- DQ: `https://guesstimate.chottu.link/invite?mode=dq&date={YYYY-MM-DD}`
 
 ChottuLink handles:
 - **Android**: App Links with automatic App Store fallback

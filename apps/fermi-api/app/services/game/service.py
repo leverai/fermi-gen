@@ -126,7 +126,7 @@ class GameService:
         # Use ChottuLink URL if configured, otherwise fall back to API trampoline
 
         if settings.invite_url_base:
-            join_url = f'{settings.invite_url_base}/party?id={game_ref.id}'
+            join_url = f'{settings.invite_url_base}/invite?mode=party&id={game_ref.id}'
         else:
             # Local dev: use API trampoline endpoint
             base = str(request.base_url).rstrip('/')
