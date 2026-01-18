@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 
 /// A wrapper that adds a simple bounce (scale) effect on press.
 ///
@@ -92,7 +93,12 @@ class _BounceEffectWrapperState extends State<BounceEffectWrapper>
       onTapDown: _onTapDown,
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,
-      onTap: widget.onTap,
+      onTap: widget.onTap != null
+          ? () {
+              FeedbackService.instance.lightTap();
+              widget.onTap!();
+            }
+          : null,
       child: ScaleTransition(
         scale: _scaleAnimation,
         child: Container(

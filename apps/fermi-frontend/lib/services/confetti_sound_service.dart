@@ -56,8 +56,8 @@ class ConfettiSoundService {
       await initialize();
     }
 
-    if (!LocalSettingsService.instance.soundEnabled.value) {
-      debugPrint('ConfettiSoundService: Sound disabled, skipping cheer');
+    if (!LocalSettingsService.instance.feedbackEnabled.value) {
+      debugPrint('ConfettiSoundService: Feedback disabled, skipping cheer');
       return;
     }
 
@@ -76,7 +76,7 @@ class ConfettiSoundService {
       return;
     }
 
-    if (!LocalSettingsService.instance.soundEnabled.value) {
+    if (!LocalSettingsService.instance.feedbackEnabled.value) {
       return;
     }
 

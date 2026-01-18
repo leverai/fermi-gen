@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 
 /// A wrapper that adds a splash effect and a 3D push-down animation on press.
@@ -84,7 +85,12 @@ class _PressEffectWrapperState extends State<PressEffectWrapper> {
             ? (_) => setState(() => _isPressed = false)
             : null,
         child: GestureDetector(
-          onTap: widget.onTap,
+          onTap: widget.onTap != null
+              ? () {
+                  FeedbackService.instance.lightTap();
+                  widget.onTap!();
+                }
+              : null,
           behavior: HitTestBehavior.opaque,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 50),
