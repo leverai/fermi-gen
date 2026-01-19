@@ -109,7 +109,6 @@ class _PressEffectWrapperState extends State<PressEffectWrapper> {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: widget.onTap,
                 borderRadius: borderRadius,
                 splashColor:
                     widget.splashColor ?? Colors.black.withOpacity(0.1),

@@ -106,7 +106,6 @@ class _BounceEffectWrapperState extends State<BounceEffectWrapper>
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: widget.onTap,
               borderRadius: effectiveBorderRadius,
               splashColor: Colors.black.withOpacity(0.05),
               highlightColor: Colors.transparent,
