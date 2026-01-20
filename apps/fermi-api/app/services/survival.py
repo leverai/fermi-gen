@@ -39,7 +39,7 @@ GRACE_PERIOD_SECONDS = 20
 GRACE_PERIOD = timedelta(seconds=GRACE_PERIOD_SECONDS)
 
 # Free tier survival run limit (per calendar day)
-FREE_SURVIVAL_RUNS_PER_DAY = 2
+FREE_SURVIVAL_RUNS_PER_DAY = 3
 
 
 class SurvivalService:
