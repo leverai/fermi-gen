@@ -10,6 +10,7 @@ class SurvivalQuestionData {
   final String text;
   final String? category;
   final String? difficulty;
+  final int? year;
   final Map<String, List<Map<String, String>>>? units;
   final int upvotes;
   final int userVote; // -1=downvote, 0=neutral, 1=upvote (VoteVerdict IntEnum)
@@ -19,6 +20,7 @@ class SurvivalQuestionData {
     required this.text,
     this.category,
     this.difficulty,
+    this.year,
     this.units,
     required this.upvotes,
     required this.userVote,
@@ -48,6 +50,7 @@ class SurvivalQuestionData {
       text: json['text'] as String,
       category: json['category'] as String?,
       difficulty: json['difficulty'] as String?,
+      year: json['year'] as int?,
       units: parsedUnits,
       upvotes: json['upvotes'] as int? ?? 0,
       userVote: json['user_vote'] as int? ?? 0,

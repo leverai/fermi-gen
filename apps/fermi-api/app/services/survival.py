@@ -388,5 +388,5 @@ class SurvivalService:
             units=units,
             upvotes=upvotes,
             user_vote=user_vote,
-            year=question.year,
+            year=question.created_at.year,
         )
