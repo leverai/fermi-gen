@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/utils/answer_format.dart';
@@ -56,6 +57,7 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
   bool _isDragging = false; // Track active drag to prevent recursion
   AnswerValue?
       _lastEmittedValue; // Track last emitted value to prevent duplicates
+  double? _lastSliderValue; // Track last slider value for haptic feedback
 
   @override
   void initState() {
@@ -259,6 +261,20 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
     final sliderValue = _positionToSliderValue(x, width);
     final currentUnit = widget.currentAnswer.unit;
     final newAnswer = _sliderToAnswerValue(sliderValue, currentUnit);
+
+    // Trigger haptic feedback when crossing large or medium ticks
+    // Large ticks: 0, 3, 6, 9, 12, 15 (1, 1K, 1M, 1B, 1T, boundaries)
+    // Medium ticks: 1, 2, 4, 5, 7, 8, 10, 11, 13, 14 (10, 100, 10K, etc.)
+    // Both are at integer slider values (order of magnitude boundaries)
+    if (_lastSliderValue != null) {
+      final prevOM = _lastSliderValue!.floor();
+      final currOM = sliderValue.floor();
+      if (prevOM != currOM) {
+        // Crossed an order of magnitude boundary (large or medium tick)
+        FeedbackService.instance.selectionChange();
+      }
+    }
+    _lastSliderValue = sliderValue;
 
     // Prevent duplicate callbacks
     if (_lastEmittedValue == newAnswer) {
