@@ -15,9 +15,33 @@ class GamesTab extends StatelessWidget {
     final controller = context.watch<MainScreenController>();
     final userLimits = controller.userLimitsDto;
 
-    // Don't show anything for Pro users or if limits aren't loaded
-    if (userLimits == null || userLimits.isUnlimited) {
+    // If limits aren't loaded, don't show anything.
+    if (userLimits == null) {
       return const SizedBox.shrink();
+    }
+
+    // Show PRO stamp for unlimited users
+    if (userLimits.isUnlimited) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.workspace_premium,
+            size: 14,
+            color: appTheme.bg.withAlpha(200),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Unlimited',
+            style: AppFont.primaryTextStyle(
+              context,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: appTheme.bg.withAlpha(200),
+            ),
+          ),
+        ],
+      );
     }
 
     final bool canHost = userLimits.canHost;
@@ -51,9 +75,33 @@ class GamesTab extends StatelessWidget {
     final controller = context.watch<MainScreenController>();
     final userLimits = controller.userLimitsDto;
 
-    // Don't show anything for Pro users or if limits aren't loaded
-    if (userLimits == null || userLimits.isSurvivalUnlimited) {
+    // If limits aren't loaded, don't show anything.
+    if (userLimits == null) {
       return const SizedBox.shrink();
+    }
+
+    // Show PRO stamp for unlimited users
+    if (userLimits.isSurvivalUnlimited) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.workspace_premium,
+            size: 14,
+            color: appTheme.bgLight.withAlpha(200),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Unlimited',
+            style: AppFont.primaryTextStyle(
+              context,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: appTheme.bgLight.withAlpha(200),
+            ),
+          ),
+        ],
+      );
     }
 
     final bool canPlay = userLimits.canPlaySurvival;
