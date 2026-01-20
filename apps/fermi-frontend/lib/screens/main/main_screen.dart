@@ -85,6 +85,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           now.difference(_lastResumeTime!).inSeconds > 2) {
         _lastResumeTime = now;
         _controller.refreshInBackground();
+        // Refresh DQ data to pick up status changes that occurred while backgrounded
+        // (Android may pause/disconnect Firestore streams in background)
+        context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
       }
     }
   }
