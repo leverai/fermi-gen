@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/models/avatar_info.dart';
 import 'package:fermi_frontend/services/api_service.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/avatar_widget.dart';
@@ -365,7 +366,10 @@ class _ProfileSheetState extends State<ProfileSheet> {
                 IconButton(
                   icon: Icon(Icons.keyboard_arrow_down,
                       color: appTheme.border, size: 32),
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    FeedbackService.instance.secondaryClick();
+                    Navigator.of(context).pop();
+                  },
                 ),
               ],
             ),

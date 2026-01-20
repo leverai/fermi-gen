@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 
 class LeaveButtonOverlay extends StatelessWidget {
   const LeaveButtonOverlay({
@@ -24,7 +25,10 @@ class LeaveButtonOverlay extends StatelessWidget {
           child: IconButton(
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints.tightFor(width: 48, height: 48),
-            onPressed: onPressed,
+            onPressed: () {
+              FeedbackService.instance.secondaryClick();
+              onPressed();
+            },
             icon: const Icon(Icons.arrow_back),
             color: iconColor,
             splashRadius: 22,

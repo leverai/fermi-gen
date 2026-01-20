@@ -1,6 +1,7 @@
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 
 class ShareButton extends StatefulWidget {
   final VoidCallback onPressed;
@@ -29,7 +30,10 @@ class _ShareButtonState extends State<ShareButton> {
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
-      onTap: widget.onPressed,
+      onTap: () {
+        FeedbackService.instance.secondaryClick();
+        widget.onPressed();
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 100),
         transform: Matrix4.translationValues(

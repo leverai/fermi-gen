@@ -7,6 +7,7 @@ import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/services/preload_service.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/config/app_config.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
 import 'package:fermi_frontend/screens/main/widgets/settings_sheet.dart';
@@ -467,7 +468,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                         color: appTheme.bgLight.withAlpha(140),
                         borderRadius: BorderRadius.circular(1e3),
                         child: IconButton(
-                          onPressed: _toggleSettings,
+                          onPressed: () {
+                            FeedbackService.instance.secondaryClick();
+                            _toggleSettings();
+                          },
                           splashColor: Colors.transparent,
                           highlightColor: appTheme.borderMuted,
                           icon: SvgPicture.asset(

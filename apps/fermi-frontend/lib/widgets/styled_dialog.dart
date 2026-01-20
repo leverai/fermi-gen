@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 
@@ -168,7 +169,12 @@ class StyledDialog extends StatelessWidget {
                         splashColor: appTheme.highlight.withOpacity(0.2),
                         highlightColor: Colors
                             .transparent, // optional: avoids the grey hold highlight
-                        onTap: onSecondaryPressed,
+                        onTap: onSecondaryPressed != null
+                            ? () {
+                                FeedbackService.instance.secondaryClick();
+                                onSecondaryPressed!();
+                              }
+                            : null,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Center(
@@ -194,7 +200,10 @@ class StyledDialog extends StatelessWidget {
                 SizedBox(
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: onPrimaryPressed,
+                    onPressed: () {
+                      FeedbackService.instance.secondaryClick();
+                      onPrimaryPressed();
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryButtonColor,
                       foregroundColor: appTheme.bgLight,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 
 /// A selector widget using Material 3 Filter Chips in a grid layout.
 /// Can be configured to allow no selection or enforce a default selection.
@@ -145,6 +146,7 @@ class SelectorWidget extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (isSelected && !allowNoSelection && !closeOnReselect) return;
+        FeedbackService.instance.secondaryClick();
         onChanged(isSelected
             ? (allowNoSelection ? null : option.value)
             : option.value);

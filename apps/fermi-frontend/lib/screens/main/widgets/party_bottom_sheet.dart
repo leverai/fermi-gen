@@ -5,6 +5,7 @@ import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/models/user_limits.dart';
 import 'package:fermi_frontend/screens/paywall_screen.dart';
 import 'package:fermi_frontend/services/subscription_service.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/widgets/selector_widget.dart';
@@ -113,7 +114,10 @@ void showPartyBottomSheet({
                             IconButton(
                               icon: Icon(Icons.keyboard_arrow_down,
                                   color: appTheme.border, size: 32),
-                              onPressed: () => Navigator.of(context).pop(),
+                              onPressed: () {
+                                FeedbackService.instance.secondaryClick();
+                                Navigator.of(context).pop();
+                              },
                             ),
                           ],
                         ),
