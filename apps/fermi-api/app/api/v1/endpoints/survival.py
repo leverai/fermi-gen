@@ -10,6 +10,7 @@ import app.logging.attributes as api_attrs
 from app.api.v1.auth_deps import get_authenticated_user, get_current_user
 from app.api.v1.authenticated_user import AuthenticatedUser
 from app.api.v1.dependencies import get_survival_service
+from app.api.v1.rate_limit import GAME_CREATE_RATE_LIMIT, limiter
 from app.schemas.survival import (
     CreateOrResumeRequest,
     LeaderboardResponse,
@@ -25,6 +26,7 @@ router = APIRouter()
 
 
 @router.post('/create_or_resume', response_model=SurvivalQuestionResponse)
+@limiter.limit(GAME_CREATE_RATE_LIMIT)
 async def start_survival_run(
     payload: CreateOrResumeRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -51,6 +53,7 @@ async def start_survival_run(
 
 
 @router.post('/answer', response_model=SurvivalAnswerResponse)
+@limiter.limit(GAME_CREATE_RATE_LIMIT)
 async def submit_survival_answer(
     payload: SurvivalAnswerRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -75,6 +78,7 @@ async def submit_survival_answer(
 
 
 @router.get('/stats', response_model=SurvivalStatsResponse)
+@limiter.limit(GAME_CREATE_RATE_LIMIT)
 async def get_survival_stats(
     current_user: Annotated[User, Depends(get_current_user)],
     survival_service: Annotated[SurvivalService, Depends(get_survival_service)],
@@ -92,6 +96,7 @@ async def get_survival_stats(
 
 
 @router.get('/streak', response_model=StreakInfo)
+@limiter.limit(GAME_CREATE_RATE_LIMIT)
 async def get_survival_streak(
     current_user: Annotated[User, Depends(get_current_user)],
     survival_service: Annotated[SurvivalService, Depends(get_survival_service)],
@@ -106,6 +111,7 @@ async def get_survival_streak(
 
 
 @router.get('/leaderboard', response_model=LeaderboardResponse)
+@limiter.limit(GAME_CREATE_RATE_LIMIT)
 async def get_survival_leaderboard(
     current_user: Annotated[User, Depends(get_current_user)],
     survival_service: Annotated[SurvivalService, Depends(get_survival_service)],
