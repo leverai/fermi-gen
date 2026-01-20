@@ -18,6 +18,7 @@ class SurvivalQuestionData(BaseModel):
     units: dict[Locale, list[UnitInfo]] | None = None
     upvotes: int
     user_vote: VoteVerdict
+    year: int
 
 
 class SurvivalQuestionResponse(BaseModel):
