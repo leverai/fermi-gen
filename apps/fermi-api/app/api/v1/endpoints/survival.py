@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from fermi_db.models.user import User
 from opentelemetry import trace
 
@@ -28,6 +28,7 @@ router = APIRouter()
 @router.post('/create_or_resume', response_model=SurvivalQuestionResponse)
 @limiter.limit(GAME_CREATE_RATE_LIMIT)
 async def start_survival_run(
+    request: Request,
     payload: CreateOrResumeRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     auth_user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
@@ -55,6 +56,7 @@ async def start_survival_run(
 @router.post('/answer', response_model=SurvivalAnswerResponse)
 @limiter.limit(GAME_CREATE_RATE_LIMIT)
 async def submit_survival_answer(
+    request: Request,
     payload: SurvivalAnswerRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     survival_service: Annotated[SurvivalService, Depends(get_survival_service)],
@@ -80,6 +82,7 @@ async def submit_survival_answer(
 @router.get('/stats', response_model=SurvivalStatsResponse)
 @limiter.limit(GAME_CREATE_RATE_LIMIT)
 async def get_survival_stats(
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     survival_service: Annotated[SurvivalService, Depends(get_survival_service)],
 ) -> SurvivalStatsResponse:
@@ -98,6 +101,7 @@ async def get_survival_stats(
 @router.get('/streak', response_model=StreakInfo)
 @limiter.limit(GAME_CREATE_RATE_LIMIT)
 async def get_survival_streak(
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     survival_service: Annotated[SurvivalService, Depends(get_survival_service)],
 ) -> StreakInfo:
@@ -113,6 +117,7 @@ async def get_survival_streak(
 @router.get('/leaderboard', response_model=LeaderboardResponse)
 @limiter.limit(GAME_CREATE_RATE_LIMIT)
 async def get_survival_leaderboard(
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     survival_service: Annotated[SurvivalService, Depends(get_survival_service)],
     page: int = Query(1, ge=1, description='Page number (1-indexed)'),

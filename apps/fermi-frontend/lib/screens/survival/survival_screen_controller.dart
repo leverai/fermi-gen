@@ -110,6 +110,13 @@ class SurvivalScreenController extends ChangeNotifier {
     return match?.slug ?? name;
   }
 
+  /// Get year display string.
+  String? getYearSlug() {
+    final year = _currentQuestion?.year;
+    if (year == null) return null;
+    return year.toString();
+  }
+
   // Confetti trigger
   bool _showConfetti = false;
   bool get showConfetti => _showConfetti;

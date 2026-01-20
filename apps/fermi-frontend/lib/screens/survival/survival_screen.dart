@@ -375,6 +375,7 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
           _controller.getCategorySlug()!,
         if (_controller.getDifficultySlug() != null)
           _controller.getDifficultySlug()!,
+        if (_controller.getYearSlug() != null) _controller.getYearSlug()!,
       ],
       currentAnswer: _controller.userAnswer,
       submittedAnswer: isSubmitted ? _controller.userAnswer : null,
