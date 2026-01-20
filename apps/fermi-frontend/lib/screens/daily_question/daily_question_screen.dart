@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -820,7 +821,10 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
           // Back button
           IconButton(
             icon: Icon(Icons.arrow_back, color: appTheme.border),
-            onPressed: _handleLeave,
+            onPressed: () {
+              FeedbackService.instance.secondaryClick();
+              _handleLeave();
+            },
             tooltip: 'Leave',
           ),
 

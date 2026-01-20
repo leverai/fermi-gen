@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/providers/subscription_provider.dart';
 import 'package:fermi_frontend/services/subscription_service.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/screens/paywall_screen.dart';
 import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
@@ -208,7 +209,10 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
                     child: IconButton(
                       icon: Icon(Icons.chevron_left,
                           color: appTheme.border, size: 32),
-                      onPressed: () => _handleLeave(context),
+                      onPressed: () {
+                        FeedbackService.instance.secondaryClick();
+                        _handleLeave(context);
+                      },
                       tooltip: 'Leave',
                     ),
                   ),

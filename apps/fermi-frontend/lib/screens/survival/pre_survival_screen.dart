@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/services/subscription_service.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/models/survival_models.dart';
 import 'package:fermi_frontend/models/user_limits.dart';
 import 'package:fermi_frontend/screens/paywall_screen.dart';
@@ -187,7 +188,10 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
                       child: IconButton(
                         icon: Icon(Icons.chevron_left,
                             color: appTheme.border, size: 32),
-                        onPressed: _handleLeave,
+                        onPressed: () {
+                          FeedbackService.instance.secondaryClick();
+                          _handleLeave();
+                        },
                         tooltip: 'Back',
                       ),
                     ),

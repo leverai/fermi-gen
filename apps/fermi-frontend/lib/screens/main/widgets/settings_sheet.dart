@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/main.dart' show useEmulators;
 import 'package:fermi_frontend/providers/subscription_provider.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/unit_system_switch.dart';
@@ -97,7 +98,10 @@ class _SettingsSheetState extends State<SettingsSheet> {
                 IconButton(
                   icon: Icon(Icons.keyboard_arrow_down,
                       color: appTheme.border, size: 32),
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    FeedbackService.instance.secondaryClick();
+                    Navigator.of(context).pop();
+                  },
                 ),
               ],
             ),

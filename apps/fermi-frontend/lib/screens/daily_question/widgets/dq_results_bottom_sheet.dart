@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/widgets/avatar_widget.dart';
@@ -393,7 +394,10 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
                     color: appTheme.border,
                     size: 32,
                   ),
-                  onPressed: _toggleSheet,
+                  onPressed: () {
+                    FeedbackService.instance.secondaryClick();
+                    _toggleSheet();
+                  },
                 ),
               ],
             ),
@@ -423,6 +427,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
                       activeColor: appTheme.secondary,
                       checkColor: appTheme.bgLight,
                       onChanged: (value) {
+                        FeedbackService.instance.secondaryClick();
                         setState(() {
                           _showAll = value ?? true;
                         });

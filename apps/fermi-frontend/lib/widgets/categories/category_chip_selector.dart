@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 
 /// Data model for category chip items.
 class CategoryChipItem {
@@ -241,7 +242,12 @@ class CategoryChip extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: onTap != null
+            ? () {
+                FeedbackService.instance.secondaryClick();
+                onTap!();
+              }
+            : null,
         borderRadius: BorderRadius.circular(8),
         splashColor: isSelected
             ? Colors.transparent
@@ -316,7 +322,12 @@ class AllChip extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: isSelected ? null : onTap, // Only clickable when unchecked
+        onTap: isSelected
+            ? null
+            : () {
+                FeedbackService.instance.secondaryClick();
+                onTap?.call();
+              }, // Only clickable when unchecked
         borderRadius: BorderRadius.circular(8),
         splashColor:
             isSelected ? Colors.transparent : appTheme.text.withAlpha(30),

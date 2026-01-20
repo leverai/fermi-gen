@@ -16,6 +16,7 @@ class FeedbackService {
   static FeedbackService get instance => _instance ??= FeedbackService._();
 
   AudioPool? _clickPool;
+  AudioPool? _secondaryClickPool;
   bool _isInitialized = false;
 
   // AudioContext that does NOT request audio focus, allowing sounds to mix
@@ -27,13 +28,19 @@ class FeedbackService {
 
   FeedbackService._();
 
-  /// Initialize the audio pool. Call this at app startup.
+  /// Initialize the audio pools. Call this at app startup.
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
       _clickPool = await AudioPool.create(
         source: AssetSource('sounds/click.mp3'),
+        minPlayers: 2,
+        maxPlayers: 5,
+        audioContext: _noFocusContext,
+      );
+      _secondaryClickPool = await AudioPool.create(
+        source: AssetSource('sounds/click_secondary.mp3'),
         minPlayers: 2,
         maxPlayers: 5,
         audioContext: _noFocusContext,
@@ -59,6 +66,13 @@ class FeedbackService {
     _playClick();
   }
 
+  /// Secondary click feedback for minor UI interactions (chips, checkboxes, etc).
+  void secondaryClick() {
+    if (!LocalSettingsService.instance.feedbackEnabled.value) return;
+    HapticFeedback.lightImpact();
+    _playSecondaryClick();
+  }
+
   /// Feedback for selection changes (pickers, sliders).
   void selectionChange() {
     if (!LocalSettingsService.instance.feedbackEnabled.value) return;
@@ -79,9 +93,24 @@ class FeedbackService {
     }
   }
 
+  void _playSecondaryClick() {
+    if (_secondaryClickPool == null) {
+      debugPrint('FeedbackService: Secondary click pool not initialized');
+      return;
+    }
+
+    try {
+      _secondaryClickPool!.start();
+    } catch (e) {
+      debugPrint('FeedbackService: Error playing secondary click: $e');
+    }
+  }
+
   void dispose() {
     _clickPool?.dispose();
     _clickPool = null;
+    _secondaryClickPool?.dispose();
+    _secondaryClickPool = null;
     _isInitialized = false;
   }
 }

@@ -2,6 +2,7 @@ import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 
 class InviteBotsButton extends StatefulWidget {
   final VoidCallback onPressed;
@@ -55,6 +56,7 @@ class _InviteBotsButtonState extends State<InviteBotsButton> {
       onTapDown: isEnabled ? (_) => setState(() => _isPressed = true) : null,
       onTapUp: isEnabled
           ? (_) {
+              FeedbackService.instance.secondaryClick();
               setState(() {
                 _isPressed = false;
                 _hasInvitedBots = true;
