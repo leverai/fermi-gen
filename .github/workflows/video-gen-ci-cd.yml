@@ -1,0 +1,90 @@
+name: Video Gen CI/CD
+
+on:
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  build-and-push:
+    name: Build and Push Video Gen Job Image
+    runs-on: ubuntu-latest
+    environment:
+      name: prod
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      image: ${{ steps.set-image.outputs.image }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        id: build-image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/video-gen/Dockerfile
+          push: true
+          tags: |
+            ${{ vars.ARTIFACT_REGISTRY_REPO }}/video-gen:${{ github.sha }}
+            ${{ vars.ARTIFACT_REGISTRY_REPO }}/video-gen:latest
+          cache-from: type=registry,ref=${{ vars.ARTIFACT_REGISTRY_REPO }}/video-gen:latest
+          cache-to: type=inline
+
+      - name: Set image output
+        id: set-image
+        run: |
+          echo "image=${{ vars.ARTIFACT_REGISTRY_REPO }}/video-gen:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+  deploy-job:
+    name: Deploy Video Gen Job
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment:
+      name: prod
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - name: Deploy to Cloud Run Jobs
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          job: video-gen
+          image: ${{ needs.build-and-push.outputs.image }}
+          region: ${{ vars.GCP_REGION }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          secrets: |
+            DATABASE_URL=${{ vars.DATABASE_URL_SECRET }}:latest
+          env_vars: |
+            GCS_BUCKET=video-gen
+          flags: |
+            --service-account=video-gen-runner@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+            --set-cloudsql-instances=${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:fermi-db-prod
+            --max-retries=1
+            --task-timeout=900s
+            --memory=2Gi
+            --cpu=1
+            ${{ vars.VPC_FLAGS }}
