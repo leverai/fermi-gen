@@ -6,6 +6,7 @@ generates a video, and uploads to GCS.
 
 import asyncio
 import datetime
+import json
 import logging
 import os
 import sys
@@ -16,9 +17,10 @@ from fermi_db.dal import DatabaseClient
 from fermi_db.models.game import Fermi
 from fermi_db.session import session_context
 
+from app.app_logging import setup_logging
 from app.gcs import upload_to_gcs
 from app.generator import VideoGenerator
-from app.logging import setup_logging
+from app.snippet_parser import convert_to_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -36,13 +38,13 @@ def parse_date(date_str: str) -> datetime.date:
 
 
 def get_target_date() -> datetime.date:
-    """Get the target date from environment or default to today."""
+    """Get the target date from environment or default to yesterday."""
     date_str = os.environ.get('DATE')
     if date_str:
         return parse_date(date_str)
 
-    # Default to today (UTC)
-    return datetime.datetime.now(tz=datetime.UTC).date()
+    # Default to yesterday (UTC)
+    return datetime.datetime.now(tz=datetime.UTC).date() - datetime.timedelta(days=1)
 
 
 async def fetch_fermi_for_date(target_date: datetime.date) -> Fermi:
@@ -90,7 +92,7 @@ def main() -> None:
     # Fetch Fermi from database
     fermi = asyncio.run(fetch_fermi_for_date(target_date))
 
-    # Generate video in temp directory
+    # Generate video and export files in temp directory
     with tempfile.TemporaryDirectory() as tmpdir:
         output_dir = Path(tmpdir)
         assets_dir = Path(__file__).parent / 'assets'
@@ -98,15 +100,74 @@ def main() -> None:
         generator = VideoGenerator(output_dir=output_dir, assets_dir=assets_dir)
         video_path = generator.create_video(fermi)
 
-        # Upload to GCS
-        destination = f'{target_date.strftime("%Y-%m-%d")}/fermi_{fermi.uid}.mp4'
-        gcs_uri = upload_to_gcs(
-            local_path=video_path,
-            bucket_name=GCS_BUCKET,
-            destination_blob_name=destination,
+        # Export Fermi object as JSON
+        fermi_json_path = output_dir / f'fermi_{fermi.uid}.json'
+        fermi_json_path.write_text(json.dumps(fermi.model_dump(mode='json'), indent=2))
+        logger.info(
+            'Exported Fermi JSON',
+            extra={'json_fields': {'path': str(fermi_json_path)}},
         )
 
-        logger.info('Job complete', extra={'json_fields': {'gcs_uri': gcs_uri}})
+        # Export snippet as Markdown walkthrough
+        walkthrough_path = output_dir / 'walkthrough.md'
+        walkthrough_md = convert_to_markdown(fermi.snippet)
+        walkthrough_path.write_text(walkthrough_md)
+        logger.info(
+            'Exported walkthrough',
+            extra={
+                'json_fields': {
+                    'path': str(walkthrough_path),
+                    'size': len(walkthrough_md),
+                },
+            },
+        )
+
+        # Upload all files to GCS
+        date_prefix = target_date.strftime('%Y-%m-%d')
+
+        # Upload video
+        video_dest = f'{date_prefix}/fermi_{fermi.uid}.mp4'
+        video_uri = upload_to_gcs(
+            local_path=video_path,
+            bucket_name=GCS_BUCKET,
+            destination_blob_name=video_dest,
+        )
+        logger.info('Uploaded video', extra={'json_fields': {'gcs_uri': video_uri}})
+
+        # Upload Fermi JSON
+        fermi_json_dest = f'{date_prefix}/fermi_{fermi.uid}.json'
+        fermi_json_uri = upload_to_gcs(
+            local_path=fermi_json_path,
+            bucket_name=GCS_BUCKET,
+            destination_blob_name=fermi_json_dest,
+        )
+        logger.info(
+            'Uploaded Fermi JSON',
+            extra={'json_fields': {'gcs_uri': fermi_json_uri}},
+        )
+
+        # Upload walkthrough
+        walkthrough_dest = f'{date_prefix}/walkthrough.md'
+        walkthrough_uri = upload_to_gcs(
+            local_path=walkthrough_path,
+            bucket_name=GCS_BUCKET,
+            destination_blob_name=walkthrough_dest,
+        )
+        logger.info(
+            'Uploaded walkthrough',
+            extra={'json_fields': {'gcs_uri': walkthrough_uri}},
+        )
+
+        logger.info(
+            'Job complete',
+            extra={
+                'json_fields': {
+                    'video_uri': video_uri,
+                    'fermi_json_uri': fermi_json_uri,
+                    'walkthrough_uri': walkthrough_uri,
+                },
+            },
+        )
 
 
 if __name__ == '__main__':
