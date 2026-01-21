@@ -230,7 +230,20 @@ class VideoGenerator:
         d_ans_visual = max(d_ans, 4.0)
 
         t_outro_start = t_ans_start + d_ans_visual
-        d_outro = 5.0
+
+        # Load outro voice (pre-generated asset matching the selected voice)
+        outro_voice_path = self.assets_dir / f'outro_voice_{voice_name}.mp3'
+        outro_voice_clip = None
+        if outro_voice_path.exists():
+            outro_voice_clip = AudioFileClip(str(outro_voice_path))
+            d_outro = max(5.0, outro_voice_clip.duration + 0.5)
+        else:
+            logger.warning(
+                'Outro voice not found',
+                extra={'path': str(outro_voice_path)},
+            )
+            d_outro = 5.0
+
         total_duration = t_outro_start + d_outro
 
         # 3. Create Video Clips
@@ -297,14 +310,18 @@ class VideoGenerator:
             ans_audio_clip.with_start(t_ans_start),
         ]
 
+        # Outro voice (call-to-action)
+        if outro_voice_clip:
+            audio_clips.append(outro_voice_clip.with_start(t_outro_start))
+
         # Background Music
         bg_music_path = self.assets_dir / 'background_music.mp3'
         if bg_music_path.exists():
             logger.info('Adding background music')
-            from moviepy.audio.fx.Volumex import Volumex
+            from moviepy.audio.fx.MultiplyVolume import MultiplyVolume
 
             bg_music = AudioFileClip(str(bg_music_path)).subclipped(0, total_duration)
-            bg_music = bg_music.with_effects([Volumex(0.1)])
+            bg_music = bg_music.with_effects([MultiplyVolume(0.12)])
             audio_clips.append(bg_music)
         else:
             logger.warning(
