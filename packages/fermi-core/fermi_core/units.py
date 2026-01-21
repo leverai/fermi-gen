@@ -322,3 +322,30 @@ def swap_unit_to_locale(unit_id: str, target_locale: Locale) -> str:
     # This is typically the most commonly used unit for that quantity type
     middle_index = len(locale_units) // 2
     return locale_units[middle_index]['id']
+
+
+def get_best_answer(answer: 'AnswerBare', locale: Locale | None = None) -> 'AnswerBare':
+    """Convert the answer to the unit that gives a number <=1000."""
+    # Get quantity in requested locale
+    number, unit = answer['number'], answer['unit']
+    quantity = ureg.Quantity(number, unit)
+    if locale:
+        quantity = quantity.to(swap_unit_to_locale(unit, locale))
+
+    # Get ladder
+    units_ladder = get_units_ladder(str(quantity.units))
+
+    ## Loop through ladder from largest to smallest
+    for unit_info in reversed(units_ladder):
+        converted_quantity = quantity.to(unit_info['id'])
+        if 1 <= converted_quantity.magnitude <= 1000:
+            return {
+                'number': converted_quantity.magnitude,
+                'unit': str(converted_quantity.units),
+            }
+
+    # Otherwise, return as is
+    return {
+        'number': quantity.magnitude,
+        'unit': str(quantity.units),
+    }
