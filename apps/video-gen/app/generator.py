@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import ClassVar
 
 import numpy as np
+from fermi_core.units import get_unit_info
 from fermi_db.models.game import Fermi
 from google.cloud import texttospeech
 from moviepy.audio.AudioClip import CompositeAudioClip
@@ -18,6 +19,7 @@ from moviepy.audio.io.AudioFileClip import AudioFileClip
 from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 from moviepy.video.fx import FadeIn, FadeOut
 from moviepy.video.VideoClip import ColorClip, ImageClip
+from num2words import num2words
 from PIL import Image, ImageDraw, ImageFont
 
 logger = logging.getLogger(__name__)
@@ -201,7 +203,13 @@ class VideoGenerator:
         )
         q_audio_clip = AudioFileClip(q_audio_path)
 
-        ans_text_spoken = f'The answer is {fermi.number:,.0f} {fermi.unit or ""}'
+        # Convert number to words for natural TTS pronunciation
+        # e.g., 5800000 -> "five million, eight hundred thousand"
+        number_in_words = num2words(int(fermi.number))
+        unit_id = fermi.unit
+        unit_text = get_unit_info(unit_id)['name'] if fermi.unit else ''
+
+        ans_text_spoken = f'The answer is {number_in_words} {unit_text}'.strip()
         ans_audio_path = self.generate_tts(
             ans_text_spoken,
             'answer_audio',
@@ -244,7 +252,8 @@ class VideoGenerator:
             ('center', 1100),
         )
 
-        answer_text_visual = f'{fermi.number:,.0f} {fermi.unit or ""}'
+        unit_text = get_unit_info(fermi.unit)['abbreviation'] if fermi.unit else ''
+        answer_text_visual = f'{fermi.number:,.0f} {unit_text}'
         answer_clip = (
             self.text_to_image_clip(
                 answer_text_visual,

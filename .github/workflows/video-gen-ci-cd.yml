@@ -79,7 +79,7 @@ jobs:
           secrets: |
             DATABASE_URL=${{ vars.DATABASE_URL_SECRET }}:latest
           env_vars: |
-            GCS_BUCKET=video-gen
+            GCS_BUCKET=fermi-video-gen
           flags: |
             --service-account=video-gen-runner@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
             --set-cloudsql-instances=${{ vars.GCP_PROJECT_ID }}:${{ vars.GCP_REGION }}:fermi-db-prod
