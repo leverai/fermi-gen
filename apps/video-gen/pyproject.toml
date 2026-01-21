@@ -24,6 +24,9 @@ dependencies = [
     "google-cloud-logging>=3.12.1",
     "num2words>=0.5.14",
     "pydantic>=2.0.0",
+    "beautifulsoup4>=4.14.3",
+    "markdown>=3.10.1",
+    "pylatexenc>=2.10",
 ]
 
 [tool.uv.sources]

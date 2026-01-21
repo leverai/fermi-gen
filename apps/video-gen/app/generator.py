@@ -159,6 +159,50 @@ class VideoGenerator:
             align='center',
         )
 
+        # Add QR Codes with preserved aspect ratio
+        target_height = 350
+        qr_y = 1200
+        spacing = 60
+
+        apple_path = self.assets_dir / 'apple.png'
+        android_path = self.assets_dir / 'android.png'
+
+        if apple_path.exists() and android_path.exists():
+            # Load images
+            apple_img = Image.open(apple_path).convert('RGBA')
+            android_img = Image.open(android_path).convert('RGBA')
+
+            # Calculate new size maintaining aspect ratio
+            def get_new_size(img: Image.Image, target_h: int) -> tuple[int, int]:
+                aspect_ratio = img.width / img.height
+                return int(target_h * aspect_ratio), target_h
+
+            apple_w, apple_h = get_new_size(apple_img, target_height)
+            android_w, android_h = get_new_size(android_img, target_height)
+
+            # Resize
+            apple_qr = apple_img.resize((apple_w, apple_h), Image.Resampling.LANCZOS)
+            android_qr = android_img.resize(
+                (android_w, android_h),
+                Image.Resampling.LANCZOS,
+            )
+
+            # Calculate centering
+            total_width = apple_w + android_w + spacing
+            start_x = (1080 - total_width) // 2
+
+            # Paste Apple QR (Left)
+            img.paste(apple_qr, (start_x, qr_y), apple_qr)
+
+            # Paste Android QR (Right)
+            img.paste(
+                android_qr,
+                (start_x + apple_w + spacing, qr_y),
+                android_qr,
+            )
+        else:
+            logger.warning('QR Code assets not found')
+
         return ImageClip(np.array(img), duration=duration)
 
     def create_countdown_clip(self, duration: int) -> CompositeVideoClip:

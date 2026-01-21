@@ -20,7 +20,7 @@ from fermi_db.session import session_context
 from app.app_logging import setup_logging
 from app.gcs import upload_to_gcs
 from app.generator import VideoGenerator
-from app.snippet_parser import convert_to_markdown
+from app.snippet_parser import convert_to_text
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ def main() -> None:
 
         # Export snippet as Markdown walkthrough
         walkthrough_path = output_dir / 'walkthrough.md'
-        walkthrough_md = convert_to_markdown(fermi.snippet)
+        walkthrough_md = convert_to_text(fermi.snippet)
         walkthrough_path.write_text(walkthrough_md)
         logger.info(
             'Exported walkthrough',

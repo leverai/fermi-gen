@@ -260,3 +260,51 @@ def convert_to_markdown(snippet_json: str) -> str:
     )
 
     return '\n'.join(lines).strip() + '\n'
+
+
+def delatex_markdown(md_text: str) -> str:
+    """Convert LaTeX in Markdown to plain text."""
+    import re
+
+    from bs4 import BeautifulSoup
+    from markdown import markdown
+    from pylatexenc.latex2text import LatexNodes2Text
+
+    # 1. Convert LaTeX equations to Unicode text
+    # This handles simple things like \approx or \pi
+    text_with_unicode_math = LatexNodes2Text().latex_to_text(md_text)
+
+    # 2. Convert Markdown to HTML, then strip tags for clean text
+    html = markdown(text_with_unicode_math)
+    plain_text = ''.join(BeautifulSoup(html, 'html.parser').find_all(string=True))
+
+    # 3. Custom Cleanup for Fermi Math (Scientific Notation)
+    # Convert "10^6" to "10⁶" for readability
+    superscripts = {
+        '0': '⁰',
+        '1': '¹',
+        '2': '²',
+        '3': '³',
+        '4': '⁴',
+        '5': '⁵',
+        '6': '⁶',
+        '7': '⁷',
+        '8': '⁸',
+        '9': '⁹',
+        '-': '⁻',
+    }
+
+    def replace_exponent(match: re.Match) -> str:
+        """Replace 10^x with 10⁶."""
+        base, exp = match.groups()
+        return base + ''.join(superscripts.get(c, c) for c in exp)
+
+    # Regex to find 10^x patterns
+    plain_text = re.sub(r'(10)\^([0-9\-]+)', replace_exponent, plain_text)
+
+    return plain_text
+
+
+def convert_to_text(snippet_json: str) -> str:
+    """Convert a SerpAPI snippet JSON string to plain text."""
+    return delatex_markdown(convert_to_markdown(snippet_json))
