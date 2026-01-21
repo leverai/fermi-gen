@@ -16,7 +16,6 @@ FROM python:3.11-slim-bookworm AS final
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ffmpeg \
-        fonts-ubuntu \
     && rm -rf /var/lib/apt/lists/*
 
 RUN addgroup --system app && adduser --system --group --home /home/app app
