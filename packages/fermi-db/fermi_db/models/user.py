@@ -25,3 +25,5 @@ class User(SQLModel, table=True):
     last_login_at: datetime = Field(default_factory=utcnow_naive)
     # XP for leveling system - stored as BigInteger for overflow protection
     xp: int = Field(default=0, ge=0, sa_type=BigInteger())
+    # Soft-delete flag: False when user requests account deletion (PII anonymized)
+    active: bool = Field(default=True)

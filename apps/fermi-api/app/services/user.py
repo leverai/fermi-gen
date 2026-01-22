@@ -42,15 +42,19 @@ class UserService:
         )
 
     async def delete_user(self, user_id: int) -> None:
-        """Delete a user and all associated data, including Firebase account."""
-        # Get user to retrieve firebase_uid before deletion
+        """Delete a user's account and anonymize their data.
+
+        This method:
+        1. Deletes the Firebase account (so the user can't log in)
+        2. Anonymizes PII in the database (firebase_uid, email) to preserve analytics
+        """
+        # Get user to retrieve firebase_uid before anonymization
         user = await self._user_repository.get_by_id(user_id)
-        if user is None:
-            # Idempotent: user doesn't exist, nothing to delete
+        if user is None or not user.active:
+            # Idempotent: user doesn't exist or already deleted
             return
 
         firebase_uid = user.firebase_uid
-        assert firebase_uid is not None
 
         # Delete Firebase account
         # This works with both production Firebase and the emulator
@@ -59,7 +63,7 @@ class UserService:
             # Use thread pool for blocking I/O call
             await run_in_threadpool(auth.delete_user, firebase_uid)
         except Exception:
-            # Log error but continue with database deletion
+            # Log error but continue with database anonymization
             # Firebase deletion failure shouldn't block database cleanup
             # (e.g., if account was already deleted or emulator is not available)
 
@@ -68,8 +72,8 @@ class UserService:
                 f'{firebase_uid[:5]}...{firebase_uid[-5:]}',
             )
 
-        # Delete user from database (and all associated data)
-        await self._user_repository.delete_user(user_id)
+        # Anonymize user in database (preserves analytics data without PII)
+        await self._user_repository.anonymize_user(user_id)
 
     async def get_users_by_firebase_uids(
         self,
