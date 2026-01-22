@@ -1,13 +1,17 @@
 """Repository for user-related database operations."""
 
 import logging
+import uuid
 from typing import Any
 
 from fermi_core import utcnow_naive
-from sqlmodel import delete, select
+from sqlalchemy import update
+from sqlmodel import select
 
+from fermi_db.models.daily_question import DailyQuestionAnswer
 from fermi_db.models.game import AnswerEvent, QuestionVote, UserQuestionHistory
 from fermi_db.models.subscription import Subscription, SubscriptionTier
+from fermi_db.models.survival import SurvivalRun
 from fermi_db.models.user import User
 from fermi_db.schemas import Locale
 
@@ -184,47 +188,64 @@ class UserRepository(BaseRepository):
         user.last_login_at = now
         return user
 
-    async def delete_user(self, user_id: int) -> None:
-        """Delete a user and all associated data.
+    async def anonymize_user(self, user_id: int) -> None:
+        """Anonymize a user's PII for GDPR-compliant deletion.
 
-        Deletes user-related data in this order:
-        1. user_question_history (where user_id = user's firebase_uid)
-        2. answer_events (where user_firebase_id = user's firebase_uid)
-        3. questions_votes (where user_firebase_uid = user's firebase_uid)
-        4. user table (by id)
+        Instead of deleting rows (which breaks analytics), this:
+        1. Updates all related tables (answer_events, questions_votes, etc.)
+           to use the new anonymized firebase_uid
+        2. Replaces firebase_uid with 'anon_<uuid>'
+        3. Clears email
+        4. Sets active=False
+        5. Updates updated_at timestamp
 
-        This operation is idempotent - if the user doesn't exist, it returns
-        without error.
+        All updates happen in a single transaction to ensure atomicity.
+
+        This operation is idempotent - if the user doesn't exist or is already
+        anonymized, it returns without error.
         """
-        # Get user to retrieve firebase_uid
         user = await self.get_by_id(user_id)
-        if user is None:
-            # Idempotent: user doesn't exist, nothing to delete
+        if user is None or not user.active:
+            # Idempotent: user doesn't exist or already anonymized
             return
 
-        firebase_uid = user.firebase_uid
+        old_firebase_uid = user.firebase_uid
+        new_firebase_uid = f'anon_{uuid.uuid4()}'
 
-        # Delete user-related data in order
-        # 1. Delete user_question_history
-        stmt = delete(UserQuestionHistory).where(
-            UserQuestionHistory.user_id == firebase_uid,  # type: ignore
+        # Update all tables that reference the old firebase_uid
+        await self.session.execute(
+            update(DailyQuestionAnswer)
+            .where(DailyQuestionAnswer.user_firebase_uid == old_firebase_uid)
+            .values(user_firebase_uid=new_firebase_uid),
         )
-        await self.session.execute(stmt)
-
-        # 2. Delete answer_events
-        stmt = delete(AnswerEvent).where(
-            AnswerEvent.user_firebase_id == firebase_uid,  # type: ignore
+        await self.session.execute(
+            update(QuestionVote)
+            .where(QuestionVote.user_firebase_uid == old_firebase_uid)
+            .values(user_firebase_uid=new_firebase_uid),
         )
-        await self.session.execute(stmt)
-
-        # 3. Delete questions_votes
-        stmt = delete(QuestionVote).where(
-            QuestionVote.user_firebase_uid == firebase_uid,  # type: ignore
+        await self.session.execute(
+            update(AnswerEvent)
+            .where(AnswerEvent.user_firebase_id == old_firebase_uid)
+            .values(user_firebase_id=new_firebase_uid),
         )
-        await self.session.execute(stmt)
+        await self.session.execute(
+            update(SurvivalRun)
+            .where(SurvivalRun.user_firebase_uid == old_firebase_uid)
+            .values(user_firebase_uid=new_firebase_uid),
+        )
+        await self.session.execute(
+            update(UserQuestionHistory)
+            .where(UserQuestionHistory.user_id == old_firebase_uid)
+            .values(user_id=new_firebase_uid),
+        )
 
-        # 4. Delete user record
-        await self.session.delete(user)
+        # Anonymize user PII
+        user.firebase_uid = new_firebase_uid
+        user.email = None
+        user.active = False
+        user.updated_at = utcnow_naive()
+
+        self.session.add(user)
         await self.session.commit()
 
     async def increment_xp(self, firebase_uid: str, amount: int) -> None:
