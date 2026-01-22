@@ -276,7 +276,8 @@ def delatex_markdown(md_text: str) -> str:
 
     # 2. Convert Markdown to HTML, then strip tags for clean text
     html = markdown(text_with_unicode_math)
-    plain_text = ''.join(BeautifulSoup(html, 'html.parser').find_all(string=True))
+    plain_text = '\n'.join(BeautifulSoup(html, 'html.parser').find_all(string=True))
+    plain_text = re.sub(r'\n\n+', '\n\n', plain_text).strip()
 
     # 3. Custom Cleanup for Fermi Math (Scientific Notation)
     # Convert "10^6" to "10⁶" for readability
