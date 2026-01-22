@@ -109,8 +109,9 @@ class VideoGenerator:
         font = ImageFont.truetype(self._font_path, fontsize)
 
         # Wrap text
+        horizontal_padding = 300
         avg_char_width = fontsize * 0.5
-        wrap_width = int((size[0] - 100) / avg_char_width)
+        wrap_width = int((size[0] - horizontal_padding) / avg_char_width)
         lines = textwrap.wrap(text, width=wrap_width)
 
         # Calculate total height to center vertically
