@@ -179,7 +179,7 @@ jobs:
             echo "min_instances=0" >> $GITHUB_OUTPUT
             echo "max_instances=10" >> $GITHUB_OUTPUT
           else
-            echo "min_instances=0" >> $GITHUB_OUTPUT
+            echo "min_instances=1" >> $GITHUB_OUTPUT
             echo "max_instances=10" >> $GITHUB_OUTPUT
           fi
 
