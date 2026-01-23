@@ -309,3 +309,19 @@ def delatex_markdown(md_text: str) -> str:
 def convert_to_text(snippet_json: str) -> str:
     """Convert a SerpAPI snippet JSON string to plain text."""
     return delatex_markdown(convert_to_markdown(snippet_json))
+
+
+def add_hashtags(text: str) -> str:
+    """Add hashtags to the text."""
+    hashtags = ' '.join(
+        [
+            '#dailyguess',
+            '#thedailyguess',
+            '#guesstimate',
+            '#guese',
+            '#fermiproblem',
+            '#fermiproblems',
+            '#fermi',
+        ],
+    )
+    return f'{text}\n\n{hashtags}'
