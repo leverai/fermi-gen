@@ -5,6 +5,7 @@ import uuid
 from datetime import timedelta
 from typing import TYPE_CHECKING, cast
 
+from fastapi import HTTPException, status
 from fermi_core.units import convert_answer_to_user_unit, get_unit_family
 from fermi_core.utils import utcnow_naive
 from fermi_db.models import AnswerEvent, Fermi
@@ -13,6 +14,7 @@ from opentelemetry import trace
 
 import app.logging.attributes as attrs
 from app.schemas.survival import (
+    ContinueWithAdResponse,
     LeaderboardEntry,
     LeaderboardResponse,
     StreakInfo,
@@ -81,8 +83,6 @@ class SurvivalService:
             HTTPException: 403 if daily limit reached (free users only).
 
         """
-        from fastapi import HTTPException, status
-
         span = trace.get_current_span()
 
         # Get or create the run. Try to get by id.
@@ -132,6 +132,7 @@ class SurvivalService:
 
         # We have a run now with the new question. Time to return to user
         assert run.id, 'This should not happen.'
+        max_ad_saves = 1
         question_data = await self._build_question_data(question, user_firebase_uid)
         return SurvivalQuestionResponse(
             run_id=run.id,
@@ -139,6 +140,8 @@ class SurvivalService:
             question=question_data,
             time_limit_seconds=SURVIVAL_TIME_LIMIT_SECONDS,
             answer_deadline_utc=deadline.isoformat() + 'Z',
+            streak=run.streak,
+            can_use_ad_save=run.ad_saves_used < max_ad_saves,
         )
 
     async def submit_answer(
@@ -247,7 +250,6 @@ class SurvivalService:
         else:
             converted_answer = correct_answer
 
-        streak = run.questions_answered if passed else run.questions_answered - 1
         p50_ratio = compute_p50_ratio(pass_threshold)
         return SurvivalAnswerResponse(
             passed=passed,
@@ -262,10 +264,90 @@ class SurvivalService:
             total_score=run.total_score,
             run_summary=SurvivalRunSummary(
                 run_id=run_id,
-                questions_answered=streak,
+                questions_answered=run.questions_answered,
+                streak=run.streak,
                 total_score=run.total_score,
             ),
             ai_overview=correct_answer_w_snippet['ai_overview'],
+        )
+
+    async def continue_run_with_ad(
+        self,
+        user_firebase_uid: str,
+        run_id: int,
+    ) -> 'ContinueWithAdResponse':
+        """Continue a failed survival run after watching an ad.
+
+        Args:
+            user_firebase_uid: User's Firebase UID.
+            run_id: The run ID to continue.
+
+        Returns:
+            Response with next question data.
+
+        Raises:
+            HTTPException: 400 if run cannot be continued (not owner, not ended,
+                          or ad saves exhausted).
+
+        """
+        span = trace.get_current_span()
+        span.set_attribute(attrs.SURVIVAL_RUN_ID, run_id)
+
+        # Get the run
+        run = await self._db.survival_runs.get_run_by_id(run_id)
+        if run is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='Run not found',
+            )
+
+        # Validate ownership
+        if run.user_firebase_uid != user_firebase_uid:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail='Run does not belong to user',
+            )
+
+        # Must be a completed (failed) run
+        if not run.is_completed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Run is still active',
+            )
+
+        # Check ad saves limit (max 1 per run)
+        max_ad_saves = 1
+        if run.ad_saves_used >= max_ad_saves:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Ad save already used for this run',
+            )
+
+        # Reopen the run
+        run = await self._db.survival_runs.reopen_run_with_ad(run_id)
+        span.set_attribute(attrs.SURVIVAL_QUESTIONS_ANSWERED, run.questions_answered)
+
+        # Get a new question
+        question = await self._get_random_question(user_firebase_uid=user_firebase_uid)
+
+        # Set the new question and deadline
+        deadline = utcnow_naive() + timedelta(seconds=SURVIVAL_TIME_LIMIT_SECONDS)
+        run = await self._db.survival_runs.set_current_question(
+            run_id=run.id,  # type: ignore
+            question_uid=str(question.uid),
+            deadline=deadline,
+        )
+
+        # Build response
+        question_data = await self._build_question_data(question, user_firebase_uid)
+        return ContinueWithAdResponse(
+            run_id=run.id,  # type: ignore
+            question_number=run.questions_answered + 1,
+            question=question_data,
+            time_limit_seconds=SURVIVAL_TIME_LIMIT_SECONDS,
+            answer_deadline_utc=deadline.isoformat() + 'Z',
+            streak=run.streak,
+            can_use_ad_save=run.ad_saves_used < max_ad_saves,
         )
 
     async def get_stats(self, user_firebase_uid: str) -> SurvivalStatsResponse:
@@ -280,7 +362,7 @@ class SurvivalService:
 
         # Get best run
         best_run = await self._db.survival_runs.get_user_best_run(user_firebase_uid)
-        best_streak = (best_run.questions_answered - 1) if best_run else 0
+        best_streak = best_run.streak
 
         # Set OTel attributes for stats
         span = trace.get_current_span()

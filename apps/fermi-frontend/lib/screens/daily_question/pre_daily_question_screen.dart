@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:fermi_frontend/providers/subscription_provider.dart';
 import 'package:fermi_frontend/services/subscription_service.dart';
 import 'package:fermi_frontend/services/feedback_service.dart';
+import 'package:fermi_frontend/services/ad_service.dart';
 import 'package:fermi_frontend/screens/paywall_screen.dart';
 import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
@@ -57,6 +58,9 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
   /// Timer for the countdown.
   Timer? _countdownTimer;
 
+  /// Whether user accessed via watching an ad (bypasses Pro check).
+  bool _accessedWithAd = false;
+
   @override
   void dispose() {
     _countdownTimer?.cancel();
@@ -91,8 +95,8 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
   }
 
   void _handleStart() {
-    // Feature gating: post-take requires Pro subscription
-    if (widget.isPostTake) {
+    // Feature gating: post-take requires Pro subscription (unless accessed via ad)
+    if (widget.isPostTake && !_accessedWithAd) {
       final subscriptionProvider = context.read<SubscriptionProvider>();
       if (!subscriptionProvider.isPro) {
         _showPaywall();
@@ -146,6 +150,43 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
     });
   }
 
+  /// Handle watch ad button: show rewarded ad and start post-take on completion.
+  void _handleWatchAd() {
+    final adService = AdService.instance;
+    if (!adService.isAdLoaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ad not ready. Please try again.')),
+      );
+      // Try to load ad for next time
+      adService.loadRewardedAd();
+      return;
+    }
+
+    adService.showRewardedAd(
+      onComplete: () {
+        if (!mounted) return;
+        // Ad completed - mark as ad-access and start countdown
+        setState(() {
+          _accessedWithAd = true;
+        });
+        _handleStart();
+      },
+      onSkipped: () {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Ad skipped. Please watch the full ad.')),
+        );
+      },
+      onFailed: () {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ad failed to play. Please try again.')),
+        );
+      },
+    );
+  }
+
   void _navigateToDailyQuestion() {
     if (!mounted) return;
 
@@ -159,6 +200,7 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
           builder: (_) => DailyQuestionScreen(
             questionDate: widget.questionDate,
             isPostTake: widget.isPostTake,
+            withAd: _accessedWithAd,
           ),
         ),
       );
@@ -170,6 +212,7 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
           builder: (_) => DailyQuestionScreen(
             questionDate: widget.questionDate,
             isPostTake: widget.isPostTake,
+            withAd: _accessedWithAd,
           ),
         ),
       );
@@ -273,35 +316,67 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
                             builder: (context, subProvider, _) {
                               final bool isGated =
                                   widget.isPostTake && !subProvider.isPro;
-                              return Row(
-                                mainAxisSize: MainAxisSize.min,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  if (isGated) ...[
-                                    GestureDetector(
-                                      onTap: _showPaywall,
-                                      child: Icon(
-                                        Icons.lock,
-                                        color: appTheme.textMuted,
-                                        size: 24,
+
+                              // If counting down, just show countdown button
+                              if (isCountingDown) {
+                                return SizedBox(
+                                  width: 200,
+                                  child: MainButton(
+                                    onPressed: null,
+                                    customLabel:
+                                        'Starting in $_countdownSeconds',
+                                  ),
+                                );
+                              }
+
+                              // For gated FREE users: Lock + Go PRO + or + Watch Ad 🎬
+                              if (isGated) {
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // Go PRO button
+                                    SizedBox(
+                                      width: 130,
+                                      child: MainButton(
+                                        onPressed: _showPaywall,
+                                        customLabel: 'Go PRO',
                                       ),
                                     ),
                                     const SizedBox(width: 12),
-                                  ],
-                                  SizedBox(
-                                    width: 200,
-                                    child: MainButton(
-                                      onPressed:
-                                          isCountingDown ? null : _handleStart,
-                                      label: isCountingDown
-                                          ? null
-                                          : MainButtonLabel.start,
-                                      customLabel: isCountingDown
-                                          ? 'Starting in $_countdownSeconds'
-                                          : null,
+                                    // "or" text
+                                    Text(
+                                      'or',
+                                      style: AppFont.primaryTextStyle(
+                                        context,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w400,
+                                        color: appTheme.textMuted,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 12),
+                                    // Watch Ad 🎬 button
+                                    SizedBox(
+                                      width: 130,
+                                      child: MainButton(
+                                        onPressed: _handleWatchAd,
+                                        customLabel: 'Watch Ad 🎬',
+                                        backgroundColor: appTheme.secondary,
+                                        shadowColor: appTheme.secondaryMuted,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }
+
+                              // For PRO users or non-gated: simple Start button
+                              return SizedBox(
+                                width: 200,
+                                child: MainButton(
+                                  onPressed: _handleStart,
+                                  label: MainButtonLabel.start,
+                                ),
                               );
                             },
                           ),

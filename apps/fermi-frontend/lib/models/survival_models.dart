@@ -65,6 +65,8 @@ class SurvivalQuestionResponse {
   final SurvivalQuestionData question;
   final int timeLimitSeconds;
   final DateTime answerDeadlineUtc;
+  final int streak; // Current streak (accounts for ad saves)
+  final bool canUseAdSave; // Whether player can use ad save this run
 
   const SurvivalQuestionResponse({
     required this.runId,
@@ -72,6 +74,8 @@ class SurvivalQuestionResponse {
     required this.question,
     required this.timeLimitSeconds,
     required this.answerDeadlineUtc,
+    required this.streak,
+    required this.canUseAdSave,
   });
 
   factory SurvivalQuestionResponse.fromJson(Map<String, dynamic> json) {
@@ -82,6 +86,8 @@ class SurvivalQuestionResponse {
           json['question'] as Map<String, dynamic>),
       timeLimitSeconds: json['time_limit_seconds'] as int,
       answerDeadlineUtc: DateTime.parse(json['answer_deadline_utc'] as String),
+      streak: json['streak'] as int,
+      canUseAdSave: json['can_use_ad_save'] as bool,
     );
   }
 }
@@ -90,11 +96,13 @@ class SurvivalQuestionResponse {
 class SurvivalRunSummary {
   final int runId;
   final int questionsAnswered;
+  final int streak;
   final double totalScore;
 
   const SurvivalRunSummary({
     required this.runId,
     required this.questionsAnswered,
+    required this.streak,
     required this.totalScore,
   });
 
@@ -102,6 +110,7 @@ class SurvivalRunSummary {
     return SurvivalRunSummary(
       runId: json['run_id'] as int,
       questionsAnswered: json['questions_answered'] as int,
+      streak: json['streak'] as int,
       totalScore: (json['total_score'] as num).toDouble(),
     );
   }

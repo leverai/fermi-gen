@@ -531,6 +531,27 @@ class ApiService {
       rethrow;
     }
   }
+
+  /// Continue a failed survival run after watching a rewarded ad.
+  /// Returns the next question to continue the run.
+  Future<Map<String, dynamic>> survivalContinueWithAd({
+    required int runId,
+  }) async {
+    try {
+      final resp = await _authPost('/survival/continue_with_ad', {
+        'run_id': runId,
+      });
+      if (resp.statusCode == 200) {
+        return jsonDecode(resp.body) as Map<String, dynamic>;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to continue with ad: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
 
 // Moved to utils/env.dart

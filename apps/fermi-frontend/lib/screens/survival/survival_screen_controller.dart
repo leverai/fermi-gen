@@ -4,6 +4,7 @@ import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/survival_models.dart';
 import 'package:fermi_frontend/services/api_service.dart';
+import 'package:fermi_frontend/services/ad_service.dart';
 import 'package:fermi_frontend/widgets/unit_tape.dart';
 
 /// Controller for the Survival screen.
@@ -121,6 +122,16 @@ class SurvivalScreenController extends ChangeNotifier {
   bool _showConfetti = false;
   bool get showConfetti => _showConfetti;
 
+  // Ad save state (from backend)
+  bool _canUseAdSave = false; // Updated from backend responses
+  bool get canUseAdSave => _canUseAdSave && AdService.instance.isAdLoaded;
+
+  bool _isShowingAd = false;
+  bool get isShowingAd => _isShowingAd;
+
+  // Callback for showing save streak dialog (set by survival_screen)
+  VoidCallback? onShowSaveDialog;
+
   // --- Lifecycle ---
 
   /// Initialize the controller and start a new survival run.
@@ -145,7 +156,8 @@ class SurvivalScreenController extends ChangeNotifier {
       _runId = response.runId;
       _questionNumber = response.questionNumber;
       _currentQuestion = response.question;
-      _currentStreak = response.questionNumber - 1; // Started at 0
+      _currentStreak = response.streak;
+      _canUseAdSave = response.canUseAdSave;
       _deadline = response.answerDeadlineUtc;
 
       // Initialize units
@@ -282,10 +294,10 @@ class SurvivalScreenController extends ChangeNotifier {
       _answerResponse = SurvivalAnswerResponse.fromJson(json);
       _isSubmitted = true;
 
-      // Update streak from runSummary if available (backend's source of truth)
-      // Otherwise fallback to manual increment if passed
+      // Update streak from runSummary.streak (backend's source of truth)
+      // This correctly accounts for ad saves
       if (_answerResponse!.runSummary != null) {
-        _currentStreak = _answerResponse!.runSummary!.questionsAnswered;
+        _currentStreak = _answerResponse!.runSummary!.streak;
       } else if (_answerResponse!.passed) {
         _currentStreak = _answerResponse!.totalQuestions;
       } else {
@@ -300,6 +312,15 @@ class SurvivalScreenController extends ChangeNotifier {
       // Show confetti on pass
       if (_answerResponse!.passed) {
         _showConfetti = true;
+      } else {
+        // Player failed - show save dialog after delay if ad save available
+        if (canUseAdSave) {
+          Future.delayed(const Duration(seconds: 1), () {
+            if (!_isShowingAd) {
+              onShowSaveDialog?.call();
+            }
+          });
+        }
       }
 
       // Hide unit tape indicators
@@ -331,6 +352,86 @@ class SurvivalScreenController extends ChangeNotifier {
   Future<void> submitBeforeLeave() async {
     if (!_isSubmitted) {
       await submitAnswer();
+    }
+  }
+
+  /// Continue the run after watching a rewarded ad.
+  /// Shows the ad, then calls the API on completion.
+  Future<void> continueWithAd({VoidCallback? onFailed}) async {
+    if (!canUseAdSave || _runId == null || _isShowingAd) return;
+
+    _isShowingAd = true;
+    notifyListeners();
+
+    final success = AdService.instance.showRewardedAd(
+      onComplete: () async {
+        _isShowingAd = false;
+        // Call API to continue run
+        try {
+          final json = await apiService.survivalContinueWithAd(runId: _runId!);
+          final response = SurvivalQuestionResponse.fromJson(json);
+
+          // Reset state for the new question
+          _runId = response.runId;
+          _questionNumber = response.questionNumber;
+          _currentQuestion = response.question;
+          _deadline = response.answerDeadlineUtc;
+          _isSubmitted = false;
+          _answerResponse = null;
+          _showConfetti = false;
+
+          // Use backend values - streak preserved, ad saves now exhausted
+          _currentStreak = response.streak;
+          _canUseAdSave = response.canUseAdSave;
+
+          // Reinitialize units
+          _initializeUnits(response.question.units, _currentLocale);
+
+          // Reset user answer
+          if (_unitAbbreviations.isNotEmpty) {
+            _userAnswer = AnswerValue(
+              number: 1,
+              orderOfMagnitude: '',
+              unit: _unitAbbreviations.last,
+            );
+          } else {
+            _userAnswer = const AnswerValue(
+              number: 1,
+              orderOfMagnitude: '',
+              unit: '',
+            );
+          }
+
+          // Restart timer
+          _startTimer();
+          unitTapeController.setRevealed(false, Duration.zero);
+
+          notifyListeners();
+        } catch (e) {
+          _error = e.toString();
+          _canUseAdSave = false;
+          notifyListeners();
+          onFailed?.call();
+        }
+      },
+      onSkipped: () {
+        _isShowingAd = false;
+        notifyListeners();
+        onFailed?.call();
+      },
+      onFailed: () {
+        _isShowingAd = false;
+        _canUseAdSave = false;
+        notifyListeners();
+        onFailed?.call();
+      },
+    );
+
+    if (!success) {
+      _isShowingAd = false;
+      _canUseAdSave = false;
+      notifyListeners();
+      onFailed?.call();
     }
   }
 

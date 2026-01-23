@@ -197,18 +197,24 @@ async def start_post_take(
         pattern=r'^\d{4}-\d{2}-\d{2}$',
         description='Date in YYYY-MM-DD format',
     ),
+    *,
+    with_ad: bool = Query(
+        default=False,
+        description='Allow access after watching a rewarded ad (bypasses Pro check)',
+    ),
 ) -> DQQuestionResponse:
     """Start a post-take for a closed daily question.
 
-    Post-take allows Pro users to take older DQs they haven't participated in.
+    Post-take allows Pro users or Free users who watched an ad to take older DQs.
     The DQ must be CLOSED (not SCHEDULED or ACTIVE).
-    Requires Pro subscription.
+    Requires Pro subscription unless with_ad=True.
     """
     span = trace.get_current_span()
     span.set_attribute(api_attrs.ACTION, start_post_take.__qualname__)
     span.set_attribute(api_attrs.QUERY_PARAMS, f'question_date={question_date}')
 
-    require_pro(auth_user, 'Archive access')
+    if not with_ad:
+        require_pro(auth_user, 'Archive access')
 
     parsed_date = datetime.strptime(question_date, '%Y-%m-%d').date()  # noqa: DTZ007
     return await dq_service.start_post_take_question(
@@ -230,18 +236,24 @@ async def submit_post_take_answer(
         pattern=r'^\d{4}-\d{2}-\d{2}$',
         description='Date in YYYY-MM-DD format',
     ),
+    *,
+    with_ad: bool = Query(
+        default=False,
+        description='Allow access after watching a rewarded ad (bypasses Pro check)',
+    ),
 ) -> DQPostTakeResultsResponse:
     """Submit an answer for a post-take and get immediate results.
 
     Returns score, rank, and full results immediately after submission.
     Must be submitted within 30s + grace period of started_at.
-    Requires Pro subscription.
+    Requires Pro subscription unless with_ad=True.
     """
     span = trace.get_current_span()
     span.set_attribute(api_attrs.ACTION, submit_post_take_answer.__qualname__)
     span.set_attribute(api_attrs.QUERY_PARAMS, f'question_date={question_date}')
 
-    require_pro(auth_user, 'Archive access')
+    if not with_ad:
+        require_pro(auth_user, 'Archive access')
 
     parsed_date = datetime.strptime(question_date, '%Y-%m-%d').date()  # noqa: DTZ007
     return await dq_service.submit_post_take_answer(

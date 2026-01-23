@@ -374,9 +374,7 @@ class _DailyQuestionCardState extends State<DailyQuestionCard> {
     return Container(
       height: 28,
       decoration: BoxDecoration(
-        color: buttonText == 'RESULTS'
-            ? appTheme.bgLight
-            : appTheme.primaryMuted.withAlpha(80),
+        color: appTheme.primaryMuted.withAlpha(80),
         borderRadius: BorderRadius.circular(appTheme.borderRadius / 2),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

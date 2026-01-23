@@ -102,11 +102,29 @@ class SurvivalRunRepository(BaseRepository):
             raise ValueError(f'Survival run {run_id} not found')
         run.questions_answered += 1
         run.total_score += score
-        # Update streak: current questions if passed, minus 1 if failed
-        run.streak = run.questions_answered if passed else run.questions_answered - 1
-        if not passed:
+        # Update streak: account for ad saves (saved failures don't count)
+        if passed:
+            run.streak += 1
+        else:
             run.is_completed = True
             run.ended_at = utcnow_naive()
+        await self.session.commit()
+        await self.session.refresh(run)
+        return run
+
+    async def reopen_run_with_ad(self, run_id: int) -> SurvivalRun:
+        """Reopen a completed run after ad watch.
+
+        Clears ended_at, is_completed, and increments ad_saves_used.
+        """
+        stmt = select(SurvivalRun).where(SurvivalRun.id == run_id)
+        result = await self.session.exec(stmt)
+        run = result.first()
+        if run is None:
+            raise ValueError(f'Survival run {run_id} not found')
+        run.is_completed = False
+        run.ended_at = None
+        run.ad_saves_used += 1
         await self.session.commit()
         await self.session.refresh(run)
         return run
@@ -141,37 +159,29 @@ class SurvivalRunRepository(BaseRepository):
             select(SurvivalRun)
             .where(
                 SurvivalRun.user_firebase_uid == user_firebase_uid,  # type: ignore
-                SurvivalRun.is_completed == True,  # noqa: E712
             )
-            .order_by(SurvivalRun.questions_answered.desc())  # type: ignore
+            .order_by(SurvivalRun.streak.desc())  # type: ignore
             .limit(1)
         )
         result = await self.session.exec(stmt)
         return result.first()
 
     async def get_user_best_streak(self, user_firebase_uid: str) -> int:
-        """Get the user's best streak of completed runs."""
-        stmt = (
-            select(SurvivalRun.questions_answered, SurvivalRun.is_completed)
-            .where(
-                SurvivalRun.user_firebase_uid == user_firebase_uid,  # type: ignore
-            )
-            .order_by(SurvivalRun.questions_answered.desc())  # type: ignore
-            .order_by(SurvivalRun.is_completed.asc())  # type: ignore
-            .limit(1)
+        """Get the user's best streak across all runs.
+
+        Uses the `streak` field directly which is the source of truth,
+        maintained by submit_score() and reopen_run_with_ad().
+        """
+        stmt = select(func.max(SurvivalRun.streak)).where(
+            SurvivalRun.user_firebase_uid == user_firebase_uid,  # type: ignore
         )
-        result = (await self.session.exec(stmt)).first()
-        if result is None:
-            return 0
-        q_answered, is_completed = result
-        if is_completed:
-            return q_answered - 1
-        return q_answered
+        result = await self.session.execute(stmt)
+        return result.scalar() or 0
 
     async def get_current_streak(self, user_firebase_uid: str) -> int:
         """Get the user's current active run streak."""
         stmt = (
-            select(SurvivalRun.questions_answered)
+            select(SurvivalRun.streak)
             .where(
                 SurvivalRun.user_firebase_uid == user_firebase_uid,  # type: ignore
                 SurvivalRun.is_completed == False,  # noqa: E712
@@ -208,7 +218,7 @@ class SurvivalRunRepository(BaseRepository):
         """Get average questions per completed run."""
         from sqlmodel import func
 
-        stmt = select(func.avg(SurvivalRun.questions_answered)).where(  # type: ignore
+        stmt = select(func.avg(SurvivalRun.streak)).where(  # type: ignore
             SurvivalRun.user_firebase_uid == user_firebase_uid,  # type: ignore
             SurvivalRun.is_completed == True,  # noqa: E712
         )

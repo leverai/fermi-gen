@@ -63,6 +63,8 @@ class MainButton extends StatefulWidget {
     this.label,
     this.customLabel,
     this.controller,
+    this.backgroundColor,
+    this.shadowColor,
   });
 
   /// Called when the button is tapped.
@@ -90,6 +92,14 @@ class MainButton extends StatefulWidget {
 
   /// Optional controller to programmatically trigger the press animation.
   final MainButtonController? controller;
+
+  /// Optional background color for the button face.
+  /// If null, uses appTheme.primary.
+  final Color? backgroundColor;
+
+  /// Optional shadow color for the button's bottom layer.
+  /// If null, uses appTheme.primaryMuted.
+  final Color? shadowColor;
 
   @override
   State<MainButton> createState() => _MainButtonState();
@@ -228,7 +238,8 @@ class _MainButtonState extends State<MainButton>
   Widget build(BuildContext context) {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
-    final Color buttonFaceColor = appTheme.primary;
+    final Color buttonFaceColor = widget.backgroundColor ?? appTheme.primary;
+    final Color shadowLayerColor = widget.shadowColor ?? appTheme.primaryMuted;
 
     // Use fixed height of 48px
     const double buttonHeight = 48.0;
@@ -261,7 +272,7 @@ class _MainButtonState extends State<MainButton>
                   child: Container(
                     height: buttonHeight,
                     decoration: BoxDecoration(
-                      color: appTheme.primaryMuted,
+                      color: shadowLayerColor,
                       borderRadius: BorderRadius.circular(borderRadius),
                     ),
                   ),

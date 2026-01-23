@@ -38,8 +38,15 @@ class DailyQuestionScreen extends StatefulWidget {
   /// If true, uses post-take API endpoints.
   final bool isPostTake;
 
-  const DailyQuestionScreen(
-      {super.key, this.questionDate, this.isPostTake = false});
+  /// Whether access was granted via watching an ad (bypasses Pro check).
+  final bool withAd;
+
+  const DailyQuestionScreen({
+    super.key,
+    this.questionDate,
+    this.isPostTake = false,
+    this.withAd = false,
+  });
 
   @override
   State<DailyQuestionScreen> createState() => _DailyQuestionScreenState();
@@ -200,7 +207,10 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         throw Exception('No date available for post-take');
       }
 
-      final question = await service.startPostTake(effectiveDate);
+      final question = await service.startPostTake(
+        effectiveDate,
+        withAd: widget.withAd,
+      );
 
       // Get user's locale preference, default to 'US'
       final userLocale = authService.locale ?? 'US';
@@ -403,6 +413,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         effectiveDate,
         answerToSubmit,
         startedAt,
+        withAd: widget.withAd,
       );
 
       if (mounted) {

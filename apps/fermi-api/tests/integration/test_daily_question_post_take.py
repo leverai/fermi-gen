@@ -56,6 +56,56 @@ def test_post_take_answer_requires_pro_subscription(
     assert 'Pro subscription' in resp.json().get('detail', '')
 
 
+def test_post_take_start_with_ad_bypasses_pro_check(
+    api_client: TestClient,
+    get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
+) -> None:
+    """POST /post_take/{date}/start with with_ad=true bypasses Pro check for FREE users.
+
+    When with_ad=true, the endpoint should skip the Pro subscription check
+    and proceed to check if the DQ exists (404 instead of 403).
+    """
+    headers = get_api_auth_headers(
+        'free-user-posttake-ad@example.com',
+        'password123',
+        'FreeUserPostTakeAd',
+    )
+
+    resp = api_client.post(
+        '/api/v1/daily_question/post_take/2020-01-01/start?with_ad=true',
+        headers=headers,
+    )
+
+    # Should get 404 (DQ not found) instead of 403 (Pro required)
+    assert resp.status_code == 404
+    assert 'No daily question found' in resp.json().get('detail', '')
+
+
+def test_post_take_answer_with_ad_bypasses_pro_check(
+    api_client: TestClient,
+    get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
+) -> None:
+    """POST /post_take/{date}/answer with with_ad=true bypasses Pro check."""
+    headers = get_api_auth_headers(
+        'free-user-answer-ad@example.com',
+        'password123',
+        'FreeUserAnswerAd',
+    )
+
+    resp = api_client.post(
+        '/api/v1/daily_question/post_take/2020-01-01/answer?with_ad=true',
+        json={
+            'answer': {'number': 42, 'unit': None},
+            'started_at': datetime.utcnow().isoformat() + 'Z',  # noqa: DTZ003
+        },
+        headers=headers,
+    )
+
+    # Should get 404 (DQ not found) instead of 403 (Pro required)
+    assert resp.status_code == 404
+    assert 'No daily question found' in resp.json().get('detail', '')
+
+
 # --- Pro User Tests (existing tests updated to use Pro fixture) ---
 
 
