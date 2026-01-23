@@ -407,22 +407,34 @@ class DailyQuestionService {
   }
 
   /// Start a post-take for a closed daily question.
-  Future<DQQuestionResponse> startPostTake(String questionDate) async {
-    final response =
-        await _api.post('/daily_question/post_take/$questionDate/start', {});
+  ///
+  /// If [withAd] is true, bypasses Pro subscription requirement (for ad-based access).
+  Future<DQQuestionResponse> startPostTake(
+    String questionDate, {
+    bool withAd = false,
+  }) async {
+    final suffix = withAd ? '?with_ad=true' : '';
+    final response = await _api.post(
+      '/daily_question/post_take/$questionDate/start$suffix',
+      {},
+    );
     final data = _decodeOkJson(response);
     return DQQuestionResponse.fromJson(data);
   }
 
   /// Submit an answer for a post-take and get immediate results.
+  ///
+  /// If [withAd] is true, bypasses Pro subscription requirement (for ad-based access).
   Future<DQPostTakeResultsResponse> submitPostTakeAnswer(
     String questionDate,
     AnswerValue answer,
-    DateTime startedAt,
-  ) async {
+    DateTime startedAt, {
+    bool withAd = false,
+  }) async {
     final absoluteNumber = composeNumber(answer);
+    final suffix = withAd ? '?with_ad=true' : '';
     final response = await _api.post(
-      '/daily_question/post_take/$questionDate/answer',
+      '/daily_question/post_take/$questionDate/answer$suffix',
       {
         'answer': {
           'number': absoluteNumber,

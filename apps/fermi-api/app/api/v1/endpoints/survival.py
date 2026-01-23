@@ -12,6 +12,8 @@ from app.api.v1.authenticated_user import AuthenticatedUser
 from app.api.v1.dependencies import get_survival_service
 from app.api.v1.rate_limit import GAME_CREATE_RATE_LIMIT, limiter
 from app.schemas.survival import (
+    ContinueWithAdRequest,
+    ContinueWithAdResponse,
     CreateOrResumeRequest,
     LeaderboardResponse,
     StreakInfo,
@@ -77,6 +79,28 @@ async def submit_survival_answer(
     )
 
     return response
+
+
+@router.post('/continue_with_ad', response_model=ContinueWithAdResponse)
+@limiter.limit(GAME_CREATE_RATE_LIMIT)
+async def continue_survival_with_ad(
+    request: Request,
+    payload: ContinueWithAdRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    survival_service: Annotated[SurvivalService, Depends(get_survival_service)],
+) -> ContinueWithAdResponse:
+    """Continue a failed survival run after watching a rewarded ad.
+
+    Limited to 1 ad save per run.
+    """
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, continue_survival_with_ad.__qualname__)
+    span.set_attribute(api_attrs.QUERY_PARAMS, f'run_id={payload.run_id}')
+
+    return await survival_service.continue_run_with_ad(
+        user_firebase_uid=current_user.firebase_uid,
+        run_id=payload.run_id,
+    )
 
 
 @router.get('/stats', response_model=SurvivalStatsResponse)

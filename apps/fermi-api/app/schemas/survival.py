@@ -29,6 +29,8 @@ class SurvivalQuestionResponse(BaseModel):
     question: SurvivalQuestionData
     time_limit_seconds: int  # Always 40
     answer_deadline_utc: str  # ISO timestamp
+    streak: int  # Current streak (accounts for ad saves)
+    can_use_ad_save: bool  # Whether player can use ad save this run
 
 
 class CreateOrResumeRequest(BaseModel):
@@ -49,6 +51,7 @@ class SurvivalRunSummary(BaseModel):
 
     run_id: int
     questions_answered: int
+    streak: int  # Correct consecutive answers (accounts for ad saves)
     total_score: float
 
 
@@ -106,3 +109,21 @@ class LeaderboardResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+
+
+class ContinueWithAdRequest(BaseModel):
+    """Request for continuing a survival run after watching an ad."""
+
+    run_id: int
+
+
+class ContinueWithAdResponse(BaseModel):
+    """Response after successfully continuing with an ad."""
+
+    run_id: int
+    question_number: int
+    question: SurvivalQuestionData
+    time_limit_seconds: int
+    answer_deadline_utc: str
+    streak: int  # Current streak (preserved by ad save)
+    can_use_ad_save: bool  # Always False after using ad save

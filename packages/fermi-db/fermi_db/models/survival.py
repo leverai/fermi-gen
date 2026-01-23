@@ -31,3 +31,4 @@ class SurvivalRun(SQLModel, table=True):
     )
     is_completed: bool = False  # True if run ended (pass/fail)
     streak: int = Field(default=0, index=True)  # Best streak for leaderboard
+    ad_saves_used: int = Field(default=0)  # Times player used ad to continue

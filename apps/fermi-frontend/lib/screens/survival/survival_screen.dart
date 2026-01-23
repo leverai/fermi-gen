@@ -49,6 +49,7 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
       initialBestStreak: widget.initialBestStreak,
       gameConfig: preloadService.cachedConfig,
     );
+    _controller.onShowSaveDialog = _showSaveStreakDialog;
     _controller.addListener(_onControllerChanged);
     _controller.attach();
   }
@@ -113,9 +114,49 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
     if (_controller.passed) {
       await _controller.requestNext();
     } else {
-      // Failed - finish and go back
+      // Failed and either no ad save available or dialog was dismissed
       _navigateToMain();
     }
+  }
+
+  Future<void> _showSaveStreakDialog() async {
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StyledDialog(
+          message: 'Save your streak?',
+          secondaryMessage: 'Watch a short video to continue your run!',
+          primaryButtonLabel: 'Save Streak 🎬',
+          primaryButtonColor: appTheme.secondary,
+          onPrimaryPressed: () {
+            Navigator.of(ctx).pop();
+            _handleContinueWithAd();
+          },
+          secondaryButtonLabel: 'Exit',
+          onSecondaryPressed: () {
+            Navigator.of(ctx).pop();
+            // Just close dialog - user can press Finish button to leave
+          },
+          showAsDialog: true,
+        );
+      },
+    );
+  }
+
+  Future<void> _handleContinueWithAd() async {
+    await _controller.continueWithAd(
+      onFailed: () {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ad not available. Try again later.')),
+        );
+        _navigateToMain();
+      },
+    );
   }
 
   @override

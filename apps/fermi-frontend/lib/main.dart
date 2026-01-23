@@ -19,6 +19,7 @@ import 'package:fermi_frontend/services/subscription_service.dart';
 import 'package:fermi_frontend/services/local_settings_service.dart';
 import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/services/notification_service.dart';
+import 'package:fermi_frontend/services/ad_service.dart';
 import 'package:fermi_frontend/providers/subscription_provider.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
@@ -56,6 +57,9 @@ Future<void> main() async {
 
     // Initialize push notifications (Android only)
     await NotificationService.instance.initialize();
+
+    // Initialize Unity Ads (non-blocking)
+    AdService.instance.init();
 
     if (useEmulators) {
       const String configuredAuthHost =
