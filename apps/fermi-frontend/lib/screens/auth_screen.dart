@@ -25,7 +25,10 @@ class AuthScreen extends StatelessWidget {
 
   Future<void> _signInWithGoogle(BuildContext context) async {
     try {
-      final googleSignIn = GoogleSignIn();
+      final googleSignIn = GoogleSignIn(
+        serverClientId:
+            '811437731406-ba9rrd3d459i4cri2hmdgdj090424gav.apps.googleusercontent.com',
+      );
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) return;
 
