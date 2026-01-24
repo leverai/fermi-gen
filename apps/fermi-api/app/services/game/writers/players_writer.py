@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 # Tier-based maximum players
-MAX_PLAYERS_FREE = 5
+MAX_PLAYERS_FREE = 20
 MAX_PLAYERS_PRO = 20
 
 
