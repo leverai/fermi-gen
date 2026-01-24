@@ -277,7 +277,9 @@ class AppRouter {
   Widget _buildSignInScreen(BuildContext context) {
     final List<AuthProvider> providers = [
       EmailAuthProvider(),
-      GoogleProvider(clientId: ''),
+      GoogleProvider(
+          clientId:
+              '811437731406-ba9rrd3d459i4cri2hmdgdj090424gav.apps.googleusercontent.com'),
     ];
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
@@ -364,7 +366,9 @@ class AppRouter {
   Widget _buildProfileScreen(BuildContext context) {
     final List<AuthProvider> providers = [
       EmailAuthProvider(),
-      GoogleProvider(clientId: ''),
+      GoogleProvider(
+          clientId:
+              '811437731406-ba9rrd3d459i4cri2hmdgdj090424gav.apps.googleusercontent.com'),
     ];
 
     return ProfileScreen(
@@ -380,7 +384,9 @@ class AppRouter {
   Widget _buildUpgradeAccountScreen(BuildContext context) {
     final List<AuthProvider> providers = [
       EmailAuthProvider(),
-      GoogleProvider(clientId: ''),
+      GoogleProvider(
+          clientId:
+              '811437731406-ba9rrd3d459i4cri2hmdgdj090424gav.apps.googleusercontent.com'),
     ];
 
     final appTheme =

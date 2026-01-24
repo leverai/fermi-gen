@@ -532,6 +532,30 @@ These are configured in `firebase.json` with proper headers.
 2. Place in `android/app/` directory
 3. Ensure file is not in `.gitignore`
 
+#### Google Sign-In Not Working
+
+**Symptom**: Pressing "Sign in with Google" does nothing, or user selects account but nothing happens
+
+**Causes**:
+- Missing or incorrect `serverClientId` in `GoogleSignIn()` initialization
+- SHA-1 fingerprint not registered in Firebase Console
+- Using Android client ID instead of Web client ID
+
+**Solutions**:
+1. Ensure `GoogleSignIn()` and `GoogleProvider()` use the **Web client ID** (found in `google-services.json` with `client_type: 3`)
+2. Verify all SHA-1 fingerprints are registered in Firebase Console:
+   - Debug key
+   - Release/upload keystore
+   - Google Play App Signing key (if applicable)
+3. After adding fingerprints, re-download `google-services.json`
+4. Clean and rebuild: `fvm flutter clean && fvm flutter pub get`
+
+**Get SHA-1 fingerprints**:
+```bash
+cd apps/fermi-frontend/android
+./gradlew signingReport
+```
+
 #### Hot Reload Not Working
 
 **Symptoms**: Changes don't reflect in running app
