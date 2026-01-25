@@ -30,7 +30,12 @@ class AuthScreen extends StatelessWidget {
             '811437731406-ba9rrd3d459i4cri2hmdgdj090424gav.apps.googleusercontent.com',
       );
       final googleUser = await googleSignIn.signIn();
-      if (googleUser == null) return;
+      if (googleUser == null) {
+        // This can happen if user cancels OR if there's a configuration error
+        debugPrint(
+            '[GoogleSignIn] signIn returned null - user cancelled or config error');
+        return;
+      }
 
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
@@ -39,7 +44,9 @@ class AuthScreen extends StatelessWidget {
       );
 
       await FirebaseAuth.instance.signInWithCredential(credential);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('[GoogleSignIn] Error: $e');
+      debugPrint('[GoogleSignIn] StackTrace: $stackTrace');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
