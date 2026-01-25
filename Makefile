@@ -154,6 +154,15 @@ run-frontend:
 	  --dart-define=REVENUECAT_ANDROID_API_KEY=REVENUECAT_ANDROID_API_KEY_PLACEHOLDER \
 	  --dart-define=SUPPRESS_TEST_LOGS=true
 
+.PHONY: run-frontend-prod
+run-frontend-prod:
+	cd apps/fermi-frontend && \
+	fvm flutter run --flavor prod -t lib/main.dart \
+	  --dart-define=API_BASE_URL=https://fermi-api-prod-811437731406.us-central1.run.app/api/v1 \
+	  --dart-define=USE_EMULATORS=false \
+	  --dart-define=SUPPRESS_TEST_LOGS=true \
+	  --dart-define=REVENUECAT_ANDROID_API_KEY=REVENUECAT_ANDROID_API_KEY_PLACEHOLDER
+
 # Build dev APK for Firebase App Distribution
 .PHONY: build-frontend-android-dev
 build-frontend-android-dev:
@@ -181,35 +190,6 @@ build-frontend-android-prod:
 	  --flavor prod \
 	  --dart-define=API_BASE_URL=https://fermi-api-prod-811437731406.us-central1.run.app/api/v1 \
 	  --dart-define=USE_EMULATORS=false \
-	  --dart-define=SUPPRESS_TEST_LOGS=true \
-	  --dart-define=REVENUECAT_ANDROID_API_KEY=REVENUECAT_ANDROID_API_KEY_PLACEHOLDER
-
-.PHONY: run-frontend-web
-run-frontend-web:
-	@echo "Bring up db and emulators..." && \
-	docker compose up -d db emulators && \
-	echo "Waiting for emulators (8080, 9099) and db..." && \
-	until (</dev/tcp/127.0.0.1/8080) 2>/dev/null; do sleep 1; done; \
-	until (</dev/tcp/127.0.0.1/9099) 2>/dev/null; do sleep 1; done; \
-	until docker compose exec -T db pg_isready -U postgres >/dev/null; do sleep 1; done; \
-	docker compose exec -T db psql -U postgres -c 'CREATE DATABASE "fermi-db";' 2>/dev/null || true && \
-	echo "Running migrations..." && \
-	export DATABASE_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/fermi-db; \
-	export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080; \
-	export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099; \
-	export GOOGLE_CLOUD_PROJECT=fermi-local; \
-	$(MAKE) migrate; \
-	echo "Seeding questions..." && \
-	uv run --package fermi-db python scripts/seed_test_questions.py --file apps/fermi-api/tests/data/test_questions.json --no-dq-history; \
-	docker compose up -d api && \
-	until (curl -s http://localhost:8000/api/v1/health/health) 2>/dev/null; do sleep 1; done && \
-	echo "Launching Flutter web app..." && \
-	cd apps/fermi-frontend && \
-	fvm flutter run -d chrome \
-	  --dart-define=USE_EMULATORS=true \
-	  --dart-define=FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
-	  --dart-define=FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
-	  --dart-define=API_BASE_URL=http://localhost:8000/api/v1 \
 	  --dart-define=SUPPRESS_TEST_LOGS=true \
 	  --dart-define=REVENUECAT_ANDROID_API_KEY=REVENUECAT_ANDROID_API_KEY_PLACEHOLDER
 
