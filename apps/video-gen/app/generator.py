@@ -259,7 +259,7 @@ class VideoGenerator:
             )
         )
         number, unit_id = best_answer['number'], best_answer['unit']
-        number_in_words = num2words(int(number))
+        number_in_words = num2words(round(number))
         unit_info = get_unit_info(unit_id) if unit_id else None
         unit_text = unit_info['name'] if unit_id else ''
         unit_abbr = unit_info['abbreviation'] if unit_id else ''
