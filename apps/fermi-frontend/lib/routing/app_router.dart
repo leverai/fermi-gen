@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart'
     hide EmailAuthProvider, AuthProvider;
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
-import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fermi_frontend/services/auth_service.dart';
@@ -277,9 +276,6 @@ class AppRouter {
   Widget _buildSignInScreen(BuildContext context) {
     final List<AuthProvider> providers = [
       EmailAuthProvider(),
-      GoogleProvider(
-          clientId:
-              '811437731406-ba9rrd3d459i4cri2hmdgdj090424gav.apps.googleusercontent.com'),
     ];
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
@@ -366,9 +362,6 @@ class AppRouter {
   Widget _buildProfileScreen(BuildContext context) {
     final List<AuthProvider> providers = [
       EmailAuthProvider(),
-      GoogleProvider(
-          clientId:
-              '811437731406-ba9rrd3d459i4cri2hmdgdj090424gav.apps.googleusercontent.com'),
     ];
 
     return ProfileScreen(
@@ -384,9 +377,6 @@ class AppRouter {
   Widget _buildUpgradeAccountScreen(BuildContext context) {
     final List<AuthProvider> providers = [
       EmailAuthProvider(),
-      GoogleProvider(
-          clientId:
-              '811437731406-ba9rrd3d459i4cri2hmdgdj090424gav.apps.googleusercontent.com'),
     ];
 
     final appTheme =
