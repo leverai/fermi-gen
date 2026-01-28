@@ -194,8 +194,6 @@ class SurvivalService:
             number=correct_answer_w_snippet['number'],
             unit=correct_answer_w_snippet['unit'],
         )
-        if correct_answer is None:
-            raise ValueError(f'Question {run.current_question_uid} not found')
         span.set_attribute(attrs.QUESTION_UID, str(run.current_question_uid))
         score = self._scoring.calculate_score(answer, correct_answer)
         quantiles = await self._db.answers.get_question_quantiles(
@@ -216,6 +214,15 @@ class SurvivalService:
         assert run.id, 'This should not happen.'
         span.set_attribute(attrs.SURVIVAL_TOTAL_SCORE, run.total_score)
 
+        # Convert correct answer to player's unit if applicable
+        if answer['unit']:
+            converted_answer = convert_answer_to_user_unit(
+                player_unit_id=answer['unit'],
+                correct_answer=correct_answer,
+            )
+        else:
+            converted_answer = correct_answer
+
         # 4. Update answer events and user history
         answer_event = AnswerEvent(
             question_uid=uuid.UUID(run.current_question_uid),
@@ -225,7 +232,7 @@ class SurvivalService:
             user_firebase_id=user_firebase_uid,
             game_id=str(run_id),
             answer=answer,
-            correct_answer=correct_answer,
+            correct_answer=converted_answer,
             score_number=score,
             score_quantile=quantile,
             game_mode=GameMode.SURVIVAL,
@@ -240,15 +247,6 @@ class SurvivalService:
         xp_increment = int(score // 100)
         if xp_increment > 0:
             await self._db.users.increment_xp(user_firebase_uid, xp_increment)
-
-        # Convert correct answer to player's unit if applicable
-        if answer['unit']:
-            converted_answer = convert_answer_to_user_unit(
-                player_unit_id=answer['unit'],
-                correct_answer=correct_answer,
-            )
-        else:
-            converted_answer = correct_answer
 
         p50_ratio = compute_p50_ratio(pass_threshold)
         return SurvivalAnswerResponse(
