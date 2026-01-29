@@ -432,13 +432,21 @@ class ApiService {
 
   /// Start a new survival run or resume an existing one.
   /// Returns the question response with run_id, question data, and deadline.
-  Future<Map<String, dynamic>> survivalCreateOrResume({int? runId}) async {
+  /// If [withAd] is true, bypasses the daily run limit (after watching ad).
+  Future<Map<String, dynamic>> survivalCreateOrResume({
+    int? runId,
+    bool withAd = false,
+  }) async {
     try {
       final body = <String, dynamic>{};
       if (runId != null) {
         body['run_id'] = runId;
       }
-      final resp = await _authPost('/survival/create_or_resume', body);
+      String path = '/survival/create_or_resume';
+      if (withAd) {
+        path += '?with_ad=true';
+      }
+      final resp = await _authPost(path, body);
       if (resp.statusCode == 200) {
         return jsonDecode(resp.body) as Map<String, dynamic>;
       }

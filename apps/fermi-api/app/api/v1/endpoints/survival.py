@@ -35,21 +35,29 @@ async def start_survival_run(
     current_user: Annotated[User, Depends(get_current_user)],
     auth_user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
     survival_service: Annotated[SurvivalService, Depends(get_survival_service)],
+    *,
+    with_ad: bool = Query(
+        default=False,
+        description='Allow access after watching a rewarded ad (bypasses run limit)',
+    ),
 ) -> SurvivalQuestionResponse:
     """Start a new survival run or resume an existing one.
 
     If the user has an active run, it resumes that run.
     Returns the next question with a 40-second timer.
-    Free users are limited to 2 runs per day.
+    Free users are limited to 2 runs per day unless with_ad=True.
     """
     span = trace.get_current_span()
     span.set_attribute(api_attrs.ACTION, start_survival_run.__qualname__)
-    span.set_attribute(api_attrs.QUERY_PARAMS, f'run_id={payload.run_id}')
+    span.set_attribute(
+        api_attrs.QUERY_PARAMS,
+        f'run_id={payload.run_id}&with_ad={with_ad}',
+    )
 
     response = await survival_service.create_or_resume_run(
         user_firebase_uid=current_user.firebase_uid,
         run_id=payload.run_id,
-        is_pro=auth_user.is_pro,
+        is_pro=auth_user.is_pro or with_ad,  # Ad access bypasses limit
     )
 
     return response

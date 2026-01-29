@@ -16,6 +16,7 @@ class SurvivalScreenController extends ChangeNotifier {
   final int initialCurrentStreak;
   final int initialBestStreak;
   final GameConfig? gameConfig;
+  final bool initialWithAd;
 
   SurvivalScreenController({
     required this.apiService,
@@ -23,6 +24,7 @@ class SurvivalScreenController extends ChangeNotifier {
     this.initialCurrentStreak = 0,
     this.initialBestStreak = 0,
     this.gameConfig,
+    this.initialWithAd = false,
   });
 
   // --- State ---
@@ -142,10 +144,10 @@ class SurvivalScreenController extends ChangeNotifier {
   Future<void> attach() async {
     _currentLocale = userLocale;
     // Streak values are passed from PreSurvivalScreen, no need to fetch
-    await _startRun();
+    await _startRun(withAd: initialWithAd);
   }
 
-  Future<void> _startRun({int? runId}) async {
+  Future<void> _startRun({int? runId, bool withAd = false}) async {
     _isLoading = true;
     _error = null;
     _isSubmitted = false;
@@ -154,7 +156,10 @@ class SurvivalScreenController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final json = await apiService.survivalCreateOrResume(runId: runId);
+      final json = await apiService.survivalCreateOrResume(
+        runId: runId,
+        withAd: withAd,
+      );
       final response = SurvivalQuestionResponse.fromJson(json);
 
       _runId = response.runId;

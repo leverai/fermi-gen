@@ -171,9 +171,12 @@ class AppRouter {
                   state.uri.queryParameters['bestStreak'] ?? '',
                 ) ??
                 0;
+            final withAd =
+                state.uri.queryParameters['withAd']?.toLowerCase() == 'true';
             return SurvivalScreen(
               initialCurrentStreak: currentStreak,
               initialBestStreak: bestStreak,
+              withAd: withAd,
             );
           },
         ),
