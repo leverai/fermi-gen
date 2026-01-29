@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -87,6 +88,7 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
           await File('${directory.path}/achievement_card.png').create();
       await imagePath.writeAsBytes(pngBytes);
 
+      FeedbackService.instance.buttonPress();
       final xFile = XFile(imagePath.path);
       await Share.shareXFiles([xFile]);
     } catch (e) {
@@ -160,187 +162,209 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
+        child: Stack(
           children: [
-            // Top Section (A + B)
-            Stack(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.only(
-                    top: 32,
-                    left: 20,
-                    right: 20,
-                    bottom: 20,
-                  ),
-                  decoration: BoxDecoration(
-                    color: themeColor.withAlpha(40),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(appTheme.borderRadius - 1),
-                      topRight: Radius.circular(appTheme.borderRadius - 1),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        tier.title.toUpperCase(),
-                        textAlign: TextAlign.center,
-                        style: AppFont.primaryTextStyle(
-                          context,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          color: themeColor,
-                          height: 1.1,
-                        ).copyWith(letterSpacing: 1.0),
+                // Top Section (A + B)
+                Stack(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.only(
+                        top: 32,
+                        left: 16,
+                        right: 16,
+                        bottom: 32,
                       ),
-                      const SizedBox(height: 12),
-                      Text(tier.emoji, style: const TextStyle(fontSize: 48)),
-                      const SizedBox(height: 12),
-                      Text(
-                        widget.percentile > 50
-                            ? 'Top ${100 - widget.percentile.round()}%'
-                            : 'Bottom ${widget.percentile.round()}%',
-                        textAlign: TextAlign.center,
-                        style: AppFont.secondaryTextStyle(
-                          context,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: themeColor,
+                      decoration: BoxDecoration(
+                        color: themeColor.withAlpha(40),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(appTheme.borderRadius - 1),
+                          topRight: Radius.circular(appTheme.borderRadius - 1),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '"${tier.description}"',
-                        textAlign: TextAlign.center,
-                        style: AppFont.primaryTextStyle(
-                          context,
-                          fontSize: 14,
-                          color: appTheme.textMuted,
-                          fontWeight: FontWeight.w400,
-                        ).copyWith(fontStyle: FontStyle.italic),
-                      ),
-                    ],
-                  ),
-                ),
-                // Share button
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: GestureDetector(
-                    onTap: _captureAndShare,
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      color: Colors.transparent,
-                      child: Center(
-                        child: Icon(
-                          Icons.share,
-                          size: 20,
-                          color: themeColor,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                // Close button
-                if (widget.onClose != null)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: GestureDetector(
-                      onTap: widget.onClose,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        color: Colors.transparent,
-                        child: Center(
-                          child: Text(
-                            '×',
-                            style: AppFont.primaryTextStyle(
-                              context,
-                              fontSize: 32,
-                              fontWeight: FontWeight.w400,
-                              color: appTheme.bgDark,
-                              height: 1.0,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-
-            Divider(color: appTheme.bgDark, height: 1),
-
-            // Bottom Section (C)
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'The Question:',
-                    style: AppFont.primaryTextStyle(
-                      context,
-                      fontSize: 12,
-                      color: appTheme.textMuted,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.questionText,
-                    style: AppFont.primaryTextStyle(
-                      context,
-                      fontSize: 14,
-                      color: appTheme.text,
-                    ).copyWith(fontStyle: FontStyle.italic),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                      child: Column(
                         children: [
+                          Text(tier.emoji,
+                              style: const TextStyle(fontSize: 48)),
+                          const SizedBox(height: 12),
                           Text(
-                            'You Said:',
+                            tier.title.toUpperCase(),
+                            textAlign: TextAlign.center,
                             style: AppFont.primaryTextStyle(
                               context,
-                              fontSize: 12,
-                              color: appTheme.textMuted,
-                              fontWeight: FontWeight.w600,
-                            ),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: themeColor,
+                              height: 1.1,
+                            ).copyWith(letterSpacing: 1.0),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            widget.userAnswer,
+                            widget.percentile > 50
+                                ? 'Top ${100 - widget.percentile.round()}%'
+                                : 'Bottom ${widget.percentile.round()}%',
+                            textAlign: TextAlign.center,
                             style: AppFont.secondaryTextStyle(
                               context,
-                              fontSize: 16,
-                              color: appTheme.text,
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
+                              color: themeColor,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            '"${tier.description}"',
+                            textAlign: TextAlign.center,
+                            style: AppFont.primaryTextStyle(
+                              context,
+                              fontSize: 14,
+                              color: appTheme.textMuted,
+                              fontWeight: FontWeight.w400,
+                            ).copyWith(fontStyle: FontStyle.italic),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Share button
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: GestureDetector(
+                        onTap: _captureAndShare,
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          color: Colors.transparent,
+                          child: Center(
+                            child: Icon(
+                              Icons.share,
+                              size: 20,
+                              color: themeColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Close button
+                    if (widget.onClose != null)
+                      Positioned(
+                        top: 8,
+                        left: 12,
+                        child: GestureDetector(
+                          onTap: () {
+                            FeedbackService.instance.buttonPress();
+                            widget.onClose?.call();
+                          },
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            color: Colors.transparent,
+                            child: Center(
+                              child: Text(
+                                '×',
+                                style: AppFont.primaryTextStyle(
+                                  context,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w400,
+                                  color: themeColor,
+                                  height: 1.0,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+
+                Divider(color: appTheme.bgDark, height: 1),
+
+                // Bottom Section (C)
+                Padding(
+                  padding: const EdgeInsets.only(
+                      left: 20, right: 20, top: 20, bottom: 30),
+                  child: Table(
+                    columnWidths: const {
+                      0: IntrinsicColumnWidth(),
+                      1: FlexColumnWidth(),
+                    },
+                    defaultVerticalAlignment: TableCellVerticalAlignment.top,
+                    children: [
+                      TableRow(
+                        children: [
+                          Padding(
+                            padding:
+                                const EdgeInsets.only(right: 16, bottom: 12),
+                            child: Text(
+                              'The Question:',
+                              style: AppFont.primaryTextStyle(
+                                context,
+                                fontSize: 12,
+                                color: appTheme.textMuted,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Text(
+                              widget.questionText,
+                              style: AppFont.primaryTextStyle(
+                                context,
+                                fontSize: 14,
+                                color: appTheme.text,
+                              ).copyWith(fontStyle: FontStyle.italic),
                             ),
                           ),
                         ],
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                      TableRow(
                         children: [
-                          Text(
-                            'Answer:',
-                            style: AppFont.primaryTextStyle(
-                              context,
-                              fontSize: 12,
-                              color: appTheme.textMuted,
-                              fontWeight: FontWeight.w600,
+                          Padding(
+                            padding:
+                                const EdgeInsets.only(right: 16, bottom: 8),
+                            child: Text(
+                              'You Said:',
+                              style: AppFont.primaryTextStyle(
+                                context,
+                                fontSize: 12,
+                                color: appTheme.textMuted,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              widget.userAnswer,
+                              style: AppFont.secondaryTextStyle(
+                                context,
+                                fontSize: 16,
+                                color: appTheme.text,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      TableRow(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(right: 16),
+                            child: Text(
+                              'Answer:',
+                              style: AppFont.primaryTextStyle(
+                                context,
+                                fontSize: 12,
+                                color: appTheme.textMuted,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
                           Text(
                             widget.correctAnswer,
                             style: AppFont.secondaryTextStyle(
@@ -354,8 +378,35 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
+            // Watermark
+            Positioned(
+              bottom: 4,
+              right: 12,
+              child: Opacity(
+                  opacity: 0.4,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        'assets/icons/icon-fg.png',
+                        height: 20,
+                        width: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Guesstimate: Not Trivia!',
+                        style: AppFont.primaryTextStyle(
+                          context,
+                          fontSize: 10,
+                          color: appTheme.textMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  )),
             ),
           ],
         ),

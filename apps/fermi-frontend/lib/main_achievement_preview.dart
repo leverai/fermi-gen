@@ -55,7 +55,8 @@ class AchievementPreviewScreen extends StatelessWidget {
           _SectionHeader(title: 'Top 1% (99+)'),
           PACard(
             percentile: 99.5,
-            questionText: 'How many piano tuners are there in Chicago?',
+            questionText:
+                'How many piano tuners are there in Chicago, assuming the population is roughly 2.7 million and 1 in 10 households own a piano?',
             userAnswer: '200',
             correctAnswer: '290',
           ),
