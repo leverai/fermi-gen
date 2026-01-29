@@ -132,6 +132,10 @@ class SurvivalScreenController extends ChangeNotifier {
   // Callback for showing save streak dialog (set by survival_screen)
   VoidCallback? onShowSaveDialog;
 
+  // Callback for showing PA card popup (set by survival_screen)
+  // Returns a Future that completes when the popup is closed
+  Future<void> Function()? onShowPACard;
+
   // --- Lifecycle ---
 
   /// Initialize the controller and start a new survival run.
@@ -312,16 +316,10 @@ class SurvivalScreenController extends ChangeNotifier {
       // Show confetti on pass
       if (_answerResponse!.passed) {
         _showConfetti = true;
-      } else {
-        // Player failed - show save dialog after delay if ad save available
-        if (canUseAdSave) {
-          Future.delayed(const Duration(seconds: 1), () {
-            if (!_isShowingAd) {
-              onShowSaveDialog?.call();
-            }
-          });
-        }
       }
+
+      // Schedule PA card popup and save streak dialog
+      _schedulePostRevealPopups();
 
       // Hide unit tape indicators
       unitTapeController.setRevealed(true, const Duration(milliseconds: 600));
@@ -353,6 +351,48 @@ class SurvivalScreenController extends ChangeNotifier {
     if (!_isSubmitted) {
       await submitAnswer();
     }
+  }
+
+  /// Schedule PA card popup (if eligible) and save streak dialog.
+  /// PA card shows first, then save streak 1s after PA card closes.
+  /// If no PA card, save streak shows 1s after reveal.
+  void _schedulePostRevealPopups() {
+    final percentile = _answerResponse?.percentile;
+    final showPACard =
+        percentile != null && (percentile <= 10 || percentile >= 90);
+
+    if (showPACard && onShowPACard != null) {
+      // Show PA card first, then schedule save streak after it closes
+      onShowPACard!().then((_) {
+        _scheduleSaveStreakIfNeeded();
+      });
+    } else {
+      // No PA card to show, schedule save streak after 1s delay
+      _scheduleSaveStreakIfNeeded();
+    }
+  }
+
+  /// Schedule save streak dialog 1s after being called (if player failed).
+  void _scheduleSaveStreakIfNeeded() {
+    if (!passed && canUseAdSave) {
+      Future.delayed(const Duration(seconds: 1), () {
+        if (!_isShowingAd) {
+          onShowSaveDialog?.call();
+        }
+      });
+    }
+  }
+
+  /// Get unit abbreviation from unit ID using the current question's unit map.
+  String getUnitAbbreviationFromId(String unitId) {
+    // Reverse lookup in _unitAbbreviationToId
+    for (final entry in _unitAbbreviationToId.entries) {
+      if (entry.value == unitId) {
+        return entry.key;
+      }
+    }
+    // Fallback: return the ID itself (might already be abbreviation)
+    return unitId;
   }
 
   /// Continue the run after watching a rewarded ad.

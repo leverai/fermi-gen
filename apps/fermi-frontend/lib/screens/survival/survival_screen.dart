@@ -11,11 +11,13 @@ import 'package:fermi_frontend/screens/question_v2/widgets/game_card.dart';
 import 'package:fermi_frontend/screens/question_v2/models/question_pane_state.dart';
 import 'package:fermi_frontend/widgets/animated_like_dislike.dart';
 import 'package:fermi_frontend/widgets/leave_button.dart';
+import 'package:fermi_frontend/widgets/pa_card.dart';
 import 'package:fermi_frontend/widgets/styled_dialog.dart';
 import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:fermi_frontend/widgets/player_confetti_overlay.dart';
 import 'package:fermi_frontend/utils/number_decompose.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
+import 'package:fermi_frontend/utils/answer_format.dart';
 
 /// Survival mode screen - single player timed questions until failure.
 class SurvivalScreen extends StatefulWidget {
@@ -50,6 +52,7 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
       gameConfig: preloadService.cachedConfig,
     );
     _controller.onShowSaveDialog = _showSaveStreakDialog;
+    _controller.onShowPACard = _showPACardPopup;
     _controller.addListener(_onControllerChanged);
     _controller.attach();
   }
@@ -145,6 +148,67 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
         );
       },
     );
+  }
+
+  /// Show PA card popup if the player's percentile qualifies.
+  /// Returns a Future that completes when the popup is closed.
+  Future<void> _showPACardPopup() async {
+    final answerResponse = _controller.answerResponse;
+    if (answerResponse == null) return;
+
+    final percentile = answerResponse.percentile;
+    // Check if tier exists (percentile qualifies for a card)
+    if (PACard.getTierForPercentile(percentile) == null) return;
+
+    final question = _controller.currentQuestion;
+    if (question == null) return;
+
+    // Format the user's answer with proper unit abbreviation
+    final userAnswerValue = answerResponse.userAnswer;
+    final formattedUserAnswer = _formatAnswerWithUnit(
+      userAnswerValue,
+      _controller.getUnitAbbreviationFromId(userAnswerValue.unit),
+    );
+
+    // Format the correct answer with proper unit abbreviation
+    final correctAnswerValue = answerResponse.convertedCorrectAnswer;
+    final formattedCorrectAnswer = _formatAnswerWithUnit(
+      correctAnswerValue,
+      _controller.getUnitAbbreviationFromId(correctAnswerValue.unit),
+    );
+
+    // Wait 1 second before showing the popup
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: PACard(
+              percentile: percentile,
+              questionText: question.text,
+              userAnswer: formattedUserAnswer,
+              correctAnswer: formattedCorrectAnswer,
+              animate: true,
+              onClose: () => Navigator.of(ctx).pop(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Format an AnswerValue with a specific unit abbreviation override.
+  String _formatAnswerWithUnit(AnswerValue value, String unitAbbreviation) {
+    final baseFormatted = formatAnswerValue(
+      value.copyWith(unit: unitAbbreviation),
+    );
+    return baseFormatted;
   }
 
   Future<void> _handleContinueWithAd() async {
