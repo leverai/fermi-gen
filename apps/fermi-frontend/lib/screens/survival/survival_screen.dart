@@ -23,11 +23,13 @@ import 'package:fermi_frontend/utils/answer_format.dart';
 class SurvivalScreen extends StatefulWidget {
   final int initialCurrentStreak;
   final int initialBestStreak;
+  final bool withAd;
 
   const SurvivalScreen({
     super.key,
     this.initialCurrentStreak = 0,
     this.initialBestStreak = 0,
+    this.withAd = false,
   });
 
   @override
@@ -36,6 +38,7 @@ class SurvivalScreen extends StatefulWidget {
 
 class _SurvivalScreenState extends State<SurvivalScreen> {
   late SurvivalScreenController _controller;
+  bool _isPAPopupPending = false;
 
   @override
   void initState() {
@@ -50,6 +53,7 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
       initialCurrentStreak: widget.initialCurrentStreak,
       initialBestStreak: widget.initialBestStreak,
       gameConfig: preloadService.cachedConfig,
+      initialWithAd: widget.withAd,
     );
     _controller.onShowSaveDialog = _showSaveStreakDialog;
     _controller.onShowPACard = _showPACardPopup;
@@ -114,6 +118,9 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
   }
 
   Future<void> _handleNext() async {
+    // Block if PA popup is pending
+    if (_isPAPopupPending) return;
+
     if (_controller.passed) {
       await _controller.requestNext();
     } else {
@@ -178,7 +185,9 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
     );
 
     // Wait 1 second before showing the popup
+    setState(() => _isPAPopupPending = true);
     await Future.delayed(const Duration(seconds: 1));
+    if (mounted) setState(() => _isPAPopupPending = false);
 
     if (!mounted) return;
 

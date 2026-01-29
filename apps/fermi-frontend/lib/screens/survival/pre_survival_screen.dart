@@ -6,6 +6,7 @@ import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/services/subscription_service.dart';
 import 'package:fermi_frontend/services/feedback_service.dart';
+import 'package:fermi_frontend/services/ad_service.dart';
 import 'package:fermi_frontend/models/survival_models.dart';
 import 'package:fermi_frontend/models/user_limits.dart';
 import 'package:fermi_frontend/screens/paywall_screen.dart';
@@ -69,7 +70,7 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
     }
   }
 
-  Future<void> _handleStart() async {
+  Future<void> _handleStart({bool withAd = false}) async {
     final currentStreak = _streakInfo?.currentStreak ?? 0;
     final bestStreak = _streakInfo?.bestStreak ?? 0;
 
@@ -80,7 +81,7 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
     }
 
     await context.push(
-      '/survival?currentStreak=$currentStreak&bestStreak=$bestStreak',
+      '/survival?currentStreak=$currentStreak&bestStreak=$bestStreak&withAd=$withAd',
     );
 
     if (mounted) {
@@ -260,10 +261,10 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
   }
 }
 
-class _SurvivalPlayTab extends StatelessWidget {
+class _SurvivalPlayTab extends StatefulWidget {
   final StreakInfo? streakInfo;
   final UserLimits? userLimits;
-  final VoidCallback onStart;
+  final Future<void> Function({bool withAd}) onStart;
   final VoidCallback onShowPaywall;
 
   const _SurvivalPlayTab({
@@ -274,13 +275,53 @@ class _SurvivalPlayTab extends StatelessWidget {
   });
 
   @override
+  State<_SurvivalPlayTab> createState() => _SurvivalPlayTabState();
+}
+
+class _SurvivalPlayTabState extends State<_SurvivalPlayTab> {
+  /// Handle watch ad button: show rewarded ad and start run on completion.
+  void _handleWatchAd() {
+    final adService = AdService.instance;
+    if (!adService.isAdLoaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ad not ready. Please try again.')),
+      );
+      // Try to load ad for next time
+      adService.loadRewardedAd();
+      return;
+    }
+
+    adService.showRewardedAd(
+      onComplete: () {
+        if (!mounted) return;
+        // Ad completed - start run with ad bypass
+        widget.onStart(withAd: true);
+      },
+      onSkipped: () {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Ad skipped. Please watch the full ad.')),
+        );
+      },
+      onFailed: () {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ad failed to play. Please try again.')),
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
-    final streak = streakInfo?.currentStreak ?? 0;
-    final bestStreak = streakInfo?.bestStreak ?? 0;
+    final streak = widget.streakInfo?.currentStreak ?? 0;
+    final bestStreak = widget.streakInfo?.bestStreak ?? 0;
     final bool isResume = streak > 0;
-    final bool canPlay = isResume || (userLimits?.canPlaySurvival ?? true);
+    final bool canPlay =
+        isResume || (widget.userLimits?.canPlaySurvival ?? true);
 
     return Center(
       child: SingleChildScrollView(
@@ -359,19 +400,56 @@ class _SurvivalPlayTab extends StatelessWidget {
             if (bestStreak > 0) const SizedBox(height: 36),
             if (bestStreak <= 0) const SizedBox(height: 48),
 
-            // Action Button
-            SizedBox(
-              width: 200,
-              child: MainButton(
-                onPressed: canPlay ? onStart : onShowPaywall,
-                label: canPlay
-                    ? (isResume
-                        ? MainButtonLabel.resume
-                        : MainButtonLabel.start)
-                    : null,
-                customLabel: canPlay ? null : 'Get Unlimited',
+            // Action Button(s)
+            if (canPlay)
+              // Can play: show Start or Resume button
+              SizedBox(
+                width: 200,
+                child: MainButton(
+                  onPressed: () => widget.onStart(withAd: false),
+                  label:
+                      isResume ? MainButtonLabel.resume : MainButtonLabel.start,
+                ),
+              )
+            else
+              // Gated: show Go PRO + or + Watch Ad 🎬
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Go PRO button
+                  SizedBox(
+                    width: 130,
+                    child: MainButton(
+                      onPressed: widget.onShowPaywall,
+                      customLabel: 'Go PRO',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // "or" text
+                  Text(
+                    'or',
+                    style: AppFont.primaryTextStyle(
+                      context,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: appTheme.textMuted,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Watch Ad 🎬 button
+                  SizedBox(
+                    width: 130,
+                    child: MainButton(
+                      onPressed: _handleWatchAd,
+                      customLabel: 'Watch Ad 🎬',
+                      backgroundColor: appTheme.secondary,
+                      shadowColor: appTheme.secondaryMuted,
+                    ),
+                  ),
+                ],
               ),
-            ),
             const SizedBox(height: 40),
 
             // Descriptive Footer
