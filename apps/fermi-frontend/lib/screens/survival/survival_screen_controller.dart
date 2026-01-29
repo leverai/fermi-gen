@@ -131,9 +131,6 @@ class SurvivalScreenController extends ChangeNotifier {
   bool _isShowingAd = false;
   bool get isShowingAd => _isShowingAd;
 
-  // Callback for showing save streak dialog (set by survival_screen)
-  VoidCallback? onShowSaveDialog;
-
   // Callback for showing PA card popup (set by survival_screen)
   // Returns a Future that completes when the popup is closed
   Future<void> Function()? onShowPACard;
@@ -358,33 +355,14 @@ class SurvivalScreenController extends ChangeNotifier {
     }
   }
 
-  /// Schedule PA card popup (if eligible) and save streak dialog.
-  /// PA card shows first, then save streak 1s after PA card closes.
-  /// If no PA card, save streak shows 1s after reveal.
+  /// Schedule PA card popup (if eligible) after reveal.
   void _schedulePostRevealPopups() {
     final percentile = _answerResponse?.percentile;
     final showPACard =
         percentile != null && (percentile <= 10 || percentile >= 90);
 
     if (showPACard && onShowPACard != null) {
-      // Show PA card first, then schedule save streak after it closes
-      onShowPACard!().then((_) {
-        _scheduleSaveStreakIfNeeded();
-      });
-    } else {
-      // No PA card to show, schedule save streak after 1s delay
-      _scheduleSaveStreakIfNeeded();
-    }
-  }
-
-  /// Schedule save streak dialog 1s after being called (if player failed).
-  void _scheduleSaveStreakIfNeeded() {
-    if (!passed && canUseAdSave) {
-      Future.delayed(const Duration(seconds: 1), () {
-        if (!_isShowingAd) {
-          onShowSaveDialog?.call();
-        }
-      });
+      onShowPACard!();
     }
   }
 

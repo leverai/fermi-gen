@@ -55,7 +55,6 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
       gameConfig: preloadService.cachedConfig,
       initialWithAd: widget.withAd,
     );
-    _controller.onShowSaveDialog = _showSaveStreakDialog;
     _controller.onShowPACard = _showPACardPopup;
     _controller.addListener(_onControllerChanged);
     _controller.attach();
@@ -123,38 +122,13 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
 
     if (_controller.passed) {
       await _controller.requestNext();
+    } else if (_controller.canUseAdSave) {
+      // Player failed but can save with ad
+      await _handleContinueWithAd();
     } else {
-      // Failed and either no ad save available or dialog was dismissed
+      // Failed and no ad save available
       _navigateToMain();
     }
-  }
-
-  Future<void> _showSaveStreakDialog() async {
-    final appTheme =
-        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
-
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return StyledDialog(
-          message: 'Save your streak?',
-          secondaryMessage: 'Watch a short video to continue your run!',
-          primaryButtonLabel: 'Save Streak 🎬',
-          primaryButtonColor: appTheme.secondary,
-          onPrimaryPressed: () {
-            Navigator.of(ctx).pop();
-            _handleContinueWithAd();
-          },
-          secondaryButtonLabel: 'Exit',
-          onSecondaryPressed: () {
-            Navigator.of(ctx).pop();
-            // Just close dialog - user can press Finish button to leave
-          },
-          showAsDialog: true,
-        );
-      },
-    );
   }
 
   /// Show PA card popup if the player's percentile qualifies.
@@ -460,6 +434,10 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
     // If passed, show Next; if failed, show Finish (isLast=true triggers Finish label)
     final bool isLast = isSubmitted && !(answerResponse?.passed ?? true);
 
+    // Custom finish button label when ad save is available
+    final String? finishButtonLabel =
+        (isLast && _controller.canUseAdSave) ? 'Save Streak 🎬' : null;
+
     // Compute acceptable range bounds for scale highlighting (survival mode only)
     AnswerValue? acceptableRangeLower;
     AnswerValue? acceptableRangeUpper;
@@ -527,6 +505,8 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
       // Acceptable range highlighting (survival mode)
       acceptableRangeLower: acceptableRangeLower,
       acceptableRangeUpper: acceptableRangeUpper,
+      // Custom finish button label for ad save
+      finishButtonLabel: finishButtonLabel,
     );
   }
 
