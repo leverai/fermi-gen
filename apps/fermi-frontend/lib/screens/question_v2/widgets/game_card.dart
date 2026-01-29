@@ -122,6 +122,8 @@ class GameCard extends StatelessWidget {
     // Survival mode acceptable range highlighting
     this.acceptableRangeLower,
     this.acceptableRangeUpper,
+    // Custom finish button label (e.g., "Save Streak 🎬")
+    this.finishButtonLabel,
   });
 
   final String questionText;
@@ -186,6 +188,9 @@ class GameCard extends StatelessWidget {
   /// Upper bound of acceptable answer range (for survival mode highlighting)
   final AnswerValue? acceptableRangeUpper;
 
+  /// Custom label for the finish button (when null, uses "Finish")
+  final String? finishButtonLabel;
+
   Widget _buildMainButton(BuildContext context) {
     if (paneState == null) {
       return const SizedBox.shrink();
@@ -226,7 +231,9 @@ class GameCard extends StatelessWidget {
                 width: double.infinity,
                 child: MainButton(
                   onPressed: isCurrentQuestion ? onNext : null,
-                  label: MainButtonLabel.finish,
+                  label:
+                      finishButtonLabel == null ? MainButtonLabel.finish : null,
+                  customLabel: finishButtonLabel,
                   controller: mainButtonController,
                 ),
               ),
