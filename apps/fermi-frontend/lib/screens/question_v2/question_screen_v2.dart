@@ -17,6 +17,8 @@ import 'package:fermi_frontend/screens/question_v2/helpers/snack.dart' as snack;
 
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/widgets/rank_confetti_overlay.dart';
+import 'package:fermi_frontend/widgets/pa_card.dart';
+import 'package:fermi_frontend/utils/answer_format.dart';
 
 class QuestionScreenV2 extends StatefulWidget {
   const QuestionScreenV2({
@@ -73,6 +75,7 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
       questionCount: widget.questionCount,
     );
     _controller.addListener(_onControllerChanged);
+    _controller.onShowPACard = _showPACardPopup;
     _controller.attach();
 
     // Expose controller to parent (for onboarding)
@@ -89,6 +92,50 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     super.dispose();
+  }
+
+  /// Show PA card popup if the player's percentile qualifies.
+  /// Returns a Future that completes when the popup is closed.
+  Future<void> _showPACardPopup() async {
+    final percentile = _controller.getCurrentQuestionPercentile();
+    if (percentile == null) return;
+
+    // Check if tier exists (percentile qualifies for a card)
+    if (PACard.getTierForPercentile(percentile) == null) return;
+
+    final state = _controller.getQuestionState(_controller.currentIndex);
+    if (state == null) return;
+
+    // Get user's submitted answer and correct answer
+    final myId = widget.realtime.currentPlayerId;
+    final userAnswer = state.submittedAnswers[myId];
+    final correctAnswer = state.correctAnswer;
+    if (userAnswer == null || correctAnswer == null) return;
+
+    final formattedUserAnswer = formatAnswerValue(userAnswer);
+    final formattedCorrectAnswer = formatAnswerValue(correctAnswer);
+
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: PACard(
+              percentile: percentile,
+              questionText: state.questionText,
+              userAnswer: formattedUserAnswer,
+              correctAnswer: formattedCorrectAnswer,
+              animate: true,
+              onClose: () => Navigator.of(ctx).pop(),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _handleLeave() async {

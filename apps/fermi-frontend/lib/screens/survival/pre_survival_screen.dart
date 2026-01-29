@@ -229,6 +229,7 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
                           Tab(text: 'Play'),
                           Tab(text: 'Leaderboard'),
                         ],
+                        onTap: (_) => FeedbackService.instance.buttonPress(),
                       ),
                     ),
                   ),

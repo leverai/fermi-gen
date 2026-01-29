@@ -62,6 +62,7 @@ class QuestionScreenV2Controller extends ChangeNotifier {
   bool _isReviewMode = false;
   String? _errorMessage;
   String _currentLocale = 'US';
+  int? _pendingPACardIndex;
   GameState? _previousGameState;
 
   // Answer controller (shared across questions)
@@ -319,6 +320,8 @@ class QuestionScreenV2Controller extends ChangeNotifier {
   }
 
   void _onQuestionIndexChanged(int newIndex) {
+    // Cancel any pending PA card popup when question changes
+    _pendingPACardIndex = null;
     _navigationCoordinator.onQuestionIndexChanged(
       newIndex: newIndex,
       stateManager: _stateManager,
@@ -489,6 +492,14 @@ class QuestionScreenV2Controller extends ChangeNotifier {
           '_handlePlayersAnswers: NOT triggering animation (index=$index, currentIndex=$currentIndex, wasRevealed=$wasRevealed, correctAnswer=$correctAnswer)');
     }
 
+    // Schedule PA card popup 1 second after reveal.
+    // This is separate from the animation check because _handleReveal may fire first
+    // and set isRevealed=true before we get here, but we still want to show the popup.
+    // Only schedule if: current question, not already pending, and has percentile data.
+    if (index == currentIndex && _pendingPACardIndex != index) {
+      _schedulePACardPopup(index);
+    }
+
     // Check confetti if this is the last question and we're in review mode
     // This handles the case where PlayersAnswersSnapshot arrives after GameSnapshot
     if (index == questionCount - 1 && _isReviewMode) {
@@ -654,6 +665,31 @@ class QuestionScreenV2Controller extends ChangeNotifier {
         index, realtime.currentPlayerId);
   }
 
+  /// Get current player's percentile for the current question (0-100 scale).
+  /// Returns null if not revealed or no percentile available.
+  double? getCurrentQuestionPercentile() {
+    final state = _stateManager.getQuestionState(currentIndex);
+    if (state == null || !state.isRevealed) return null;
+    final p = state.percentiles[realtime.currentPlayerId];
+    return p != null ? p * 100 : null; // Convert 0.0-1.0 to 0-100
+  }
+
+  /// Schedule PA card popup 1 second after reveal.
+  /// The popup is only shown if the player is still on the same question.
+  void _schedulePACardPopup(int index) {
+    _pendingPACardIndex = index;
+    Future.delayed(const Duration(seconds: 1), () {
+      // Validate: still on same question and not navigated away
+      if (_pendingPACardIndex == index &&
+          _navigationCoordinator.currentIndex == index) {
+        onShowPACard?.call();
+      }
+      if (_pendingPACardIndex == index) {
+        _pendingPACardIndex = null;
+      }
+    });
+  }
+
   /// Get category for a question index
   String? getCategoryForIndex(int index) {
     return _stateManager.getCategoryForIndex(index);
@@ -684,6 +720,10 @@ class QuestionScreenV2Controller extends ChangeNotifier {
     );
     notifyListeners();
   }
+
+  // Callback for showing PA card popup (set by QuestionScreenV2)
+  // Returns a Future that completes when the popup is closed
+  Future<void> Function()? onShowPACard;
 
   /// Check if transitioning from a finished state to an answering state
   /// This happens when the host advances to the next question

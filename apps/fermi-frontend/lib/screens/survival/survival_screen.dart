@@ -438,7 +438,7 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
     final double? rawPercentile =
         isSubmitted ? answerResponse?.percentile : null;
     final int? percentileValue = rawPercentile?.round();
-    final bool showPercentile = isSubmitted && percentileValue != null;
+    const bool showPercentile = false; //isSubmitted && percentileValue != null;
 
     // Determine paneState for button
     final QuestionPaneState paneState;
