@@ -85,4 +85,4 @@ class ScoringService:
             if score >= value:
                 return quantile
 
-        return 1.0
+        return 0.0
