@@ -201,3 +201,29 @@ update-icons:
 	fvm flutter pub run flutter_launcher_icons -f flutter_launcher_icons-dev.yaml && \
 	fvm flutter pub run flutter_launcher_icons -f flutter_launcher_icons-prod.yaml && \
 	echo "✓ Icons successfully updated for Android and iOS (dev and prod flavors)"
+
+# Build prod IPA for App Store
+.PHONY: build-frontend-ios
+build-frontend-ios:
+	cd apps/fermi-frontend && \
+	fvm flutter pub get && \
+	fvm flutter pub run flutter_native_splash:create && \
+	fvm flutter clean && \
+	fvm flutter pub get && \
+	cd ios && pod install --repo-update && cd ../ && \
+	fvm flutter build ipa \
+	  --release \
+	  --dart-define=API_BASE_URL=https://fermi-api-prod-811437731406.us-central1.run.app/api/v1 \
+	  --dart-define=USE_EMULATORS=false \
+	  --dart-define=SUPPRESS_TEST_LOGS=true \
+	  --dart-define=REVENUECAT_IOS_API_KEY=REVENUECAT_IOS_API_KEY_PLACEHOLDER
+
+.PHONY: upload-frontend-ios
+upload-frontend-ios:
+	@echo "Uploading app to App Store Connect..." && \
+	xcrun altool \
+		--upload-app \
+		--type ios \
+		-f apps/fermi-frontend/build/ios/ipa/Guesstimate.ipa \
+		--apiKey APPLE_API_KEY_PLACEHOLDER \
+		--apiIssuer "APPLE_API_ISSUER_PLACEHOLDER"
