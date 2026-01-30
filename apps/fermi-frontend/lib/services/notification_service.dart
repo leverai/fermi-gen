@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
@@ -23,13 +22,13 @@ class NotificationService {
   /// Initialize FCM and subscribe to DQ notifications topic.
   ///
   /// Should be called after Firebase.initializeApp() in main.dart.
-  /// Only initializes on Android (skips web and iOS for now).
+  /// Initializes on Android and iOS (skips web).
   Future<void> initialize() async {
     if (_initialized) return;
 
-    // Only initialize on Android for now
-    if (kIsWeb || !Platform.isAndroid) {
-      debugPrint('NotificationService: Skipping FCM init (not Android)');
+    // Skip on web
+    if (kIsWeb) {
+      debugPrint('NotificationService: Skipping FCM init (web not supported)');
       return;
     }
 
@@ -52,10 +51,12 @@ class NotificationService {
     debugPrint('NotificationService: Subscribed to $_dqTopic');
 
     // Handle foreground messages (show as snackbar or ignore)
-    _onMessageSub = FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+    _onMessageSub =
+        FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
     // Handle notification taps when app was in background/terminated
-    _onMessageOpenedSub = FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+    _onMessageOpenedSub =
+        FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
 
     // Check if app was opened via notification tap (cold start)
     final initialMessage = await messaging.getInitialMessage();
