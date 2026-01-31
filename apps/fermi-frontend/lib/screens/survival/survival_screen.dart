@@ -418,9 +418,11 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
     // If passed, show Next; if failed, show Finish (isLast=true triggers Finish label)
     final bool isLast = isSubmitted && !(answerResponse?.passed ?? true);
 
+    // boolean for if ad save is available
+    final bool adSaveAvailable = isLast && _controller.canUseAdSave;
+
     // Custom finish button label when ad save is available
-    final String? finishButtonLabel =
-        (isLast && _controller.canUseAdSave) ? 'Save Streak 🎬' : null;
+    final String? finishButtonLabel = adSaveAvailable ? 'Save Streak 🎬' : null;
 
     // Compute acceptable range bounds for scale highlighting (survival mode only)
     AnswerValue? acceptableRangeLower;
@@ -489,6 +491,9 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
       acceptableRangeUpper: acceptableRangeUpper,
       // Custom finish button label for ad save
       finishButtonLabel: finishButtonLabel,
+      // Custom button colors for ad save
+      mainButtonBackgroundColor: adSaveAvailable ? appTheme.secondary : null,
+      mainButtonShadowColor: adSaveAvailable ? appTheme.secondaryMuted : null,
     );
   }
 
