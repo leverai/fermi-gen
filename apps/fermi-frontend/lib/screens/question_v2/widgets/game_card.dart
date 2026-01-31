@@ -3,7 +3,6 @@ import 'package:fermi_frontend/widgets/animated_like_dislike.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
-import 'package:fermi_frontend/widgets/percentile_widget.dart';
 import 'package:fermi_frontend/widgets/question_answer_card.dart';
 import 'package:fermi_frontend/widgets/unit_tape.dart';
 
@@ -106,9 +105,7 @@ class GameCard extends StatelessWidget {
     this.questionDeadlineProgress = 0.0,
     this.mainButtonController,
     this.submitButtonKey,
-    // Percentile props
-    this.percentile,
-    this.showPercentile = false,
+
     // Other players' converted answers
     this.otherPlayersAnswers,
     this.otherPlayersAvatars,
@@ -163,9 +160,7 @@ class GameCard extends StatelessWidget {
   final double questionDeadlineProgress;
   final MainButtonController? mainButtonController;
   final Key? submitButtonKey;
-  // Percentile props
-  final int? percentile;
-  final bool showPercentile;
+
   // Other players' converted answers
   final Map<String, AnswerValue>? otherPlayersAnswers;
   final Map<String, String?>? otherPlayersAvatars;
@@ -379,16 +374,6 @@ class GameCard extends StatelessWidget {
             ),
           ],
         ),
-        // Percentile widget overlay (top-right corner of card)
-        if (percentile != null)
-          Positioned(
-            top: 2,
-            right: 14,
-            child: PercentileWidget(
-              percentile: percentile,
-              visible: showPercentile,
-            ),
-          ),
       ],
     );
   }

@@ -121,10 +121,6 @@ class SurvivalScreenController extends ChangeNotifier {
     return year.toString();
   }
 
-  // Confetti trigger
-  bool _showConfetti = false;
-  bool get showConfetti => _showConfetti;
-
   // Ad save state (from backend)
   bool _canUseAdSave = false; // Updated from backend responses
   bool get canUseAdSave => _canUseAdSave && AdService.instance.isAdLoaded;
@@ -150,7 +146,6 @@ class SurvivalScreenController extends ChangeNotifier {
     _error = null;
     _isSubmitted = false;
     _answerResponse = null;
-    _showConfetti = false;
     notifyListeners();
 
     try {
@@ -323,11 +318,6 @@ class SurvivalScreenController extends ChangeNotifier {
         _bestStreak = _currentStreak;
       }
 
-      // Show confetti on pass
-      if (_answerResponse!.passed) {
-        _showConfetti = true;
-      }
-
       // Schedule PA card popup and save streak dialog
       _schedulePostRevealPopups();
 
@@ -345,15 +335,8 @@ class SurvivalScreenController extends ChangeNotifier {
   Future<void> requestNext() async {
     if (!passed || _runId == null) return;
 
-    _showConfetti = false;
     unitTapeController.setRevealed(false, Duration.zero);
     await _startRun(runId: _runId);
-  }
-
-  /// Clear confetti flag.
-  void clearConfetti() {
-    _showConfetti = false;
-    notifyListeners();
   }
 
   /// Submit current answer before leaving (for leave dialog flow).
@@ -409,7 +392,6 @@ class SurvivalScreenController extends ChangeNotifier {
           _deadline = response.answerDeadlineUtc;
           _isSubmitted = false;
           _answerResponse = null;
-          _showConfetti = false;
 
           // Use backend values - streak preserved, ad saves now exhausted
           _currentStreak = response.streak;
