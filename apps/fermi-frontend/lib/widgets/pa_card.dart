@@ -2,12 +2,14 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:fermi_frontend/services/feedback_service.dart';
+import 'package:fermi_frontend/services/pa_card_sound_service.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:fermi_frontend/widgets/pa_card_confetti_overlay.dart';
 
 enum PAChiermontTier {
   top1('GODLIKE', 'Behold, for he hath not guessed, but divined.', '🤯'),
@@ -69,6 +71,9 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   final GlobalKey _globalKey = GlobalKey();
+  final PACardSoundService _soundService = PACardSoundService();
+  bool _showConfetti = false;
+  Color? _confettiColor;
 
   Future<void> _captureAndShare() async {
     try {
@@ -114,14 +119,72 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
 
     if (widget.animate) {
       _animationController.forward();
+      // Play sound based on tier when animating
+      _playTierSound();
+      // Confetti is triggered in didChangeDependencies where context is available
     } else {
       _animationController.value = 1.0;
+    }
+  }
+
+  bool _confettiTriggered = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Trigger confetti once when animating (needs context for theme)
+    if (widget.animate && !_confettiTriggered) {
+      _confettiTriggered = true;
+      final AppTheme appTheme =
+          Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+      final tier = _getTier();
+      if (tier != null) {
+        final themeColor = _getThemeColor(appTheme, tier);
+        _triggerConfettiIfTopTier(themeColor);
+      }
+    }
+  }
+
+  void _triggerConfettiIfTopTier(Color themeColor) {
+    final tier = _getTier();
+    if (tier == null) return;
+    // Only show confetti for top tiers (top1, top5, top10)
+    if (tier == PAChiermontTier.top1 ||
+        tier == PAChiermontTier.top5 ||
+        tier == PAChiermontTier.top10) {
+      setState(() {
+        _showConfetti = true;
+        _confettiColor = themeColor;
+      });
+    }
+  }
+
+  void _playTierSound() async {
+    final tier = _getTier();
+    if (tier == null) return;
+
+    await _soundService.initialize();
+
+    switch (tier) {
+      case PAChiermontTier.top1:
+        await _soundService.playTop1();
+        break;
+      case PAChiermontTier.top5:
+      case PAChiermontTier.top10:
+        await _soundService.playTop();
+        break;
+      case PAChiermontTier.bottom1:
+      case PAChiermontTier.bottom5:
+      case PAChiermontTier.bottom10:
+        await _soundService.playBottom();
+        break;
     }
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _soundService.dispose();
     super.dispose();
   }
 
@@ -413,14 +476,34 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
       ),
     );
 
+    // Wrap in Stack with confetti overlay if showing
+    Widget result = card;
+    if (_showConfetti && _confettiColor != null) {
+      result = Stack(
+        children: [
+          card,
+          Positioned.fill(
+            child: IgnorePointer(
+              child: PACardConfettiOverlay(
+                themeColor: _confettiColor!,
+                onComplete: () {
+                  if (mounted) setState(() => _showConfetti = false);
+                },
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     // Apply bounce animation if enabled
     if (widget.animate) {
       return ScaleTransition(
         scale: _scaleAnimation,
-        child: card,
+        child: result,
       );
     }
 
-    return card;
+    return result;
   }
 }
