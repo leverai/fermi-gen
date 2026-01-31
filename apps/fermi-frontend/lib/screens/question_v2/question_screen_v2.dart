@@ -311,12 +311,6 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
     final revealedColor =
         showFeedback ? _controller.getRevealedColor(index) : null;
 
-    // Get player's percentile for this question
-    final percentile = _controller.getMyPercentileForIndex(index);
-    final percentileValue =
-        percentile != null ? (percentile * 100).round() : null;
-    final showPercentile = showFeedback && percentile != null && percentile > 0;
-
     // Get submitted answer for THIS question (per-question, not shared)
     final AnswerValue? submittedAnswerForThisQuestion;
     final myId = widget.realtime.currentPlayerId;
@@ -413,9 +407,7 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
       questionDeadlineProgress: deadlineProgress,
       submitButtonKey:
           null, // Don't use answerWidgetKey for submit button to avoid key conflicts
-      // Percentile props
-      percentile: percentileValue ?? 0,
-      showPercentile: showPercentile,
+
       // Other players' converted answers
       otherPlayersAnswers: otherPlayersAnswers,
       otherPlayersAvatars: otherPlayersAvatars,

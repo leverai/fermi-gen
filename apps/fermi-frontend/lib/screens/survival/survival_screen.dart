@@ -407,12 +407,6 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
           answerResponse.passed ? appTheme.success : appTheme.danger;
     }
 
-    // Percentile calculation
-    final double? rawPercentile =
-        isSubmitted ? answerResponse?.percentile : null;
-    final int? percentileValue = rawPercentile?.round();
-    const bool showPercentile = false; //isSubmitted && percentileValue != null;
-
     // Determine paneState for button
     final QuestionPaneState paneState;
     if (!isSubmitted) {
@@ -480,9 +474,7 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
       onDeUpvote: _controller.onDeUpvote,
       onDownvote: _controller.onDownvote,
       onDeDownvote: _controller.onDeDownvote,
-      // Percentile
-      percentile: percentileValue ?? 0,
-      showPercentile: showPercentile,
+
       // AI overview
       paragraph: isSubmitted ? answerResponse?.aiOverview : null,
       // Button props (using paneState for GameCard's internal button)
