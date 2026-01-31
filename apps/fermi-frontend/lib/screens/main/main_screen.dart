@@ -469,7 +469,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                         borderRadius: BorderRadius.circular(1e3),
                         child: IconButton(
                           onPressed: () {
-                            FeedbackService.instance.secondaryClick();
+                            FeedbackService.instance.buttonPress();
                             _toggleSettings();
                           },
                           splashColor: Colors.transparent,

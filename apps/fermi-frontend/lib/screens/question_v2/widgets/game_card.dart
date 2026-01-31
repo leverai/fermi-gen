@@ -121,6 +121,9 @@ class GameCard extends StatelessWidget {
     this.acceptableRangeUpper,
     // Custom finish button label (e.g., "Save Streak 🎬")
     this.finishButtonLabel,
+    // Custom button colors
+    this.mainButtonBackgroundColor,
+    this.mainButtonShadowColor,
   });
 
   final String questionText;
@@ -186,6 +189,12 @@ class GameCard extends StatelessWidget {
   /// Custom label for the finish button (when null, uses "Finish")
   final String? finishButtonLabel;
 
+  /// Custom background color for the main button
+  final Color? mainButtonBackgroundColor;
+
+  /// Custom shadow color for the main button
+  final Color? mainButtonShadowColor;
+
   Widget _buildMainButton(BuildContext context) {
     if (paneState == null) {
       return const SizedBox.shrink();
@@ -206,6 +215,8 @@ class GameCard extends StatelessWidget {
             key: submitButtonKey,
             onPressed: isCurrentQuestion ? onSubmit : null,
             label: MainButtonLabel.submit,
+            backgroundColor: mainButtonBackgroundColor,
+            shadowColor: mainButtonShadowColor,
           ),
         );
       case QuestionPaneState.locked:
@@ -230,6 +241,8 @@ class GameCard extends StatelessWidget {
                       finishButtonLabel == null ? MainButtonLabel.finish : null,
                   customLabel: finishButtonLabel,
                   controller: mainButtonController,
+                  backgroundColor: mainButtonBackgroundColor,
+                  shadowColor: mainButtonShadowColor,
                 ),
               ),
               if (isHost &&
@@ -269,6 +282,8 @@ class GameCard extends StatelessWidget {
                 label: MainButtonLabel.next,
                 isLoading: false,
                 controller: mainButtonController,
+                backgroundColor: mainButtonBackgroundColor,
+                shadowColor: mainButtonShadowColor,
               ),
             ),
             if (isCurrentQuestion &&
