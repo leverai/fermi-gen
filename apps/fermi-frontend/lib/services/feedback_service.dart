@@ -17,6 +17,8 @@ class FeedbackService {
 
   AudioPool? _clickPool;
   AudioPool? _secondaryClickPool;
+  AudioPool? _successPool;
+  AudioPool? _failPool;
   bool _isInitialized = false;
 
   // AudioContext that does NOT request audio focus, allowing sounds to mix
@@ -43,6 +45,18 @@ class FeedbackService {
         source: AssetSource('sounds/click_secondary.mp3'),
         minPlayers: 2,
         maxPlayers: 5,
+        audioContext: _noFocusContext,
+      );
+      _successPool = await AudioPool.create(
+        source: AssetSource('sounds/success.mp3'),
+        minPlayers: 1,
+        maxPlayers: 2,
+        audioContext: _noFocusContext,
+      );
+      _failPool = await AudioPool.create(
+        source: AssetSource('sounds/fail.mp3'),
+        minPlayers: 1,
+        maxPlayers: 2,
         audioContext: _noFocusContext,
       );
       _isInitialized = true;
@@ -80,6 +94,34 @@ class FeedbackService {
     // No audio for selection changes - too frequent
   }
 
+  /// Play success sound (e.g., survival mode pass).
+  void playSuccess() {
+    if (!LocalSettingsService.instance.feedbackEnabled.value) return;
+    if (_successPool == null) {
+      debugPrint('FeedbackService: Success pool not initialized');
+      return;
+    }
+    try {
+      _successPool!.start();
+    } catch (e) {
+      debugPrint('FeedbackService: Error playing success: $e');
+    }
+  }
+
+  /// Play fail sound (e.g., survival mode fail).
+  void playFail() {
+    if (!LocalSettingsService.instance.feedbackEnabled.value) return;
+    if (_failPool == null) {
+      debugPrint('FeedbackService: Fail pool not initialized');
+      return;
+    }
+    try {
+      _failPool!.start();
+    } catch (e) {
+      debugPrint('FeedbackService: Error playing fail: $e');
+    }
+  }
+
   void _playClick() {
     if (_clickPool == null) {
       debugPrint('FeedbackService: Click pool not initialized');
@@ -111,6 +153,10 @@ class FeedbackService {
     _clickPool = null;
     _secondaryClickPool?.dispose();
     _secondaryClickPool = null;
+    _successPool?.dispose();
+    _successPool = null;
+    _failPool?.dispose();
+    _failPool = null;
     _isInitialized = false;
   }
 }
