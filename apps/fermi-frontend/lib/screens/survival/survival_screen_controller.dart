@@ -5,6 +5,7 @@ import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/survival_models.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/ad_service.dart';
+import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/widgets/unit_tape.dart';
 
 /// Controller for the Survival screen.
@@ -299,6 +300,13 @@ class SurvivalScreenController extends ChangeNotifier {
       );
       _answerResponse = SurvivalAnswerResponse.fromJson(json);
       _isSubmitted = true;
+
+      // Play pass/fail sound immediately (before any delays)
+      if (_answerResponse!.passed) {
+        FeedbackService.instance.playSuccess();
+      } else {
+        FeedbackService.instance.playFail();
+      }
 
       // Update streak from runSummary.streak (backend's source of truth)
       // This correctly accounts for ad saves
