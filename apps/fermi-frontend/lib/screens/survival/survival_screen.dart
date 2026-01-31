@@ -14,7 +14,6 @@ import 'package:fermi_frontend/widgets/leave_button.dart';
 import 'package:fermi_frontend/widgets/pa_card.dart';
 import 'package:fermi_frontend/widgets/styled_dialog.dart';
 import 'package:fermi_frontend/widgets/responsive_container.dart';
-import 'package:fermi_frontend/widgets/player_confetti_overlay.dart';
 import 'package:fermi_frontend/utils/number_decompose.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/utils/answer_format.dart';
@@ -296,15 +295,6 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
                 splashColor: appTheme.borderMuted,
                 onPressed: _handleLeave,
               ),
-              // Confetti overlay on pass
-              if (_controller.showConfetti)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: PlayerConfettiOverlay(
-                      onComplete: _controller.clearConfetti,
-                    ),
-                  ),
-                ),
             ],
           ),
         ),
