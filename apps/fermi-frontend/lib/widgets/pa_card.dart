@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:fermi_frontend/services/feedback_service.dart';
+import 'package:fermi_frontend/services/pa_card_sound_service.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -69,6 +70,7 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   final GlobalKey _globalKey = GlobalKey();
+  final PACardSoundService _soundService = PACardSoundService();
 
   Future<void> _captureAndShare() async {
     try {
@@ -114,14 +116,39 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
 
     if (widget.animate) {
       _animationController.forward();
+      // Play sound based on tier when animating
+      _playTierSound();
     } else {
       _animationController.value = 1.0;
+    }
+  }
+
+  void _playTierSound() async {
+    final tier = _getTier();
+    if (tier == null) return;
+
+    await _soundService.initialize();
+
+    switch (tier) {
+      case PAChiermontTier.top1:
+        await _soundService.playTop1();
+        break;
+      case PAChiermontTier.top5:
+      case PAChiermontTier.top10:
+        await _soundService.playTop();
+        break;
+      case PAChiermontTier.bottom1:
+      case PAChiermontTier.bottom5:
+      case PAChiermontTier.bottom10:
+        await _soundService.playBottom();
+        break;
     }
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _soundService.dispose();
     super.dispose();
   }
 
