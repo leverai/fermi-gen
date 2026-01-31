@@ -129,19 +129,19 @@ class AppTheme extends ThemeExtension<AppTheme> {
     return AppTheme(
       // Backgrounds - Warm Soft White
       bgDark:
-          const HSLColor.fromAHSL(1.0, 40, 0.10, 0.80).toColor(), // Off-white
-      bg: const HSLColor.fromAHSL(1.0, 40, 0.10, 0.85).toColor(), // Near white
+          const HSLColor.fromAHSL(1.0, 40, 0.10, 0.87).toColor(), // Off-white
+      bg: const HSLColor.fromAHSL(1.0, 40, 0.10, 0.93).toColor(), // Near white
       bgLight:
-          const HSLColor.fromAHSL(1.0, 0, 0.0, 0.90).toColor(), // Pure white
+          const HSLColor.fromAHSL(1.0, 0, 0.0, 0.98).toColor(), // Pure white
 
       // Text - Dark Slate
       text: const HSLColor.fromAHSL(1.0, 220, 0.30, 0.15).toColor(),
-      textMuted: const HSLColor.fromAHSL(1.0, 220, 0.15, 0.55).toColor(),
+      textMuted: const HSLColor.fromAHSL(1.0, 220, 0.15, 0.4).toColor(),
 
       // UI Elements
       highlight: const HSLColor.fromAHSL(1.0, 220, 0.20, 0.55).toColor(),
-      border: const HSLColor.fromAHSL(1.0, 220, 0.15, 0.65).toColor(),
-      borderMuted: const HSLColor.fromAHSL(1.0, 220, 0.10, 0.75).toColor(),
+      border: const HSLColor.fromAHSL(1.0, 220, 0.15, 0.6).toColor(),
+      borderMuted: const HSLColor.fromAHSL(1.0, 220, 0.10, 0.65).toColor(),
 
       // Brand (Daily) - Deep Vibrant Indigo
       primary: const HSLColor.fromAHSL(1.0, 250, 0.70, 0.55).toColor(),
