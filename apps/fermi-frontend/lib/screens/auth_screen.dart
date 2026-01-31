@@ -81,7 +81,7 @@ class AuthScreen extends StatelessWidget {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: appTheme.text,
+          foregroundColor: appTheme.bg,
           side: BorderSide(
             color: appTheme.borderMuted,
             width: appTheme.borderWidth,
