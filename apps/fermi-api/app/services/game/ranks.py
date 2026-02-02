@@ -93,3 +93,28 @@ def get_all_ranks(
         )
         for tier_id, name, min_percentile, accuracy_vibe, tagline in sorted_ranks
     ]
+
+
+def get_rank_picture_for_percentile(
+    avg_percentile: int,
+    request: Request | None = None,
+) -> str:
+    """Get the rank picture URL for a given average percentile.
+
+    Args:
+        avg_percentile: The player's average percentile (0-100).
+        request: Optional FastAPI request to build absolute image URLs.
+
+    Returns:
+        URL to the rank picture SVG.
+
+    """
+    base = str(request.base_url).rstrip('/') if request else ''
+
+    # Find the appropriate rank tier (ordered highest to lowest)
+    for tier_id, _, min_percentile, _, _ in RANKS:
+        if avg_percentile >= min_percentile:
+            return f'{base}/static/ranks/{tier_id}.svg'
+
+    # Fallback to lowest rank
+    return f'{base}/static/ranks/1.svg'

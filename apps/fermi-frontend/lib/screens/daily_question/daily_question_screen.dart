@@ -63,6 +63,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       _effectiveDate; // Frozen on init to prevent changing when controller updates
   AnswerValue _currentAnswer =
       const AnswerValue(number: 1, orderOfMagnitude: '', unit: '');
+  String? _userRankPictureUrl;
 
   // For post-take: track when user started to send with submission
   DateTime? _postTakeStartedAt;
@@ -145,6 +146,22 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         // Start the question
         await _startQuestion();
       }
+    }
+    // Fetch user rank picture (fire and forget, update state when done)
+    _fetchUserRankPromise();
+  }
+
+  Future<void> _fetchUserRankPromise() async {
+    try {
+      final apiService = context.read<ApiService>();
+      final stats = await apiService.getPlayerStatsTyped();
+      if (mounted) {
+        setState(() {
+          _userRankPictureUrl = stats.stats.rank.picture;
+        });
+      }
+    } catch (_) {
+      // Ignore errors fetching rank
     }
   }
 
@@ -765,6 +782,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
                   service: context.read<DailyQuestionService>(),
                   userDisplayName: authService.currentUser?.displayName,
                   userAvatarUrl: authService.currentUser?.picture,
+                  userRankPictureUrl: _userRankPictureUrl,
                 ),
             ],
           ),

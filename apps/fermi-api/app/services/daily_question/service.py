@@ -44,6 +44,7 @@ from app.services.daily_question.timing import (
     is_within_ad_grace,
     seconds_until,
 )
+from app.services.game.ranks import get_rank_picture_for_percentile
 from app.services.notification import (
     send_dq_activated_notification,
     send_dq_results_ready_notification,
@@ -403,8 +404,9 @@ class DailyQuestionService:
         # Extract unique Firebase UIDs from leaderboard entries
         firebase_uids = [entry.user_firebase_uid for entry in leaderboard_entries]
 
-        # Batch-fetch user info for all leaderboard players
+        # Batch-fetch user info and percentiles for all leaderboard players
         users_map: dict[str, dict[str, str | None]] = {}
+        percentiles_map: dict[str, int] = {}
         if firebase_uids:
             users = await self._db.users.get_by_firebase_uids(firebase_uids)
             users_map = {
@@ -414,6 +416,9 @@ class DailyQuestionService:
                 }
                 for user in users
             }
+            percentiles_map = await self._db.answers.get_overall_avg_percentiles_batch(
+                firebase_uids,
+            )
 
         # Construct leaderboard with player info
         leaderboard = [
@@ -425,6 +430,9 @@ class DailyQuestionService:
                     ),
                     avatar_url=users_map.get(entry.user_firebase_uid, {}).get(
                         'avatar_url',
+                    ),
+                    rank_picture=get_rank_picture_for_percentile(
+                        percentiles_map.get(entry.user_firebase_uid, 100),
                     ),
                 )
                 if entry.user_firebase_uid in users_map
@@ -832,6 +840,7 @@ class DailyQuestionService:
         )
         firebase_uids = [entry.user_firebase_uid for entry, _ in leaderboard_with_ranks]
         users_map: dict[str, dict[str, str | None]] = {}
+        percentiles_map: dict[str, int] = {}
         if firebase_uids:
             users = await self._db.users.get_by_firebase_uids(firebase_uids)
             users_map = {
@@ -841,6 +850,9 @@ class DailyQuestionService:
                 }
                 for user in users
             }
+            percentiles_map = await self._db.answers.get_overall_avg_percentiles_batch(
+                firebase_uids,
+            )
 
         leaderboard = [
             DQLeaderboardEntry(
@@ -851,6 +863,9 @@ class DailyQuestionService:
                     ),
                     avatar_url=users_map.get(entry.user_firebase_uid, {}).get(
                         'avatar_url',
+                    ),
+                    rank_picture=get_rank_picture_for_percentile(
+                        percentiles_map.get(entry.user_firebase_uid, 100),
                     ),
                 )
                 if entry.user_firebase_uid in users_map

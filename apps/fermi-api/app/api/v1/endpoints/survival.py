@@ -168,4 +168,5 @@ async def get_survival_leaderboard(
         user_firebase_uid=current_user.firebase_uid,
         page=page,
         page_size=page_size,
+        request=request,
     )

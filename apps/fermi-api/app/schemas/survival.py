@@ -96,6 +96,7 @@ class LeaderboardEntry(BaseModel):
     rank: int
     display_name: str | None
     picture: str | None
+    rank_picture: str | None = None
     best_streak: int
     is_completed: bool  # Whether their best run has ended
 

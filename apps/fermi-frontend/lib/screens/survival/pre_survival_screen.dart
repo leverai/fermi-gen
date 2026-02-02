@@ -677,6 +677,7 @@ class _SurvivalLeaderboardTabState extends State<_SurvivalLeaderboardTab> {
                       backgroundColor: appTheme.bgLight,
                       placeholder:
                           Icon(Icons.person, color: appTheme.text, size: 20),
+                      rankPictureUrl: entry.rankPicture,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -748,6 +749,7 @@ class _SurvivalLeaderboardTabState extends State<_SurvivalLeaderboardTab> {
                   backgroundColor: appTheme.bgLight,
                   placeholder:
                       Icon(Icons.person, color: appTheme.text, size: 20),
+                  rankPictureUrl: _currentUser!.rankPicture,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
