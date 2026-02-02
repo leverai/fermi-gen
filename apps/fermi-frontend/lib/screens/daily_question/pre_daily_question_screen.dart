@@ -143,6 +143,7 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
       ),
     )
         .then((purchased) {
+      if (!mounted) return;
       if (purchased == true) {
         // Refresh subscription state after successful purchase
         context.read<SubscriptionProvider>().refresh();

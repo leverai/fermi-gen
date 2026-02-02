@@ -523,8 +523,11 @@ class QuestionScreenV2Controller extends ChangeNotifier {
       );
     }
 
-    // Animation callback will notify listeners when animation completes
-    // Players will be updated when game snapshot arrives with player summaries
+    // Always notify listeners at the end to ensure UI is updated with the latest state.
+    // This is critical when _handleReveal fires before _handlePlayersAnswers (race condition),
+    // causing the animation trigger to be skipped and leaving the UI stale.
+    // The animation's onComplete callback provides additional notifications during animation.
+    _safeNotifyListeners();
   }
 
   /// Handle carousel page change (user swipe in review mode)

@@ -663,6 +663,7 @@ class FirestoreGameRealtime implements GameRealtime {
   }
 
   /// Dispose all subscriptions and close all controllers to prevent memory leaks.
+  @override
   void dispose() {
     // Cancel all base stream subscriptions
     for (final sub in _baseStreamSubscriptions.values) {
