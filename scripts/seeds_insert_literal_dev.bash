@@ -20,7 +20,9 @@ curl -X POST $SERVICE_URL/insert_literal \
   -H "Content-Type: application/json" \
   -d '{
         "questions": [
-          "How long would it take an adult human to count to one million?"
+          "In a year, how many times does the average American driver go over the speed limit?",
+          "How heavy is the average cow in the US?",
+          "How many times does the average person blink in a day?"
         ],
         "provider": "human"
       }'
