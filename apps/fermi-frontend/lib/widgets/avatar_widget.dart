@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fermi_frontend/utils/env.dart';
+import 'package:fermi_frontend/theme/app_theme.dart';
 
 /// A reusable avatar widget that handles both SVG and raster images.
 ///
 /// Automatically detects SVG URLs (by .svg extension) and uses the appropriate
 /// renderer. Provides loading and error fallbacks.
+/// Optionally displays a rank icon overlay in the top-right corner.
 class AvatarWidget extends StatelessWidget {
   const AvatarWidget({
     super.key,
@@ -14,6 +17,7 @@ class AvatarWidget extends StatelessWidget {
     this.backgroundColor,
     this.padding = EdgeInsets.zero,
     this.boxShadow,
+    this.rankPictureUrl,
   });
 
   /// URL of the avatar image. Can be an SVG or raster image.
@@ -34,6 +38,9 @@ class AvatarWidget extends StatelessWidget {
   /// Optional shadow effect.
   final List<BoxShadow>? boxShadow;
 
+  /// URL to the rank picture SVG. If provided, displays in top-right corner.
+  final String? rankPictureUrl;
+
   bool get _isSvg =>
       imageUrl != null && imageUrl!.toLowerCase().endsWith('.svg');
 
@@ -48,9 +55,11 @@ class AvatarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
     final Widget placeholderWidget = placeholder ?? _defaultPlaceholder;
 
-    return Container(
+    final avatarContainer = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -68,6 +77,73 @@ class AvatarWidget extends StatelessWidget {
                       applyScaling: _isAnimalsGroup)
                   : _buildRasterImage(placeholderWidget)),
         ),
+      ),
+    );
+
+    // If no rank picture, return just the avatar
+    if (rankPictureUrl == null) {
+      return avatarContainer;
+    }
+
+    // Otherwise, wrap in a Stack with rank overlay in top-right corner
+    final rankIconSize = size * 0.45;
+
+    // Handle relative URLs (safety fallback)
+    String effectiveRankUrl = rankPictureUrl!;
+    if (effectiveRankUrl.startsWith('/')) {
+      try {
+        final baseUrlStr = resolveApiBaseUrlOrThrow();
+        final uri = Uri.parse(baseUrlStr);
+        // Use origin (scheme://host:port) because static files are mounted at root /static
+        // not under /api/v1
+        effectiveRankUrl = '${uri.origin}$effectiveRankUrl';
+      } catch (_) {
+        // Fallback: leave as is if base url resolution fails
+      }
+    }
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          avatarContainer,
+          Positioned(
+            top: -2,
+            right: -2,
+            child: SizedBox(
+              width: rankIconSize,
+              height: rankIconSize,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Shadow layer - slightly smaller to account for SVG padding/whitespace
+                  Container(
+                    width: rankIconSize * 0.75,
+                    height: rankIconSize * 0.75,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: appTheme.shadowColor.withOpacity(0.5),
+                          blurRadius: 6,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Icon layer
+                  SvgPicture.network(
+                    effectiveRankUrl,
+                    width: rankIconSize,
+                    height: rankIconSize,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -145,6 +145,54 @@ class AnswerRepository(BaseRepository):
         percentile = result.scalar()
         return int(percentile) if percentile is not None else 100
 
+    async def get_overall_avg_percentiles_batch(
+        self,
+        firebase_uids: list[str],
+    ) -> dict[str, int]:
+        """Get overall percentiles for multiple users in a single query.
+
+        Args:
+            firebase_uids: List of Firebase UIDs.
+
+        Returns:
+            Dict mapping firebase_uid to percentile (0-100), defaulting to 100.
+
+        """
+        if not firebase_uids:
+            return {}
+
+        # Subquery: compute average score per player
+        player_avgs = (
+            select(
+                AnswerEvent.user_firebase_id,
+                func.avg(AnswerEvent.score_number).label('avg_score'),
+            )
+            .group_by(AnswerEvent.user_firebase_id)
+            .subquery()
+        )
+
+        # Use percent_rank() window function to compute percentile
+        ranked = (
+            select(
+                player_avgs.c.user_firebase_id,
+                (
+                    func.percent_rank().over(order_by=player_avgs.c.avg_score) * 100
+                ).label('percentile'),
+            )
+            .select_from(player_avgs)
+            .subquery()
+        )
+
+        stmt = select(
+            ranked.c.user_firebase_id,
+            ranked.c.percentile,
+        ).where(
+            ranked.c.user_firebase_id.in_(firebase_uids),  # pyright: ignore[reportArgumentType]
+        )
+        result = await self.session.execute(stmt)
+        rows = result.all()
+        return {row[0]: int(row[1]) if row[1] is not None else 100 for row in rows}
+
     async def get_user_answer_events(
         self,
         user_id: str,

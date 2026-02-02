@@ -48,6 +48,9 @@ class DQResultsBottomSheet extends StatefulWidget {
   /// Current user's avatar URL for showing in leaderboard.
   final String? userAvatarUrl;
 
+  /// Current user's rank picture URL.
+  final String? userRankPictureUrl;
+
   const DQResultsBottomSheet({
     super.key,
     required this.questionDate,
@@ -58,6 +61,7 @@ class DQResultsBottomSheet extends StatefulWidget {
     this.service,
     this.userDisplayName,
     this.userAvatarUrl,
+    this.userRankPictureUrl,
   });
 
   @override
@@ -550,6 +554,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
         player: DQPlayer(
           displayName: widget.userDisplayName ?? 'You',
           avatarUrl: widget.userAvatarUrl,
+          rankPicture: widget.userRankPictureUrl,
         ),
         score: results.userScore!,
         timeTakenS: 0, // Not displayed
@@ -615,6 +620,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
                 color: appTheme.text,
               ),
             ),
+            rankPictureUrl: player?.rankPicture,
           ),
           const SizedBox(width: 8),
           // Name

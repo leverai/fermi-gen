@@ -5,7 +5,7 @@ import uuid
 from datetime import timedelta
 from typing import TYPE_CHECKING, cast
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 from fermi_core.units import convert_answer_to_user_unit, get_unit_family
 from fermi_core.utils import utcnow_naive
 from fermi_db.models import AnswerEvent, Fermi
@@ -24,6 +24,7 @@ from app.schemas.survival import (
     SurvivalRunSummary,
     SurvivalStatsResponse,
 )
+from app.services.game.ranks import get_rank_picture_for_percentile
 from app.services.scoring import ScoringService, compute_p50_ratio
 
 logger = logging.getLogger(__name__)
@@ -392,6 +393,7 @@ class SurvivalService:
         user_firebase_uid: str,
         page: int = 1,
         page_size: int = 25,
+        request: Request | None = None,
     ) -> LeaderboardResponse:
         """Get paginated global streak leaderboard with current user's entry."""
         offset = (page - 1) * page_size
@@ -409,13 +411,24 @@ class SurvivalService:
             user_firebase_uid=user_firebase_uid,
         )
 
+        # Fetch percentiles for all users in leaderboard
+        all_firebase_uids = [e['user_firebase_uid'] for e in entries]
+        if user_entry and user_entry['user_firebase_uid'] not in all_firebase_uids:
+            all_firebase_uids.append(user_entry['user_firebase_uid'])
+        percentiles_map = await self._db.answers.get_overall_avg_percentiles_batch(
+            all_firebase_uids,
+        )
+
         return LeaderboardResponse(
             entries=[
                 LeaderboardEntry(
                     rank=e['rank'],
-                    user_firebase_uid=e['user_firebase_uid'],
                     display_name=e['display_name'],
                     picture=e['picture'],
+                    rank_picture=get_rank_picture_for_percentile(
+                        percentiles_map.get(e['user_firebase_uid'], 100),
+                        request=request,
+                    ),
                     best_streak=e['streak'],
                     is_completed=e['is_completed'],
                 )
@@ -423,9 +436,12 @@ class SurvivalService:
             ],
             current_user=LeaderboardEntry(
                 rank=user_entry['rank'],
-                user_firebase_uid=user_entry['user_firebase_uid'],
                 display_name=user_entry['display_name'],
                 picture=user_entry['picture'],
+                rank_picture=get_rank_picture_for_percentile(
+                    percentiles_map.get(user_entry['user_firebase_uid'], 100),
+                    request=request,
+                ),
                 best_streak=user_entry['streak'],
                 is_completed=user_entry['is_completed'],
             )

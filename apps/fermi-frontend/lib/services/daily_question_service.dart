@@ -174,16 +174,19 @@ class DQResultsResponse {
 class DQPlayer {
   final String? displayName;
   final String? avatarUrl;
+  final String? rankPicture;
 
   DQPlayer({
     this.displayName,
     this.avatarUrl,
+    this.rankPicture,
   });
 
   factory DQPlayer.fromJson(Map<String, dynamic> json) {
     return DQPlayer(
       displayName: json['display_name'] as String?,
       avatarUrl: json['avatar_url'] as String?,
+      rankPicture: json['rank_picture'] as String?,
     );
   }
 }

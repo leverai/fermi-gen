@@ -230,6 +230,7 @@ class LeaderboardEntry {
   final int rank;
   final String? displayName;
   final String? picture;
+  final String? rankPicture;
   final int bestStreak;
   final bool isCompleted;
 
@@ -237,6 +238,7 @@ class LeaderboardEntry {
     required this.rank,
     this.displayName,
     this.picture,
+    this.rankPicture,
     required this.bestStreak,
     required this.isCompleted,
   });
@@ -246,6 +248,7 @@ class LeaderboardEntry {
       rank: json['rank'] as int,
       displayName: json['display_name'] as String?,
       picture: json['picture'] as String?,
+      rankPicture: json['rank_picture'] as String?,
       bestStreak: json['best_streak'] as int,
       isCompleted: json['is_completed'] as bool,
     );

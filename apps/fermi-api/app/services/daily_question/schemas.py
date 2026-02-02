@@ -63,6 +63,7 @@ class DQPlayer(BaseModel):
 
     display_name: str | None
     avatar_url: str | None
+    rank_picture: str | None = None
 
 
 class DQLeaderboardEntry(BaseModel):
