@@ -9,6 +9,7 @@ import logging
 import uuid
 from typing import TYPE_CHECKING, cast
 
+from fermi_core.units import Locale, get_best_answer
 from fermi_db.dal import DatabaseClient
 from fermi_db.schemas import AnswerBare
 from fermi_db.session import session_context
@@ -193,6 +194,8 @@ async def submit_bot_answers(
     for bot_id in bot_ids:
         try:
             bot_answer = get_bot_answer(fermi_row, bot_id)
+            if bot_answer['unit']:
+                bot_answer = get_best_answer(bot_answer, locale=Locale.US)
             logger.debug(
                 f'[Game {game_id}] Bot {bot_id} answering: {bot_answer}',
             )
