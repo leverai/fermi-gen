@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fermi_frontend/utils/env.dart';
-import 'package:fermi_frontend/theme/app_theme.dart';
 
 /// A reusable avatar widget that handles both SVG and raster images.
 ///
@@ -55,8 +54,6 @@ class AvatarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme =
-        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
     final Widget placeholderWidget = placeholder ?? _defaultPlaceholder;
 
     final avatarContainer = Container(
@@ -118,21 +115,6 @@ class AvatarWidget extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Shadow layer - slightly smaller to account for SVG padding/whitespace
-                  Container(
-                    width: rankIconSize * 0.75,
-                    height: rankIconSize * 0.75,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: appTheme.shadowColor.withOpacity(0.5),
-                          blurRadius: 6,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                  ),
                   // Icon layer
                   SvgPicture.network(
                     effectiveRankUrl,

@@ -18,7 +18,6 @@ class MeTab extends StatelessWidget {
     this.onEditProfile,
     this.playerStats,
     this.onStatsTapped,
-    this.rankPictureUrl,
   });
 
   /// URL of the user's avatar image.
@@ -41,9 +40,6 @@ class MeTab extends StatelessWidget {
 
   /// Callback when the stats card is tapped.
   final VoidCallback? onStatsTapped;
-
-  /// URL to the user's rank picture SVG (overlaid on avatar).
-  final String? rankPictureUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +65,6 @@ class MeTab extends StatelessWidget {
               size: 64,
               color: appTheme.borderMuted,
             ),
-            rankPictureUrl: rankPictureUrl,
           ),
           const SizedBox(height: 16),
           Row(

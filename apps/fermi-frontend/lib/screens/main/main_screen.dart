@@ -330,7 +330,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     return AvatarWidget(
       imageUrl: user!.picture,
       size: 24,
-      rankPictureUrl: _controller.playerStatsDto?.stats.rank.picture,
     );
   }
 
@@ -438,8 +437,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                   onEditProfile: _handleEditProfile,
                                   playerStats:
                                       _controller.playerStatsDto?.stats,
-                                  rankPictureUrl: _controller
-                                      .playerStatsDto?.stats.rank.picture,
                                   onStatsTapped: () {
                                     final stats =
                                         _controller.playerStatsDto?.stats;
