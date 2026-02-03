@@ -338,7 +338,7 @@ def get_best_answer(answer: 'AnswerBare', locale: Locale | None = None) -> 'Answ
     ## Loop through ladder from largest to smallest
     for unit_info in reversed(units_ladder):
         converted_quantity = quantity.to(unit_info['id'])
-        if 1 <= converted_quantity.magnitude <= 1000:
+        if converted_quantity.magnitude >= 1:
             return {
                 'number': converted_quantity.magnitude,
                 'unit': str(converted_quantity.units),
