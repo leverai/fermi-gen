@@ -19,6 +19,7 @@ import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/widgets/rank_confetti_overlay.dart';
 import 'package:fermi_frontend/widgets/pa_card.dart';
 import 'package:fermi_frontend/utils/answer_format.dart';
+import 'package:fermi_frontend/services/rate_app_service.dart';
 
 class QuestionScreenV2 extends StatefulWidget {
   const QuestionScreenV2({
@@ -65,6 +66,7 @@ class QuestionScreenV2 extends StatefulWidget {
 
 class _QuestionScreenV2State extends State<QuestionScreenV2> {
   late final QuestionScreenV2Controller _controller;
+  bool _hasTriggeredPartyWinRTA = false;
 
   @override
   void initState() {
@@ -85,6 +87,17 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
   void _onControllerChanged() {
     if (!mounted) return;
     setState(() {});
+
+    // Trigger RTA for party win (rank 1) once when review mode activates
+    if (!_hasTriggeredPartyWinRTA &&
+        _controller.isReviewMode &&
+        _controller.confettiRank == 1) {
+      _hasTriggeredPartyWinRTA = true;
+      // Delay slightly to let confetti animation show first
+      Future.delayed(const Duration(seconds: 2), () {
+        RateAppService.instance.maybePromptReview();
+      });
+    }
   }
 
   @override
@@ -136,6 +149,14 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
         );
       },
     );
+
+    // Prompt for app review if this was a top-tier PA card
+    final tier = PACard.getTierForPercentile(percentile);
+    if (tier == PAChiermontTier.top1 ||
+        tier == PAChiermontTier.top5 ||
+        tier == PAChiermontTier.top10) {
+      await RateAppService.instance.maybePromptReview();
+    }
   }
 
   Future<void> _handleLeave() async {
