@@ -17,6 +17,7 @@ import 'package:fermi_frontend/widgets/responsive_container.dart';
 import 'package:fermi_frontend/utils/number_decompose.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/utils/answer_format.dart';
+import 'package:fermi_frontend/services/rate_app_service.dart';
 
 /// Survival mode screen - single player timed questions until failure.
 class SurvivalScreen extends StatefulWidget {
@@ -183,6 +184,14 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
         );
       },
     );
+
+    // Prompt for app review if this was a top-tier PA card
+    final tier = PACard.getTierForPercentile(percentile);
+    if (tier == PAChiermontTier.top1 ||
+        tier == PAChiermontTier.top5 ||
+        tier == PAChiermontTier.top10) {
+      await RateAppService.instance.maybePromptReview();
+    }
   }
 
   /// Format an AnswerValue with a specific unit abbreviation override.
