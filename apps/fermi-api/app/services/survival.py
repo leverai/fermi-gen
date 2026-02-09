@@ -16,6 +16,7 @@ import app.logging.attributes as attrs
 from app.schemas.survival import (
     ContinueWithAdResponse,
     LeaderboardEntry,
+    LeaderboardPeriod,
     LeaderboardResponse,
     StreakInfo,
     SurvivalAnswerResponse,
@@ -393,22 +394,69 @@ class SurvivalService:
         user_firebase_uid: str,
         page: int = 1,
         page_size: int = 25,
+        period: LeaderboardPeriod = LeaderboardPeriod.weekly,
         request: Request | None = None,
     ) -> LeaderboardResponse:
         """Get paginated global streak leaderboard with current user's entry."""
+        import datetime
+
         offset = (page - 1) * page_size
+
+        # Compute date range based on period
+        start_date: datetime.datetime | None = None
+        end_date: datetime.datetime | None = None
+        now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+
+        if period == LeaderboardPeriod.weekly:
+            # Start of current week (Monday 00:00 UTC)
+            start_date = (now - datetime.timedelta(days=now.weekday())).replace(
+                hour=0, minute=0, second=0, microsecond=0,
+            )
+        elif period == LeaderboardPeriod.monthly:
+            # Start of current month
+            start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        elif period == LeaderboardPeriod.last_week:
+            # Previous Monday to this Monday
+            this_monday = (now - datetime.timedelta(days=now.weekday())).replace(
+                hour=0, minute=0, second=0, microsecond=0,
+            )
+            start_date = this_monday - datetime.timedelta(days=7)
+            end_date = this_monday
+        elif period == LeaderboardPeriod.last_month:
+            # Previous month 1st to current month 1st
+            first_of_this_month = now.replace(
+                day=1, hour=0, minute=0, second=0, microsecond=0,
+            )
+            # Go back to previous month
+            if first_of_this_month.month == 1:
+                start_date = first_of_this_month.replace(
+                    year=first_of_this_month.year - 1, month=12,
+                )
+            else:
+                start_date = first_of_this_month.replace(
+                    month=first_of_this_month.month - 1,
+                )
+            end_date = first_of_this_month
+        # all_time: start_date and end_date remain None
 
         # Fetch leaderboard entries and total count
         entries = await self._db.survival_runs.get_leaderboard(
             limit=page_size,
             offset=offset,
+            start_date=start_date,
+            end_date=end_date,
         )
-        total_count = await self._db.survival_runs.get_leaderboard_total_count()
+        total_count = await self._db.survival_runs.get_leaderboard_total_count(
+            start_date=start_date,
+            end_date=end_date,
+        )
         total_pages = (total_count + page_size - 1) // page_size
 
         # Get current user's entry (may not be in current page)
         user_entry = await self._db.survival_runs.get_user_leaderboard_entry(
             user_firebase_uid=user_firebase_uid,
+            start_date=start_date,
+            end_date=end_date,
         )
 
         # Fetch percentiles for all users in leaderboard

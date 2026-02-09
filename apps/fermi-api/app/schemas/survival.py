@@ -1,11 +1,23 @@
 """Pydantic schemas for Survival Mode endpoints."""
 
+from enum import Enum
+
 from fermi_core.schemas.units import UnitInfo
 from fermi_core.units import Locale
 from fermi_db.models.game import VoteVerdict
 from fermi_db.schemas import AnswerBare, QuestionCategory, QuestionDifficulty
 from pydantic import BaseModel
 from typing_extensions import TypedDict
+
+
+class LeaderboardPeriod(str, Enum):
+    """Time period filter for survival leaderboard."""
+
+    weekly = 'weekly'
+    monthly = 'monthly'
+    last_week = 'last_week'
+    last_month = 'last_month'
+    all_time = 'all_time'
 
 
 class SurvivalQuestionData(BaseModel):

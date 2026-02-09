@@ -1,6 +1,5 @@
 """Unit tests for daily_question/firestore_writer.py."""
 
-# ruff: noqa: D103
 import datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -110,7 +109,7 @@ class TestActivateDqDocument:
         mock_doc_ref.update.assert_awaited_once_with(
             {
                 'status': DQWindowStatus.ACTIVE,
-            }
+            },
         )
 
 
@@ -131,7 +130,7 @@ class TestCloseDqDocument:
         mock_doc_ref.update.assert_awaited_once_with(
             {
                 'status': DQWindowStatus.CLOSED,
-            }
+            },
         )
 
 

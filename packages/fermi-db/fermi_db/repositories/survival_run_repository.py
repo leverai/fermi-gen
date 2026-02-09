@@ -288,17 +288,37 @@ class SurvivalRunRepository(BaseRepository):
         self,
         limit: int = 25,
         offset: int = 0,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
     ) -> list[LeaderboardRow]:
         """Get paginated global leaderboard of best streaks per user.
 
         Uses dense ranking (ties share the same rank).
         Active runs are shown before completed runs at the same streak.
+
+        Args:
+            limit: Maximum entries to return.
+            offset: Pagination offset.
+            start_date: If provided, only count runs started on or after this date.
+            end_date: If provided, only count runs started before this date.
+
         """
-        query = text("""
+        # Build time filter clause
+        time_filter = ''
+        params: dict = {'limit': limit, 'offset': offset}
+        if start_date is not None:
+            time_filter += ' AND started_at >= :start_date'
+            params['start_date'] = start_date
+        if end_date is not None:
+            time_filter += ' AND started_at < :end_date'
+            params['end_date'] = end_date
+
+        query = text(f"""
             WITH best_runs AS (
                 SELECT DISTINCT ON (user_firebase_uid)
                     user_firebase_uid, streak, is_completed
                 FROM survival_runs
+                WHERE 1=1{time_filter}
                 ORDER BY user_firebase_uid, streak DESC, is_completed ASC
             ),
             ranked AS (
@@ -313,11 +333,8 @@ class SurvivalRunRepository(BaseRepository):
             JOIN "user" u ON u.firebase_uid = r.user_firebase_uid
             ORDER BY r.rank, r.is_completed ASC, r.user_firebase_uid
             LIMIT :limit OFFSET :offset
-        """)
-        result = await self.session.execute(
-            query,
-            {'limit': limit, 'offset': offset},
-        )
+        """)  # noqa: S608
+        result = await self.session.execute(query, params)
         rows = result.fetchall()
         return [
             LeaderboardRow(
@@ -334,13 +351,33 @@ class SurvivalRunRepository(BaseRepository):
     async def get_user_leaderboard_entry(
         self,
         user_firebase_uid: str,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
     ) -> LeaderboardRow | None:
-        """Get a specific user's leaderboard entry with rank."""
-        query = text("""
+        """Get a specific user's leaderboard entry with rank.
+
+        Args:
+            user_firebase_uid: The user's Firebase UID.
+            start_date: If provided, only count runs started on or after this date.
+            end_date: If provided, only count runs started before this date.
+
+        """
+        # Build time filter clause
+        time_filter = ''
+        params: dict = {'user_firebase_uid': user_firebase_uid}
+        if start_date is not None:
+            time_filter += ' AND started_at >= :start_date'
+            params['start_date'] = start_date
+        if end_date is not None:
+            time_filter += ' AND started_at < :end_date'
+            params['end_date'] = end_date
+
+        query = text(f"""
             WITH best_runs AS (
                 SELECT DISTINCT ON (user_firebase_uid)
                     user_firebase_uid, streak, is_completed
                 FROM survival_runs
+                WHERE 1=1{time_filter}
                 ORDER BY user_firebase_uid, streak DESC, is_completed ASC
             ),
             ranked AS (
@@ -354,11 +391,8 @@ class SurvivalRunRepository(BaseRepository):
             FROM ranked r
             JOIN "user" u ON u.firebase_uid = r.user_firebase_uid
             WHERE r.user_firebase_uid = :user_firebase_uid
-        """)
-        result = await self.session.execute(
-            query,
-            {'user_firebase_uid': user_firebase_uid},
-        )
+        """)  # noqa: S608
+        result = await self.session.execute(query, params)
         row = result.fetchone()
         if row is None:
             return None
@@ -371,8 +405,22 @@ class SurvivalRunRepository(BaseRepository):
             is_completed=row.is_completed,
         )
 
-    async def get_leaderboard_total_count(self) -> int:
-        """Get total number of users on the leaderboard (users with any run)."""
+    async def get_leaderboard_total_count(
+        self,
+        start_date: datetime.datetime | None = None,
+        end_date: datetime.datetime | None = None,
+    ) -> int:
+        """Get total number of users on the leaderboard (users with any run).
+
+        Args:
+            start_date: If provided, only count runs started on or after this date.
+            end_date: If provided, only count runs started before this date.
+
+        """
         stmt = select(func.count(func.distinct(SurvivalRun.user_firebase_uid)))
+        if start_date is not None:
+            stmt = stmt.where(SurvivalRun.started_at >= start_date)
+        if end_date is not None:
+            stmt = stmt.where(SurvivalRun.started_at < end_date)
         result = await self.session.execute(stmt)
         return result.scalar() or 0
