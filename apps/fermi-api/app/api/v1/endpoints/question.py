@@ -9,6 +9,7 @@ from opentelemetry import trace
 import app.logging.attributes as api_attrs
 from app.api.v1.auth_deps import get_current_user
 from app.api.v1.dependencies import get_game_service
+from app.api.v1.rate_limit import QUESTION_VOTE_RATE_LIMIT, limiter
 from app.schemas.endpoints import IdModel, VoteVerdictResponse
 from app.services.game.service import GameService
 
@@ -16,6 +17,7 @@ router = APIRouter()
 
 
 @router.post('/upvote', response_model=VoteVerdictResponse)
+@limiter.limit(QUESTION_VOTE_RATE_LIMIT)
 async def upvote_question(
     vote_request: IdModel,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -34,6 +36,7 @@ async def upvote_question(
 
 
 @router.post('/downvote', response_model=VoteVerdictResponse)
+@limiter.limit(QUESTION_VOTE_RATE_LIMIT)
 async def downvote_question(
     vote_request: IdModel,
     current_user: Annotated[User, Depends(get_current_user)],
