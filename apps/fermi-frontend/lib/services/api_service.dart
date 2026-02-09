@@ -11,6 +11,16 @@ import 'package:fermi_frontend/utils/env.dart';
 import 'package:fermi_frontend/utils/om_constants.dart';
 import 'package:fermi_frontend/services/tracing_service.dart';
 
+/// Exception thrown when API rate limit (HTTP 429) is exceeded.
+class RateLimitException implements Exception {
+  final int retryAfterSeconds;
+  RateLimitException(this.retryAfterSeconds);
+
+  @override
+  String toString() =>
+      'Too many requests. Please wait $retryAfterSeconds seconds.';
+}
+
 class ApiService {
   final String _apiBaseUrl;
   final AuthService authService;
@@ -57,6 +67,10 @@ class ApiService {
         'traceparent': traceparent,
       });
     }
+    if (resp.statusCode == 429) {
+      final retryAfter = int.tryParse(resp.headers['retry-after'] ?? '') ?? 60;
+      throw RateLimitException(retryAfter);
+    }
     return resp;
   }
 
@@ -95,6 +109,10 @@ class ApiService {
         },
         body: jsonEncode(body),
       );
+    }
+    if (resp.statusCode == 429) {
+      final retryAfter = int.tryParse(resp.headers['retry-after'] ?? '') ?? 60;
+      throw RateLimitException(retryAfter);
     }
     return resp;
   }
