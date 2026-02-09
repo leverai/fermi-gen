@@ -4,6 +4,45 @@ library survival_models;
 import 'package:fermi_frontend/models/answer_value.dart';
 import 'package:fermi_frontend/utils/number_decompose.dart';
 
+/// Time period filter for survival leaderboard.
+enum LeaderboardPeriod {
+  weekly,
+  monthly,
+  lastWeek,
+  lastMonth,
+  allTime;
+
+  String get apiValue {
+    switch (this) {
+      case LeaderboardPeriod.weekly:
+        return 'weekly';
+      case LeaderboardPeriod.monthly:
+        return 'monthly';
+      case LeaderboardPeriod.lastWeek:
+        return 'last_week';
+      case LeaderboardPeriod.lastMonth:
+        return 'last_month';
+      case LeaderboardPeriod.allTime:
+        return 'all_time';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case LeaderboardPeriod.weekly:
+        return 'Weekly';
+      case LeaderboardPeriod.monthly:
+        return 'Monthly';
+      case LeaderboardPeriod.lastWeek:
+        return 'Last Week';
+      case LeaderboardPeriod.lastMonth:
+        return 'Last Month';
+      case LeaderboardPeriod.allTime:
+        return 'All Time';
+    }
+  }
+}
+
 /// Question data returned for survival mode.
 class SurvivalQuestionData {
   final String questionUid;

@@ -523,10 +523,11 @@ class ApiService {
   Future<LeaderboardResponse> survivalGetLeaderboard({
     int page = 1,
     int pageSize = 25,
+    LeaderboardPeriod period = LeaderboardPeriod.weekly,
   }) async {
     try {
       final resp = await _authGet(
-          '/survival/leaderboard?page=$page&page_size=$pageSize');
+          '/survival/leaderboard?page=$page&page_size=$pageSize&period=${period.apiValue}');
       if (resp.statusCode == 200) {
         return LeaderboardResponse.fromJson(
             jsonDecode(resp.body) as Map<String, dynamic>);
