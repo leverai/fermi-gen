@@ -135,10 +135,6 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
         builder: (_) => PaywallScreen(
           subscriptionService: subscriptionService,
           isAnonymous: isAnonymous,
-          onAuthRequired: () {
-            Navigator.of(context).pop(); // Close paywall
-            context.push('/upgrade-account');
-          },
         ),
       ),
     )

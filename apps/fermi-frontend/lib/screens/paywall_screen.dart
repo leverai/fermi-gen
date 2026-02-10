@@ -1,7 +1,11 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:fermi_frontend/services/subscription_service.dart';
+import 'package:fermi_frontend/utils/env.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 
@@ -77,23 +81,18 @@ class Benefit {
 /// - Shows FREE vs PRO comparison table
 /// - Displays pricing, savings, and promotional badges
 /// - Supports introductory offers (free trials) when configured
-/// - Payment gating: anonymous users are redirected to auth before purchase
 class PaywallScreen extends StatefulWidget {
   final SubscriptionService subscriptionService;
 
   /// Whether the current user is anonymous (not registered).
-  /// If true, attempting to purchase will trigger [onAuthRequired].
+  /// Used only for display purposes (e.g. showing account creation suggestion).
+  /// Does NOT gate purchases — anonymous users can purchase freely.
   final bool isAnonymous;
-
-  /// Called when an anonymous user attempts to purchase.
-  /// Should navigate to the auth/registration screen.
-  final VoidCallback? onAuthRequired;
 
   const PaywallScreen({
     super.key,
     required this.subscriptionService,
     this.isAnonymous = false,
-    this.onAuthRequired,
   });
 
   @override
@@ -232,11 +231,6 @@ class _PaywallScreenState extends State<PaywallScreen> {
   }
 
   Future<void> _purchasePackage(Package package) async {
-    // Payment gating: require registration before purchase
-    if (widget.isAnonymous) {
-      widget.onAuthRequired?.call();
-      return;
-    }
 
     setState(() {
       _isPurchasing = true;
@@ -445,6 +439,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 // Promo text banner
                 if (_promoText != null) ...[
                   _buildPromoBanner(appTheme),
+                  const SizedBox(height: 16),
+                ],
+
+                // Account creation suggestion for anonymous users
+                if (widget.isAnonymous) ...[
+                  _buildAccountSuggestion(appTheme),
                   const SizedBox(height: 16),
                 ],
 
@@ -951,21 +951,74 @@ class _PaywallScreenState extends State<PaywallScreen> {
     }
   }
 
+  Widget _buildAccountSuggestion(AppTheme appTheme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+      decoration: BoxDecoration(
+        color: appTheme.bgLight,
+        borderRadius: BorderRadius.circular(appTheme.borderRadius),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: 18, color: appTheme.textMuted),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Create an account to access your purchases across all your devices.',
+              style: AppFont.primaryTextStyle(
+                context,
+                fontSize: 12,
+                color: appTheme.textMuted,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLegalText(AppTheme appTheme) {
+    final privacyPolicyUrl = '${resolveApiBaseUrlOrThrow().replaceFirst('/api/v1', '')}/api/v1/privacy-policy';
+    final termsUrl = Platform.isIOS
+        ? 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/'
+        : 'https://play.google.com/intl/en_us/about/play-terms/';
+
+    final linkStyle = AppFont.primaryTextStyle(
+      context,
+      fontSize: 12,
+      color: appTheme.textMuted,
+      decoration: TextDecoration.underline,
+    );
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Text(
-        'Payment will be charged to your Google Play account at confirmation of purchase. '
-        'Subscriptions automatically renew unless canceled at least 24 hours before the end '
-        'of the current period. You can manage and cancel subscriptions in your Google Play '
-        'account settings.',
-        textAlign: TextAlign.center,
-        style: AppFont.primaryTextStyle(
-          context,
-          fontSize: 11,
-          color: appTheme.borderMuted,
-          height: 1.4,
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          GestureDetector(
+            onTap: () => launchUrl(Uri.parse(privacyPolicyUrl),
+                mode: LaunchMode.externalApplication),
+            child: Text('Privacy Policy', style: linkStyle),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              '•',
+              style: AppFont.primaryTextStyle(
+                context,
+                fontSize: 12,
+                color: appTheme.borderMuted,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => launchUrl(Uri.parse(termsUrl),
+                mode: LaunchMode.externalApplication),
+            child: Text('Terms of Use', style: linkStyle),
+          ),
+        ],
       ),
     );
   }
