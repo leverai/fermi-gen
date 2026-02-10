@@ -1,6 +1,6 @@
 """Unit tests for unit conversion at reveal event."""
 
-# ruff: noqa: D103, FBT001, FBT002
+# ruff: noqa: D103
 from typing import Any, cast
 
 import pytest
@@ -45,7 +45,8 @@ def test_reveal_converts_dimensional_answers_to_each_players_unit(
     """Test that dimensional answers are converted to each player's unit."""
     gw = GamePlayersAnswersWriter()
 
-    # Player 1 answered in kilograms (already in doc), Player 2 in pounds (current player)
+    # Player 1 answered in kilograms (already in doc), Player 2 in pounds (current
+    # player)
     players_results_doc = cast(
         PlayersResultsDoc,
         {

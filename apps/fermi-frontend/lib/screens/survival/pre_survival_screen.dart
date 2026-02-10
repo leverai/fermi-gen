@@ -481,7 +481,9 @@ class _SurvivalLeaderboardTab extends StatefulWidget {
       _SurvivalLeaderboardTabState();
 }
 
-class _SurvivalLeaderboardTabState extends State<_SurvivalLeaderboardTab> {
+class _SurvivalLeaderboardTabState extends State<_SurvivalLeaderboardTab>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
   final _scrollController = ScrollController();
   final List<LeaderboardEntry> _entries = [];
   bool _isLoading = false;
@@ -489,16 +491,22 @@ class _SurvivalLeaderboardTabState extends State<_SurvivalLeaderboardTab> {
   int _currentPage = 1;
   String? _error;
   LeaderboardEntry? _currentUser;
+  LeaderboardPeriod _selectedPeriod = LeaderboardPeriod.weekly;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
     _fetchLeaderboard();
     _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -525,6 +533,7 @@ class _SurvivalLeaderboardTabState extends State<_SurvivalLeaderboardTab> {
       final response = await apiService.survivalGetLeaderboard(
         page: _currentPage,
         pageSize: 25,
+        period: _selectedPeriod,
       );
 
       if (mounted) {
@@ -535,6 +544,11 @@ class _SurvivalLeaderboardTabState extends State<_SurvivalLeaderboardTab> {
           _currentPage++;
           _isLoading = false;
         });
+
+        // Start animation if it's the first page
+        if (_currentPage == 2) {
+          _animationController.forward(from: 0);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -592,12 +606,12 @@ class _SurvivalLeaderboardTabState extends State<_SurvivalLeaderboardTab> {
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
 
-    if (_entries.isEmpty && _isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    Widget content;
 
-    if (_error != null && _entries.isEmpty) {
-      return Center(
+    if (_entries.isEmpty && _isLoading) {
+      content = const Center(child: CircularProgressIndicator());
+    } else if (_error != null && _entries.isEmpty) {
+      content = Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -610,44 +624,52 @@ class _SurvivalLeaderboardTabState extends State<_SurvivalLeaderboardTab> {
           ],
         ),
       );
-    }
-
-    if (_entries.isEmpty) {
-      return Center(
+    } else if (_entries.isEmpty) {
+      content = Center(
         child: Text(
           'No records yet. Be the first!',
           style: AppFont.primaryTextStyle(context, color: appTheme.textMuted),
         ),
       );
-    }
+    } else {
+      content = ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(16),
+        itemCount: _entries.length + (_isLoading ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == _entries.length) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
 
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.builder(
-            controller: _scrollController,
-            padding: const EdgeInsets.all(16),
-            itemCount: _entries.length + (_isLoading ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index == _entries.length) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(),
-                  ),
-                );
-              }
+          final entry = _entries[index];
+          final isMe = _currentUser != null &&
+              _currentUser!.rank == entry.rank &&
+              _currentUser!.bestStreak == entry.bestStreak;
 
-              final entry = _entries[index];
-              final isMe = _currentUser != null &&
-                  _currentUser!.rank == entry.rank &&
-                  _currentUser!.bestStreak ==
-                      entry
-                          .bestStreak; // Rank can be shared, so this check is weak but sufficient for display highlights if needed. Actually backend handles "isMe" typically but here we rely on the currentUser object.
-              // A better check for "isMe" would be user ID but we don't have it in the leaderboard entry.
-              // For now, let's just highlight the currentUser section at the bottom.
+          // Staggered animation for the first few items
+          // Limit stagger to the first 15 items to avoid long delays on scroll
+          final animation = CurvedAnimation(
+            parent: _animationController,
+            curve: Interval(
+              (index * 0.05).clamp(0.0, 0.6),
+              ((index * 0.05) + 0.4).clamp(0.0, 1.0),
+              curve: Curves.easeOutCubic,
+            ),
+          );
 
-              return Container(
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.1),
+                end: Offset.zero,
+              ).animate(animation),
+              child: Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -712,9 +734,68 @@ class _SurvivalLeaderboardTabState extends State<_SurvivalLeaderboardTab> {
                     ),
                   ],
                 ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return Column(
+      children: [
+        // Filter Tabs
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: LeaderboardPeriod.values.map((period) {
+              final isSelected = _selectedPeriod == period;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  label: Text(
+                    period.label,
+                    style: AppFont.primaryTextStyle(
+                      context,
+                      color: isSelected ? appTheme.text : appTheme.textMuted,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    if (selected && _selectedPeriod != period) {
+                      setState(() {
+                        _selectedPeriod = period;
+                        _entries.clear();
+                        _currentPage = 1;
+                        _hasMore = true;
+                        _currentUser = null;
+                        _isLoading = false; // Reset to allow fetch
+                      });
+                      _fetchLeaderboard();
+                    }
+                  },
+                  backgroundColor: appTheme.bgLight,
+                  selectedColor: appTheme.survival.withOpacity(0.2),
+                  checkmarkColor: appTheme.survival,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(
+                      color: isSelected
+                          ? appTheme.survival
+                          : appTheme.border.withOpacity(0.5),
+                    ),
+                  ),
+                  showCheckmark: false,
+                ),
               );
-            },
+            }).toList(),
           ),
+        ),
+
+        Expanded(
+          child: content,
         ),
         if (_currentUser != null)
           Container(
@@ -723,7 +804,7 @@ class _SurvivalLeaderboardTabState extends State<_SurvivalLeaderboardTab> {
               color: appTheme.bgLight,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: appTheme.shadowColor.withOpacity(0.1),
                   blurRadius: 8,
                   offset: const Offset(0, -2),
                 ),

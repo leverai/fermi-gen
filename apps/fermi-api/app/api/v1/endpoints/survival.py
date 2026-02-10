@@ -15,6 +15,7 @@ from app.schemas.survival import (
     ContinueWithAdRequest,
     ContinueWithAdResponse,
     CreateOrResumeRequest,
+    LeaderboardPeriod,
     LeaderboardResponse,
     StreakInfo,
     SurvivalAnswerRequest,
@@ -154,19 +155,30 @@ async def get_survival_leaderboard(
     survival_service: Annotated[SurvivalService, Depends(get_survival_service)],
     page: int = Query(1, ge=1, description='Page number (1-indexed)'),
     page_size: int = Query(25, ge=1, le=100, description='Items per page'),
+    period: LeaderboardPeriod = Query(  # noqa: B008
+        LeaderboardPeriod.weekly,
+        description=(
+            'Time period filter: weekly, monthly, last_week, last_month, all_time'
+        ),
+    ),
 ) -> LeaderboardResponse:
     """Get global survival streak leaderboard.
 
     Returns paginated list of players sorted by best streak (descending).
     Includes current user's rank regardless of their position in the page.
+    Supports time period filtering (weekly by default).
     """
     span = trace.get_current_span()
     span.set_attribute(api_attrs.ACTION, get_survival_leaderboard.__qualname__)
-    span.set_attribute(api_attrs.QUERY_PARAMS, f'page={page}&page_size={page_size}')
+    span.set_attribute(
+        api_attrs.QUERY_PARAMS,
+        f'page={page}&page_size={page_size}&period={period.value}',
+    )
 
     return await survival_service.get_leaderboard(
         user_firebase_uid=current_user.firebase_uid,
         page=page,
         page_size=page_size,
+        period=period,
         request=request,
     )
