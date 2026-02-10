@@ -12,7 +12,7 @@ This script loads test data from the new schema format and seeds:
 import asyncio
 import json
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -32,13 +32,18 @@ from fermi_db.session import get_session
 CT = ZoneInfo('America/Chicago')
 
 
-async def seed_test_data(test_data_path: Path, create_dq_history: bool = True) -> None:
+async def seed_test_data(
+    test_data_path: Path,
+    *,
+    create_dq_history: bool = True,
+) -> None:
     """Seed test data into the database.
 
     Args:
         test_data_path: Path to the test data JSON file.
         create_dq_history: If True, creates past 7 days of DQ entries with mock answers.
                           If False, skips DQ history creation for clean slate testing.
+
     """
     if not test_data_path.exists():
         print(f'❌ Test data file not found: {test_data_path}', file=sys.stderr)
@@ -232,7 +237,8 @@ async def seed_test_data(test_data_path: Path, create_dq_history: bool = True) -
         )
         await session.commit()
 
-        # 6. Mark first 10 questions as daily questions (gives us pool for today + 7 past days)
+        # 6. Mark first 10 questions as daily questions (gives us pool for today + 7
+        # past days)
         print('📅 Marking questions 1-10 as daily question candidates...')
         await session.execute(
             sa.text("""
@@ -257,7 +263,7 @@ async def seed_test_data(test_data_path: Path, create_dq_history: bool = True) -
         if create_dq_history:
             if len(dq_fermi_rows) < 8:
                 print(
-                    f'⚠️  Only {len(dq_fermi_rows)} DQ questions found, need at least 8'
+                    f'⚠️  Only {len(dq_fermi_rows)} DQ questions found, need at least 8',
                 )
                 print('✅ Test data seeded successfully (without full DQ history)')
                 break
@@ -265,7 +271,10 @@ async def seed_test_data(test_data_path: Path, create_dq_history: bool = True) -
             # 8. Create daily_questions entries: today (ACTIVE) + past 7 days (CLOSED)
             print('📅 Creating daily_questions entries...')
             today_ct = datetime.now(CT).replace(
-                hour=0, minute=0, second=0, microsecond=0
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0,
             )
 
             dq_entries = []
@@ -275,18 +284,24 @@ async def seed_test_data(test_data_path: Path, create_dq_history: bool = True) -
 
                 # Window: midnight CT to 8 PM CT
                 window_start_ct = day_date.replace(
-                    hour=0, minute=0, second=0, microsecond=0
+                    hour=0,
+                    minute=0,
+                    second=0,
+                    microsecond=0,
                 )
                 window_end_ct = day_date.replace(
-                    hour=20, minute=0, second=0, microsecond=0
+                    hour=20,
+                    minute=0,
+                    second=0,
+                    microsecond=0,
                 )
 
                 # Convert to UTC naive
-                window_start_utc = window_start_ct.astimezone(timezone.utc).replace(
-                    tzinfo=None
+                window_start_utc = window_start_ct.astimezone(UTC).replace(
+                    tzinfo=None,
                 )
-                window_end_utc = window_end_ct.astimezone(timezone.utc).replace(
-                    tzinfo=None
+                window_end_utc = window_end_ct.astimezone(UTC).replace(
+                    tzinfo=None,
                 )
 
                 # Today is ACTIVE, past days are CLOSED
@@ -314,18 +329,21 @@ async def seed_test_data(test_data_path: Path, create_dq_history: bool = True) -
 
             print(f'  Created {len(dq_entries)} daily_questions entries')
             print(
-                f'    - Today ({dq_entries[0].question_date}): {dq_entries[0].status}'
+                f'    - Today ({dq_entries[0].question_date}): {dq_entries[0].status}',
             )
             print(
-                f'    - Yesterday ({dq_entries[1].question_date}): {dq_entries[1].status}'
+                '    - Yesterday '
+                f'({dq_entries[1].question_date}): {dq_entries[1].status}',
             )
 
-            # 9. Create mock daily_question_answers for past DQs (simulate test user history)
+            # 9. Create mock daily_question_answers for past DQs (simulate test user \
+            # history)
             print('📝 Creating mock daily_question_answers for past DQs...')
             mock_user_uid = 'test-user-local-dev'
 
             for i, dq in enumerate(
-                dq_entries[1:], start=1
+                dq_entries[1:],
+                start=1,
             ):  # Skip today, start from yesterday
                 # Random-ish score and rank for variety
                 score = 85.0 + (i * 2) % 15  # Scores between 85-100
@@ -333,13 +351,14 @@ async def seed_test_data(test_data_path: Path, create_dq_history: bool = True) -
 
                 # Submitted around noon CT
                 submitted_ct = (today_ct - timedelta(days=i)).replace(
-                    hour=12, minute=30
+                    hour=12,
+                    minute=30,
                 )
-                submitted_utc = submitted_ct.astimezone(timezone.utc).replace(
-                    tzinfo=None
+                submitted_utc = submitted_ct.astimezone(UTC).replace(
+                    tzinfo=None,
                 )
                 started_utc = submitted_utc - timedelta(
-                    seconds=15
+                    seconds=15,
                 )  # Started 15s before
 
                 answer = DailyQuestionAnswer(

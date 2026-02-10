@@ -16,6 +16,7 @@ from app.api.v1.dependencies import (
     get_survival_run_repository,
     get_user_service,
 )
+from app.api.v1.rate_limit import USER_UPDATE_RATE_LIMIT, limiter
 from app.schemas.endpoints import (
     SetLocaleRequest,
     UpdateUserProfileRequest,
@@ -49,6 +50,7 @@ async def set_locale(
 
 
 @router.post('/update_profile')
+@limiter.limit(USER_UPDATE_RATE_LIMIT)
 async def update_profile(
     request: Request,
     payload: UpdateUserProfileRequest,
