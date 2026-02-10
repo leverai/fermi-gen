@@ -81,6 +81,11 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
           as RenderRepaintBoundary?;
       if (boundary == null) return;
 
+      // Capture render box before async gap (for iPad share popover anchor).
+      final box = context.findRenderObject() as RenderBox?;
+      final origin =
+          box != null ? box.localToGlobal(Offset.zero) & box.size : Rect.zero;
+
       final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
       final ByteData? byteData =
           await image.toByteData(format: ui.ImageByteFormat.png);
@@ -95,7 +100,7 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
 
       FeedbackService.instance.buttonPress();
       final xFile = XFile(imagePath.path);
-      await Share.shareXFiles([xFile]);
+      await Share.shareXFiles([xFile], sharePositionOrigin: origin);
     } catch (e) {
       debugPrint('Error sharing card: $e');
     }

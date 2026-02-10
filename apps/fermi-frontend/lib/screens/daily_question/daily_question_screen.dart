@@ -904,9 +904,14 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         }
       } else {
         // Mobile: Use native share sheet
+        // sharePositionOrigin is required on iPad for the popover anchor.
+        final box = context.findRenderObject() as RenderBox?;
+        final origin =
+            box != null ? box.localToGlobal(Offset.zero) & box.size : Rect.zero;
         await Share.share(
           urlToShare,
           subject: 'Take the Daily Question with me!',
+          sharePositionOrigin: origin,
         );
       }
     } catch (e) {

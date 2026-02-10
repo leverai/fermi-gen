@@ -187,7 +187,12 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
         );
       } else {
         // Mobile: Use native share sheet
-        await Share.share(url, subject: 'Join my Fermi game');
+        // sharePositionOrigin is required on iPad for the popover anchor.
+        final box = context.findRenderObject() as RenderBox?;
+        final origin =
+            box != null ? box.localToGlobal(Offset.zero) & box.size : Rect.zero;
+        await Share.share(url,
+            subject: 'Join my Fermi game', sharePositionOrigin: origin);
       }
     } catch (e) {
       if (!mounted) return;
