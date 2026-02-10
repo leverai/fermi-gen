@@ -46,6 +46,7 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
   int _botsToInvite = 0;
   DateTime? _createdAt;
   int? _maxPlayers;
+  bool _isShowingLeaveDialog = false;
 
   @override
   void initState() {
@@ -256,35 +257,41 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
         createdAt: _createdAt,
         maxPlayers: _maxPlayers,
         onLeave: () async {
+          if (_isShowingLeaveDialog) return;
+          _isShowingLeaveDialog = true;
           final appTheme = Theme.of(context).extension<AppTheme>() ??
               AppTheme.defaultTheme();
-          await confirmLeaveDialog(
-            context: context,
-            highlightColor: appTheme.danger,
-            onConfirm: () async {
-              try {
-                final session = GameSessionController(
-                  gameId: widget.gameId,
-                  realtime: widget.realtime,
-                  api: widget.api,
-                );
-                await session.leaveGame();
-              } catch (e) {
+          try {
+            await confirmLeaveDialog(
+              context: context,
+              highlightColor: appTheme.danger,
+              onConfirm: () async {
+                try {
+                  final session = GameSessionController(
+                    gameId: widget.gameId,
+                    realtime: widget.realtime,
+                    api: widget.api,
+                  );
+                  await session.leaveGame();
+                } catch (e) {
+                  if (!mounted || !context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to leave: $e')),
+                  );
+                  return;
+                }
                 if (!mounted || !context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to leave: $e')),
-                );
-                return;
-              }
-              if (!mounted || !context.mounted) return;
-              // First pop Navigator stack to clear any routes pushed via Navigator.push()
-              // This handles the case where lobby was opened from main_screen.dart
-              Navigator.of(context).popUntil((route) => route.isFirst);
-              // Then use go_router to ensure we land on main screen
-              // This handles any go_router state and deep link entry
-              context.go('/main');
-            },
-          );
+                // First pop Navigator stack to clear any routes pushed via Navigator.push()
+                // This handles the case where lobby was opened from main_screen.dart
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                // Then use go_router to ensure we land on main screen
+                // This handles any go_router state and deep link entry
+                context.go('/main');
+              },
+            );
+          } finally {
+            _isShowingLeaveDialog = false;
+          }
         },
       ),
     );

@@ -10,6 +10,7 @@ Future<void> confirmLeaveDialog({
 }) async {
   final bool? ok = await showDialog<bool>(
     context: context,
+    barrierDismissible: false,
     builder: (ctx) {
       return _LeaveDialog(
         highlightColor: highlightColor,

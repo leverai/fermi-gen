@@ -67,6 +67,7 @@ class QuestionScreenV2 extends StatefulWidget {
 class _QuestionScreenV2State extends State<QuestionScreenV2> {
   late final QuestionScreenV2Controller _controller;
   bool _hasTriggeredPartyWinRTA = false;
+  bool _isShowingLeaveDialog = false;
 
   @override
   void initState() {
@@ -160,6 +161,7 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
   }
 
   Future<void> _handleLeave() async {
+    if (_isShowingLeaveDialog) return;
     if (_controller.isReviewMode) {
       if (mounted) {
         // Pop Navigator stack first, then use go_router
@@ -175,27 +177,32 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
 
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
-    await leave_helper.confirmLeaveDialog(
-      context: context,
-      highlightColor: appTheme.danger,
-      onConfirm: () async {
-        try {
-          if (widget.session != null) {
-            await widget.session!.leaveGame();
+    _isShowingLeaveDialog = true;
+    try {
+      await leave_helper.confirmLeaveDialog(
+        context: context,
+        highlightColor: appTheme.danger,
+        onConfirm: () async {
+          try {
+            if (widget.session != null) {
+              await widget.session!.leaveGame();
+            }
+          } catch (e) {
+            if (mounted) {
+              snack.showSnack(context, 'Failed to leave: $e');
+            }
+            return;
           }
-        } catch (e) {
           if (mounted) {
-            snack.showSnack(context, 'Failed to leave: $e');
+            // Pop Navigator stack first, then use go_router
+            Navigator.of(context).popUntil((route) => route.isFirst);
+            context.go('/main');
           }
-          return;
-        }
-        if (mounted) {
-          // Pop Navigator stack first, then use go_router
-          Navigator.of(context).popUntil((route) => route.isFirst);
-          context.go('/main');
-        }
-      },
-    );
+        },
+      );
+    } finally {
+      _isShowingLeaveDialog = false;
+    }
   }
 
   Future<void> _handleSubmit() async {

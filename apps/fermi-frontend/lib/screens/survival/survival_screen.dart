@@ -39,6 +39,7 @@ class SurvivalScreen extends StatefulWidget {
 class _SurvivalScreenState extends State<SurvivalScreen> {
   late SurvivalScreenController _controller;
   bool _isPAPopupPending = false;
+  bool _isShowingLeaveDialog = false;
 
   @override
   void initState() {
@@ -79,27 +80,35 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
       return;
     }
 
+    if (_isShowingLeaveDialog) return;
+    _isShowingLeaveDialog = true;
+
     // Show confirmation dialog
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        return StyledDialog(
-          message: 'Your answer will be submitted.',
-          primaryButtonLabel: 'Leave',
-          primaryButtonColor: appTheme.danger,
-          onPrimaryPressed: () => Navigator.of(ctx).pop(true),
-          secondaryButtonLabel: 'Cancel',
-          onSecondaryPressed: () => Navigator.of(ctx).pop(false),
-          showAsDialog: true,
-        );
-      },
-    );
+    try {
+      final bool? confirmed = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) {
+          return StyledDialog(
+            message: 'Your answer will be submitted.',
+            primaryButtonLabel: 'Leave',
+            primaryButtonColor: appTheme.danger,
+            onPrimaryPressed: () => Navigator.of(ctx).pop(true),
+            secondaryButtonLabel: 'Cancel',
+            onSecondaryPressed: () => Navigator.of(ctx).pop(false),
+            showAsDialog: true,
+          );
+        },
+      );
 
-    if (confirmed == true) {
-      await _controller.submitBeforeLeave();
-      _navigateToMain();
+      if (confirmed == true) {
+        await _controller.submitBeforeLeave();
+        _navigateToMain();
+      }
+    } finally {
+      _isShowingLeaveDialog = false;
     }
   }
 
