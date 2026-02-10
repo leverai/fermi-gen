@@ -20,7 +20,6 @@ void showPartyBottomSheet({
   required MainScreenController controller,
   required VoidCallback onPrimaryAction,
   bool isAnonymous = false,
-  VoidCallback? onAuthRequired,
 }) {
   final AppTheme appTheme =
       Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
@@ -33,7 +32,6 @@ void showPartyBottomSheet({
           subscriptionService:
               Provider.of<SubscriptionService>(context, listen: false),
           isAnonymous: isAnonymous,
-          onAuthRequired: onAuthRequired,
         ),
       ),
     )

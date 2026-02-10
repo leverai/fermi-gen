@@ -74,6 +74,7 @@ dependencies:
   unity_ads_plugin: ^0.3.28
   path_provider: ^2.1.5
   in_app_review: ^2.0.10
+  url_launcher: ^6.2.5
 
 dev_dependencies:
   flutter_test:

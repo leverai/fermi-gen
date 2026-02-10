@@ -108,12 +108,6 @@ class _PreSurvivalScreenState extends State<PreSurvivalScreen> {
           subscriptionService:
               Provider.of<SubscriptionService>(context, listen: false),
           isAnonymous: isAnonymous,
-          onAuthRequired: isAnonymous
-              ? () {
-                  // Navigate to auth flow if anonymous
-                  context.go('/welcome');
-                }
-              : null,
         ),
       ),
     )
