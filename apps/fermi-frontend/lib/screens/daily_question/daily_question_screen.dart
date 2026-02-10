@@ -59,6 +59,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
   bool _isPastDate = false;
   bool _submittedWithoutQuestion =
       false; // True when user returns after submission
+  bool _isShowingLeaveDialog = false;
   String?
       _effectiveDate; // Frozen on init to prevent changing when controller updates
   AnswerValue _currentAnswer =
@@ -516,28 +517,36 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
       return;
     }
 
+    if (_isShowingLeaveDialog) return;
+    _isShowingLeaveDialog = true;
+
     // Show confirmation dialog
     final appTheme =
         Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        return StyledDialog(
-          message: 'Your answer will be submitted.',
-          primaryButtonLabel: 'Leave',
-          primaryButtonColor: appTheme.danger,
-          onPrimaryPressed: () => Navigator.of(context).pop(true),
-          secondaryButtonLabel: 'Cancel',
-          onSecondaryPressed: () => Navigator.of(context).pop(false),
-          showAsDialog: true,
-        );
-      },
-    );
+    try {
+      final bool? confirmed = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) {
+          return StyledDialog(
+            message: 'Your answer will be submitted.',
+            primaryButtonLabel: 'Leave',
+            primaryButtonColor: appTheme.danger,
+            onPrimaryPressed: () => Navigator.of(ctx).pop(true),
+            secondaryButtonLabel: 'Cancel',
+            onSecondaryPressed: () => Navigator.of(ctx).pop(false),
+            showAsDialog: true,
+          );
+        },
+      );
 
-    // If user confirmed, submit answer then navigate back to main
-    if (confirmed == true) {
-      await _submit();
-      _navigateToMain();
+      // If user confirmed, submit answer then navigate back to main
+      if (confirmed == true) {
+        await _submit();
+        _navigateToMain();
+      }
+    } finally {
+      _isShowingLeaveDialog = false;
     }
   }
 
