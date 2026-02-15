@@ -84,12 +84,21 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
   final PACardSoundService _soundService = PACardSoundService();
   bool _showConfetti = false;
   Color? _confettiColor;
+  bool _isCapturing = false;
 
   Future<void> _captureAndShare() async {
     try {
+      // Hide main button and wait for the layout to update before capturing.
+      setState(() => _isCapturing = true);
+      await Future.delayed(Duration.zero);
+      await WidgetsBinding.instance.endOfFrame;
+
       final boundary = _globalKey.currentContext?.findRenderObject()
           as RenderRepaintBoundary?;
-      if (boundary == null) return;
+      if (boundary == null) {
+        setState(() => _isCapturing = false);
+        return;
+      }
 
       // Capture render box before async gap (for iPad share popover anchor).
       final box = context.findRenderObject() as RenderBox?;
@@ -97,6 +106,8 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
           box != null ? box.localToGlobal(Offset.zero) & box.size : Rect.zero;
 
       final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      setState(() => _isCapturing = false);
+
       final ByteData? byteData =
           await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) return;
@@ -113,6 +124,7 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
       await Share.shareXFiles([xFile], sharePositionOrigin: origin);
     } catch (e) {
       debugPrint('Error sharing card: $e');
+      if (mounted) setState(() => _isCapturing = false);
     }
   }
 
@@ -458,7 +470,8 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
                   ),
                 ),
                 // Main action button (e.g. Next / Finish)
-                if (widget.mainButtonLabel != null &&
+                if (!_isCapturing &&
+                    widget.mainButtonLabel != null &&
                     widget.onMainButtonPressed != null)
                   Padding(
                     padding:
