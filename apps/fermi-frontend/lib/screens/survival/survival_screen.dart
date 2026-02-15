@@ -174,6 +174,16 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
 
     if (!mounted) return;
 
+    // Determine the main button label based on game state
+    final String mainLabel;
+    if (_controller.passed) {
+      mainLabel = 'Next';
+    } else if (_controller.canUseAdSave) {
+      mainLabel = 'Save Streak 🎬';
+    } else {
+      mainLabel = 'Finish';
+    }
+
     await showDialog(
       context: context,
       barrierDismissible: false,
@@ -188,6 +198,11 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
               correctAnswer: formattedCorrectAnswer,
               animate: true,
               onClose: () => Navigator.of(ctx).pop(),
+              mainButtonLabel: mainLabel,
+              onMainButtonPressed: () {
+                Navigator.of(ctx).pop();
+                _handleNext();
+              },
             ),
           ),
         );

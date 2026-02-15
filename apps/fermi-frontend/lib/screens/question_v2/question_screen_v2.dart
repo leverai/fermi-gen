@@ -131,6 +131,14 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
 
     if (!mounted) return;
 
+    // Determine the main button label: Next or Finish depending on position.
+    // Only show for the host (non-hosts can't advance the game).
+    final bool isHost = _controller.isHost;
+    final bool isLastQuestion =
+        _controller.currentIndex == widget.questionCount - 1;
+    final String? mainLabel =
+        isHost ? (isLastQuestion ? 'Finish' : 'Next') : null;
+
     await showDialog(
       context: context,
       barrierDismissible: false,
@@ -145,6 +153,13 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
               correctAnswer: formattedCorrectAnswer,
               animate: true,
               onClose: () => Navigator.of(ctx).pop(),
+              mainButtonLabel: mainLabel,
+              onMainButtonPressed: mainLabel != null
+                  ? () {
+                      Navigator.of(ctx).pop();
+                      _handleNext();
+                    }
+                  : null,
             ),
           ),
         );

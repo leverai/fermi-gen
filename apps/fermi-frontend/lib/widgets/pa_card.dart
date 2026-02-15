@@ -5,6 +5,7 @@ import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/services/pa_card_sound_service.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
+import 'package:fermi_frontend/widgets/main_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
@@ -37,6 +38,8 @@ class PACard extends StatefulWidget {
     required this.correctAnswer,
     this.onClose,
     this.animate = false,
+    this.mainButtonLabel,
+    this.onMainButtonPressed,
   });
 
   /// The player's percentile (0.0 to 100.0).
@@ -51,6 +54,13 @@ class PACard extends StatefulWidget {
 
   /// If true, plays a bouncing entrance animation.
   final bool animate;
+
+  /// Label for the main action button (e.g. "Next", "Finish").
+  /// When null, no main button is shown.
+  final String? mainButtonLabel;
+
+  /// Callback when the main action button is pressed.
+  final VoidCallback? onMainButtonPressed;
 
   /// Returns the tier for a given percentile, or null if no card should show.
   static PAChiermontTier? getTierForPercentile(double percentile) {
@@ -447,6 +457,23 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
                     ],
                   ),
                 ),
+                // Main action button (e.g. Next / Finish)
+                if (widget.mainButtonLabel != null &&
+                    widget.onMainButtonPressed != null)
+                  Padding(
+                    padding:
+                        const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: MainButton(
+                        onPressed: () {
+                          FeedbackService.instance.buttonPress();
+                          widget.onMainButtonPressed?.call();
+                        },
+                        customLabel: widget.mainButtonLabel,
+                      ),
+                    ),
+                  ),
               ],
             ),
             // Watermark
