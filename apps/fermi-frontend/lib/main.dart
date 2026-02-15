@@ -6,6 +6,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart'
     hide EmailAuthProvider, AuthProvider;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_ui_auth/firebase_ui_auth.dart'
+    show ErrorText, localizedErrorText;
+import 'package:firebase_ui_localizations/firebase_ui_localizations.dart';
 import 'dart:io' show Platform;
 import 'package:fermi_frontend/firebase_options.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
@@ -38,6 +41,22 @@ Future<void> main() async {
   // Catch configuration errors and display them to the user
   try {
     WidgetsFlutterBinding.ensureInitialized();
+
+    // Customize firebase_ui_auth error messages.
+    // iOS wraps password-does-not-meet-requirements in a generic
+    // "internal error" message, so we intercept that code here.
+    ErrorText.localizeError = (context, e) {
+      if (e.code == 'password-does-not-meet-requirements') {
+        return 'Password must contain at least: an uppercase letter, '
+            'a lowercase letter, a number, and a special character. '
+            'Minimum length: 8 characters.';
+      }
+      final labels = FirebaseUILocalizations.labelsOf(context);
+      return localizedErrorText(e.code, labels) ??
+          e.message ??
+          labels.unknownError;
+    };
+
     final FirebaseOptions base = DefaultFirebaseOptions.currentPlatform;
     final FirebaseOptions initOptions = useEmulators
         ? FirebaseOptions(
