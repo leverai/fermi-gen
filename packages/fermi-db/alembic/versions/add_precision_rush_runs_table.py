@@ -23,7 +23,10 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    """Add precision_rush_runs table."""
+    """Add precision_rush_runs table and extend gamemode enum."""
+    # Extend the gamemode enum to include PRECISION_RUSH
+    op.execute("ALTER TYPE gamemode ADD VALUE IF NOT EXISTS 'PRECISION_RUSH'")
+
     op.create_table(
         'precision_rush_runs',
         sa.Column('id', sa.Integer(), nullable=False),
@@ -65,7 +68,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Remove precision_rush_runs table."""
+    """Remove precision_rush_runs table and revert gamemode enum."""
     op.drop_index(
         'ix_precision_rush_runs_current_question_uid',
         table_name='precision_rush_runs',
@@ -75,3 +78,12 @@ def downgrade() -> None:
         table_name='precision_rush_runs',
     )
     op.drop_table('precision_rush_runs')
+
+    # Remove PRECISION_RUSH from gamemode enum
+    op.execute('ALTER TABLE answer_events ALTER COLUMN game_mode TYPE VARCHAR')
+    op.execute('DROP TYPE gamemode')
+    op.execute("CREATE TYPE gamemode AS ENUM ('PARTY', 'SURVIVAL', 'DAILY_QUESTION')")
+    op.execute(
+        'ALTER TABLE answer_events ALTER COLUMN game_mode TYPE gamemode '
+        'USING game_mode::gamemode'
+    )
