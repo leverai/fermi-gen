@@ -21,10 +21,12 @@ import 'package:fermi_frontend/services/rate_app_service.dart';
 /// Precision Rush mode screen - fixed 6 questions with TAS scoring.
 class PrecisionRushScreen extends StatefulWidget {
   final bool withAd;
+  final int? runId;
 
   const PrecisionRushScreen({
     super.key,
     this.withAd = false,
+    this.runId,
   });
 
   @override
@@ -48,6 +50,7 @@ class _PrecisionRushScreenState extends State<PrecisionRushScreen> {
       userLocale: authService.locale ?? 'US',
       gameConfig: preloadService.cachedConfig,
       initialWithAd: widget.withAd,
+      initialRunId: widget.runId,
     );
     _controller.onShowPACard = _showPACardPopup;
     _controller.addListener(_onControllerChanged);

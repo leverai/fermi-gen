@@ -68,6 +68,8 @@ class PRStatsResponse(BaseModel):
     total_runs: int
     best_tas: float
     average_tas: float
+    active_run_id: int | None = None
+    active_run_questions_answered: int | None = None
 
 
 class PRLeaderboardEntry(BaseModel):

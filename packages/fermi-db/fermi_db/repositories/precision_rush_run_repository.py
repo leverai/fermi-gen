@@ -151,6 +151,7 @@ class PrecisionRushRunRepository(BaseRepository):
         stmt = select(func.count(PrecisionRushRun.id)).where(  # type: ignore
             PrecisionRushRun.user_firebase_uid == user_firebase_uid,  # type: ignore
             PrecisionRushRun.started_at >= day_start,
+            PrecisionRushRun.is_completed == True,  # noqa: E712
         )
         result = await self.session.execute(stmt)
         return result.scalar() or 0
