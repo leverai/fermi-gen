@@ -309,7 +309,7 @@ class _PRPlayTabState extends State<_PRPlayTab> {
     // Limits check
     final bool canPlay = widget.userLimits?.canPlayPrecisionRush ?? true;
     final int bestTas = widget.stats?.bestTas.toInt() ?? 0;
-    final int avgTas = widget.stats?.averageTas.toInt() ?? 0;
+    // final int avgTas = widget.stats?.averageTas.toInt() ?? 0;
 
     return Center(
       child: SingleChildScrollView(
@@ -386,29 +386,29 @@ class _PRPlayTabState extends State<_PRPlayTab> {
                       ),
                     ],
                   ),
-                  const SizedBox(width: 32),
-                  Column(
-                    children: [
-                      Text(
-                        'Average',
-                        style: AppFont.primaryTextStyle(
-                          context,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: appTheme.textMuted,
-                        ),
-                      ),
-                      Text(
-                        formatNumberWithCommas(avgTas),
-                        style: AppFont.primaryTextStyle(
-                          context,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: appTheme.text,
-                        ),
-                      ),
-                    ],
-                  ),
+                  // const SizedBox(width: 32),
+                  // Column(
+                  //   children: [
+                  //     Text(
+                  //       'Average',
+                  //       style: AppFont.primaryTextStyle(
+                  //         context,
+                  //         fontSize: 14,
+                  //         fontWeight: FontWeight.w500,
+                  //         color: appTheme.textMuted,
+                  //       ),
+                  //     ),
+                  //     Text(
+                  //       formatNumberWithCommas(avgTas),
+                  //       style: AppFont.primaryTextStyle(
+                  //         context,
+                  //         fontSize: 20,
+                  //         fontWeight: FontWeight.w700,
+                  //         color: appTheme.text,
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
                 ],
               ),
             ],
@@ -464,8 +464,29 @@ class _PRPlayTabState extends State<_PRPlayTab> {
               ),
             const SizedBox(height: 40),
 
+            // Descriptive Footer
             Text(
-              '1 free run per day',
+              'Join the leaderboard!',
+              style: AppFont.primaryTextStyle(
+                context,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: appTheme.text,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'You are rewarded for speed and accuracy.',
+              style: AppFont.primaryTextStyle(
+                context,
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: appTheme.textMuted,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              '40 Seconds each • Resume anytime',
               style: AppFont.primaryTextStyle(
                 context,
                 fontSize: 14,
