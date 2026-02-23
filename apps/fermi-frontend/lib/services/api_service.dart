@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/player_stats.dart';
 import 'package:fermi_frontend/models/survival_models.dart';
+import 'package:fermi_frontend/models/precision_rush_models.dart';
 import 'package:fermi_frontend/models/user_limits.dart';
 import 'package:fermi_frontend/utils/env.dart';
 import 'package:fermi_frontend/utils/om_constants.dart';
@@ -573,6 +574,100 @@ class ApiService {
       }
       final error = _extractErrorMessage(resp);
       throw Exception('Failed to continue with ad: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // --- Precision Rush Mode ---
+
+  /// Start a new PR run or resume an existing one.
+  Future<Map<String, dynamic>> prCreateOrResume({
+    int? runId,
+    bool withAd = false,
+  }) async {
+    try {
+      final body = <String, dynamic>{};
+      if (runId != null) {
+        body['run_id'] = runId;
+      }
+      String path = '/precision_rush/create_or_resume';
+      if (withAd) {
+        path += '?with_ad=true';
+      }
+      final resp = await _authPost(path, body);
+      if (resp.statusCode == 200) {
+        return jsonDecode(resp.body) as Map<String, dynamic>;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to start precision rush: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Submit an answer for the current PR question.
+  Future<Map<String, dynamic>> prSubmitAnswer({
+    required int runId,
+    required AnswerValue answer,
+  }) async {
+    try {
+      final int resolvedNumber = _applyOmMultiplier(answer);
+      final String? unitOrNull = (answer.unit.isEmpty) ? null : answer.unit;
+      final resp = await _authPost('/precision_rush/answer', {
+        'run_id': runId,
+        'answer': {
+          'number': resolvedNumber,
+          'unit': unitOrNull,
+        },
+      });
+      if (resp.statusCode == 200) {
+        return jsonDecode(resp.body) as Map<String, dynamic>;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to submit precision rush answer: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get user's PR statistics.
+  Future<Map<String, dynamic>> prGetStats() async {
+    try {
+      final resp = await _authGet('/precision_rush/stats');
+      if (resp.statusCode == 200) {
+        return jsonDecode(resp.body) as Map<String, dynamic>;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to get precision rush stats: $error');
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get PR mode leaderboard.
+  Future<PRLeaderboardResponse> prGetLeaderboard({
+    int page = 1,
+    int pageSize = 25,
+    LeaderboardPeriod period = LeaderboardPeriod.weekly,
+  }) async {
+    try {
+      final resp = await _authGet(
+          '/precision_rush/leaderboard?page=$page&page_size=$pageSize&period=${period.apiValue}');
+      if (resp.statusCode == 200) {
+        return PRLeaderboardResponse.fromJson(
+            jsonDecode(resp.body) as Map<String, dynamic>);
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception('Failed to get leaderboard: $error');
     } on http.ClientException catch (_) {
       throw Exception('Network error: Please check your connection.');
     } catch (e) {

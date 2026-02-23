@@ -134,6 +134,7 @@ class GamesTab extends StatelessWidget {
     this.displayName,
     required this.onPartyCardTapped,
     required this.onSurvivalCardTapped,
+    required this.onPrecisionRushCardTapped,
   });
 
   /// User's display name for the welcome message.
@@ -144,6 +145,9 @@ class GamesTab extends StatelessWidget {
 
   /// Callback when the Survival card is tapped.
   final VoidCallback onSurvivalCardTapped;
+
+  /// Callback when the Precision Rush card is tapped.
+  final VoidCallback onPrecisionRushCardTapped;
 
   @override
   Widget build(BuildContext context) {
@@ -167,6 +171,8 @@ class GamesTab extends StatelessWidget {
                     const DailyQuestionCarousel(),
                     const SizedBox(height: 24),
                     _buildSurvivalCard(context, appTheme),
+                    const SizedBox(height: 24),
+                    _buildPrecisionRushCard(context, appTheme),
                     const SizedBox(height: 24),
                     _buildPartyCard(context, appTheme),
                     const SizedBox(height: 24),
@@ -368,6 +374,133 @@ class GamesTab extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildSurvivalFreeTierInfo(context, appTheme),
+                Text(
+                  'Tap to play',
+                  style: AppFont.primaryTextStyle(
+                    context,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: appTheme.bgLight.withAlpha(200),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrecisionRushFreeTierInfo(
+      BuildContext context, AppTheme appTheme) {
+    final controller = context.watch<MainScreenController>();
+    final userLimits = controller.userLimitsDto;
+
+    if (userLimits == null) return const SizedBox.shrink();
+
+    if (userLimits.isPrecisionRushUnlimited) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.workspace_premium,
+            size: 14,
+            color: appTheme.bgLight.withAlpha(200),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Unlimited',
+            style: AppFont.primaryTextStyle(
+              context,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: appTheme.bgLight.withAlpha(200),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final bool canPlay = userLimits.canPlayPrecisionRush;
+    final int remaining = userLimits.precisionRushRunsRemaining;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          canPlay ? Icons.info_outline : Icons.lock_outline,
+          size: 14,
+          color: appTheme.bg.withAlpha(canPlay ? 200 : 150),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          canPlay ? '$remaining free runs left today' : 'Daily limit reached',
+          style: AppFont.primaryTextStyle(
+            context,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: appTheme.bgLight.withAlpha(canPlay ? 200 : 150),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrecisionRushCard(BuildContext context, AppTheme appTheme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: BounceEffectWrapper(
+        onTap: onPrecisionRushCardTapped,
+        decoration: BoxDecoration(
+          color: appTheme.precisionRush,
+          borderRadius: BorderRadius.circular(appTheme.borderRadius),
+          boxShadow: const [],
+        ),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Precision Rush',
+                        style: AppFont.primaryTextStyle(
+                          context,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: appTheme.bgLight,
+                        ),
+                      ),
+                      Text(
+                        'Speed meets accuracy. How\nfast are you?',
+                        style: AppFont.primaryTextStyle(
+                          context,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: appTheme.bgLight.withAlpha(200),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.bolt,
+                  size: 48,
+                  color: appTheme.bgLight,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildPrecisionRushFreeTierInfo(context, appTheme),
                 Text(
                   'Tap to play',
                   style: AppFont.primaryTextStyle(

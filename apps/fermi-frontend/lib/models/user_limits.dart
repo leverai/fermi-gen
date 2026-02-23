@@ -1,16 +1,20 @@
 class UserLimits {
   final int partyHostingsRemaining;
   final int survivalRunsRemaining;
+  final int precisionRushRunsRemaining;
 
   const UserLimits({
     required this.partyHostingsRemaining,
     required this.survivalRunsRemaining,
+    required this.precisionRushRunsRemaining,
   });
 
   factory UserLimits.fromJson(Map<String, dynamic> json) {
     return UserLimits(
       partyHostingsRemaining: (json['party_hostings_remaining'] as num).toInt(),
       survivalRunsRemaining: (json['survival_runs_remaining'] as num).toInt(),
+      precisionRushRunsRemaining:
+          (json['precision_rush_runs_remaining'] as num?)?.toInt() ?? 1,
     );
   }
 
@@ -27,4 +31,11 @@ class UserLimits {
 
   /// Whether survival runs are unlimited (Pro user).
   bool get isSurvivalUnlimited => survivalRunsRemaining == -1;
+
+  /// Whether the user can start a new precision rush run.
+  /// -1 indicates unlimited (Pro user).
+  bool get canPlayPrecisionRush => precisionRushRunsRemaining != 0;
+
+  /// Whether precision rush runs are unlimited (Pro user).
+  bool get isPrecisionRushUnlimited => precisionRushRunsRemaining == -1;
 }

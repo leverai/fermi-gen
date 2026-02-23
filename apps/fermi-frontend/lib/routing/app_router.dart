@@ -21,6 +21,8 @@ import 'package:fermi_frontend/screens/lobby/lobby_screen_controller.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/screens/survival/survival_screen.dart';
 import 'package:fermi_frontend/screens/survival/pre_survival_screen.dart';
+import 'package:fermi_frontend/screens/precision_rush/precision_rush_screen.dart';
+import 'package:fermi_frontend/screens/precision_rush/pre_precision_rush_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -176,6 +178,21 @@ class AppRouter {
             return SurvivalScreen(
               initialCurrentStreak: currentStreak,
               initialBestStreak: bestStreak,
+              withAd: withAd,
+            );
+          },
+        ),
+        // Precision Rush mode
+        GoRoute(
+          path: '/pre-precision-rush',
+          builder: (context, state) => const PrePrecisionRushScreen(),
+        ),
+        GoRoute(
+          path: '/precision-rush',
+          builder: (context, state) {
+            final withAd =
+                state.uri.queryParameters['withAd']?.toLowerCase() == 'true';
+            return PrecisionRushScreen(
               withAd: withAd,
             );
           },
