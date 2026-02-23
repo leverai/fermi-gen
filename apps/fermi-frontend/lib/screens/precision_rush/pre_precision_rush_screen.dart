@@ -16,6 +16,7 @@ import 'package:fermi_frontend/widgets/main_button.dart';
 import 'package:fermi_frontend/widgets/avatar_widget.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
+import 'package:fermi_frontend/utils/answer_format.dart';
 
 /// Pre-Precision Rush screen shown before starting a run.
 class PrePrecisionRushScreen extends StatefulWidget {
@@ -375,7 +376,7 @@ class _PRPlayTabState extends State<_PRPlayTab> {
                         ),
                       ),
                       Text(
-                        '$bestTas',
+                        formatNumberWithCommas(bestTas),
                         style: AppFont.primaryTextStyle(
                           context,
                           fontSize: 20,
@@ -398,7 +399,7 @@ class _PRPlayTabState extends State<_PRPlayTab> {
                         ),
                       ),
                       Text(
-                        '$avgTas',
+                        formatNumberWithCommas(avgTas),
                         style: AppFont.primaryTextStyle(
                           context,
                           fontSize: 20,
@@ -711,7 +712,7 @@ class _PRLeaderboardTabState extends State<_PRLeaderboardTab>
                       ),
                     ),
                     Text(
-                      entry.bestTas.toStringAsFixed(0),
+                      formatNumberWithCommas(entry.bestTas),
                       style: AppFont.primaryTextStyle(
                         context,
                         fontSize: 18,
