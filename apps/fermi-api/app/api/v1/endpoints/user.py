@@ -13,6 +13,7 @@ from app.api.v1.authenticated_user import AuthenticatedUser
 from app.api.v1.dependencies import (
     get_game_service,
     get_party_hosting_repository,
+    get_precision_rush_run_repository,
     get_survival_run_repository,
     get_user_service,
 )
@@ -26,6 +27,9 @@ from app.services.game.service import GameService
 from app.services.user import UserService
 
 if TYPE_CHECKING:
+    from fermi_db.repositories.precision_rush_run_repository import (
+        PrecisionRushRunRepository,
+    )
     from fermi_db.repositories.survival_run_repository import SurvivalRunRepository
 
 router = APIRouter()
@@ -130,6 +134,10 @@ async def get_user_limits(
         'SurvivalRunRepository',
         Depends(get_survival_run_repository),
     ],
+    precision_rush_run_repo: Annotated[
+        'PrecisionRushRunRepository',
+        Depends(get_precision_rush_run_repository),
+    ],
 ) -> UserLimitsResponse:
     """Get user-specific limits based on subscription tier.
 
@@ -144,6 +152,7 @@ async def get_user_limits(
         user_firebase_uid=auth_user.firebase_uid,
         hosting_repo=hosting_repo,
         survival_run_repo=survival_run_repo,
+        precision_rush_run_repo=precision_rush_run_repo,
         is_pro=auth_user.is_pro,
     )
     return UserLimitsResponse(limits=limits)
