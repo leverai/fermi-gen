@@ -351,7 +351,7 @@ class GamesTab extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Beat the average player. How\nlong can you survive for?',
+                        'Beat the average player.\nHow long can you survive for?',
                         style: AppFont.primaryTextStyle(
                           context,
                           fontSize: 14,
@@ -478,7 +478,7 @@ class GamesTab extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Speed meets accuracy. How\nfast are you?',
+                        'Speed meets accuracy.',
                         style: AppFont.primaryTextStyle(
                           context,
                           fontSize: 14,

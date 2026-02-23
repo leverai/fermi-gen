@@ -458,6 +458,17 @@ class _SurvivalPlayTabState extends State<_SurvivalPlayTab> {
             ),
             const SizedBox(height: 4),
             Text(
+              'Build a streak by answering better than the average player.',
+              style: AppFont.primaryTextStyle(
+                context,
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: appTheme.textMuted,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
               '40 Seconds each • Resume anytime',
               style: AppFont.primaryTextStyle(
                 context,
