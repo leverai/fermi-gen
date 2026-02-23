@@ -1,4 +1,11 @@
+import 'package:intl/intl.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
+
+/// Formats a number with comma thousands separators.
+/// Example: 1234567 -> "1,234,567"
+String formatNumberWithCommas(num value) {
+  return NumberFormat('#,###', 'en_US').format(value);
+}
 
 /// Formats an [AnswerValue] to a compact human-readable string.
 /// Examples: "234 M km", "12 B", "7"

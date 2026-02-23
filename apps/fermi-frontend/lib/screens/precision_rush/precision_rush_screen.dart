@@ -362,7 +362,7 @@ class _PrecisionRushScreenState extends State<PrecisionRushScreen> {
                   ),
                 ),
                 Text(
-                  _controller.totalTas.toStringAsFixed(0),
+                  formatNumberWithCommas(_controller.totalTas),
                   style: AppFont.primaryTextStyle(
                     context,
                     fontSize: 24,
@@ -381,7 +381,7 @@ class _PrecisionRushScreenState extends State<PrecisionRushScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       child: Text(
-                        '+${_controller.currentTas.toStringAsFixed(0)}',
+                        '+${formatNumberWithCommas(_controller.currentTas)}',
                         style: AppFont.primaryTextStyle(
                           context,
                           fontSize: 20,
