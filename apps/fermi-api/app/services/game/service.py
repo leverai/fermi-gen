@@ -42,6 +42,9 @@ if TYPE_CHECKING:
     from fermi_db import DatabaseClient
     from fermi_db.models.user import User
     from fermi_db.repositories.party_hosting_repository import PartyHostingRepository
+    from fermi_db.repositories.precision_rush_run_repository import (
+        PrecisionRushRunRepository,
+    )
     from fermi_db.repositories.survival_run_repository import SurvivalRunRepository
     from google.cloud.firestore_v1 import (
         AsyncClient,
@@ -53,6 +56,9 @@ FREE_HOSTING_LIMIT_PER_WEEK = 2
 
 # Free tier survival run limit (per calendar day)
 FREE_SURVIVAL_RUNS_PER_DAY = 2
+
+# Free tier precision rush run limit (per calendar day)
+FREE_PRECISION_RUSH_RUNS_PER_DAY = 1
 
 
 class GameService:
@@ -502,6 +508,7 @@ class GameService:
         user_firebase_uid: str,
         hosting_repo: 'PartyHostingRepository',
         survival_run_repo: 'SurvivalRunRepository',
+        precision_rush_run_repo: 'PrecisionRushRunRepository',
         is_pro: bool = False,
     ) -> UserLimits:
         """Get user-specific limits based on subscription tier.
@@ -511,10 +518,12 @@ class GameService:
             user_firebase_uid: User's Firebase UID.
             hosting_repo: Repository for checking hosting limits.
             survival_run_repo: Repository for checking survival run limits.
+            precision_rush_run_repo: Repository for checking precision rush limits.
             is_pro: Whether user has Pro subscription.
 
         Returns:
-            User limits including remaining party hostings and survival runs.
+            User limits including remaining party hostings, survival runs, and precision
+            rush runs.
 
         """
         hostings_left = (
@@ -533,9 +542,18 @@ class GameService:
                 limit=FREE_SURVIVAL_RUNS_PER_DAY,
             )
         )
+        pr_left = (
+            -1
+            if is_pro
+            else await precision_rush_run_repo.get_runs_remaining_today(
+                user_firebase_uid=user_firebase_uid,
+                limit=FREE_PRECISION_RUSH_RUNS_PER_DAY,
+            )
+        )
         return UserLimits(
             party_hostings_remaining=hostings_left,
             survival_runs_remaining=survival_left,
+            precision_rush_runs_remaining=pr_left,
         )
 
     async def vote(

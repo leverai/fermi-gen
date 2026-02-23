@@ -22,6 +22,9 @@ from app.services.subscription import SubscriptionService
 from app.services.user import UserService
 
 if TYPE_CHECKING:
+    from fermi_db.repositories.precision_rush_run_repository import (
+        PrecisionRushRunRepository,
+    )
     from fermi_db.repositories.survival_run_repository import SurvivalRunRepository
 
     from app.services.survival import SurvivalService
@@ -100,6 +103,17 @@ def get_survival_run_repository(
     from fermi_db.repositories.survival_run_repository import SurvivalRunRepository
 
     return SurvivalRunRepository(session)
+
+
+def get_precision_rush_run_repository(
+    session: AsyncSession = Depends(get_session),  # noqa: B008
+) -> 'PrecisionRushRunRepository':
+    """Get an instance of the PrecisionRushRunRepository."""
+    from fermi_db.repositories.precision_rush_run_repository import (
+        PrecisionRushRunRepository,
+    )
+
+    return PrecisionRushRunRepository(session)
 
 
 def get_subscription_service(

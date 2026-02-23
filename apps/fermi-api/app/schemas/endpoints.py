@@ -148,6 +148,9 @@ class UserLimits(BaseModel):
     survival_runs_remaining: int
     """Number of survival runs remaining today. -1 for unlimited (Pro users)."""
 
+    precision_rush_runs_remaining: int
+    """Number of precision rush runs remaining today. -1 for unlimited (Pro users)."""
+
 
 class UserLimitsResponse(BaseModel):
     """Response model for getting user-specific limits."""
