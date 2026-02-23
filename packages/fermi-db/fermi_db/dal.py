@@ -11,6 +11,9 @@ from .repositories.enrichment_repository import EnrichmentRepository
 from .repositories.fermi_answer_repository import FermiAnswerRepository
 from .repositories.fermi_repository import FermiRepository
 from .repositories.llm_answer_repository import LLMAnswerRepository
+from .repositories.precision_rush_run_repository import (
+    PrecisionRushRunRepository,
+)
 from .repositories.question_repository import QuestionRepository
 from .repositories.question_votes_repository import QuestionVotesRepository
 from .repositories.raw_question_repository import RawQuestionRepository
@@ -40,6 +43,8 @@ class DatabaseClient:
         self.dq_answers = DailyQuestionAnswerRepository(self.session)
         # Survival Mode repositories
         self.survival_runs = SurvivalRunRepository(self.session)
+        # Precision Rush repositories
+        self.precision_rush_runs = PrecisionRushRunRepository(self.session)
         # Pipeline repositories
         self.seeds = SeedRepository(self.session)
         self.raw_questions = RawQuestionRepository(self.session)
