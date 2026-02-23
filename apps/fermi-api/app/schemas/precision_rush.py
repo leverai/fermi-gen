@@ -27,6 +27,7 @@ class PRQuestionResponse(BaseModel):
     question_number: int
     total_questions: int  # Always 6
     question: PRQuestionData
+    total_tas: float
     time_limit_seconds: int  # Always 40
     answer_deadline_utc: str  # ISO timestamp
 

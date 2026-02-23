@@ -131,6 +131,7 @@ class PrecisionRushService:
             question_number=run.questions_answered + 1,
             total_questions=PR_TOTAL_QUESTIONS,
             question=question_data,
+            total_tas=run.total_tas,
             time_limit_seconds=PR_TIME_LIMIT_SECONDS,
             answer_deadline_utc=deadline.isoformat() + 'Z',
         )

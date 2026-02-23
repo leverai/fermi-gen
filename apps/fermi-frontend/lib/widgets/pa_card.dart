@@ -92,6 +92,7 @@ class _PACardState extends State<PACard> with SingleTickerProviderStateMixin {
       setState(() => _isCapturing = true);
       await Future.delayed(Duration.zero);
       await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
 
       final boundary = _globalKey.currentContext?.findRenderObject()
           as RenderRepaintBoundary?;

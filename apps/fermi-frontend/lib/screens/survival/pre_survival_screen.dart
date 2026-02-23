@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/services/api_service.dart';
@@ -332,8 +331,10 @@ class _SurvivalPlayTabState extends State<_SurvivalPlayTab> {
                 borderRadius: BorderRadius.circular(16),
               ),
               padding: const EdgeInsets.all(16),
-              child: SvgPicture.asset(
-                'assets/icons/logo-fg.svg',
+              child: Icon(
+                Icons.local_fire_department,
+                size: 48,
+                color: appTheme.survival,
               ),
             ),
             const SizedBox(height: 32),
@@ -403,6 +404,8 @@ class _SurvivalPlayTabState extends State<_SurvivalPlayTab> {
                   onPressed: () => widget.onStart(withAd: false),
                   label:
                       isResume ? MainButtonLabel.resume : MainButtonLabel.start,
+                  backgroundColor: appTheme.survival,
+                  shadowColor: appTheme.survivalMuted,
                 ),
               )
             else
