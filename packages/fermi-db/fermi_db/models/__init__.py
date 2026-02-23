@@ -21,6 +21,7 @@ from .pipeline import (
     Seed,
     SeedsUsage,
 )
+from .precision_rush import PrecisionRushRun
 from .subscription import (
     Subscription,
     SubscriptionPlatform,
@@ -39,6 +40,7 @@ __all__ = [
     'FermiQuestion',
     'LLMAnswer',
     'PartyGameHosting',
+    'PrecisionRushRun',
     'QuestionVote',
     'RawQuestion',
     'Seed',

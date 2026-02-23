@@ -104,4 +104,5 @@ class GameMode(StrEnum):
 
     PARTY = 'PARTY'
     SURVIVAL = 'SURVIVAL'
+    PRECISION_RUSH = 'PRECISION_RUSH'
     DAILY_QUESTION = 'DAILY_QUESTION'  # Reserved for future use

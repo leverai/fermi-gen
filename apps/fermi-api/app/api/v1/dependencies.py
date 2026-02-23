@@ -124,6 +124,15 @@ def get_survival_service(
     return SurvivalService(db_client=db_client)
 
 
+async def get_precision_rush_service(
+    db_client: Annotated['DatabaseClient', Depends(get_db_client)],
+) -> 'PrecisionRushService':  # noqa: F821
+    """Get an instance of the PrecisionRushService."""
+    from app.services.precision_rush import PrecisionRushService
+
+    return PrecisionRushService(db_client=db_client)
+
+
 async def verify_scheduler_secret(
     x_scheduler_secret: Annotated[str | None, Header()] = None,
 ) -> None:

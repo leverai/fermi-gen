@@ -9,6 +9,7 @@ from app.api.v1.endpoints import (
     daily_question,
     game,
     health,
+    precision_rush,
     privacy_policy,
     question,
     survival,
@@ -29,6 +30,11 @@ api_router.include_router(account_deletion.router, tags=['account'])
 api_router.include_router(privacy_policy.router, tags=['privacy'])
 api_router.include_router(question.router, prefix='/question', tags=['question'])
 api_router.include_router(survival.router, prefix='/survival', tags=['survival'])
+api_router.include_router(
+    precision_rush.router,
+    prefix='/precision_rush',
+    tags=['precision_rush'],
+)
 api_router.include_router(user.router, prefix='/user', tags=['user'])
 api_router.include_router(assets.router, prefix='/assets', tags=['assets'])
 api_router.include_router(webhooks.router, prefix='/webhooks', tags=['webhooks'])
