@@ -432,7 +432,7 @@ class _PRPlayTabState extends State<_PRPlayTab> {
                       withAd: false, runId: widget.stats?.activeRunId),
                   label:
                       isResume ? MainButtonLabel.resume : MainButtonLabel.start,
-                  backgroundColor: prColor,
+                  backgroundColor: appTheme.precisionRush,
                   shadowColor: appTheme.precisionRushMuted,
                 ),
               )

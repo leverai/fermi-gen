@@ -432,10 +432,8 @@ class _PrecisionRushScreenState extends State<PrecisionRushScreen> {
     final question = _controller.currentQuestion!;
     final isSubmitted = _controller.isSubmitted;
     final answerResponse = _controller.answerResponse;
-    final prColor =
-        (appTheme as dynamic).precisionRush ?? const Color(0xFF00ADB5);
-    final prColorMuted = (appTheme as dynamic).precisionRushMuted ??
-        const Color(0xFF00ADB5).withOpacity(0.5);
+    final prColor = appTheme.primary;
+    final prColorMuted = appTheme.primaryMuted;
 
     final revealedAnswerValue = isSubmitted
         ? (answerResponse?.convertedCorrectAnswer ??

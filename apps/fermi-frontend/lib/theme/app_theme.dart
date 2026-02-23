@@ -109,9 +109,8 @@ class AppTheme extends ThemeExtension<AppTheme> {
       survivalMuted: const HSLColor.fromAHSL(1.0, 30, 0.70, 0.25).toColor(),
 
       // Precision Rush - Soft Teal
-      precisionRush: const HSLColor.fromAHSL(1.0, 180, 0.75, 0.55).toColor(),
-      precisionRushMuted:
-          const HSLColor.fromAHSL(1.0, 180, 0.55, 0.25).toColor(),
+      precisionRush: const HSLColor.fromAHSL(1.0, 183, 1, 0.35).toColor(),
+      precisionRushMuted: const HSLColor.fromAHSL(1.0, 183, 1, 0.15).toColor(),
 
       // Semantic
       danger:

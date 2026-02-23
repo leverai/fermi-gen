@@ -152,6 +152,7 @@ class PrecisionRushScreenController extends ChangeNotifier {
       _questionNumber = response.questionNumber;
       _totalQuestions = response.totalQuestions;
       _currentQuestion = response.question;
+      _totalTas = response.totalTas;
       _deadline = response.answerDeadlineUtc;
 
       // Initialize units

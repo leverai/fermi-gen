@@ -63,6 +63,7 @@ class PRQuestionResponse {
   final int questionNumber;
   final int totalQuestions;
   final PRQuestionData question;
+  final double totalTas;
   final int timeLimitSeconds;
   final DateTime answerDeadlineUtc;
 
@@ -71,6 +72,7 @@ class PRQuestionResponse {
     required this.questionNumber,
     required this.totalQuestions,
     required this.question,
+    required this.totalTas,
     required this.timeLimitSeconds,
     required this.answerDeadlineUtc,
   });
@@ -82,6 +84,7 @@ class PRQuestionResponse {
       totalQuestions: json['total_questions'] as int,
       question:
           PRQuestionData.fromJson(json['question'] as Map<String, dynamic>),
+      totalTas: (json['total_tas'] as num).toDouble(),
       timeLimitSeconds: json['time_limit_seconds'] as int,
       answerDeadlineUtc: DateTime.parse(json['answer_deadline_utc'] as String),
     );
