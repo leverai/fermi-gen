@@ -30,6 +30,8 @@ class AppTheme extends ThemeExtension<AppTheme> {
   final Color secondaryMuted;
   final Color survival;
   final Color survivalMuted;
+  final Color precisionRush;
+  final Color precisionRushMuted;
 
   // Semantic colors
   final Color danger;
@@ -62,6 +64,8 @@ class AppTheme extends ThemeExtension<AppTheme> {
     required this.secondaryMuted,
     required this.survival,
     required this.survivalMuted,
+    required this.precisionRush,
+    required this.precisionRushMuted,
     required this.danger,
     required this.warning,
     required this.success,
@@ -103,6 +107,11 @@ class AppTheme extends ThemeExtension<AppTheme> {
       // Survival - Soft Vibrant Orange
       survival: const HSLColor.fromAHSL(1.0, 30, 0.90, 0.60).toColor(),
       survivalMuted: const HSLColor.fromAHSL(1.0, 30, 0.70, 0.25).toColor(),
+
+      // Precision Rush - Soft Teal
+      precisionRush: const HSLColor.fromAHSL(1.0, 180, 0.75, 0.55).toColor(),
+      precisionRushMuted:
+          const HSLColor.fromAHSL(1.0, 180, 0.55, 0.25).toColor(),
 
       // Semantic
       danger:
@@ -155,6 +164,11 @@ class AppTheme extends ThemeExtension<AppTheme> {
       survival: const HSLColor.fromAHSL(1.0, 30, 0.90, 0.5).toColor(),
       survivalMuted: const HSLColor.fromAHSL(1.0, 30, 0.70, 0.90).toColor(),
 
+      // Precision Rush - Deep Teal
+      precisionRush: const HSLColor.fromAHSL(1.0, 180, 0.75, 0.45).toColor(),
+      precisionRushMuted:
+          const HSLColor.fromAHSL(1.0, 180, 0.60, 0.85).toColor(),
+
       // Semantic
       danger: const HSLColor.fromAHSL(1.0, 350, 0.80, 0.55).toColor(),
       warning: const HSLColor.fromAHSL(1.0, 45, 0.90, 0.50).toColor(),
@@ -186,6 +200,8 @@ class AppTheme extends ThemeExtension<AppTheme> {
     Color? secondaryMuted,
     Color? survival,
     Color? survivalMuted,
+    Color? precisionRush,
+    Color? precisionRushMuted,
     Color? danger,
     Color? warning,
     Color? success,
@@ -212,6 +228,8 @@ class AppTheme extends ThemeExtension<AppTheme> {
       secondaryMuted: secondaryMuted ?? this.secondaryMuted,
       survival: survival ?? this.survival,
       survivalMuted: survivalMuted ?? this.survivalMuted,
+      precisionRush: precisionRush ?? this.precisionRush,
+      precisionRushMuted: precisionRushMuted ?? this.precisionRushMuted,
       danger: danger ?? this.danger,
       warning: warning ?? this.warning,
       success: success ?? this.success,
@@ -245,6 +263,9 @@ class AppTheme extends ThemeExtension<AppTheme> {
       secondaryMuted: Color.lerp(secondaryMuted, other.secondaryMuted, t)!,
       survival: Color.lerp(survival, other.survival, t)!,
       survivalMuted: Color.lerp(survivalMuted, other.survivalMuted, t)!,
+      precisionRush: Color.lerp(precisionRush, other.precisionRush, t)!,
+      precisionRushMuted:
+          Color.lerp(precisionRushMuted, other.precisionRushMuted, t)!,
       danger: Color.lerp(danger, other.danger, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       success: Color.lerp(success, other.success, t)!,

@@ -413,6 +413,16 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                       }
                                     });
                                   },
+                                  onPrecisionRushCardTapped: () {
+                                    context
+                                        .push('/pre-precision-rush')
+                                        .then((_) {
+                                      if (mounted) {
+                                        _controller.refreshInBackground(
+                                            force: true);
+                                      }
+                                    });
+                                  },
                                 ),
                               ),
                               ClipRect(
