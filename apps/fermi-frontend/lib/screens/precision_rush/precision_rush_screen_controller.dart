@@ -20,7 +20,8 @@ class PrecisionRushScreenController extends ChangeNotifier {
     required this.userLocale,
     this.gameConfig,
     this.initialWithAd = false,
-  });
+    int? initialRunId,
+  }) : _runId = initialRunId;
 
   // --- State ---
   bool _isLoading = true;
@@ -130,7 +131,7 @@ class PrecisionRushScreenController extends ChangeNotifier {
   /// Initialize the controller and start a new PR run.
   Future<void> attach() async {
     _currentLocale = userLocale;
-    await _startRun(withAd: initialWithAd);
+    await _startRun(runId: _runId, withAd: initialWithAd);
   }
 
   Future<void> _startRun({int? runId, bool withAd = false}) async {

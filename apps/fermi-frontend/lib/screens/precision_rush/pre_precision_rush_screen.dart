@@ -68,14 +68,18 @@ class _PrePrecisionRushScreenState extends State<PrePrecisionRushScreen> {
     }
   }
 
-  Future<void> _handleStart({bool withAd = false}) async {
+  Future<void> _handleStart({bool withAd = false, int? runId}) async {
     if (mounted) {
       setState(() {
         _isReturning = true;
       });
     }
 
-    await context.push('/precision-rush?withAd=$withAd');
+    String path = '/precision-rush?withAd=$withAd';
+    if (runId != null) {
+      path += '&runId=$runId';
+    }
+    await context.push(path);
 
     if (mounted) {
       // Refresh data when returning from run
@@ -254,7 +258,7 @@ class _PrePrecisionRushScreenState extends State<PrePrecisionRushScreen> {
 class _PRPlayTab extends StatefulWidget {
   final PRStatsResponse? stats;
   final UserLimits? userLimits;
-  final Future<void> Function({bool withAd}) onStart;
+  final Future<void> Function({bool withAd, int? runId}) onStart;
   final VoidCallback onShowPaywall;
 
   const _PRPlayTab({
@@ -307,7 +311,9 @@ class _PRPlayTabState extends State<_PRPlayTab> {
     final prColor = appTheme.precisionRush;
 
     // Limits check
-    final bool canPlay = widget.userLimits?.canPlayPrecisionRush ?? true;
+    final bool isResume = widget.stats?.activeRunId != null;
+    final bool canPlay =
+        isResume || (widget.userLimits?.canPlayPrecisionRush ?? true);
     final int bestTas = widget.stats?.bestTas.toInt() ?? 0;
     // final int avgTas = widget.stats?.averageTas.toInt() ?? 0;
 
@@ -422,8 +428,10 @@ class _PRPlayTabState extends State<_PRPlayTab> {
               SizedBox(
                 width: 200,
                 child: MainButton(
-                  onPressed: () => widget.onStart(withAd: false),
-                  label: MainButtonLabel.start,
+                  onPressed: () => widget.onStart(
+                      withAd: false, runId: widget.stats?.activeRunId),
+                  label:
+                      isResume ? MainButtonLabel.resume : MainButtonLabel.start,
                   backgroundColor: prColor,
                   shadowColor: appTheme.precisionRushMuted,
                 ),

@@ -192,8 +192,11 @@ class AppRouter {
           builder: (context, state) {
             final withAd =
                 state.uri.queryParameters['withAd']?.toLowerCase() == 'true';
+            final runId =
+                int.tryParse(state.uri.queryParameters['runId'] ?? '');
             return PrecisionRushScreen(
               withAd: withAd,
+              runId: runId,
             );
           },
         ),

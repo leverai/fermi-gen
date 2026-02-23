@@ -241,6 +241,7 @@ class SurvivalRunRepository(BaseRepository):
         stmt = select(func.count(SurvivalRun.id)).where(  # type: ignore
             SurvivalRun.user_firebase_uid == user_firebase_uid,  # type: ignore
             SurvivalRun.started_at >= day_start,
+            SurvivalRun.is_completed == True,  # noqa: E712
         )
         result = await self.session.execute(stmt)
         return result.scalar() or 0

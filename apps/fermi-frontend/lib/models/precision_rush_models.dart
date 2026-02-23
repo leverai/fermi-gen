@@ -173,11 +173,15 @@ class PRStatsResponse {
   final int totalRuns;
   final double bestTas;
   final double averageTas;
+  final int? activeRunId;
+  final int? activeRunQuestionsAnswered;
 
   const PRStatsResponse({
     required this.totalRuns,
     required this.bestTas,
     required this.averageTas,
+    this.activeRunId,
+    this.activeRunQuestionsAnswered,
   });
 
   factory PRStatsResponse.fromJson(Map<String, dynamic> json) {
@@ -185,6 +189,8 @@ class PRStatsResponse {
       totalRuns: json['total_runs'] as int,
       bestTas: (json['best_tas'] as num).toDouble(),
       averageTas: (json['average_tas'] as num).toDouble(),
+      activeRunId: json['active_run_id'] as int?,
+      activeRunQuestionsAnswered: json['active_run_questions_answered'] as int?,
     );
   }
 }

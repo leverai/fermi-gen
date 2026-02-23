@@ -270,10 +270,17 @@ class PrecisionRushService:
         avg_tas = await self._db.precision_rush_runs.get_user_average_tas(
             user_firebase_uid,
         )
+        active_run = await self._db.precision_rush_runs.get_active_run(
+            user_firebase_uid,
+        )
         return PRStatsResponse(
             total_runs=total_runs,
             best_tas=best_tas,
             average_tas=avg_tas,
+            active_run_id=active_run.id if active_run else None,
+            active_run_questions_answered=active_run.questions_answered
+            if active_run
+            else None,
         )
 
     async def get_leaderboard(
