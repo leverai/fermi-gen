@@ -46,9 +46,17 @@ class NotificationService {
       return;
     }
 
-    // Subscribe to DQ notifications topic
-    await messaging.subscribeToTopic(_dqTopic);
-    debugPrint('NotificationService: Subscribed to $_dqTopic');
+    // Subscribe to DQ notifications topic.
+    // Uses a timeout because subscribeToTopic can hang indefinitely when
+    // Firebase Installations Service is unavailable (e.g. emulators, some devices).
+    try {
+      await messaging.subscribeToTopic(_dqTopic).timeout(
+            const Duration(seconds: 5),
+          );
+      debugPrint('NotificationService: Subscribed to $_dqTopic');
+    } catch (e) {
+      debugPrint('NotificationService: Failed to subscribe to topic: $e');
+    }
 
     // Handle foreground messages (show as snackbar or ignore)
     _onMessageSub =
@@ -59,9 +67,15 @@ class NotificationService {
         FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
 
     // Check if app was opened via notification tap (cold start)
-    final initialMessage = await messaging.getInitialMessage();
-    if (initialMessage != null) {
-      _handleNotificationTap(initialMessage);
+    try {
+      final initialMessage = await messaging.getInitialMessage().timeout(
+            const Duration(seconds: 5),
+          );
+      if (initialMessage != null) {
+        _handleNotificationTap(initialMessage);
+      }
+    } catch (e) {
+      debugPrint('NotificationService: Failed to get initial message: $e');
     }
 
     _initialized = true;
