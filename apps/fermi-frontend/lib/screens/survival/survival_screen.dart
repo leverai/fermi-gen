@@ -114,11 +114,7 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
 
   void _navigateToMain() {
     if (!mounted) return;
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-    } else {
-      context.go('/main');
-    }
+    context.pop();
   }
 
   Future<void> _handleSubmit() async {
