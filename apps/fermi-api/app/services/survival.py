@@ -250,6 +250,7 @@ class SurvivalService:
         if xp_increment > 0:
             await self._db.users.increment_xp(user_firebase_uid, xp_increment)
             await self._db.users.increment_points(user_firebase_uid, xp_increment)
+            await self._db.session.commit()
 
         p50_ratio = compute_p50_ratio(pass_threshold)
         return SurvivalAnswerResponse(
