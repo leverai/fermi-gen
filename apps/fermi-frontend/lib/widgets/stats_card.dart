@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fermi_frontend/models/player_stats.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
+import 'package:fermi_frontend/utils/answer_format.dart';
 
 /// A Neubrutalism-styled stats card displaying player statistics.
 class StatsCard extends StatelessWidget {
@@ -50,16 +51,14 @@ class StatsCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _StatItem(
-                    label: 'Parties',
-                    value: stats.totalPartyGames.toString(),
-                  ),
-                  _StatItem(
-                    label: 'Daily Guesses',
-                    value: stats.totalDailyGuesses.toString(),
-                  ),
-                  _StatItem(
-                    label: 'Survivals',
-                    value: stats.totalSurvivalRuns.toString(),
+                    label: 'Fermis',
+                    value: formatNumberWithCommas(stats.points),
+                    fontSize: 24,
+                    leading: SvgPicture.asset(
+                      'assets/icons/points.svg',
+                      width: 20,
+                      height: 20,
+                    ),
                   ),
                   _RankItem(
                     label: 'Rank',
@@ -84,10 +83,14 @@ class _StatItem extends StatelessWidget {
   const _StatItem({
     required this.label,
     required this.value,
+    this.fontSize = 28,
+    this.leading,
   });
 
   final String label;
   final String value;
+  final double fontSize;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -97,14 +100,24 @@ class _StatItem extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          value,
-          style: AppFont.primaryTextStyle(
-            context,
-            fontSize: 28,
-            fontWeight: FontWeight.w300,
-            color: appTheme.text,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (leading != null) ...[
+              leading!,
+              const SizedBox(width: 4),
+            ],
+            Text(
+              value,
+              style: AppFont.primaryTextStyle(
+                context,
+                fontSize: fontSize,
+                fontWeight: FontWeight.w300,
+                color: appTheme.text,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 4),
         Text(

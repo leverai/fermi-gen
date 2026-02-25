@@ -86,6 +86,7 @@ void main() {
           totalSurvivalRuns: 0,
           averagePercentile: 75,
           level: 1,
+          points: 1000,
           rank: RankInfo(
             id: 1,
             name: 'Observer',

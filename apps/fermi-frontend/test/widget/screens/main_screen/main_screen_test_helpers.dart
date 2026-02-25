@@ -70,6 +70,7 @@ PlayerStatsResponse createTestPlayerStats({int? averagePercentile}) {
       totalSurvivalRuns: 0,
       averagePercentile: averagePercentile ?? 75,
       level: 1,
+      points: 1000,
       rank: const RankInfo(
         id: 1,
         name: 'Observer',

@@ -48,6 +48,7 @@ class PlayerStats {
   final int averagePercentile;
   final RankInfo rank;
   final int level;
+  final int points;
 
   const PlayerStats({
     required this.totalPartyGames,
@@ -56,6 +57,7 @@ class PlayerStats {
     required this.averagePercentile,
     required this.rank,
     required this.level,
+    required this.points,
   });
 
   factory PlayerStats.fromJson(Map<String, dynamic> json) {
@@ -67,6 +69,7 @@ class PlayerStats {
       rank:
           RankInfo.fromJson(json['rank'] as Map<String, dynamic>? ?? const {}),
       level: json['level'] as int? ?? 1,
+      points: json['points'] as int? ?? 0,
     );
   }
 }
