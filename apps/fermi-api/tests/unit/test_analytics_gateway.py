@@ -153,6 +153,7 @@ class _FakeQuestionVotes:
 class _FakeUsers:
     def __init__(self) -> None:
         self.xp_store: dict[str, int] = {}
+        self.points_store: dict[str, int] = {}
 
     async def increment_xp(self, firebase_uid: str, amount: int) -> None:
         """Mock increment_xp that tracks XP in memory."""
@@ -163,6 +164,16 @@ class _FakeUsers:
     async def get_xp(self, firebase_uid: str) -> int:
         """Mock get_xp that returns stored XP or 0."""
         return self.xp_store.get(firebase_uid, 0)
+
+    async def increment_points(self, firebase_uid: str, amount: int) -> None:
+        """Mock increment_points that tracks points in memory."""
+        if firebase_uid not in self.points_store:
+            self.points_store[firebase_uid] = 0
+        self.points_store[firebase_uid] += amount
+
+    async def get_points(self, firebase_uid: str) -> int:
+        """Mock get_points that returns stored points or 0."""
+        return self.points_store.get(firebase_uid, 0)
 
 
 class _FakeDbClient:

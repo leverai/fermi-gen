@@ -281,3 +281,37 @@ class UserRepository(BaseRepository):
         if user is None:
             return 0
         return user.xp
+
+    async def increment_points(self, firebase_uid: str, amount: int) -> None:
+        """Atomically increment a user's points.
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+            amount: Amount of points to add (must be non-negative).
+
+        """
+        if amount < 0:
+            raise ValueError('Points increment must be non-negative')
+        if amount == 0:
+            return
+
+        user = await self.get_by_firebase_uid(firebase_uid)
+        assert user is not None
+        user.points = user.points + amount
+        self.session.add(user)
+        # Note: caller should commit
+
+    async def get_points(self, firebase_uid: str) -> int:
+        """Get a user's current points balance.
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+
+        Returns:
+            The user's points value, or 0 if user not found.
+
+        """
+        user = await self.get_by_firebase_uid(firebase_uid)
+        if user is None:
+            return 0
+        return user.points

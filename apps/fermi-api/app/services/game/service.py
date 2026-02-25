@@ -476,6 +476,7 @@ class GameService:
                 rank=rank,
                 xp=raw_stats['xp'],
                 level=raw_stats['level'],
+                points=raw_stats['points'],
             ),
         )
 

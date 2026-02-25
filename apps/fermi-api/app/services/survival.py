@@ -245,10 +245,11 @@ class SurvivalService:
             question_uids=[run.current_question_uid],
         )
 
-        # Increment XP
+        # Increment XP and points
         xp_increment = int(score // 100)
         if xp_increment > 0:
             await self._db.users.increment_xp(user_firebase_uid, xp_increment)
+            await self._db.users.increment_points(user_firebase_uid, xp_increment)
 
         p50_ratio = compute_p50_ratio(pass_threshold)
         return SurvivalAnswerResponse(
@@ -410,7 +411,10 @@ class SurvivalService:
         if period == LeaderboardPeriod.weekly:
             # Start of current week (Monday 00:00 UTC)
             start_date = (now - datetime.timedelta(days=now.weekday())).replace(
-                hour=0, minute=0, second=0, microsecond=0,
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0,
             )
         elif period == LeaderboardPeriod.monthly:
             # Start of current month
@@ -418,19 +422,27 @@ class SurvivalService:
         elif period == LeaderboardPeriod.last_week:
             # Previous Monday to this Monday
             this_monday = (now - datetime.timedelta(days=now.weekday())).replace(
-                hour=0, minute=0, second=0, microsecond=0,
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0,
             )
             start_date = this_monday - datetime.timedelta(days=7)
             end_date = this_monday
         elif period == LeaderboardPeriod.last_month:
             # Previous month 1st to current month 1st
             first_of_this_month = now.replace(
-                day=1, hour=0, minute=0, second=0, microsecond=0,
+                day=1,
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0,
             )
             # Go back to previous month
             if first_of_this_month.month == 1:
                 start_date = first_of_this_month.replace(
-                    year=first_of_this_month.year - 1, month=12,
+                    year=first_of_this_month.year - 1,
+                    month=12,
                 )
             else:
                 start_date = first_of_this_month.replace(
