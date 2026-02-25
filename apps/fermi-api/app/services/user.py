@@ -138,3 +138,44 @@ class UserService:
         xp = await self._user_repository.get_xp(firebase_uid)
         level = (xp // 100) + 1
         return {'xp': xp, 'level': level}
+
+    async def increment_points_by_score(
+        self,
+        firebase_uid: str,
+        score: float,
+    ) -> int:
+        """Increment a user's points based on their score.
+
+        Formula: points_increment = score // 100
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+            score: The score earned by the player.
+
+        Returns:
+            The points increment amount.
+
+        """
+        points_increment = int(score // 100)
+        if points_increment > 0:
+            user = await self._user_repository.get_by_firebase_uid(firebase_uid)
+            if user is None:
+                raise ValueError(f'User with firebase_uid {firebase_uid} not found')
+            await self._user_repository.increment_points(
+                firebase_uid,
+                points_increment,
+            )
+            await self._user_repository.session.commit()
+        return points_increment
+
+    async def get_points(self, firebase_uid: str) -> int:
+        """Get a user's current points balance.
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+
+        Returns:
+            The user's points balance.
+
+        """
+        return await self._user_repository.get_points(firebase_uid)

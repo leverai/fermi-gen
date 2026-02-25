@@ -131,6 +131,9 @@ class PlayerStats(BaseModel):
     level: int
     """Player level (computed from xp)."""
 
+    points: int
+    """Player's consumable points balance."""
+
 
 class GetPlayerStatsResponse(BaseModel):
     """Response model for getting a player's stats."""

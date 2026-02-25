@@ -180,11 +180,12 @@ class GameAnalyticsGateway:
                 player_total_scores[player_id] = 0.0
             player_total_scores[player_id] += event.score_number
 
-        # Increment XP for each player
+        # Increment XP and points for each player
         for player_id, total_score in player_total_scores.items():
             xp_increment = int(total_score // 100)
             if xp_increment > 0:
                 await self._db_client.users.increment_xp(player_id, xp_increment)
+                await self._db_client.users.increment_points(player_id, xp_increment)
 
         # 3) Add questions to users' histories (skip bots)
         for players_results_doc in players_results_docs:
@@ -208,12 +209,14 @@ class GameAnalyticsGateway:
             - average_percentile: int
             - xp: int
             - level: int (computed from xp)
+            - points: int
         """
         avg_pct = await self._db_client.answers.get_overall_avg_percentile(
             player_id,
         )
         xp = await self._db_client.users.get_xp(player_id)
         level = (xp // 100) + 1
+        points = await self._db_client.users.get_points(player_id)
         return {
             'total_party_games': await self._db_client.answers.count_user_party_games(
                 player_id,
@@ -227,6 +230,7 @@ class GameAnalyticsGateway:
             'average_percentile': avg_pct,
             'xp': xp,
             'level': level,
+            'points': points,
         }
 
     async def set_user_vote(

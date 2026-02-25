@@ -286,8 +286,9 @@ class DailyQuestionService:
         }
         score = self._scoring.calculate_score(answer, correct_answer)
 
-        # Increment XP based on score (xp_increment = score // 100)
+        # Increment XP and points based on score (increment = score // 100)
         await user_service.increment_xp_by_score(user_firebase_uid, score)
+        await user_service.increment_points_by_score(user_firebase_uid, score)
 
         # Store answer in database
         await self._db.dq_answers.submit_answer(
@@ -798,10 +799,11 @@ class DailyQuestionService:
         }
         score = self._scoring.calculate_score(answer, correct_answer)
 
-        # Increment XP based on score
+        # Increment XP and points based on score
         xp_increment = int(score // 100)
         if xp_increment > 0:
             await self._db.users.increment_xp(user_firebase_uid, xp_increment)
+            await self._db.users.increment_points(user_firebase_uid, xp_increment)
 
         # Compute rank dynamically before storing (count of higher scores + 1).
         # NOTE: This only computes the new participant's rank. Existing participants'
