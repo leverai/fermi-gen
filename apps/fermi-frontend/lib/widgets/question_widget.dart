@@ -3,6 +3,9 @@ import 'package:fermi_frontend/widgets/tag_widget.dart';
 import 'package:fermi_frontend/widgets/animated_like_dislike.dart';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
+import 'package:fermi_frontend/widgets/live_typing_text.dart';
+import 'package:fermi_frontend/models/ltt_sound_profile.dart';
+import 'package:fermi_frontend/services/local_settings_service.dart';
 
 /// A widget that displays question text with optional tags.
 ///
@@ -76,17 +79,23 @@ class QuestionWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          text,
-          textAlign: TextAlign.left,
-          style: AppFont.primaryTextStyle(
-            context,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: textColor,
-            decoration: TextDecoration.none,
-            height: 1.5,
-          ).copyWith(letterSpacing: 0.4),
+        ValueListenableBuilder<LttSoundProfile?>(
+          valueListenable: LocalSettingsService.instance.selectedSoundProfile,
+          builder: (context, soundProfile, _) {
+            return LiveTypingText(
+              text: text,
+              textAlign: TextAlign.left,
+              style: AppFont.primaryTextStyle(
+                context,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+                decoration: TextDecoration.none,
+                height: 1.5,
+              ).copyWith(letterSpacing: 0.4),
+              soundProfile: soundProfile,
+            );
+          },
         ),
         if (tags.isNotEmpty) ...[
           const SizedBox(height: 12),

@@ -33,21 +33,21 @@ class PACardSoundService {
       _topPool = await AudioPool.create(
         source: AssetSource('sounds/top.mp3'),
         minPlayers: 1,
-        maxPlayers: 3,
+        maxPlayers: 1,
         audioContext: _noFocusContext,
       );
 
       _applausePool = await AudioPool.create(
         source: AssetSource('sounds/small_applause.mp3'),
         minPlayers: 1,
-        maxPlayers: 3,
+        maxPlayers: 1,
         audioContext: _noFocusContext,
       );
 
       _bottomPool = await AudioPool.create(
         source: AssetSource('sounds/bottom.mp3'),
         minPlayers: 1,
-        maxPlayers: 3,
+        maxPlayers: 1,
         audioContext: _noFocusContext,
       );
 

@@ -208,6 +208,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         subscriptionTier:
             widget.authService.currentUser?.subscriptionTier ?? 'FREE',
         onUpgradeSubscription: _handleUpgradeSubscription,
+        apiService: widget.apiService,
+        currentPoints: _controller.playerStatsDto?.stats.points ?? 0,
       ),
     );
   }

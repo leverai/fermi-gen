@@ -37,26 +37,26 @@ class FeedbackService {
     try {
       _clickPool = await AudioPool.create(
         source: AssetSource('sounds/click.mp3'),
-        minPlayers: 2,
-        maxPlayers: 5,
+        minPlayers: 1,
+        maxPlayers: 2,
         audioContext: _noFocusContext,
       );
       _secondaryClickPool = await AudioPool.create(
         source: AssetSource('sounds/click_secondary.mp3'),
-        minPlayers: 2,
-        maxPlayers: 5,
+        minPlayers: 1,
+        maxPlayers: 2,
         audioContext: _noFocusContext,
       );
       _successPool = await AudioPool.create(
         source: AssetSource('sounds/success.mp3'),
         minPlayers: 1,
-        maxPlayers: 2,
+        maxPlayers: 1,
         audioContext: _noFocusContext,
       );
       _failPool = await AudioPool.create(
         source: AssetSource('sounds/fail.mp3'),
         minPlayers: 1,
-        maxPlayers: 2,
+        maxPlayers: 1,
         audioContext: _noFocusContext,
       );
       _isInitialized = true;
