@@ -245,8 +245,8 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
     return AnswerValue(number: number, orderOfMagnitude: om, unit: unit);
   }
 
-  /// Handle tap/drag gesture to update answer
-  void _handlePositionUpdate(double x, double width) {
+  /// Commit a position immediately (for taps and drag start).
+  void _commitPosition(double x, double width) {
     // Only allow interaction when editable and callback is provided
     if (!widget.editable || widget.onAnswerChanged == null) {
       return;
@@ -257,32 +257,30 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
       return;
     }
 
-    // Convert position to answer value (snapped)
     final sliderValue = _positionToSliderValue(x, width);
     final currentUnit = widget.currentAnswer.unit;
     final newAnswer = _sliderToAnswerValue(sliderValue, currentUnit);
 
-    // Trigger haptic feedback when crossing large or medium ticks
-    // Large ticks: 0, 3, 6, 9, 12, 15 (1, 1K, 1M, 1B, 1T, boundaries)
-    // Medium ticks: 1, 2, 4, 5, 7, 8, 10, 11, 13, 14 (10, 100, 10K, etc.)
-    // Both are at integer slider values (order of magnitude boundaries)
-    if (_lastSliderValue != null) {
-      final prevOM = _lastSliderValue!.floor();
-      final currOM = sliderValue.floor();
-      if (prevOM != currOM) {
-        // Crossed an order of magnitude boundary (large or medium tick)
-        FeedbackService.instance.selectionChange();
-      }
-    }
-    _lastSliderValue = sliderValue;
+    _triggerHapticIfCrossedTick(sliderValue);
 
-    // Prevent duplicate callbacks
     if (_lastEmittedValue == newAnswer) {
       return;
     }
 
     _lastEmittedValue = newAnswer;
     widget.onAnswerChanged!(newAnswer);
+  }
+
+  /// Trigger haptic feedback when crossing an order-of-magnitude tick.
+  void _triggerHapticIfCrossedTick(double sliderValue) {
+    if (_lastSliderValue != null) {
+      final prevOM = _lastSliderValue!.floor();
+      final currOM = sliderValue.floor();
+      if (prevOM != currOM) {
+        FeedbackService.instance.selectionChange();
+      }
+    }
+    _lastSliderValue = sliderValue;
   }
 
   Widget _buildAvatar(String url, AppTheme appTheme) {
@@ -483,28 +481,22 @@ class _AnswerAccuracyScaleState extends State<AnswerAccuracyScale>
                   behavior: HitTestBehavior.opaque,
                   onTapDown: (details) {
                     final localX = details.localPosition.dx;
-                    _handlePositionUpdate(localX, w);
+                    _commitPosition(localX, w);
                   },
                   onHorizontalDragStart: (details) {
                     setState(() {
                       _isDragging = true;
                     });
                     final localX = details.localPosition.dx;
-                    _handlePositionUpdate(localX, w);
+                    _commitPosition(localX, w);
                   },
                   onHorizontalDragUpdate: (details) {
                     final localX = details.localPosition.dx;
-                    _handlePositionUpdate(localX, w);
+                    _commitPosition(localX, w);
                   },
                   onHorizontalDragEnd: (details) {
-                    // Debounce: wait 40ms before ending drag to ignore
-                    // any spurious position changes from finger lift
-                    Future.delayed(const Duration(milliseconds: 60), () {
-                      if (mounted) {
-                        setState(() {
-                          _isDragging = false;
-                        });
-                      }
+                    setState(() {
+                      _isDragging = false;
                     });
                   },
                   onHorizontalDragCancel: () {
