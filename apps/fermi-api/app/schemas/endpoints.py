@@ -142,6 +142,18 @@ class GetPlayerStatsResponse(BaseModel):
     stats: PlayerStats
 
 
+class SpendPointsRequest(BaseModel):
+    """Request model for spending points."""
+
+    amount: int = Field(gt=0, description='Amount of points to spend')
+
+
+class SpendPointsResponse(BaseModel):
+    """Response model for spending points."""
+
+    remaining_points: int
+
+
 class UserLimits(BaseModel):
     """User-specific limits based on subscription tier."""
 

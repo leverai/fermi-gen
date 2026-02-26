@@ -3,7 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/main.dart' show useEmulators;
+import 'package:fermi_frontend/models/ltt_sound_profile.dart';
 import 'package:fermi_frontend/providers/subscription_provider.dart';
+import 'package:fermi_frontend/screens/main/sound_profile_shop_screen.dart';
+import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -23,6 +26,8 @@ class SettingsSheet extends StatefulWidget {
     this.onLocaleChanged,
     this.subscriptionTier = 'FREE',
     this.onUpgradeSubscription,
+    this.apiService,
+    this.currentPoints = 0,
   });
 
   final VoidCallback onSignOut;
@@ -34,6 +39,8 @@ class SettingsSheet extends StatefulWidget {
   final ValueChanged<String>? onLocaleChanged;
   final String subscriptionTier;
   final VoidCallback? onUpgradeSubscription;
+  final ApiService? apiService;
+  final int currentPoints;
 
   @override
   State<SettingsSheet> createState() => _SettingsSheetState();
@@ -140,6 +147,47 @@ class _SettingsSheetState extends State<SettingsSheet> {
                           );
                         },
                       ),
+                    ),
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      indent: 24,
+                      color: appTheme.bg,
+                    ),
+                    ValueListenableBuilder<LttSoundProfile?>(
+                      valueListenable:
+                          LocalSettingsService.instance.selectedSoundProfile,
+                      builder: (context, selectedProfile, _) {
+                        return _buildSettingsRow(
+                          context,
+                          appTheme,
+                          label: 'Typing sound',
+                          icon: Icons.keyboard,
+                          onTap: () {
+                            if (widget.apiService == null) return;
+                            FeedbackService.instance.secondaryClick();
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => SoundProfileShopScreen(
+                                  currentPoints: widget.currentPoints,
+                                  apiService: widget.apiService!,
+                                ),
+                              ),
+                            );
+                          },
+                          trailing: Text(
+                            selectedProfile?.displayName ?? 'Silent',
+                            style: AppFont.primaryTextStyle(
+                              context,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: selectedProfile != null
+                                  ? appTheme.primary
+                                  : appTheme.textMuted,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     Divider(
                       height: 1,

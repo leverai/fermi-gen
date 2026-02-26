@@ -301,6 +301,34 @@ class UserRepository(BaseRepository):
         self.session.add(user)
         # Note: caller should commit
 
+    async def spend_points(self, firebase_uid: str, amount: int) -> int:
+        """Atomically deduct points from a user's balance.
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+            amount: Amount of points to deduct (must be positive).
+
+        Returns:
+            The remaining points balance after deduction.
+
+        Raises:
+            ValueError: If amount is not positive or balance is insufficient.
+
+        """
+        if amount <= 0:
+            raise ValueError('Spend amount must be positive')
+
+        user = await self.get_by_firebase_uid(firebase_uid)
+        if user is None:
+            raise ValueError(f'User with firebase_uid {firebase_uid} not found')
+        if user.points < amount:
+            raise ValueError(f'Insufficient points: have {user.points}, need {amount}')
+
+        user.points = user.points - amount
+        self.session.add(user)
+        # Note: caller should commit
+        return user.points
+
     async def get_points(self, firebase_uid: str) -> int:
         """Get a user's current points balance.
 

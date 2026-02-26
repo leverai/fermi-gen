@@ -20,6 +20,8 @@ from app.api.v1.dependencies import (
 from app.api.v1.rate_limit import USER_UPDATE_RATE_LIMIT, limiter
 from app.schemas.endpoints import (
     SetLocaleRequest,
+    SpendPointsRequest,
+    SpendPointsResponse,
     UpdateUserProfileRequest,
     UserLimitsResponse,
 )
@@ -120,6 +122,27 @@ async def delete_user(
     assert current_user.id is not None
     await user_service.delete_user(user_id=current_user.id)
     return status.HTTP_200_OK
+
+
+@router.post('/spend_points', response_model=SpendPointsResponse)
+async def spend_points(
+    payload: SpendPointsRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
+) -> SpendPointsResponse:
+    """Spend points on an in-app purchase."""
+    from fastapi import HTTPException
+
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, spend_points.__qualname__)
+    try:
+        remaining = await user_service.spend_points(
+            firebase_uid=current_user.firebase_uid,
+            amount=payload.amount,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    return SpendPointsResponse(remaining_points=remaining)
 
 
 @router.get('/limits', response_model=UserLimitsResponse)

@@ -674,6 +674,28 @@ class ApiService {
       rethrow;
     }
   }
+
+  // --- Points ---
+
+  /// Spend points on an in-app purchase.
+  ///
+  /// Returns the remaining points balance after deduction.
+  /// Throws on insufficient balance or network error.
+  Future<int> spendPoints(int amount) async {
+    try {
+      final resp = await _authPost('/user/spend_points', {'amount': amount});
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        return data['remaining_points'] as int;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception(error);
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
 
 // Moved to utils/env.dart

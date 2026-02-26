@@ -34,8 +34,8 @@ class ConfettiSoundService {
       // AudioPool is specifically designed for short, simultaneous sounds
       _popPool = await AudioPool.create(
         source: AssetSource('sounds/confetti_pop.mp3'),
-        minPlayers: 3, // Pre-load 3 players for rapid firing
-        maxPlayers: 10, // Allow up to 10 simultaneous pops
+        minPlayers: 1, // Pre-load 1 player
+        maxPlayers: 3, // Allow up to 3 simultaneous pops
         audioContext: _noFocusContext,
       );
 

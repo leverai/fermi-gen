@@ -179,3 +179,21 @@ class UserService:
 
         """
         return await self._user_repository.get_points(firebase_uid)
+
+    async def spend_points(self, firebase_uid: str, amount: int) -> int:
+        """Deduct points from a user's balance.
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+            amount: Amount of points to spend (must be positive).
+
+        Returns:
+            The remaining points balance after deduction.
+
+        Raises:
+            ValueError: If amount is invalid or balance is insufficient.
+
+        """
+        remaining = await self._user_repository.spend_points(firebase_uid, amount)
+        await self._user_repository.session.commit()
+        return remaining
