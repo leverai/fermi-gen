@@ -130,20 +130,25 @@ class StyledDialog extends StatelessWidget {
             // Secondary message (if provided)
             if (secondaryMessage != null) ...[
               const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  secondaryMessage!,
-                  textAlign: TextAlign.left,
-                  style: AppFont.primaryTextStyle(
-                    context,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w300,
-                    color: appTheme
-                        .textMuted, // Use textMuted for better visibility
-                    height: 1.4,
-                  ).copyWith(
-                    decoration: TextDecoration.none,
+              Flexible(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      secondaryMessage!,
+                      textAlign: TextAlign.left,
+                      style: AppFont.primaryTextStyle(
+                        context,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w300,
+                        color: appTheme
+                            .textMuted, // Use textMuted for better visibility
+                        height: 1.4,
+                      ).copyWith(
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
                   ),
                 ),
               ),
