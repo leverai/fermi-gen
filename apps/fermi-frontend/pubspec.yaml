@@ -120,6 +120,7 @@ flutter:
   - assets/sounds/ltt/mx-black/
   - assets/sounds/ltt/mx-blue/
   - assets/sounds/ltt/mx-brown/
+  - assets/sounds/ltt/typewriter/
   - assets/lotties/
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

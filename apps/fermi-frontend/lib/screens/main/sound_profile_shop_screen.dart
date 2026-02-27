@@ -347,6 +347,8 @@ class _SoundProfileShopScreenState extends State<SoundProfileShopScreen> {
         return 'Clicky';
       case LttSoundProfile.ios:
         return 'Soft tap';
+      case LttSoundProfile.typewriter:
+        return 'Vintage click';
     }
   }
 
