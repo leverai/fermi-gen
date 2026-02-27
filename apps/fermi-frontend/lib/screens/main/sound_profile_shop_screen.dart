@@ -10,6 +10,8 @@ import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/utils/answer_format.dart';
 import 'package:fermi_frontend/widgets/live_typing_text.dart';
+import 'package:fermi_frontend/widgets/styled_dialog.dart';
+import 'package:lottie/lottie.dart';
 
 /// Screen for previewing, purchasing, and selecting LTT sound profiles.
 class SoundProfileShopScreen extends StatefulWidget {
@@ -40,12 +42,51 @@ class _SoundProfileShopScreenState extends State<SoundProfileShopScreen> {
   Future<void> _buyProfile(LttSoundProfile profile) async {
     if (_availablePoints < profile.cost) return;
 
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final appTheme =
+            Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+        return StyledDialog(
+          message: 'Confirm Purchase',
+          primaryButtonLabel: 'Buy',
+          primaryButtonColor: appTheme.primary,
+          onPrimaryPressed: () => Navigator.of(context).pop(true),
+          secondaryButtonLabel: 'Cancel',
+          onSecondaryPressed: () => Navigator.of(context).pop(false),
+          primaryButtonWidget: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgPicture.asset(
+                'assets/icons/points.svg',
+                width: 16,
+                height: 16,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                formatNumberWithCommas(profile.cost),
+                style: AppFont.primaryTextStyle(
+                  context,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: appTheme.bgLight,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
     try {
       final remaining = await widget.apiService.spendPoints(profile.cost);
       await LocalSettingsService.instance.addOwnedSoundProfile(profile);
       if (mounted) {
         setState(() => _availablePoints = remaining);
         FeedbackService.instance.buttonPress();
+        _showSuccessAnimation();
       }
     } catch (e) {
       if (mounted) {
@@ -54,6 +95,28 @@ class _SoundProfileShopScreenState extends State<SoundProfileShopScreen> {
         );
       }
     }
+  }
+
+  void _showSuccessAnimation() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted && Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+        });
+        return Center(
+          child: Lottie.asset(
+            'assets/lotties/Success.json',
+            width: 200,
+            height: 200,
+            repeat: false,
+          ),
+        );
+      },
+    );
   }
 
   void _selectProfile(LttSoundProfile? profile) {
@@ -85,7 +148,10 @@ class _SoundProfileShopScreenState extends State<SoundProfileShopScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: appTheme.text),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            FeedbackService.instance.secondaryClick();
+            Navigator.of(context).pop();
+          },
         ),
         title: Text(
           'Typing Sounds',
@@ -173,27 +239,22 @@ class _SoundProfileShopScreenState extends State<SoundProfileShopScreen> {
                         onPreview: () => _togglePreview(profile),
                         isPreviewActive: isPreviewActive,
                         previewWidget: isPreviewActive
-                            ? Padding(
-                                padding: const EdgeInsets.only(top: 12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: appTheme.bg,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: LiveTypingText(
-                                    key: ValueKey(
-                                        '${profile.pathName}_$_previewKey'),
-                                    text:
-                                        'This is what ${profile.displayName} sounds like!',
-                                    style: AppFont.primaryTextStyle(
-                                      context,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      color: appTheme.text,
-                                    ),
-                                    soundProfile: profile,
-                                  ),
+                            ? Offstage(
+                                child: LiveTypingText(
+                                  key: ValueKey(
+                                      '${profile.pathName}_$_previewKey'),
+                                  text:
+                                      'This is what ${profile.displayName} sounds like!',
+                                  soundProfile: profile,
+                                  onTypingComplete: () {
+                                    if (mounted &&
+                                        _previewingProfile ==
+                                            profile.pathName) {
+                                      setState(() {
+                                        _previewingProfile = null;
+                                      });
+                                    }
+                                  },
                                 ),
                               )
                             : null,
