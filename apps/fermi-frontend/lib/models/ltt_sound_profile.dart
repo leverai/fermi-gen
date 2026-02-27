@@ -7,7 +7,8 @@ enum LttSoundProfile {
   holyPanda('holy-panda', 'Holy Panda', cost: 2000),
   mxBlack('mx-black', 'Cherry MX Black', cost: 1250),
   mxBlue('mx-blue', 'Cherry MX Blue', cost: 500),
-  mxBrown('mx-brown', 'Cherry MX Brown', cost: 1000);
+  mxBrown('mx-brown', 'Cherry MX Brown', cost: 1000),
+  typewriter('typewriter', 'Type Writer', cost: 5000);
 
   /// The folder name under assets/sounds/ltt/ for this profile.
   final String pathName;

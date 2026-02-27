@@ -87,7 +87,7 @@ class _LiveTypingTextState extends State<LiveTypingText> {
       });
 
       // Play sound synchronously with the visual update
-      if (widget.soundProfile != null && nextChar.trim().isNotEmpty) {
+      if (widget.soundProfile != null) {
         // We do not await the sound, so it doesn't block UI progression
         LttSoundService.instance.playKeystroke(
           widget.soundProfile!,
