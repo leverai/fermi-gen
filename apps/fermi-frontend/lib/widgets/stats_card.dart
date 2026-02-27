@@ -56,8 +56,8 @@ class StatsCard extends StatelessWidget {
                     fontSize: 24,
                     leading: SvgPicture.asset(
                       'assets/icons/points.svg',
-                      width: 20,
-                      height: 20,
+                      width: 18,
+                      height: 18,
                     ),
                   ),
                   _RankItem(
@@ -106,7 +106,7 @@ class _StatItem extends StatelessWidget {
           children: [
             if (leading != null) ...[
               leading!,
-              const SizedBox(width: 4),
+              const SizedBox(width: 6),
             ],
             Text(
               value,
