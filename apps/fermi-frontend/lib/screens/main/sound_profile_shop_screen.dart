@@ -49,6 +49,7 @@ class _SoundProfileShopScreenState extends State<SoundProfileShopScreen> {
             Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
         return StyledDialog(
           message: 'Confirm Purchase',
+          secondaryMessage: 'Item: ${profile.displayName}',
           primaryButtonLabel: 'Buy',
           primaryButtonColor: appTheme.primary,
           onPrimaryPressed: () => Navigator.of(context).pop(true),
@@ -235,20 +236,20 @@ class _SoundProfileShopScreenState extends State<SoundProfileShopScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 children: [
-                  // Silent option
-                  _buildProfileCard(
-                    context,
-                    appTheme,
-                    name: 'Silent',
-                    subtitle: 'No typing sound',
-                    isOwned: true,
-                    isSelected: selectedProfile == null,
-                    cost: 0,
-                    onSelect: () => _selectProfile(null),
-                    onPreview: null,
-                    isPreviewActive: false,
-                  ),
-                  const SizedBox(height: 8),
+                  // // Silent option
+                  // _buildProfileCard(
+                  //   context,
+                  //   appTheme,
+                  //   name: 'Silent',
+                  //   subtitle: 'No typing sound',
+                  //   isOwned: true,
+                  //   isSelected: selectedProfile == null,
+                  //   cost: 0,
+                  //   onSelect: () => _selectProfile(null),
+                  //   onPreview: null,
+                  //   isPreviewActive: false,
+                  // ),
+                  // const SizedBox(height: 8),
 
                   // Profile cards
                   ...LttSoundProfile.values.map((profile) {

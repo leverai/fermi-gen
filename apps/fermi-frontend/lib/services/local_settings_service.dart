@@ -24,7 +24,7 @@ class LocalSettingsService {
   final ValueNotifier<ThemeMode> themeMode =
       ValueNotifier<ThemeMode>(ThemeMode.system);
   final ValueNotifier<LttSoundProfile?> selectedSoundProfile =
-      ValueNotifier<LttSoundProfile?>(null);
+      ValueNotifier<LttSoundProfile?>(LttSoundProfile.ios);
   final ValueNotifier<Set<LttSoundProfile>> ownedSoundProfiles =
       ValueNotifier<Set<LttSoundProfile>>({});
 
@@ -85,7 +85,7 @@ class LocalSettingsService {
       // Fallback to default values if initialization fails
       feedbackEnabled.value = true;
       themeMode.value = ThemeMode.system;
-      selectedSoundProfile.value = null;
+      selectedSoundProfile.value = LttSoundProfile.ios;
       ownedSoundProfiles.value =
           LttSoundProfile.values.where((p) => p.isFree).toSet();
     }

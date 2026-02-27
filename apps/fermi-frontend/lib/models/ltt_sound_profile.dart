@@ -1,10 +1,10 @@
 /// Defines the available predefined sound profiles for the Live Typing Text widget.
 enum LttSoundProfile {
+  ios('ios', 'iOS', cost: 0),
   alpaca('alpaca', 'Alpaca', cost: 2500),
   gateronBlackInk('gateron-black-ink', 'Gateron Black Ink', cost: 1500),
   gateronRedInk('gateron-red-ink', 'Gateron Red Ink', cost: 1000),
   holyPanda('holy-panda', 'Holy Panda', cost: 2000),
-  ios('ios', 'iOS', cost: 0),
   mxBlack('mx-black', 'Cherry MX Black', cost: 1250),
   mxBlue('mx-blue', 'Cherry MX Blue', cost: 500),
   mxBrown('mx-brown', 'Cherry MX Brown', cost: 1000);
