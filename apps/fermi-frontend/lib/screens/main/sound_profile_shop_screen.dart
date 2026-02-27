@@ -246,6 +246,7 @@ class _SoundProfileShopScreenState extends State<SoundProfileShopScreen> {
                                   text:
                                       'This is what ${profile.displayName} sounds like!',
                                   soundProfile: profile,
+                                  bypassFeedbackEnabled: true,
                                   onTypingComplete: () {
                                     if (mounted &&
                                         _previewingProfile ==

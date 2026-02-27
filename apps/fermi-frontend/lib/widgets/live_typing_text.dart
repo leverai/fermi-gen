@@ -15,6 +15,7 @@ class LiveTypingText extends StatefulWidget {
   final LttSoundProfile? soundProfile;
   final TextAlign textAlign;
   final VoidCallback? onTypingComplete;
+  final bool bypassFeedbackEnabled;
 
   const LiveTypingText({
     super.key,
@@ -23,6 +24,7 @@ class LiveTypingText extends StatefulWidget {
     this.soundProfile,
     this.textAlign = TextAlign.start,
     this.onTypingComplete,
+    this.bypassFeedbackEnabled = false,
   });
 
   @override
@@ -87,7 +89,10 @@ class _LiveTypingTextState extends State<LiveTypingText> {
       // Play sound synchronously with the visual update
       if (widget.soundProfile != null && nextChar.trim().isNotEmpty) {
         // We do not await the sound, so it doesn't block UI progression
-        LttSoundService.instance.playKeystroke(widget.soundProfile!);
+        LttSoundService.instance.playKeystroke(
+          widget.soundProfile!,
+          force: widget.bypassFeedbackEnabled,
+        );
       }
 
       _currentIndex++;

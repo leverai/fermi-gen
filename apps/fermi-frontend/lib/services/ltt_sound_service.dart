@@ -106,10 +106,11 @@ class LttSoundService {
   }
 
   /// Plays a random keystroke sound from the specified profile.
-  Future<void> playKeystroke(LttSoundProfile profile) async {
+  Future<void> playKeystroke(LttSoundProfile profile,
+      {bool force = false}) async {
     final profileName = profile.pathName;
 
-    if (!LocalSettingsService.instance.feedbackEnabled.value) return;
+    if (!force && !LocalSettingsService.instance.feedbackEnabled.value) return;
 
     if (_initializedProfiles[profileName] != true) {
       await initializeProfile(profile);
