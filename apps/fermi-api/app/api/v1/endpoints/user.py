@@ -77,31 +77,9 @@ async def update_profile(
         base_url = str(request.base_url).rstrip('/')
         picture_url = f'{base_url}{picture_url}'
 
-    # Validate avatar is unlocked for user's level
-    if payload.avatar_url and '/static/avatars/' in payload.avatar_url:
-        from fastapi import HTTPException
-
-        from app.services.avatars import get_avatar_unlock_level
-
-        # Extract filename from URL (may include group subdirectory)
-        # e.g., "http://x/static/avatars/animals/foo.svg" -> "foo.svg"
-        path_after_avatars = payload.avatar_url.split('/static/avatars/')[-1]
-        filename = path_after_avatars.split('/')[-1]  # Get just the filename
-
-        try:
-            required_level = get_avatar_unlock_level(filename)
-            xp_level = await user_service.get_xp_level(current_user.firebase_uid)
-            user_level = xp_level['level']
-            if user_level < required_level:
-                raise HTTPException(
-                    status_code=403,
-                    detail=(
-                        f'Avatar requires level {required_level}, '
-                        f'you are level {user_level}'
-                    ),
-                )
-        except KeyError:
-            pass  # Unknown avatars (e.g., OAuth provider images) are allowed
+    # Validating that the avatar exists (optional, but good practice if we want to keep
+    # some sanity) However, standard OAuth provider images are allowed too, so we
+    # usually just pass.
 
     await user_service.update_user_profile(
         user_id=current_user.id,

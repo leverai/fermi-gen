@@ -17,6 +17,7 @@ class LocalSettingsService {
   static const String _keyThemeMode = 'theme_mode';
   static const String _keySelectedSoundProfile = 'selected_sound_profile';
   static const String _keyOwnedSoundProfiles = 'owned_sound_profiles';
+  static const String _keyOwnedAvatars = 'owned_avatars';
 
   // State
   late final SharedPreferences _prefs;
@@ -27,6 +28,8 @@ class LocalSettingsService {
       ValueNotifier<LttSoundProfile?>(LttSoundProfile.ios);
   final ValueNotifier<Set<LttSoundProfile>> ownedSoundProfiles =
       ValueNotifier<Set<LttSoundProfile>>({});
+  final ValueNotifier<Set<String>> ownedAvatars =
+      ValueNotifier<Set<String>>({});
 
   bool _isInitialized = false;
 
@@ -76,6 +79,12 @@ class LocalSettingsService {
         }
       }
       ownedSoundProfiles.value = owned;
+
+      // Load owned avatars
+      final List<String>? savedAvatars = _prefs.getStringList(_keyOwnedAvatars);
+      if (savedAvatars != null) {
+        ownedAvatars.value = savedAvatars.toSet();
+      }
 
       _isInitialized = true;
       debugPrint(
@@ -135,5 +144,15 @@ class LocalSettingsService {
       updated.map((p) => p.pathName).toList(),
     );
     debugPrint('LocalSettingsService: Purchased ${profile.displayName}');
+  }
+
+  /// Add a purchased avatar URL to the owned set and save to disk.
+  Future<void> addOwnedAvatar(String url) async {
+    if (!_isInitialized) await initialize();
+
+    final updated = Set<String>.from(ownedAvatars.value)..add(url);
+    ownedAvatars.value = updated;
+    await _prefs.setStringList(_keyOwnedAvatars, updated.toList());
+    debugPrint('LocalSettingsService: Purchased avatar: $url');
   }
 }
