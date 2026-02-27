@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fermi_frontend/models/avatar_info.dart';
+import 'package:fermi_frontend/models/player_stats.dart';
 import 'package:fermi_frontend/services/api_service.dart';
+import 'package:fermi_frontend/services/local_settings_service.dart';
 import 'package:fermi_frontend/services/feedback_service.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
+import 'package:fermi_frontend/utils/answer_format.dart';
 import 'package:fermi_frontend/widgets/avatar_widget.dart';
 import 'package:fermi_frontend/widgets/styled_dialog.dart';
+import 'package:lottie/lottie.dart';
 
 class ProfileSheet extends StatefulWidget {
   const ProfileSheet({
@@ -29,6 +34,7 @@ class _ProfileSheetState extends State<ProfileSheet> {
   late final TextEditingController _nameController;
   List<AvatarInfo> _avatars = [];
   String? _selectedAvatarUrl;
+  int _currentPoints = 0;
   bool _isLoadingAvatars = true;
   bool _isSaving = false;
   String? _nameError;
@@ -49,10 +55,18 @@ class _ProfileSheetState extends State<ProfileSheet> {
 
   Future<void> _loadAvatars() async {
     try {
-      final avatars = await widget.apiService.getAvatars();
+      final avatarsFuture = widget.apiService.getAvatars();
+      final statsFuture = widget.apiService.getPlayerStatsTyped();
+
+      final results = await Future.wait([avatarsFuture, statsFuture]);
+
+      final avatars = results[0] as List<AvatarInfo>;
+      final stats = (results[1] as PlayerStatsResponse).stats;
+
       if (mounted) {
         setState(() {
           _avatars = avatars;
+          _currentPoints = stats.points;
           _isLoadingAvatars = false;
         });
       }
@@ -60,7 +74,7 @@ class _ProfileSheetState extends State<ProfileSheet> {
       if (mounted) {
         setState(() => _isLoadingAvatars = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load avatars: $e')),
+          SnackBar(content: Text('Failed to load data: $e')),
         );
       }
     }
@@ -140,29 +154,114 @@ class _ProfileSheetState extends State<ProfileSheet> {
     }
   }
 
-  void _showLockedAvatarDialog(int requiredLevel) {
-    final appTheme =
-        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
-    showDialog(
-      context: context,
-      builder: (context) => StyledDialog(
-        message: 'Avatar Locked',
-        secondaryMessage:
-            'This avatar requires level $requiredLevel to unlock. '
-            'Keep playing to level up!',
-        primaryButtonLabel: 'OK',
-        primaryButtonColor: appTheme.primary,
-        onPrimaryPressed: () => Navigator.of(context).pop(),
-      ),
-    );
-  }
-
-  void _onAvatarTap(AvatarInfo avatar) {
-    if (avatar.unlocked) {
+  void _onAvatarTap(AvatarInfo avatar, bool isTrulyUnlocked) {
+    if (isTrulyUnlocked) {
       setState(() => _selectedAvatarUrl = avatar.url);
     } else {
-      _showLockedAvatarDialog(avatar.unlockLevel);
+      _buyAvatar(avatar);
     }
+  }
+
+  Future<void> _buyAvatar(AvatarInfo avatar) async {
+    if (_currentPoints < avatar.price) {
+      final appTheme =
+          Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+      showDialog(
+        context: context,
+        builder: (context) => StyledDialog(
+          message: 'Insufficient Points',
+          secondaryMessage:
+              'This avatar costs ${formatNumberWithCommas(avatar.price)} points. '
+              'You currently have ${formatNumberWithCommas(_currentPoints)} points.',
+          primaryButtonLabel: 'OK',
+          primaryButtonColor: appTheme.primary,
+          onPrimaryPressed: () => Navigator.of(context).pop(),
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final appTheme =
+            Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+        return StyledDialog(
+          message: 'Confirm Purchase',
+          secondaryMessage: 'Unlock this avatar?',
+          primaryButtonLabel: 'Buy',
+          primaryButtonColor: appTheme.primary,
+          onPrimaryPressed: () => Navigator.of(context).pop(true),
+          secondaryButtonLabel: 'Cancel',
+          onSecondaryPressed: () => Navigator.of(context).pop(false),
+          primaryButtonWidget: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgPicture.asset(
+                'assets/icons/points.svg',
+                width: 16,
+                height: 16,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                formatNumberWithCommas(avatar.price),
+                style: AppFont.primaryTextStyle(
+                  context,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: appTheme.bgLight,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final remaining = await widget.apiService.spendPoints(avatar.price);
+      if (mounted) {
+        // Save locally for persistence and immediate UI update
+        await LocalSettingsService.instance.addOwnedAvatar(avatar.url);
+        setState(() {
+          _currentPoints = remaining;
+          FeedbackService.instance.buttonPress();
+        });
+        _showSuccessAnimation();
+        // Reload avatars to update unlocked status from backend as well
+        _loadAvatars();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Purchase failed: $e')),
+        );
+      }
+    }
+  }
+
+  void _showSuccessAnimation() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted && Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+        });
+        return Center(
+          child: Lottie.asset(
+            'assets/lotties/Success.json',
+            width: 200,
+            height: 200,
+            repeat: false,
+          ),
+        );
+      },
+    );
   }
 
   /// Build grouped avatar grids with dividers between groups.
@@ -214,87 +313,99 @@ class _ProfileSheetState extends State<ProfileSheet> {
   /// Build a single avatar item widget.
   Widget _buildAvatarItem(AvatarInfo avatar, AppTheme appTheme) {
     final isSelected = _selectedAvatarUrl == avatar.url;
-    return GestureDetector(
-      onTap: () => _onAvatarTap(avatar),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final size = constraints.maxWidth;
-                Widget avatarWidget = AvatarWidget(
-                  imageUrl: avatar.url,
-                  size: size,
-                  padding: const EdgeInsets.all(4.0),
-                  placeholder: CircularProgressIndicator(
-                    color: appTheme.primary,
-                    strokeWidth: 2,
-                  ),
-                );
+    return ValueListenableBuilder<Set<String>>(
+      valueListenable: LocalSettingsService.instance.ownedAvatars,
+      builder: (context, ownedAvatars, _) {
+        final isTrulyUnlocked =
+            avatar.unlocked || ownedAvatars.contains(avatar.url);
 
-                if (!avatar.unlocked) {
-                  avatarWidget = Opacity(
-                    opacity: 0.3,
-                    child: avatarWidget,
-                  );
-                }
-
-                return Stack(
-                  children: [
-                    avatarWidget,
-                    if (isSelected)
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: appTheme.primary,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: appTheme.bgLight,
-                              width: 2,
-                            ),
-                          ),
-                          child: Icon(
-                            Icons.check,
-                            size: 12,
-                            color: appTheme.bgLight,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ),
-          // Level row
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+        return GestureDetector(
+          onTap: () => _onAvatarTap(avatar, isTrulyUnlocked),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (!avatar.unlocked) ...[
-                Icon(
-                  Icons.lock,
-                  size: 10,
-                  color: appTheme.textMuted,
-                ),
-                const SizedBox(width: 2),
-              ],
-              Text(
-                'Level ${avatar.unlockLevel}',
-                style: AppFont.primaryTextStyle(
-                  context,
-                  fontSize: 10,
-                  color: appTheme.textMuted,
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final size = constraints.maxWidth;
+                    Widget avatarWidget = AvatarWidget(
+                      imageUrl: avatar.url,
+                      size: size,
+                      padding: const EdgeInsets.all(4.0),
+                      placeholder: CircularProgressIndicator(
+                        color: appTheme.primary,
+                        strokeWidth: 2,
+                      ),
+                    );
+
+                    if (!isTrulyUnlocked && _currentPoints < avatar.price) {
+                      avatarWidget = Opacity(
+                        opacity: 0.3,
+                        child: avatarWidget,
+                      );
+                    }
+
+                    return Stack(
+                      children: [
+                        avatarWidget,
+                        if (isSelected)
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: appTheme.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: appTheme.bgLight,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.check,
+                                size: 12,
+                                color: appTheme.bgLight,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
               ),
+              // Price row
+              const SizedBox(height: 4),
+              if (!isTrulyUnlocked)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SvgPicture.asset(
+                      'assets/icons/points.svg',
+                      width: 10,
+                      height: 10,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      formatNumberWithCommas(avatar.price),
+                      style: AppFont.primaryTextStyle(
+                        context,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: _currentPoints >= avatar.price
+                            ? appTheme.primary
+                            : appTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                const SizedBox(height: 14), // Spacer to maintain alignment
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

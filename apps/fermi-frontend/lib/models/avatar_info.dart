@@ -12,6 +12,8 @@ class AvatarInfo {
     required this.group,
   });
 
+  int get price => unlockLevel * 100;
+
   factory AvatarInfo.fromJson(Map<String, dynamic> json) {
     return AvatarInfo(
       url: json['url'] as String,
