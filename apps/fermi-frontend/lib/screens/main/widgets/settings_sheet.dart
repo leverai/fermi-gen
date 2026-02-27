@@ -129,6 +129,96 @@ class _SettingsSheetState extends State<SettingsSheet> {
                     _buildSettingsRow(
                       context,
                       appTheme,
+                      label: 'Unit system',
+                      icon: Icons.straighten,
+                      showSplash: false,
+                      onTap: () {
+                        final newLocale = _currentLocale == 'US' ? 'EU' : 'US';
+                        setState(() {
+                          _currentLocale = newLocale;
+                        });
+                        widget.onLocaleChanged?.call(newLocale);
+                      },
+                      trailing: _buildUnitSystemToggle(context, appTheme),
+                    ),
+                    // Dev-only: Pro toggle for testing (only visible in emulator mode)
+                    if (useEmulators) ...[
+                      Divider(
+                        height: 1,
+                        thickness: 1,
+                        indent: 24,
+                        color: appTheme.bg,
+                      ),
+                      Consumer<SubscriptionProvider>(
+                        builder: (context, subProvider, _) {
+                          return _buildSettingsRow(
+                            context,
+                            appTheme,
+                            label: 'Dev: Pro Mode',
+                            icon: Icons.developer_mode,
+                            showSplash: false,
+                            onTap: () {
+                              // Toggle: null -> true -> false -> null
+                              final current = subProvider.hasDevOverride
+                                  ? subProvider.isPro
+                                  : null;
+                              final next = current == null
+                                  ? true
+                                  : current == true
+                                      ? false
+                                      : null;
+                              subProvider.setDevOverride(next);
+                            },
+                            trailing: _buildDevProToggle(
+                                context, appTheme, subProvider),
+                          );
+                        },
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Misc Settings Section
+                _buildSectionHeader(context, "Misc", appTheme),
+                const SizedBox(height: 8),
+                _buildSectionCard(
+                  context,
+                  appTheme,
+                  children: [
+                    _buildSettingsRow(
+                      context,
+                      appTheme,
+                      label: 'Theme',
+                      icon: Icons.brightness_6,
+                      showSplash: false,
+                      onTap: () {
+                        // Cycle through modes: System -> Light -> Dark -> System
+                        final current =
+                            LocalSettingsService.instance.themeMode.value;
+                        final next = current == ThemeMode.system
+                            ? ThemeMode.light
+                            : current == ThemeMode.light
+                                ? ThemeMode.dark
+                                : ThemeMode.system;
+                        LocalSettingsService.instance.setThemeMode(next);
+                      },
+                      trailing: ValueListenableBuilder<ThemeMode>(
+                        valueListenable:
+                            LocalSettingsService.instance.themeMode,
+                        builder: (context, mode, _) {
+                          return _buildThemeToggle(context, appTheme, mode);
+                        },
+                      ),
+                    ),
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      indent: 24,
+                      color: appTheme.bg,
+                    ),
+                    _buildSettingsRow(
+                      context,
+                      appTheme,
                       label: 'Sound',
                       icon: Icons.volume_up,
                       showSplash: false,
@@ -189,92 +279,6 @@ class _SettingsSheetState extends State<SettingsSheet> {
                         );
                       },
                     ),
-                    Divider(
-                      height: 1,
-                      thickness: 1,
-                      indent: 24,
-                      color: appTheme.bg,
-                    ),
-                    _buildSettingsRow(
-                      context,
-                      appTheme,
-                      label: 'Unit system',
-                      icon: Icons.straighten,
-                      showSplash: false,
-                      onTap: () {
-                        final newLocale = _currentLocale == 'US' ? 'EU' : 'US';
-                        setState(() {
-                          _currentLocale = newLocale;
-                        });
-                        widget.onLocaleChanged?.call(newLocale);
-                      },
-                      trailing: _buildUnitSystemToggle(context, appTheme),
-                    ),
-                    Divider(
-                      height: 1,
-                      thickness: 1,
-                      indent: 24,
-                      color: appTheme.bg,
-                    ),
-                    _buildSettingsRow(
-                      context,
-                      appTheme,
-                      label: 'Theme',
-                      icon: Icons.brightness_6,
-                      showSplash: false,
-                      onTap: () {
-                        // Cycle through modes: System -> Light -> Dark -> System
-                        final current =
-                            LocalSettingsService.instance.themeMode.value;
-                        final next = current == ThemeMode.system
-                            ? ThemeMode.light
-                            : current == ThemeMode.light
-                                ? ThemeMode.dark
-                                : ThemeMode.system;
-                        LocalSettingsService.instance.setThemeMode(next);
-                      },
-                      trailing: ValueListenableBuilder<ThemeMode>(
-                        valueListenable:
-                            LocalSettingsService.instance.themeMode,
-                        builder: (context, mode, _) {
-                          return _buildThemeToggle(context, appTheme, mode);
-                        },
-                      ),
-                    ),
-                    // Dev-only: Pro toggle for testing (only visible in emulator mode)
-                    if (useEmulators) ...[
-                      Divider(
-                        height: 1,
-                        thickness: 1,
-                        indent: 24,
-                        color: appTheme.bg,
-                      ),
-                      Consumer<SubscriptionProvider>(
-                        builder: (context, subProvider, _) {
-                          return _buildSettingsRow(
-                            context,
-                            appTheme,
-                            label: 'Dev: Pro Mode',
-                            icon: Icons.developer_mode,
-                            showSplash: false,
-                            onTap: () {
-                              // Toggle: null -> true -> false -> null
-                              final current = subProvider.hasDevOverride
-                                  ? subProvider.isPro
-                                  : null;
-                              final next = current == null
-                                  ? true
-                                  : current == true
-                                      ? false
-                                      : null;
-                              subProvider.setDevOverride(next);
-                            },
-                            trailing: _buildDevProToggle(
-                                context, appTheme, subProvider),
-                          );
-                        },
-                      ),
-                    ],
                   ],
                 ),
                 // Account Section
