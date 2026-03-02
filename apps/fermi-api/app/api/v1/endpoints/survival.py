@@ -10,7 +10,11 @@ import app.logging.attributes as api_attrs
 from app.api.v1.auth_deps import get_authenticated_user, get_current_user
 from app.api.v1.authenticated_user import AuthenticatedUser
 from app.api.v1.dependencies import get_survival_service
-from app.api.v1.rate_limit import GAME_CREATE_RATE_LIMIT, limiter
+from app.api.v1.rate_limit import (
+    GAME_CREATE_RATE_LIMIT,
+    LEADERBOARD_RATE_LIMIT,
+    limiter,
+)
 from app.schemas.survival import (
     ContinueWithAdRequest,
     ContinueWithAdResponse,
@@ -132,7 +136,7 @@ async def get_survival_stats(
 
 
 @router.get('/streak', response_model=StreakInfo)
-@limiter.limit(GAME_CREATE_RATE_LIMIT)
+@limiter.limit(LEADERBOARD_RATE_LIMIT)
 async def get_survival_streak(
     request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -148,7 +152,7 @@ async def get_survival_streak(
 
 
 @router.get('/leaderboard', response_model=LeaderboardResponse)
-@limiter.limit(GAME_CREATE_RATE_LIMIT)
+@limiter.limit(LEADERBOARD_RATE_LIMIT)
 async def get_survival_leaderboard(
     request: Request,
     current_user: Annotated[User, Depends(get_current_user)],

@@ -20,3 +20,4 @@ ASSETS_RATE_LIMIT = '10/minute'  # Assets endpoints
 GAME_CLEANUP_RATE_LIMIT = '5/minute'  # Game cleanup (internal job)
 USER_UPDATE_RATE_LIMIT = '5/minute'  # User profile update
 QUESTION_VOTE_RATE_LIMIT = '10/minute'  # Question vote
+LEADERBOARD_RATE_LIMIT = '20/minute'  # Leaderboard
