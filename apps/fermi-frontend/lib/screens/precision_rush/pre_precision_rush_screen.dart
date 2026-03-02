@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +18,7 @@ import 'package:fermi_frontend/widgets/avatar_widget.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/utils/answer_format.dart';
+import 'package:fermi_frontend/widgets/leaderboard_period_subtitle.dart';
 
 /// Pre-Precision Rush screen shown before starting a run.
 class PrePrecisionRushScreen extends StatefulWidget {
@@ -809,6 +811,11 @@ class _PRLeaderboardTabState extends State<_PRLeaderboardTab>
             }).toList(),
           ),
         ),
+        if (_selectedPeriod != LeaderboardPeriod.allTime)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: LeaderboardPeriodSubtitle(period: _selectedPeriod),
+          ),
         Expanded(
           child: content,
         ),

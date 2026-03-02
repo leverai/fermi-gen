@@ -10,6 +10,7 @@ import 'package:fermi_frontend/models/survival_models.dart';
 import 'package:fermi_frontend/models/user_limits.dart';
 import 'package:fermi_frontend/screens/paywall_screen.dart';
 import 'package:fermi_frontend/widgets/responsive_container.dart';
+import 'package:fermi_frontend/widgets/leaderboard_period_subtitle.dart';
 import 'package:fermi_frontend/widgets/main_button.dart';
 import 'package:fermi_frontend/widgets/avatar_widget.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
@@ -807,7 +808,11 @@ class _SurvivalLeaderboardTabState extends State<_SurvivalLeaderboardTab>
             }).toList(),
           ),
         ),
-
+        if (_selectedPeriod != LeaderboardPeriod.allTime)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: LeaderboardPeriodSubtitle(period: _selectedPeriod),
+          ),
         Expanded(
           child: content,
         ),
