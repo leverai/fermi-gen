@@ -24,6 +24,7 @@ class StyledDialog extends StatelessWidget {
     super.key,
     required this.message,
     this.secondaryMessage,
+    this.contentWidget,
     required this.primaryButtonLabel,
     required this.primaryButtonColor,
     required this.onPrimaryPressed,
@@ -39,6 +40,9 @@ class StyledDialog extends StatelessWidget {
 
   /// Optional secondary message text displayed below the primary message.
   final String? secondaryMessage;
+
+  /// Optional widget displayed between the primary and secondary messages.
+  final Widget? contentWidget;
 
   /// Label text for the primary button (used if `primaryButtonWidget` is null).
   final String primaryButtonLabel;
@@ -127,6 +131,14 @@ class StyledDialog extends StatelessWidget {
                 ),
               ),
             ),
+            // Custom content widget (if provided)
+            if (contentWidget != null) ...[
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.center,
+                child: contentWidget!,
+              ),
+            ],
             // Secondary message (if provided)
             if (secondaryMessage != null) ...[
               const SizedBox(height: 12),

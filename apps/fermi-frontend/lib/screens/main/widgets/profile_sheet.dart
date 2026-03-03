@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fermi_frontend/models/avatar_info.dart';
@@ -171,6 +173,7 @@ class _ProfileSheetState extends State<ProfileSheet> {
         context: context,
         builder: (dialogContext) => StyledDialog(
           message: 'Insufficient Points',
+          contentWidget: _AnimatedAvatarWidget(avatarUrl: avatar.url),
           secondaryMessage:
               'This avatar costs ${formatNumberWithCommas(avatar.price)} points. '
               'You currently have ${formatNumberWithCommas(_currentPoints)} points.',
@@ -192,6 +195,7 @@ class _ProfileSheetState extends State<ProfileSheet> {
             Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
         return StyledDialog(
           message: 'Confirm Purchase',
+          contentWidget: _AnimatedAvatarWidget(avatarUrl: avatar.url),
           secondaryMessage: 'Unlock this avatar?',
           primaryButtonLabel: 'Buy',
           primaryButtonColor: appTheme.primary,
@@ -445,7 +449,7 @@ class _ProfileSheetState extends State<ProfileSheet> {
 
                     if (!isTrulyUnlocked && _currentPoints < avatar.price) {
                       avatarWidget = Opacity(
-                        opacity: 0.3,
+                        opacity: 0.5,
                         child: avatarWidget,
                       );
                     }
@@ -668,6 +672,67 @@ class _ProfileSheetState extends State<ProfileSheet> {
         fontWeight: FontWeight.w600,
         color: appTheme.textMuted,
       ),
+    );
+  }
+}
+
+class _AnimatedAvatarWidget extends StatefulWidget {
+  final String avatarUrl;
+
+  const _AnimatedAvatarWidget({required this.avatarUrl});
+
+  @override
+  State<_AnimatedAvatarWidget> createState() => _AnimatedAvatarWidgetState();
+}
+
+class _AnimatedAvatarWidgetState extends State<_AnimatedAvatarWidget>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.001) // perspective
+            ..rotateY(_animation.value * 2 * math.pi),
+          child: AvatarWidget(
+            imageUrl: widget.avatarUrl,
+            size: 200,
+            padding: const EdgeInsets.all(4.0),
+            placeholder: CircularProgressIndicator(
+              color: appTheme.primary,
+              strokeWidth: 2,
+            ),
+          ),
+        );
+      },
     );
   }
 }
