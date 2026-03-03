@@ -10,6 +10,15 @@ String formatNumberWithCommas(num value) {
 /// Formats an [AnswerValue] to a compact human-readable string.
 /// Examples: "234 M km", "12 B", "7"
 String formatAnswerValue(AnswerValue value) {
+  // Handle out-of-bounds converted answers (e.g. dimensional unit conversions)
+  if (value.rawValue != null) {
+    final double raw = value.rawValue!;
+    const double maxDisplayable = 999e12;
+    if (raw < 1 || raw > maxDisplayable) {
+      final unitPart = value.unit.isEmpty ? '' : ' ${value.unit}';
+      return '${formatScientificNotation(raw)}$unitPart'.trim();
+    }
+  }
   final String numberPart = value.number.toString();
   final String omPart =
       value.orderOfMagnitude.isEmpty ? '' : value.orderOfMagnitude;
