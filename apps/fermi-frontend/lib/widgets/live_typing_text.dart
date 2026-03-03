@@ -91,11 +91,26 @@ class _LiveTypingTextState extends State<LiveTypingText> {
         // We do not await the sound, so it doesn't block UI progression
         LttSoundService.instance.playKeystroke(
           widget.soundProfile!,
+          suffix: nextChar == ' ' ? 'space' : 'key',
           force: widget.bypassFeedbackEnabled,
         );
       }
 
       _currentIndex++;
+
+      // If we just typed the last character, play the enter sound immediately
+      // before any completion delay or callback.
+      if (_currentIndex == widget.text.length) {
+        if (widget.soundProfile != null) {
+          LttSoundService.instance.playKeystroke(
+            widget.soundProfile!,
+            suffix: 'enter',
+            force: widget.bypassFeedbackEnabled,
+          );
+        }
+        widget.onTypingComplete?.call();
+        return;
+      }
 
       // Determine the delay before the next character
       final delayMs = _calculateDelay(
@@ -108,9 +123,6 @@ class _LiveTypingTextState extends State<LiveTypingText> {
 
       // Continue loop
       _typeNextCharacter(token);
-    } else {
-      // Typing finished
-      widget.onTypingComplete?.call();
     }
   }
 
