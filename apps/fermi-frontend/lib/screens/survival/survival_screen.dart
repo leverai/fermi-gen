@@ -51,9 +51,9 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
     _controller = SurvivalScreenController(
       apiService: apiService,
       userLocale: authService.locale ?? 'US',
+      preloadService: preloadService,
       initialCurrentStreak: widget.initialCurrentStreak,
       initialBestStreak: widget.initialBestStreak,
-      gameConfig: preloadService.cachedConfig,
       initialWithAd: widget.withAd,
     );
     _controller.onShowPACard = _showPACardPopup;

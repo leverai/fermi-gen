@@ -176,7 +176,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         // Refresh stats and user limits when returning from Party game
         // (stats and hosting count may have changed)
         if (mounted) {
-          widget.preloadService?.clearCache();
+          widget.preloadService?.clearDynamicCache();
           _controller.refreshInBackground(force: true);
           context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
         }
@@ -416,7 +416,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                   onSurvivalCardTapped: () {
                                     context.push('/pre-survival').then((_) {
                                       if (mounted) {
-                                        widget.preloadService?.clearCache();
+                                        widget.preloadService
+                                            ?.clearDynamicCache();
                                         _controller.refreshInBackground(
                                             force: true);
                                       }
@@ -427,7 +428,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                         .push('/pre-precision-rush')
                                         .then((_) {
                                       if (mounted) {
-                                        widget.preloadService?.clearCache();
+                                        widget.preloadService
+                                            ?.clearDynamicCache();
                                         _controller.refreshInBackground(
                                             force: true);
                                       }

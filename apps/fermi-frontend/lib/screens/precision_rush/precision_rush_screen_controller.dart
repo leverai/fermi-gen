@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
-import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/precision_rush_models.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/feedback_service.dart';
+import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/widgets/unit_tape.dart';
 
 /// Controller for the Precision Rush screen.
@@ -12,13 +12,13 @@ import 'package:fermi_frontend/widgets/unit_tape.dart';
 class PrecisionRushScreenController extends ChangeNotifier {
   final ApiService apiService;
   final String userLocale;
-  final GameConfig? gameConfig;
+  final PreloadService preloadService;
   final bool initialWithAd;
 
   PrecisionRushScreenController({
     required this.apiService,
     required this.userLocale,
-    this.gameConfig,
+    required this.preloadService,
     this.initialWithAd = false,
     int? initialRunId,
   }) : _runId = initialRunId;
@@ -100,7 +100,7 @@ class PrecisionRushScreenController extends ChangeNotifier {
   String? getCategorySlug() {
     final name = _currentQuestion?.category;
     if (name == null || name.isEmpty) return null;
-    final config = gameConfig;
+    final config = preloadService.cachedConfig;
     if (config == null) return name;
     final match = config.categories.where((c) => c.name == name).firstOrNull;
     return match?.slug ?? name;
@@ -110,7 +110,7 @@ class PrecisionRushScreenController extends ChangeNotifier {
   String? getDifficultySlug() {
     final name = _currentQuestion?.difficulty;
     if (name == null || name.isEmpty) return null;
-    final config = gameConfig;
+    final config = preloadService.cachedConfig;
     if (config == null) return name;
     final match = config.difficulties.where((d) => d.name == name).firstOrNull;
     return match?.slug ?? name;

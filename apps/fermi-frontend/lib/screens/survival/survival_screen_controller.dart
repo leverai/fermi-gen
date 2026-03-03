@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/models/answer_value.dart';
-import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/survival_models.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/ad_service.dart';
 import 'package:fermi_frontend/services/feedback_service.dart';
+import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/widgets/unit_tape.dart';
 
 /// Controller for the Survival screen.
@@ -16,15 +16,15 @@ class SurvivalScreenController extends ChangeNotifier {
   final String userLocale;
   final int initialCurrentStreak;
   final int initialBestStreak;
-  final GameConfig? gameConfig;
+  final PreloadService preloadService;
   final bool initialWithAd;
 
   SurvivalScreenController({
     required this.apiService,
     required this.userLocale,
+    required this.preloadService,
     this.initialCurrentStreak = 0,
     this.initialBestStreak = 0,
-    this.gameConfig,
     this.initialWithAd = false,
   });
 
@@ -98,7 +98,7 @@ class SurvivalScreenController extends ChangeNotifier {
   String? getCategorySlug() {
     final name = _currentQuestion?.category;
     if (name == null || name.isEmpty) return null;
-    final config = gameConfig;
+    final config = preloadService.cachedConfig;
     if (config == null) return name;
     final match = config.categories.where((c) => c.name == name).firstOrNull;
     return match?.slug ?? name;
@@ -108,7 +108,7 @@ class SurvivalScreenController extends ChangeNotifier {
   String? getDifficultySlug() {
     final name = _currentQuestion?.difficulty;
     if (name == null || name.isEmpty) return null;
-    final config = gameConfig;
+    final config = preloadService.cachedConfig;
     if (config == null) return name;
     final match = config.difficulties.where((d) => d.name == name).firstOrNull;
     return match?.slug ?? name;

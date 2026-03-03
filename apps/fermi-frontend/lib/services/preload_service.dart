@@ -79,9 +79,20 @@ class PreloadService {
     }
   }
 
-  /// Clears the cached data.
+  /// Clears only the dynamic (per-game) cached data: stats and user limits.
   ///
-  /// Useful when user signs out or when you want to force a refresh.
+  /// Does NOT clear the static game config, which is safe to reuse across games.
+  /// Use this when returning from a game to force a refresh of mutable data
+  /// without risking a race condition where [cachedConfig] is temporarily null.
+  void clearDynamicCache() {
+    _cachedUserLimits = null;
+    _cachedStats = null;
+  }
+
+  /// Clears all cached data including the static game config.
+  ///
+  /// Use only when a full wipe is necessary, e.g. on sign-out or account deletion,
+  /// where a different user may log in next.
   void clearCache() {
     _cachedConfig = null;
     _cachedUserLimits = null;

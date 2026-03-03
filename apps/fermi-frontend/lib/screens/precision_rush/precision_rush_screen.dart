@@ -48,7 +48,7 @@ class _PrecisionRushScreenState extends State<PrecisionRushScreen> {
     _controller = PrecisionRushScreenController(
       apiService: apiService,
       userLocale: authService.locale ?? 'US',
-      gameConfig: preloadService.cachedConfig,
+      preloadService: preloadService,
       initialWithAd: widget.withAd,
       initialRunId: widget.runId,
     );
