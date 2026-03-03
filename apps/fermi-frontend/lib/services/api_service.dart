@@ -696,6 +696,25 @@ class ApiService {
       rethrow;
     }
   }
+
+  /// Earn points by watching a rewarded ad.
+  ///
+  /// Returns the new points balance after the reward.
+  Future<int> earnAdPoints() async {
+    try {
+      final resp = await _authPost('/user/earn_ad_points', {});
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        return data['new_balance'] as int;
+      }
+      final error = _extractErrorMessage(resp);
+      throw Exception(error);
+    } on http.ClientException catch (_) {
+      throw Exception('Network error: Please check your connection.');
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
 
 // Moved to utils/env.dart

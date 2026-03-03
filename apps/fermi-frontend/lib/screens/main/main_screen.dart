@@ -210,6 +210,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         onUpgradeSubscription: _handleUpgradeSubscription,
         apiService: widget.apiService,
         currentPoints: _controller.playerStatsDto?.stats.points ?? 0,
+        onPointsChanged: () => _controller.refreshInBackground(force: true),
       ),
     );
   }
@@ -313,7 +314,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           if (mounted) setState(() {});
         },
       ),
-    );
+    ).then((_) {
+      // Refresh stats when profile sheet closes (balance may have changed
+      // via avatar purchase or watching an ad)
+      if (mounted) _controller.refreshInBackground(force: true);
+    });
   }
 
   // --------------------------------------------------------------------------

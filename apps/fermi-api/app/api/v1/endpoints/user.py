@@ -19,6 +19,7 @@ from app.api.v1.dependencies import (
 )
 from app.api.v1.rate_limit import USER_UPDATE_RATE_LIMIT, limiter
 from app.schemas.endpoints import (
+    EarnAdPointsResponse,
     SetLocaleRequest,
     SpendPointsRequest,
     SpendPointsResponse,
@@ -121,6 +122,20 @@ async def spend_points(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     return SpendPointsResponse(remaining_points=remaining)
+
+
+@router.post('/earn_ad_points', response_model=EarnAdPointsResponse)
+async def earn_ad_points(
+    current_user: Annotated[User, Depends(get_current_user)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
+) -> EarnAdPointsResponse:
+    """Grant points for watching a rewarded ad."""
+    span = trace.get_current_span()
+    span.set_attribute(api_attrs.ACTION, earn_ad_points.__qualname__)
+    new_balance = await user_service.earn_ad_points(
+        firebase_uid=current_user.firebase_uid,
+    )
+    return EarnAdPointsResponse(new_balance=new_balance)
 
 
 @router.get('/limits', response_model=UserLimitsResponse)

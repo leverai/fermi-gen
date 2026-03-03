@@ -6,6 +6,7 @@ import 'package:fermi_frontend/models/ltt_sound_profile.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/local_settings_service.dart';
 import 'package:fermi_frontend/services/feedback_service.dart';
+import 'package:fermi_frontend/services/ad_service.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/utils/answer_format.dart';
@@ -40,7 +41,10 @@ class _SoundProfileShopScreenState extends State<SoundProfileShopScreen> {
   }
 
   Future<void> _buyProfile(LttSoundProfile profile) async {
-    if (_availablePoints < profile.cost) return;
+    if (_availablePoints < profile.cost) {
+      _showInsufficientPointsDialog(profile);
+      return;
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -135,6 +139,127 @@ class _SoundProfileShopScreenState extends State<SoundProfileShopScreen> {
         _previewKey++;
       }
     });
+  }
+
+  void _showInsufficientPointsDialog(LttSoundProfile profile) {
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StyledDialog(
+        message: 'Insufficient Points',
+        secondaryMessage:
+            '${profile.displayName} costs ${formatNumberWithCommas(profile.cost)} points. '
+            'You currently have ${formatNumberWithCommas(_availablePoints)} points.',
+        primaryButtonLabel: 'Watch Ad',
+        primaryButtonColor: appTheme.secondary,
+        onPrimaryPressed: () => _handleWatchAd(dialogContext),
+        primaryButtonWidget:
+            _buildWatchAdButtonContent(dialogContext, appTheme),
+        leftWidget: _buildOkButton(dialogContext, appTheme),
+      ),
+    );
+  }
+
+  void _handleWatchAd(BuildContext dialogContext) {
+    final adService = AdService.instance;
+    if (!adService.isAdLoaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ad not ready. Please try again.')),
+      );
+      adService.loadRewardedAd();
+      return;
+    }
+
+    adService.showRewardedAd(
+      onComplete: () async {
+        if (!mounted) return;
+        try {
+          final newBalance = await widget.apiService.earnAdPoints();
+          if (mounted) {
+            setState(() => _availablePoints = newBalance);
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to earn points: $e')),
+            );
+          }
+        }
+        if (dialogContext.mounted && Navigator.of(dialogContext).canPop()) {
+          Navigator.of(dialogContext).pop();
+        }
+      },
+      onSkipped: () {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Ad skipped. Please watch the full ad.')),
+        );
+      },
+      onFailed: () {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ad failed to play. Please try again.')),
+        );
+      },
+    );
+  }
+
+  Widget _buildOkButton(BuildContext dialogContext, AppTheme appTheme) {
+    return SizedBox(
+      height: 48,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          splashColor: appTheme.highlight.withOpacity(0.2),
+          onTap: () => Navigator.of(dialogContext).pop(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Center(
+              child: Text(
+                'OK',
+                textAlign: TextAlign.center,
+                style: AppFont.primaryTextStyle(
+                  dialogContext,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: appTheme.textMuted,
+                ).copyWith(letterSpacing: 0.2),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWatchAdButtonContent(
+      BuildContext dialogContext, AppTheme appTheme) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SvgPicture.asset(
+          'assets/icons/points.svg',
+          width: 14,
+          height: 14,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '+500',
+          style: AppFont.primaryTextStyle(
+            dialogContext,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: appTheme.bgLight,
+          ),
+        ),
+        const SizedBox(width: 4),
+        const Text('🎬', style: TextStyle(fontSize: 14)),
+      ],
+    );
   }
 
   void _showCreditsDialog() {
@@ -270,9 +395,7 @@ class _SoundProfileShopScreenState extends State<SoundProfileShopScreen> {
                         cost: profile.cost,
                         onSelect:
                             isOwned ? () => _selectProfile(profile) : null,
-                        onBuy: !isOwned && _availablePoints >= profile.cost
-                            ? () => _buyProfile(profile)
-                            : null,
+                        onBuy: !isOwned ? () => _buyProfile(profile) : null,
                         onPreview: () => _togglePreview(profile),
                         isPreviewActive: isPreviewActive,
                         previewWidget: isPreviewActive
