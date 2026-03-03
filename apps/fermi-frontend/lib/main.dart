@@ -217,7 +217,7 @@ class _MyAppState extends State<MyApp> {
   /// Ensures user is authenticated (anonymous or regular).
   /// Syncs RevenueCat with the Firebase UID and starts preloading data.
   Future<void> _ensureAuthenticated() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = await FirebaseAuth.instance.authStateChanges().first;
     if (currentUser == null) {
       // Sign in anonymously as early as possible
       final success = await _authService.signInAnonymously();
