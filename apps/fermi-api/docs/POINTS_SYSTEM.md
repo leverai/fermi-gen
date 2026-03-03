@@ -17,6 +17,11 @@ Points are awarded in every game mode where XP is awarded:
 | Daily Question Post-Take | On answer submission |
 | Survival | On each answer |
 | Precision Rush | On each answer (uses accuracy score, not TAS) |
+| Ad Reward | On ad completion (fixed 500 points) |
+
+### Ad Rewards
+
+Players can earn a fixed **500 points** by watching a rewarded video ad. This is handled by `POST /user/earn_ad_points` which calls `UserService.earn_ad_points()`. No rate limit is applied — ad views generate revenue.
 
 ## API
 

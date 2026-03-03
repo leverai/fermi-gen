@@ -154,6 +154,12 @@ class SpendPointsResponse(BaseModel):
     remaining_points: int
 
 
+class EarnAdPointsResponse(BaseModel):
+    """Response model for earning points by watching an ad."""
+
+    new_balance: int
+
+
 class UserLimits(BaseModel):
     """User-specific limits based on subscription tier."""
 

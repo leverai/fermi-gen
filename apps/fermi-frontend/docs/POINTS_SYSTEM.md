@@ -31,5 +31,8 @@ When implementing the in-game shop:
 2. Call the appropriate backend endpoint (to be implemented) to deduct points.
 3. Trigger a stats refresh to update the UI balance.
 
+### Ad Rewards
+Players can earn 500 points by watching a rewarded ad. The "watch ad" button appears in "Insufficient Points" dialogs shown when the player tries to buy an avatar (`ProfileSheet`) or a sound profile (`SoundProfileShopScreen`). The button is styled as `<points.svg> +500 🎬` using the app's secondary color. After the ad completes, `ApiService.earnAdPoints()` is called to grant the points and the dialog is dismissed.
+
 ## Related Docs
 - [Backend Points System](../../fermi-api/docs/POINTS_SYSTEM.md)

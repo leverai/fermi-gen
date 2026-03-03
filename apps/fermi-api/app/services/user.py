@@ -180,6 +180,24 @@ class UserService:
         """
         return await self._user_repository.get_points(firebase_uid)
 
+    async def earn_ad_points(self, firebase_uid: str) -> int:
+        """Grant 500 points for watching a rewarded ad.
+
+        Args:
+            firebase_uid: The user's Firebase UID.
+
+        Returns:
+            The user's new points balance after the reward.
+
+        """
+        ad_reward = 500
+        user = await self._user_repository.get_by_firebase_uid(firebase_uid)
+        if user is None:
+            raise ValueError(f'User with firebase_uid {firebase_uid} not found')
+        await self._user_repository.increment_points(firebase_uid, ad_reward)
+        await self._user_repository.session.commit()
+        return await self._user_repository.get_points(firebase_uid)
+
     async def spend_points(self, firebase_uid: str, amount: int) -> int:
         """Deduct points from a user's balance.
 

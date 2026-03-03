@@ -28,6 +28,7 @@ class SettingsSheet extends StatefulWidget {
     this.onUpgradeSubscription,
     this.apiService,
     this.currentPoints = 0,
+    this.onPointsChanged,
   });
 
   final VoidCallback onSignOut;
@@ -41,6 +42,7 @@ class SettingsSheet extends StatefulWidget {
   final VoidCallback? onUpgradeSubscription;
   final ApiService? apiService;
   final int currentPoints;
+  final VoidCallback? onPointsChanged;
 
   @override
   State<SettingsSheet> createState() => _SettingsSheetState();
@@ -256,14 +258,18 @@ class _SettingsSheetState extends State<SettingsSheet> {
                           onTap: () {
                             if (widget.apiService == null) return;
                             FeedbackService.instance.secondaryClick();
-                            Navigator.of(context).push(
+                            Navigator.of(context)
+                                .push(
                               MaterialPageRoute(
                                 builder: (_) => SoundProfileShopScreen(
                                   currentPoints: widget.currentPoints,
                                   apiService: widget.apiService!,
                                 ),
                               ),
-                            );
+                            )
+                                .then((_) {
+                              widget.onPointsChanged?.call();
+                            });
                           },
                           trailing: Text(
                             selectedProfile?.displayName ?? 'Silent',
