@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
@@ -31,16 +30,14 @@ class LttSoundService {
   /// Whether the shared players have been created.
   bool _playersInitialized = false;
 
-  /// Maps a profile name to its list of discovered asset source paths.
-  final Map<String, List<String>> _profileAssets = {};
+  /// Maps a profile name to its discovered asset source paths categorized by type (key, space, enter).
+  final Map<String, Map<String, String>> _profileAssets = {};
 
   /// Keeps track of initialization status per profile.
   final Map<String, bool> _initializedProfiles = {};
 
   /// Base path where LTT sound profiles live.
   static const String _basePath = 'assets/sounds/ltt';
-
-  final Random _random = Random();
 
   // AudioContext that does NOT request audio focus, allowing sounds to mix
   // without interrupting background music or each other.
@@ -77,37 +74,47 @@ class LttSoundService {
 
       final profilePath = '$_basePath/$profileName/';
 
-      final List<String> assetPaths = manifestMap.keys
+      final Map<String, String> categorizedAssets = {};
+      final List<String> rawAssetPaths = manifestMap.keys
           .where((key) => key.startsWith(profilePath) && key.endsWith('.mp3'))
-          .map((key) {
+          .toList();
+
+      for (var key in rawAssetPaths) {
         // AssetSource expects paths without the leading 'assets/' prefix.
         String sourcePath = key;
         if (sourcePath.startsWith('assets/')) {
           sourcePath = sourcePath.substring(7);
         }
-        return sourcePath;
-      }).toList();
 
-      if (assetPaths.isEmpty) {
+        final fileName = key.split('/').last; // e.g. "key.mp3"
+        final nameWithoutExt = fileName.split('.').first; // e.g. "key"
+        categorizedAssets[nameWithoutExt] = sourcePath;
+      }
+
+      if (categorizedAssets.isEmpty) {
         debugPrint(
             'LttSoundService: No audio files found for profile: $profileName');
         _initializedProfiles[profileName] = true;
         return;
       }
 
-      _profileAssets[profileName] = assetPaths;
+      _profileAssets[profileName] = categorizedAssets;
       _initializedProfiles[profileName] = true;
       debugPrint(
-          'LttSoundService: Initialized profile "$profileName" with ${assetPaths.length} variants.');
+          'LttSoundService: Initialized profile "$profileName" with ${categorizedAssets.length} variants.');
     } catch (e) {
       debugPrint(
           'LttSoundService: Error initializing profile $profileName: $e');
     }
   }
 
-  /// Plays a random keystroke sound from the specified profile.
-  Future<void> playKeystroke(LttSoundProfile profile,
-      {bool force = false}) async {
+  /// Plays a specific keystroke sound from the specified profile.
+  /// [suffix] should be one of 'key', 'space', or 'enter'.
+  Future<void> playKeystroke(
+    LttSoundProfile profile, {
+    required String suffix,
+    bool force = false,
+  }) async {
     final profileName = profile.pathName;
 
     if (!force && !LocalSettingsService.instance.feedbackEnabled.value) return;
@@ -119,8 +126,14 @@ class LttSoundService {
     final assets = _profileAssets[profileName];
     if (assets == null || assets.isEmpty) return;
 
+    final assetPath = assets[suffix];
+    if (assetPath == null) {
+      debugPrint(
+          'LttSoundService: No asset found for $profileName with suffix $suffix');
+      return;
+    }
+
     try {
-      final assetPath = assets[_random.nextInt(assets.length)];
       final player = _players[_nextPlayerIndex];
       _nextPlayerIndex = (_nextPlayerIndex + 1) % _playerCount;
 
@@ -129,7 +142,7 @@ class LttSoundService {
       await player.play(AssetSource(assetPath));
     } catch (e) {
       debugPrint(
-          'LttSoundService: Error playing keystroke for $profileName: $e');
+          'LttSoundService: Error playing keystroke for $profileName ($suffix): $e');
     }
   }
 
