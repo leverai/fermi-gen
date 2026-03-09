@@ -73,7 +73,8 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
   bool _isLoading = false;
   String? _error;
   bool _isExpanded = false;
-  bool _showAll = true; // Whether to include post-takers in leaderboard
+  bool _showLate = true; // Whether to include post-takers in leaderboard
+  bool _showBots = true; // Whether to include bots in leaderboard
 
   // Timer for countdown
   Timer? _countdownTimer;
@@ -227,7 +228,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
     try {
       final results = await widget.service!.getResultsForDate(
         widget.questionDate,
-        includePostTakes: _showAll,
+        includePostTakes: _showLate,
       );
       if (mounted) {
         setState(() {
@@ -415,7 +416,7 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   Text(
-                    'Show All',
+                    'Show Late',
                     style: AppFont.secondaryTextStyle(
                       context,
                       fontSize: 12,
@@ -427,15 +428,42 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
                     height: 24,
                     width: 24,
                     child: Checkbox(
-                      value: _showAll,
+                      value: _showLate,
                       activeColor: appTheme.secondary,
                       checkColor: appTheme.bgLight,
                       onChanged: (value) {
                         FeedbackService.instance.secondaryClick();
                         setState(() {
-                          _showAll = value ?? true;
+                          _showLate = value ?? true;
                         });
                         _loadResults();
+                      },
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    'Show Bots',
+                    style: AppFont.secondaryTextStyle(
+                      context,
+                      fontSize: 12,
+                      color: appTheme.textMuted,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: Checkbox(
+                      value: _showBots,
+                      activeColor: appTheme.secondary,
+                      checkColor: appTheme.bgLight,
+                      onChanged: (value) {
+                        FeedbackService.instance.secondaryClick();
+                        setState(() {
+                          _showBots = value ?? true;
+                        });
                       },
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       visualDensity: VisualDensity.compact,
@@ -522,7 +550,9 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
   List<Widget> _buildLeaderboardEntries(DQResultsResponse results) {
     final List<Widget> entries = [];
     final userRank = results.userRank;
-    final top10 = results.leaderboard.take(10).toList();
+    final filteredLeaderboard =
+        results.leaderboard.where((e) => _showBots || !e.isBot).toList();
+    final top10 = filteredLeaderboard.take(10).toList();
 
     // Build top 10 entries
     for (final entry in top10) {
@@ -647,6 +677,15 @@ class _DQResultsBottomSheetState extends State<DQResultsBottomSheet> {
                     Icons.timer_outlined,
                     size: 18,
                     color: appTheme.danger,
+                  ),
+                ],
+                // Bot indicator
+                if (entry.isBot) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.smart_toy_outlined,
+                    size: 18,
+                    color: appTheme.primary,
                   ),
                 ],
               ],

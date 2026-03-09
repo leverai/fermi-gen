@@ -184,12 +184,10 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         // Initialize unit options from question
         _initializeUnits(question.units, userLocale);
 
-        // Start Timer
-        final now = DateTime.now();
-        final deadline = question.answerDeadline;
-        // print('[DQ] Timer init - Now: $now, Deadline: $deadline');
-        if (deadline.isAfter(now)) {
-          _timeLeft = deadline.difference(now);
+        // Start Timer using exact seconds returned from backend to avoid local clock drift
+        // _startPostTakeQuestion already does this correctly
+        _timeLeft = Duration(seconds: question.secondsToAnswer.toInt());
+        if (_timeLeft.inSeconds > 0) {
           // print('[DQ] Starting timer with ${_timeLeft.inSeconds} seconds');
           _startTimer();
         } else {

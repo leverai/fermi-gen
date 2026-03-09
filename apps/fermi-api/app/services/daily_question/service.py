@@ -44,6 +44,7 @@ from app.services.daily_question.timing import (
     is_within_ad_grace,
     seconds_until,
 )
+from app.services.game.bots import BOTS, get_bot_answer, is_bot
 from app.services.game.ranks import get_rank_picture_for_percentile
 from app.services.notification import (
     send_dq_activated_notification,
@@ -402,8 +403,12 @@ class DailyQuestionService:
             )
             entry_ranks = {entry.id: entry.rank for entry in leaderboard_entries}
 
-        # Extract unique Firebase UIDs from leaderboard entries
-        firebase_uids = [entry.user_firebase_uid for entry in leaderboard_entries]
+        # Extract unique Firebase UIDs from leaderboard entries, excluding bots
+        firebase_uids = [
+            entry.user_firebase_uid
+            for entry in leaderboard_entries
+            if not is_bot(entry.user_firebase_uid)
+        ]
 
         # Batch-fetch user info and percentiles for all leaderboard players
         users_map: dict[str, dict[str, str | None]] = {}
@@ -422,29 +427,43 @@ class DailyQuestionService:
             )
 
         # Construct leaderboard with player info
-        leaderboard = [
-            DQLeaderboardEntry(
-                rank=entry_ranks.get(entry.id) or 0,
-                player=DQPlayer(
-                    display_name=users_map.get(entry.user_firebase_uid, {}).get(
-                        'display_name',
-                    ),
-                    avatar_url=users_map.get(entry.user_firebase_uid, {}).get(
-                        'avatar_url',
-                    ),
-                    rank_picture=get_rank_picture_for_percentile(
-                        percentiles_map.get(entry.user_firebase_uid, 100),
-                    ),
+        leaderboard = []
+        for entry in leaderboard_entries:
+            if is_bot(entry.user_firebase_uid):
+                bot_info = BOTS[entry.user_firebase_uid]
+                player = DQPlayer(
+                    display_name=bot_info['name'],
+                    avatar_url=bot_info['picture'],
+                    rank_picture=None,
                 )
-                if entry.user_firebase_uid in users_map
-                else None,
-                score=entry.score,
-                time_taken_s=entry.time_taken_s,
-                is_post_take=entry.is_post_take,
-                is_current_user=entry.user_firebase_uid == user_firebase_uid,
+            else:
+                player = (
+                    DQPlayer(
+                        display_name=users_map.get(entry.user_firebase_uid, {}).get(
+                            'display_name',
+                        ),
+                        avatar_url=users_map.get(entry.user_firebase_uid, {}).get(
+                            'avatar_url',
+                        ),
+                        rank_picture=get_rank_picture_for_percentile(
+                            percentiles_map.get(entry.user_firebase_uid, 100),
+                        ),
+                    )
+                    if entry.user_firebase_uid in users_map
+                    else None
+                )
+
+            leaderboard.append(
+                DQLeaderboardEntry(
+                    rank=entry_ranks.get(entry.id) or 0,
+                    player=player,
+                    score=entry.score,
+                    time_taken_s=entry.time_taken_s,
+                    is_post_take=entry.is_post_take,
+                    is_current_user=entry.user_firebase_uid == user_firebase_uid,
+                    is_bot=is_bot(entry.user_firebase_uid),
+                ),
             )
-            for entry in leaderboard_entries
-        ]
 
         # Get user's answer and rank, if any
         user_answer = await self._db.dq_answers.get_user_answer(
@@ -840,7 +859,11 @@ class DailyQuestionService:
             dq.id,
             limit=10,
         )
-        firebase_uids = [entry.user_firebase_uid for entry, _ in leaderboard_with_ranks]
+        firebase_uids = [
+            entry.user_firebase_uid
+            for entry, _ in leaderboard_with_ranks
+            if not is_bot(entry.user_firebase_uid)
+        ]
         users_map: dict[str, dict[str, str | None]] = {}
         percentiles_map: dict[str, int] = {}
         if firebase_uids:
@@ -856,29 +879,43 @@ class DailyQuestionService:
                 firebase_uids,
             )
 
-        leaderboard = [
-            DQLeaderboardEntry(
-                rank=computed_rank,
-                player=DQPlayer(
-                    display_name=users_map.get(entry.user_firebase_uid, {}).get(
-                        'display_name',
-                    ),
-                    avatar_url=users_map.get(entry.user_firebase_uid, {}).get(
-                        'avatar_url',
-                    ),
-                    rank_picture=get_rank_picture_for_percentile(
-                        percentiles_map.get(entry.user_firebase_uid, 100),
-                    ),
+        leaderboard = []
+        for entry, computed_rank in leaderboard_with_ranks:
+            if is_bot(entry.user_firebase_uid):
+                bot_info = BOTS[entry.user_firebase_uid]
+                player = DQPlayer(
+                    display_name=bot_info['name'],
+                    avatar_url=bot_info['picture'],
+                    rank_picture=None,
                 )
-                if entry.user_firebase_uid in users_map
-                else None,
-                score=entry.score,
-                time_taken_s=entry.time_taken_s,
-                is_post_take=entry.is_post_take,
-                is_current_user=entry.user_firebase_uid == user_firebase_uid,
+            else:
+                player = (
+                    DQPlayer(
+                        display_name=users_map.get(entry.user_firebase_uid, {}).get(
+                            'display_name',
+                        ),
+                        avatar_url=users_map.get(entry.user_firebase_uid, {}).get(
+                            'avatar_url',
+                        ),
+                        rank_picture=get_rank_picture_for_percentile(
+                            percentiles_map.get(entry.user_firebase_uid, 100),
+                        ),
+                    )
+                    if entry.user_firebase_uid in users_map
+                    else None
+                )
+
+            leaderboard.append(
+                DQLeaderboardEntry(
+                    rank=computed_rank,
+                    player=player,
+                    score=entry.score,
+                    time_taken_s=entry.time_taken_s,
+                    is_post_take=entry.is_post_take,
+                    is_current_user=entry.user_firebase_uid == user_firebase_uid,
+                    is_bot=is_bot(entry.user_firebase_uid),
+                ),
             )
-            for entry, computed_rank in leaderboard_with_ranks
-        ]
 
         # Build user answer with unit info
         user_unit_info = None
@@ -1141,6 +1178,29 @@ class DailyQuestionService:
             DailyQuestionStatus.ACTIVE,
         )
         await self._db.session.commit()
+
+        # Simulate bot participants
+        fermi = await self._db.fermi.get_by_uid(dq.question_uid)
+        now_utc = utcnow_naive()
+        if fermi:
+            correct_answer: AnswerBare = {
+                'number': fermi.number,
+                'unit': fermi.unit,
+            }
+            for bot_id in BOTS:
+                bot_answer = get_bot_answer(fermi, bot_id)
+                score = self._scoring.calculate_score(bot_answer, correct_answer)
+                await self._db.dq_answers.submit_answer(
+                    daily_question_id=dq.id,
+                    user_firebase_uid=bot_id,
+                    answer_number=bot_answer['number'],
+                    answer_unit=bot_answer.get('unit'),
+                    score=score,
+                    started_at=now_utc,
+                    submitted_at=now_utc,
+                    is_post_take=False,
+                )
+            await self._db.session.commit()
 
         # Construct invite URL using ChottuLink if configured, otherwise
         # use API trampoline. Use request.base_url for local dev.

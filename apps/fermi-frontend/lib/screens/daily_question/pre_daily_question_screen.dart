@@ -393,7 +393,7 @@ class _PreDailyQuestionScreenState extends State<PreDailyQuestionScreen> {
 
                           // Credits
                           Text(
-                            'By Guesstimate Team • 30 seconds',
+                            'By Guesstimate Team • 40 seconds',
                             style: AppFont.primaryTextStyle(
                               context,
                               fontSize: 14,

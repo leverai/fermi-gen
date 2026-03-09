@@ -75,6 +75,7 @@ class DQLeaderboardEntry(BaseModel):
     time_taken_s: float
     is_post_take: bool = False
     is_current_user: bool = False
+    is_bot: bool = False
 
 
 class DQAnswer(BaseModel):

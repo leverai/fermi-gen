@@ -52,9 +52,24 @@ class AvatarWidget extends StatelessWidget {
         size: size * 0.6,
       );
 
+  String? _getEffectiveImageUrl() {
+    if (imageUrl == null) return null;
+    if (imageUrl!.startsWith('/')) {
+      try {
+        final baseUrlStr = resolveApiBaseUrlOrThrow();
+        final uri = Uri.parse(baseUrlStr);
+        return '${uri.origin}$imageUrl';
+      } catch (_) {
+        return imageUrl;
+      }
+    }
+    return imageUrl;
+  }
+
   @override
   Widget build(BuildContext context) {
     final Widget placeholderWidget = placeholder ?? _defaultPlaceholder;
+    final String? effectiveImageUrl = _getEffectiveImageUrl();
 
     final avatarContainer = Container(
       width: size,
@@ -67,12 +82,12 @@ class AvatarWidget extends StatelessWidget {
       child: Padding(
         padding: padding,
         child: ClipOval(
-          child: imageUrl == null
+          child: effectiveImageUrl == null
               ? Center(child: placeholderWidget)
               : (_isSvg
-                  ? _buildSvgImage(placeholderWidget,
+                  ? _buildSvgImage(effectiveImageUrl, placeholderWidget,
                       applyScaling: _isAnimalsGroup)
-                  : _buildRasterImage(placeholderWidget)),
+                  : _buildRasterImage(effectiveImageUrl, placeholderWidget)),
         ),
       ),
     );
@@ -130,9 +145,10 @@ class AvatarWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildSvgImage(Widget placeholderWidget, {bool applyScaling = true}) {
+  Widget _buildSvgImage(String url, Widget placeholderWidget,
+      {bool applyScaling = true}) {
     final svgWidget = SvgPicture.network(
-      imageUrl!,
+      url,
       fit: BoxFit.cover,
       placeholderBuilder: (context) => Center(child: placeholderWidget),
     );
@@ -150,9 +166,9 @@ class AvatarWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildRasterImage(Widget placeholderWidget) {
+  Widget _buildRasterImage(String url, Widget placeholderWidget) {
     return Image.network(
-      imageUrl!,
+      url,
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => Center(child: placeholderWidget),
       loadingBuilder: (context, child, loadingProgress) {

@@ -198,6 +198,7 @@ class DQLeaderboardEntry {
   final double timeTakenS;
   final bool isPostTake;
   final bool isCurrentUser;
+  final bool isBot;
 
   DQLeaderboardEntry({
     required this.rank,
@@ -206,6 +207,7 @@ class DQLeaderboardEntry {
     required this.timeTakenS,
     this.isPostTake = false,
     this.isCurrentUser = false,
+    this.isBot = false,
   });
 
   factory DQLeaderboardEntry.fromJson(Map<String, dynamic> json) {
@@ -218,6 +220,7 @@ class DQLeaderboardEntry {
       timeTakenS: (json['time_taken_s'] as num).toDouble(),
       isPostTake: json['is_post_take'] as bool? ?? false,
       isCurrentUser: json['is_current_user'] as bool? ?? false,
+      isBot: json['is_bot'] as bool? ?? false,
     );
   }
 }

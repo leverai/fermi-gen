@@ -21,8 +21,8 @@ DQ_WINDOW_OPEN_HOUR = 12  # 12 PM UTC - when DQ becomes ACTIVE
 
 # Deadline constants (in seconds)
 ANSWER_TIMEOUT_S = 40  # Time to answer once started
-AD_GRACE_S = 10  # Grace period after Answer Deadline
-QD_GRACE_S = 20  # Grace period after Question Deadline
+AD_GRACE_S = 60  # Grace period after Answer Deadline
+QD_GRACE_S = 60  # Grace period after Question Deadline
 
 
 def get_dq_date_for_utc(now_utc: datetime.datetime) -> datetime.date:
