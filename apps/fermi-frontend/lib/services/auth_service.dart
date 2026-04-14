@@ -3,9 +3,15 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fermi_frontend/utils/env.dart';
 
 class AuthService {
+  static const String _keyAccessToken = 'auth_access_token';
+  static const String _keyFirebaseUid = 'auth_firebase_uid';
+  static const String _keyUserJson = 'auth_user_json';
+  static const String _keyLocale = 'auth_locale';
+
   final FirebaseAuth _auth;
   final http.Client _httpClient;
   final String _apiBaseUrl;
@@ -26,6 +32,68 @@ class AuthService {
   })  : _auth = auth ?? FirebaseAuth.instance,
         _httpClient = httpClient ?? http.Client(),
         _apiBaseUrl = apiBaseUrl ?? resolveApiBaseUrlOrThrow();
+
+  /// Restore persisted auth state from SharedPreferences.
+  ///
+  /// Must be called after construction and before use, so that on cold start
+  /// the in-memory fields are populated without needing a network call.
+  Future<void> restorePersistedState() async {
+    final prefs = await SharedPreferences.getInstance();
+    accessToken = prefs.getString(_keyAccessToken);
+    firebaseUid = prefs.getString(_keyFirebaseUid);
+    locale = prefs.getString(_keyLocale);
+    final String? userJsonStr = prefs.getString(_keyUserJson);
+    if (userJsonStr != null) {
+      try {
+        currentUser = AuthUser.fromJson(
+          jsonDecode(userJsonStr) as Map<String, dynamic>,
+        );
+      } catch (e) {
+        debugPrint('AuthService: Failed to restore persisted user: $e');
+      }
+    }
+    if (accessToken != null) {
+      debugPrint('AuthService: Restored persisted access token');
+    }
+  }
+
+  /// Persist current auth state to SharedPreferences.
+  Future<void> _persistState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? token = accessToken;
+    if (token != null) {
+      await prefs.setString(_keyAccessToken, token);
+    } else {
+      await prefs.remove(_keyAccessToken);
+    }
+    final String? uid = firebaseUid;
+    if (uid != null) {
+      await prefs.setString(_keyFirebaseUid, uid);
+    } else {
+      await prefs.remove(_keyFirebaseUid);
+    }
+    final String? loc = locale;
+    if (loc != null) {
+      await prefs.setString(_keyLocale, loc);
+    } else {
+      await prefs.remove(_keyLocale);
+    }
+    final AuthUser? user = currentUser;
+    if (user != null) {
+      await prefs.setString(_keyUserJson, jsonEncode(user.toJson()));
+    } else {
+      await prefs.remove(_keyUserJson);
+    }
+  }
+
+  /// Clear all persisted auth state.
+  Future<void> _clearPersistedState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyAccessToken);
+    await prefs.remove(_keyFirebaseUid);
+    await prefs.remove(_keyUserJson);
+    await prefs.remove(_keyLocale);
+  }
 
   /// Returns true if the current user is signed in anonymously.
   bool get isAnonymous {
@@ -96,9 +164,6 @@ class AuthService {
 
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
-          /* TODO: store returned user object as well - it will be needed
-          for future requests to the backend and for displaying the user's
-          avatar. */
           accessToken = data['access_token'];
           final Map<String, dynamic>? userJson =
               (data['user'] is Map<String, dynamic>) ? data['user'] : null;
@@ -111,6 +176,7 @@ class AuthService {
               locale = loc;
             }
           }
+          _persistState();
           return true;
         } else {
           // Log server response for debugging
@@ -172,6 +238,7 @@ class AuthService {
             locale = loc;
           }
         }
+        _persistState();
         return true;
       }
 
@@ -208,10 +275,11 @@ class AuthService {
     } catch (e) {
       debugPrint("Backend sign-out error: $e");
     } finally {
-      // 2. Clear local state
+      // 2. Clear local + persisted state
       accessToken = null;
       currentUser = null;
       firebaseUid = null;
+      await _clearPersistedState();
       // 3. Sign out from Firebase (works for both anonymous and regular users)
       await _auth.signOut();
     }
@@ -292,4 +360,12 @@ class AuthUser {
       subscriptionTier: json['subscription_tier'] as String? ?? 'FREE',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'firebase_uid': firebaseUid,
+        'email': email,
+        'display_name': displayName,
+        'picture': picture,
+        'subscription_tier': subscriptionTier,
+      };
 }

@@ -265,10 +265,20 @@ class AppRouter {
   }
 
   Widget _buildMainScreen(BuildContext context) {
+    // Token is already available (restored from disk or from a previous exchange).
+    // ApiService's proactive refresh handles keeping it fresh.
+    if (authService.accessToken != null) {
+      return MainScreen(
+        apiService: apiService,
+        authService: authService,
+        preloadService: preloadService,
+        dailyQuestionService: dailyQuestionService,
+      );
+    }
+
+    // No token at all — attempt a fresh exchange (first-ever launch or after sign-out).
     return FutureBuilder<bool>(
-      future: authService.accessToken != null
-          ? Future<bool>.value(true)
-          : authService.exchangeToken(),
+      future: authService.exchangeToken(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Scaffold(

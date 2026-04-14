@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:ui' show PlatformDispatcher;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart'
     hide EmailAuthProvider, AuthProvider;
@@ -41,6 +42,18 @@ Future<void> main() async {
   // Catch configuration errors and display them to the user
   try {
     WidgetsFlutterBinding.ensureInitialized();
+
+    // Global error handlers to prevent uncaught exceptions from crashing
+    // the app (especially during cold start on Android).
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      debugPrint('FlutterError: ${details.exception}');
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      debugPrint('PlatformDispatcher error: $error');
+      debugPrint('$stack');
+      return true; // Prevent crash
+    };
 
     // Customize firebase_ui_auth error messages.
     // iOS wraps password-does-not-meet-requirements in a generic
@@ -165,7 +178,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late final DeepLinkService _deepLinkService;
-  final AuthService _authService = AuthService();
+  late final AuthService _authService;
   late final AuthStateNotifier _authStateNotifier;
   late final SubscriptionService _subscriptionService;
   late final SubscriptionProvider _subscriptionProvider;
@@ -176,11 +189,23 @@ class _MyAppState extends State<MyApp> {
   late final DailyQuestionController _dailyQuestionController;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   late final AppRouter _appRouter;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
+    _authService = AuthService();
     _authStateNotifier = AuthStateNotifier();
+
+    // Restore persisted auth state (access token, user info) from disk
+    // so cold starts don't require a network call.
+    _authService.restorePersistedState().then((_) {
+      _finishInit();
+    });
+  }
+
+  /// Complete initialization after persisted auth state is restored.
+  void _finishInit() {
     _subscriptionService = SubscriptionService();
     _subscriptionService.initialize(); // Initialize RevenueCat early
     _subscriptionProvider = SubscriptionProvider(_subscriptionService);
@@ -212,11 +237,23 @@ class _MyAppState extends State<MyApp> {
 
     // Sign in anonymously early if no user exists
     _ensureAuthenticated();
+
+    // Mark as initialized and trigger rebuild
+    _initialized = true;
+    if (mounted) setState(() {});
   }
 
   /// Ensures user is authenticated (anonymous or regular).
   /// Syncs RevenueCat with the Firebase UID and starts preloading data.
   Future<void> _ensureAuthenticated() async {
+    try {
+      await _ensureAuthenticatedInner();
+    } catch (e) {
+      debugPrint('_ensureAuthenticated failed (non-fatal): $e');
+    }
+  }
+
+  Future<void> _ensureAuthenticatedInner() async {
     final currentUser = await FirebaseAuth.instance.authStateChanges().first;
     if (currentUser == null) {
       // Sign in anonymously as early as possible
@@ -360,6 +397,16 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Show loading while persisted auth state is being restored
+    if (!_initialized) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
     return MultiProvider(
       providers: [
         Provider<AuthService>.value(value: _authService),
