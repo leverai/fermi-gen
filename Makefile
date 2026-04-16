@@ -1,5 +1,10 @@
 SHELL := /bin/bash
 
+# Load secrets from env.makefile if it exists (not committed to git).
+# Variables can also be provided via environment (e.g. in CI/CD).
+-include env.makefile
+export
+
 # ============================================================================
 # Common Targets
 # ============================================================================
@@ -139,7 +144,7 @@ run-frontend:
 	export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080; \
 	export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099; \
 	export GOOGLE_CLOUD_PROJECT=fermi-local; \
-	export REVENUECAT_WEBHOOK_SECRET=REVENUECAT_WEBHOOK_SECRET_PLACEHOLDER; \
+	export REVENUECAT_WEBHOOK_SECRET=$(REVENUECAT_WEBHOOK_SECRET); \
 	$(MAKE) migrate; \
 	echo "Seeding questions..." && \
 	uv run --package fermi-db python scripts/seed_test_questions.py --file apps/fermi-api/tests/data/test_questions.json --no-dq-history; \
@@ -151,7 +156,7 @@ run-frontend:
 	  --dart-define=FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
 	  --dart-define=FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
 	  --dart-define=API_BASE_URL=http://localhost:8000/api/v1 \
-	  --dart-define=REVENUECAT_ANDROID_API_KEY=REVENUECAT_ANDROID_API_KEY_PLACEHOLDER \
+	  --dart-define=REVENUECAT_ANDROID_API_KEY=$(REVENUECAT_ANDROID_API_KEY) \
 	  --dart-define=SUPPRESS_TEST_LOGS=true
 
 .PHONY: run-frontend-prod
@@ -161,7 +166,7 @@ run-frontend-prod:
 	  --dart-define=API_BASE_URL=https://fermi-api-prod-811437731406.us-central1.run.app/api/v1 \
 	  --dart-define=USE_EMULATORS=false \
 	  --dart-define=SUPPRESS_TEST_LOGS=true \
-	  --dart-define=REVENUECAT_ANDROID_API_KEY=REVENUECAT_ANDROID_API_KEY_PLACEHOLDER
+	  --dart-define=REVENUECAT_ANDROID_API_KEY=$(REVENUECAT_ANDROID_API_KEY)
 
 # Build dev APK for Firebase App Distribution
 .PHONY: build-frontend-android-dev
@@ -176,7 +181,7 @@ build-frontend-android-dev:
 	  --dart-define=API_BASE_URL=https://fermi-api-bwuxx6eogq-uc.a.run.app/api/v1 \
 	  --dart-define=USE_EMULATORS=false \
 	  --dart-define=SUPPRESS_TEST_LOGS=true \
-	  --dart-define=REVENUECAT_ANDROID_API_KEY=REVENUECAT_ANDROID_API_KEY_PLACEHOLDER
+	  --dart-define=REVENUECAT_ANDROID_API_KEY=$(REVENUECAT_ANDROID_API_KEY)
 
 # Build prod AAB for Google Play Store
 .PHONY: build-frontend-android-prod
@@ -191,7 +196,7 @@ build-frontend-android-prod:
 	  --dart-define=API_BASE_URL=https://fermi-api-prod-811437731406.us-central1.run.app/api/v1 \
 	  --dart-define=USE_EMULATORS=false \
 	  --dart-define=SUPPRESS_TEST_LOGS=true \
-	  --dart-define=REVENUECAT_ANDROID_API_KEY=REVENUECAT_ANDROID_API_KEY_PLACEHOLDER
+	  --dart-define=REVENUECAT_ANDROID_API_KEY=$(REVENUECAT_ANDROID_API_KEY)
 
 .PHONY: update-icons
 update-icons:
@@ -216,7 +221,7 @@ build-frontend-ios:
 	  --dart-define=API_BASE_URL=https://fermi-api-prod-811437731406.us-central1.run.app/api/v1 \
 	  --dart-define=USE_EMULATORS=false \
 	  --dart-define=SUPPRESS_TEST_LOGS=true \
-	  --dart-define=REVENUECAT_IOS_API_KEY=REVENUECAT_IOS_API_KEY_PLACEHOLDER
+	  --dart-define=REVENUECAT_IOS_API_KEY=$(REVENUECAT_IOS_API_KEY)
 
 .PHONY: upload-frontend-ios
 upload-frontend-ios:
@@ -225,5 +230,5 @@ upload-frontend-ios:
 		--upload-app \
 		--type ios \
 		-f apps/fermi-frontend/build/ios/ipa/Guesstimate.ipa \
-		--apiKey APPLE_API_KEY_PLACEHOLDER \
-		--apiIssuer "APPLE_API_ISSUER_PLACEHOLDER"
+		--apiKey $(APPLE_API_KEY) \
+		--apiIssuer "$(APPLE_API_ISSUER)"

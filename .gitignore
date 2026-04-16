@@ -77,6 +77,11 @@ app.*.map.json
 
 # Environment variables
 .env*
+env.makefile
+!.env.example
+!.env*.example
+!**/env.example
+!**/.env.example
 
 
 # Flutter/Dart/Pub related
