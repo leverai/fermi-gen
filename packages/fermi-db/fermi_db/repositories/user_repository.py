@@ -299,7 +299,6 @@ class UserRepository(BaseRepository):
         assert user is not None
         user.points = user.points + amount
         self.session.add(user)
-        # Note: caller should commit
 
     async def spend_points(self, firebase_uid: str, amount: int) -> int:
         """Atomically deduct points from a user's balance.

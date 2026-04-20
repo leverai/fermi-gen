@@ -239,7 +239,6 @@ class PrecisionRushService:
         if xp_increment > 0:
             await self._db.users.increment_xp(user_firebase_uid, xp_increment)
             await self._db.users.increment_points(user_firebase_uid, xp_increment)
-            await self._db.session.commit()
 
         is_final = run.questions_answered >= PR_TOTAL_QUESTIONS
         return PRAnswerResponse(
