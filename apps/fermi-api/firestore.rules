@@ -27,5 +27,18 @@ service cloud.firestore {
     match /daily_questions/{date} {
       allow read: if request.auth != null;
     }
+
+    // DeathMatch queue - players can only read/write their own entry
+    match /dm_queue/{playerId} {
+      allow read: if request.auth != null && request.auth.uid == playerId;
+      allow delete: if request.auth != null && request.auth.uid == playerId;
+    }
+
+    // DeathMatch matches - participants can read their match
+    match /dm_matches/{matchId} {
+      allow read: if request.auth != null
+        && (resource.data.player1.player_id == request.auth.uid
+            || resource.data.player2.player_id == request.auth.uid);
+    }
   }
 }

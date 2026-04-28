@@ -6,7 +6,6 @@ from uuid import UUID
 from sqlalchemy import func, select
 
 from fermi_db.models import AnswerEvent, AnswersQuantiles
-from fermi_db.schemas import GameMode
 
 from . import BaseRepository
 
@@ -84,24 +83,6 @@ class AnswerRepository(BaseRepository):
             p95=m['p95'] or 0.0,
             p99=m['p99'] or 0.0,
         )
-
-    async def count_user_party_games(self, firebase_uid: str) -> int:
-        """Count the number of distinct party games a user has played.
-
-        Args:
-            firebase_uid: The user's Firebase UID.
-
-        Returns:
-            The count of distinct game_id values for Party mode games.
-
-        """
-        stmt = select(func.count(func.distinct(AnswerEvent.game_id))).where(
-            AnswerEvent.user_firebase_id == firebase_uid,  # pyright: ignore[reportArgumentType]
-            AnswerEvent.game_mode == GameMode.PARTY,
-        )
-        result = await self.session.execute(stmt)
-        count = result.scalar()
-        return int(count) if count is not None else 0
 
     async def get_overall_avg_percentile(self, firebase_uid: str) -> int:
         """Get user's overall percentile across all party games.

@@ -9,9 +9,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from app.schemas.game import GamePlayer
-from app.services.game.writers.players_writer import GamePlayersWriter
-
 if TYPE_CHECKING:
     from fermi_db.models.user import User
 
@@ -58,24 +55,5 @@ def user_factory() -> Callable[..., 'User']:
             display_name=name,
             picture=picture,
         )
-
-    return _make
-
-
-@pytest.fixture
-def players_map_factory(
-    user_factory: Callable[..., 'User'],
-) -> Callable[..., dict[str, GamePlayer]]:
-    """Build a ``players`` map via ``_user_to_player``."""
-    writer = GamePlayersWriter()
-
-    def _make(*uids: str, host: str | None = None) -> dict[str, GamePlayer]:
-        players: dict[str, GamePlayer] = {}
-        for uid in uids:
-            players[uid] = writer._user_to_player(
-                user_factory(uid),
-                is_host=(uid == host),
-            )
-        return players
 
     return _make

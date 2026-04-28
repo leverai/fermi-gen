@@ -5,7 +5,6 @@ from enum import StrEnum
 from typing import TypeAlias
 
 from fermi_db.schemas import (
-    AnswerBare,
     Locale,
     QuestionCategory,
     QuestionDifficulty,
@@ -33,41 +32,10 @@ class RequestCategory(StrEnum):
     COSMIC_PERSPECTIVE = 'COSMIC_PERSPECTIVE'
 
 
-class QuestionRoundSettings(BaseModel):
-    """Question round criteria.
-
-    Attributes:
-        n_questions: Number of questions in the round.
-        categories: List of categories to filter by, or None for all categories.
-        difficulty: Difficulty level to filter by, or None for all difficulties.
-
-    """
-
-    n_questions: int = 6
-    categories: list[RequestCategory] | None = None
-    difficulty: RequestDifficulty
-
-
-class GameCreateRequest(BaseModel):
-    """Request model for creating a new game."""
-
-    question_round_settings: QuestionRoundSettings
-
-
 class IdModel(BaseModel):
     """ID model."""
 
     resource_id: str
-
-
-class AddBotsRequest(IdModel):
-    """Request model for adding bots to a game by ID.
-
-    The host can add bots to any game in lobby state by specifying their IDs.
-    All IDs must be valid and unique. Max players limit (8) is enforced.
-    """
-
-    bot_ids: list[str]
 
 
 class VoteVerdictResponse(BaseModel):
@@ -75,18 +43,6 @@ class VoteVerdictResponse(BaseModel):
 
     resource_id: str
     verdict: int
-
-
-class GameAnswerRequest(IdModel):
-    """Request model for answering a question."""
-
-    answer: AnswerBare
-
-
-class GameRemovePlayerRequest(IdModel):
-    """Request model for removing a player from a game."""
-
-    player_id: str
 
 
 class PlayerStats(BaseModel):

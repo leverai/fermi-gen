@@ -6,11 +6,10 @@ functions used across the game service. It should not contain complex logic.
 
 from typing import TYPE_CHECKING, Union
 
-from fastapi import HTTPException, Request, status
+from fastapi import Request
 from fermi_db.schemas import QuestionDifficulty
 
 from app.schemas.endpoints import GameConfigResponse, RequestCategory
-from app.schemas.game import GameState
 
 if TYPE_CHECKING:
     from google.cloud.firestore_v1 import (
@@ -21,25 +20,6 @@ if TYPE_CHECKING:
 
 # Writable types for firestore transactions
 Writeable = Union['AsyncWriteBatch', 'AsyncTransaction']
-
-
-def assert_state_in(got: GameState, *expected: GameState) -> None:
-    """Assert game state."""
-    if got not in expected:
-        expected_names = [state.name for state in expected]
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f'State conflict: Expected {expected_names}, got {got.name}',
-        )
-
-
-def assert_state_le(got: GameState, le: GameState) -> None:
-    """Assert game state is less than or equal to the given state."""
-    if got > le:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f'State conflict: Expected {got.name} <= {le.name}',
-        )
 
 
 def get_request_categories() -> list[GameConfigResponse.CategoryInfo]:

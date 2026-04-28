@@ -7,6 +7,7 @@ from app.api.v1.endpoints import (
     assets,
     auth,
     daily_question,
+    deathmatch,
     game,
     health,
     precision_rush,
@@ -36,5 +37,10 @@ api_router.include_router(
     tags=['precision_rush'],
 )
 api_router.include_router(user.router, prefix='/user', tags=['user'])
+api_router.include_router(
+    deathmatch.router,
+    prefix='/deathmatch',
+    tags=['deathmatch'],
+)
 api_router.include_router(assets.router, prefix='/assets', tags=['assets'])
 api_router.include_router(webhooks.router, prefix='/webhooks', tags=['webhooks'])

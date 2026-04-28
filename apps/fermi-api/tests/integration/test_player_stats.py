@@ -30,8 +30,6 @@ def test_get_player_stats_shape(
     assert 'stats' in body
     stats = body['stats']
     assert isinstance(stats, dict)
-    assert 'total_party_games' in stats
-    assert isinstance(stats['total_party_games'], int)
     assert 'total_daily_guesses' in stats
     assert isinstance(stats['total_daily_guesses'], int)
     assert 'average_percentile' in stats

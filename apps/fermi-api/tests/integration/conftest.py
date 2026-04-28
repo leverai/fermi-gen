@@ -203,8 +203,20 @@ def reset_emulators() -> Callable[[], None]:
 
             logging.getLogger(__name__).debug('Auth emulator reset failed: %s', exc)
 
-        # Clear Firestore games collection (best-effort, shallow + known subcollections)
+        # Clear Firestore dm_queue and dm_matches collections (best-effort)
         base = f'http://{fs_host}/v1/projects/{project}/databases/(default)/documents'
+        for dm_col in ('dm_queue', 'dm_matches'):
+            try:
+                r = httpx.get(f'{base}/{dm_col}?pageSize=1000', timeout=5.0)
+                if r.status_code == 200 and 'documents' in r.json():
+                    for doc in r.json().get('documents', []):
+                        name = doc['name']
+                        doc_id = name.split('/')[-1]
+                        httpx.delete(f'{base}/{dm_col}/{doc_id}', timeout=5.0)
+            except Exception:
+                pass
+
+        # Clear Firestore games collection (best-effort, shallow + known subcollections)
         try:
             r = httpx.get(f'{base}/games?pageSize=1000', timeout=5.0)
             if r.status_code == 200 and 'documents' in r.json():

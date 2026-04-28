@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Annotated, Literal
 
 from fastapi import APIRouter, Depends, Request, status
 from fermi_db.models.user import User
-from fermi_db.repositories.party_hosting_repository import PartyHostingRepository
 from opentelemetry import trace
 
 import app.logging.attributes as api_attrs
@@ -12,7 +11,6 @@ from app.api.v1.auth_deps import get_authenticated_user, get_current_user
 from app.api.v1.authenticated_user import AuthenticatedUser
 from app.api.v1.dependencies import (
     get_game_service,
-    get_party_hosting_repository,
     get_precision_rush_run_repository,
     get_survival_run_repository,
     get_user_service,
@@ -142,10 +140,6 @@ async def earn_ad_points(
 async def get_user_limits(
     auth_user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
     game_service: Annotated[GameService, Depends(get_game_service)],
-    hosting_repo: Annotated[
-        PartyHostingRepository,
-        Depends(get_party_hosting_repository),
-    ],
     survival_run_repo: Annotated[
         'SurvivalRunRepository',
         Depends(get_survival_run_repository),
@@ -166,7 +160,6 @@ async def get_user_limits(
     limits = await game_service.get_user_limits(
         user_id=auth_user.id,
         user_firebase_uid=auth_user.firebase_uid,
-        hosting_repo=hosting_repo,
         survival_run_repo=survival_run_repo,
         precision_rush_run_repo=precision_rush_run_repo,
         is_pro=auth_user.is_pro,

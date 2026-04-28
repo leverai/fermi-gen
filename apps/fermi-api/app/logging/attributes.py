@@ -59,7 +59,7 @@ DQ_DATE: Final = 'dq.date'
 """Daily question date (YYYY-MM-DD)."""
 
 # =============================================================================
-# Game context (Party mode)
+# Game context
 # =============================================================================
 
 GAME_ID: Final = 'game.id'
@@ -123,3 +123,13 @@ SURVIVAL_TOTAL_RUNS: Final = 'survival.total_runs'
 
 SURVIVAL_BEST_STREAK: Final = 'survival.best_streak'
 """Best streak."""
+
+# =============================================================================
+# DeathMatch context
+# =============================================================================
+
+DM_MATCH_ID: Final = 'dm.match_id'
+"""DeathMatch match unique ID."""
+
+DM_PLAYER_ID: Final = 'dm.player_id'
+"""DeathMatch player ID."""

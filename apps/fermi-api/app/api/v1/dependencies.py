@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends, Header, HTTPException, status
 from fermi_db.dal import DatabaseClient
-from fermi_db.repositories.party_hosting_repository import PartyHostingRepository
 from fermi_db.repositories.subscription_repository import SubscriptionRepository
 from fermi_db.repositories.user_repository import UserRepository
 from fermi_db.session import get_session
@@ -27,6 +26,7 @@ if TYPE_CHECKING:
     )
     from fermi_db.repositories.survival_run_repository import SurvivalRunRepository
 
+    from app.services.deathmatch.service import DeathMatchService
     from app.services.survival import SurvivalService
 
 logger = logging.getLogger(__name__)
@@ -89,13 +89,6 @@ def get_subscription_repository(
     return SubscriptionRepository(session)
 
 
-def get_party_hosting_repository(
-    session: AsyncSession = Depends(get_session),  # noqa: B008
-) -> PartyHostingRepository:
-    """Get an instance of the PartyHostingRepository."""
-    return PartyHostingRepository(session)
-
-
 def get_survival_run_repository(
     session: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> 'SurvivalRunRepository':
@@ -145,6 +138,15 @@ async def get_precision_rush_service(
     from app.services.precision_rush import PrecisionRushService
 
     return PrecisionRushService(db_client=db_client)
+
+
+def get_deathmatch_service(
+    db_client: DatabaseClient = Depends(get_db_client),  # noqa: B008
+) -> 'DeathMatchService':
+    """Get an instance of the DeathMatchService."""
+    from app.services.deathmatch.service import DeathMatchService
+
+    return DeathMatchService(db_client=db_client)
 
 
 async def verify_scheduler_secret(

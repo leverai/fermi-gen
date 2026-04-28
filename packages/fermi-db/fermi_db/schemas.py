@@ -102,7 +102,7 @@ class GameMode(StrEnum):
     Used to distinguish which game mode an answer event belongs to.
     """
 
-    PARTY = 'PARTY'
     SURVIVAL = 'SURVIVAL'
     PRECISION_RUSH = 'PRECISION_RUSH'
     DAILY_QUESTION = 'DAILY_QUESTION'  # Reserved for future use
+    DEATHMATCH = 'DEATHMATCH'

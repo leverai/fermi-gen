@@ -97,6 +97,33 @@ test-api-integration:
 	$(MAKE) migrate && \
 	$(MAKE) test-api-integration-ci
 
+.PHONY: test-api-dm-unit
+test-api-dm-unit:
+	uv run --package fermi-api pytest apps/fermi-api/tests/unit/test_dm_schemas.py apps/fermi-api/tests/unit/test_dm_firestore_writer.py apps/fermi-api/tests/unit/test_dm_service.py -r fE --maxfail=1 -o log_cli=false -o log_level=WARNING -v
+
+.PHONY: test-api-dm-integration-ci
+test-api-dm-integration-ci:
+	uv run --package fermi-api pytest apps/fermi-api/tests/integration/test_deathmatch.py -r fE --maxfail=1 -o log_cli=false -o log_level=WARNING -v
+
+.PHONY: test-api-dm-integration
+test-api-dm-integration:
+	@echo "Starting DeathMatch integration tests with automatic cleanup..."
+	@trap 'docker compose down -v' EXIT; \
+	docker compose up -d db emulators && \
+	docker compose exec -T emulators bash -lc 'until (</dev/tcp/127.0.0.1/8080) 2>/dev/null; do sleep 1; done; until (</dev/tcp/127.0.0.1/9099) 2>/dev/null; do sleep 1; done' && \
+	until docker compose exec -T db pg_isready -U postgres >/dev/null; do sleep 1; done && \
+	docker compose exec -T db psql -U postgres -c 'CREATE DATABASE "fermi-db";' 2>/dev/null || true && \
+	export DATABASE_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/fermi-db && \
+	export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 && \
+	export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 && \
+	export GOOGLE_CLOUD_PROJECT=fermi-local && \
+	$(MAKE) migrate && \
+	$(MAKE) test-api-dm-integration-ci
+
+.PHONY: test-api-dm
+test-api-dm:
+	$(MAKE) test-api-dm-unit && $(MAKE) test-api-dm-integration
+
 .PHONY: test-api-endpoints
 test-api-endpoints:
 	uv run --package fermi-api pytest apps/fermi-api/tests/api/ -r fE --maxfail=1 -o log_cli=false -o log_level=WARNING
