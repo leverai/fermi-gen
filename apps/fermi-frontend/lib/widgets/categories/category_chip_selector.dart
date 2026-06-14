@@ -17,16 +17,41 @@ class CategoryChipItem {
 /// A reusable chip-based multi-selection widget for categories.
 ///
 /// Features:
-/// - Two sections: input box (Coming Soon) and chip selection area
-/// - Selected chips appear in the input box area
+/// - Two sections: a smart-search input box and a chip selection area
+/// - Search and chip selection are mutually exclusive: typing a query greys
+///   out the chips; tapping a chip clears the query (driven by the parent)
 /// - Unselected chips appear in the "Or choose:" area
 /// - Fixed container height regardless of selection state
 /// - Uses hue-incrementing color system for chip colors
+///
+/// Smart search is gated by [searchEnabled]: when false the search box is
+/// hidden entirely and the widget behaves exactly like the legacy chip
+/// selector.
 class CategoryChipSelector extends StatefulWidget {
   final List<CategoryChipItem> categories;
   final Set<int> initialSelectedIndices;
   final ValueChanged<Set<int>>? onSelectionChanged;
   final HSLColor startColor;
+
+  /// Whether the smart-search box is shown (server flag). When false, the box
+  /// is hidden and only the chips render.
+  final bool searchEnabled;
+
+  /// Controller backing the search [TextField]. Owned by the parent so the
+  /// text survives rebuilds and can be set programmatically (e.g. tapping a
+  /// recent-search chip). Required when [searchEnabled] is true.
+  final TextEditingController? searchController;
+
+  /// Called when the search text changes.
+  final ValueChanged<String>? onSearchChanged;
+
+  /// Inline error message to show under the search box (e.g. "too few
+  /// matches"), or null for no error.
+  final String? searchError;
+
+  /// Whether a (non-empty) search is currently active. When true the chips
+  /// are greyed out / disabled.
+  final bool isSearching;
 
   const CategoryChipSelector({
     super.key,
@@ -34,6 +59,11 @@ class CategoryChipSelector extends StatefulWidget {
     this.initialSelectedIndices = const {},
     this.onSelectionChanged,
     this.startColor = const HSLColor.fromAHSL(1.0, 175.75, 0.56, 0.55),
+    this.searchEnabled = false,
+    this.searchController,
+    this.onSearchChanged,
+    this.searchError,
+    this.isSearching = false,
   });
 
   @override
@@ -42,9 +72,6 @@ class CategoryChipSelector extends StatefulWidget {
 
 class _CategoryChipSelectorState extends State<CategoryChipSelector> {
   late Set<int> _selectedIndices;
-
-  // Fixed height for consistent layout
-  static const double _inputBoxHeight = 48.0;
 
   @override
   void initState() {
@@ -103,39 +130,60 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Section label
-        Text(
-          'Type categories:',
-          style: AppFont.primaryTextStyle(
-            context,
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            color: appTheme.text,
+        // Smart-search box (only when the server flag is on).
+        if (widget.searchEnabled) ...[
+          Text(
+            'Type categories:',
+            style: AppFont.primaryTextStyle(
+              context,
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+              color: appTheme.text,
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        // Input box area with selected chips
-        _buildInputBoxArea(appTheme),
-        const SizedBox(height: 24),
-        // "Or select:" label with "All" checkbox right-aligned
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'or choose:',
-              style: AppFont.primaryTextStyle(
-                context,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: appTheme.text,
+          const SizedBox(height: 16),
+          _buildSearchBox(appTheme),
+          const SizedBox(height: 24),
+          // "Or choose:" label with "All" checkbox right-aligned
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'or choose:',
+                style: AppFont.primaryTextStyle(
+                  context,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: appTheme.text,
+                ),
               ),
-            ),
-            AllChip(
-              isSelected: _selectedIndices.isEmpty,
-              onTap: _selectAll,
-            ),
-          ],
-        ),
+              AllChip(
+                isSelected: _selectedIndices.isEmpty,
+                onTap: _selectAll,
+              ),
+            ],
+          ),
+        ] else ...[
+          // Legacy: just the "Choose categories" label + "All" chip.
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Choose categories:',
+                style: AppFont.primaryTextStyle(
+                  context,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: appTheme.text,
+                ),
+              ),
+              AllChip(
+                isSelected: _selectedIndices.isEmpty,
+                onTap: _selectAll,
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 16),
         // Chip selection area
         _buildChipSelectionArea(appTheme),
@@ -143,64 +191,88 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
     );
   }
 
-  Widget _buildInputBoxArea(AppTheme appTheme) {
-    return Container(
-      height: _inputBoxHeight,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: appTheme.bgDark,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: appTheme.border, width: 1),
-      ),
-      child: _buildPlaceholder(appTheme),
-    );
-  }
+  /// The real smart-search input. Styled after the "Edit profile" name field
+  /// (profile_sheet.dart): filled `bgDark`, rounded outline borders that turn
+  /// `danger` on error and `primary` when focused.
+  Widget _buildSearchBox(AppTheme appTheme) {
+    final bool hasError =
+        widget.searchError != null && widget.searchError!.isNotEmpty;
+    final Color borderColor = hasError ? appTheme.danger : appTheme.borderMuted;
 
-  Widget _buildPlaceholder(AppTheme appTheme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'E.g. How many X in Y, Christmas',
-            style: AppFont.primaryTextStyle(
-              context,
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-              color: appTheme.borderMuted,
-            ),
+    return TextField(
+      controller: widget.searchController,
+      onChanged: widget.onSearchChanged,
+      style: TextStyle(color: appTheme.text),
+      textInputAction: TextInputAction.search,
+      maxLength: 100,
+      buildCounter: (context,
+              {required currentLength, required isFocused, maxLength}) =>
+          null,
+      decoration: InputDecoration(
+        isDense: true,
+        filled: true,
+        fillColor: appTheme.bgDark,
+        hintText: 'E.g. How many X in Y, Christmas',
+        hintStyle: AppFont.primaryTextStyle(
+          context,
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: appTheme.borderMuted,
+        ),
+        prefixIcon: Icon(Icons.search, size: 20, color: appTheme.borderMuted),
+        suffixIcon: (widget.searchController?.text.isNotEmpty ?? false)
+            ? IconButton(
+                icon: Icon(Icons.close, size: 18, color: appTheme.borderMuted),
+                onPressed: () {
+                  widget.searchController?.clear();
+                  widget.onSearchChanged?.call('');
+                },
+              )
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: borderColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: borderColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: hasError ? appTheme.danger : appTheme.primary,
           ),
-          Text(
-            '(Coming Soon)',
-            style: AppFont.primaryTextStyle(
-              context,
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-              color: appTheme.borderMuted,
-            ),
-          ),
-        ],
+        ),
+        errorText: hasError ? widget.searchError : null,
+        errorStyle: TextStyle(color: appTheme.danger),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       ),
     );
   }
 
   Widget _buildChipSelectionArea(AppTheme appTheme) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: List.generate(widget.categories.length, (index) {
-        final isSelected = _selectedIndices.contains(index);
-        final color = _getCategoryColor(index);
+    // When a search is active, chips are disabled (greyed out) to enforce the
+    // mutually-exclusive search/category model.
+    final bool disabled = widget.isSearching;
+    return Opacity(
+      opacity: disabled ? 0.4 : 1.0,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: List.generate(widget.categories.length, (index) {
+          final isSelected = _selectedIndices.contains(index);
+          final color = _getCategoryColor(index);
 
-        return CategoryChip(
-          label: widget.categories[index].title,
-          color: color,
-          isSelected: isSelected,
-          showCheckmark: false,
-          onTap: () => _toggleSelection(index),
-        );
-      }),
+          return CategoryChip(
+            label: widget.categories[index].title,
+            color: color,
+            isSelected: isSelected,
+            showCheckmark: false,
+            onTap: disabled ? null : () => _toggleSelection(index),
+          );
+        }),
+      ),
     );
   }
 }

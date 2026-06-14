@@ -5,6 +5,7 @@ import unicodedata
 
 from ftfy import fix_text
 from langchain_openai import OpenAIEmbeddings
+from openai import AsyncOpenAI
 
 
 def clean_text_for_embedding(string: str, *, to_lower: bool = False) -> str:
@@ -75,3 +76,21 @@ async def aget_embeddings_clean_3small(strings: list[str]) -> list[list[float]]:
     embeddings_model = OpenAIEmbeddings(model='text-embedding-3-small')
     vectors = await embeddings_model.aembed_documents(strings)
     return vectors
+
+
+async def aget_query_embedding_3small(text: str) -> list[float]:
+    """Embed one query via the OpenAI SDK directly (langchain-free hot path).
+
+    Applies the SAME ``clean_text_for_embedding`` as the corpus so the query lands
+    in the same vector space as ``aget_embeddings_clean_3small`` (vector-space
+    parity is non-negotiable for the similarity gate). Uses the ``openai`` SDK
+    directly rather than the langchain path, keeping langchain/tiktoken off the
+    user-facing request path; the resulting vectors agree with the langchain path
+    to ~0.9999 cosine for query-length text.
+    """
+    cleaned = clean_text_for_embedding(text)  # SAME cleaning as the corpus
+    resp = await AsyncOpenAI().embeddings.create(
+        model='text-embedding-3-small',
+        input=cleaned,
+    )
+    return resp.data[0].embedding

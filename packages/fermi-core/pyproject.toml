@@ -15,6 +15,7 @@ dependencies = [
     "langchain-community>=0.4",
     "langchain-google-vertexai>=2.0.0",
     "langchain[openai]>=1",
+    "openai>=1",
     "pint>=0.25.1",
     "pydantic>=2.11.7",
 ]

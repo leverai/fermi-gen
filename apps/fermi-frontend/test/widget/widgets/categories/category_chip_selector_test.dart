@@ -3,50 +3,91 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('CategoryChipSelector UI test', (WidgetTester tester) async {
-    // 1. Setup - Create categories to test selection
-    final categories = List.generate(
-      10,
-      (index) => CategoryChipItem(id: '$index', title: 'Category $index'),
+  final categories = List.generate(
+    10,
+    (index) => CategoryChipItem(id: '$index', title: 'Category $index'),
+  );
+
+  testWidgets('chip selection toggles the "All" chip (search disabled)',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CategoryChipSelector(categories: categories),
+        ),
+      ),
     );
+
+    // Search box hidden by default; no TextField rendered.
+    expect(find.byType(TextField), findsNothing);
+    expect(find.text('All'), findsOneWidget);
+
+    // "All" checkbox is checked initially (nothing selected).
+    expect(find.byIcon(Icons.check_box), findsOneWidget);
+
+    // Select a category -> "All" unchecks.
+    await tester.tap(find.widgetWithText(CategoryChip, 'Category 0'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.check_box_outline_blank), findsOneWidget);
+    expect(find.byIcon(Icons.check_box), findsNothing);
+
+    // Tap "All" -> deselects all.
+    await tester.tap(find.text('All'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.check_box), findsOneWidget);
+    expect(find.byIcon(Icons.check_box_outline_blank), findsNothing);
+  });
+
+  testWidgets('renders the real search box when searchEnabled is true',
+      (WidgetTester tester) async {
+    final searchController = TextEditingController();
+    String? lastChange;
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: CategoryChipSelector(
             categories: categories,
+            searchEnabled: true,
+            searchController: searchController,
+            onSearchChanged: (v) => lastChange = v,
           ),
         ),
       ),
     );
 
-    // 2. Verify initial state - placeholder always visible, "All" chip checked
-    expect(find.text('E.g. Christmas'), findsOneWidget);
-    expect(find.text('All'), findsOneWidget);
+    // A real TextField now exists with the hint, not "(Coming Soon)".
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.text('E.g. How many X in Y, Christmas'), findsOneWidget);
+    expect(find.text('(Coming Soon)'), findsNothing);
 
-    // 3. Verify "All" checkbox is checked initially (icon is check_box)
-    expect(find.byIcon(Icons.check_box), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'space scale');
+    expect(lastChange, 'space scale');
 
-    // 4. Select a category - this should uncheck "All"
-    await tester.tap(find.widgetWithText(CategoryChip, 'Category 0'));
-    await tester.pumpAndSettle();
+    searchController.dispose();
+  });
 
-    // 5. Verify "All" is now unchecked
-    expect(find.byIcon(Icons.check_box_outline_blank), findsOneWidget);
-    expect(find.byIcon(Icons.check_box), findsNothing);
+  testWidgets('shows the inline searchError under the box',
+      (WidgetTester tester) async {
+    final searchController = TextEditingController(text: 'asdfqwer');
 
-    // 6. Verify category only appears once (not in input box anymore)
-    expect(find.text('Category 0'), findsOneWidget);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CategoryChipSelector(
+            categories: categories,
+            searchEnabled: true,
+            searchController: searchController,
+            isSearching: true,
+            searchError: "No questions match 'asdfqwer' — try a broader search",
+          ),
+        ),
+      ),
+    );
 
-    // 7. Click "All" chip - should deselect all categories
-    await tester.tap(find.text('All'));
-    await tester.pumpAndSettle();
+    expect(find.text("No questions match 'asdfqwer' — try a broader search"),
+        findsOneWidget);
 
-    // 8. Verify "All" is checked again
-    expect(find.byIcon(Icons.check_box), findsOneWidget);
-    expect(find.byIcon(Icons.check_box_outline_blank), findsNothing);
-
-    // 9. Verify placeholder is still visible
-    expect(find.text('E.g. Christmas'), findsOneWidget);
+    searchController.dispose();
   });
 }

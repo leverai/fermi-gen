@@ -1,85 +1,50 @@
-"""Integration tests for POST /game/start (host-only)."""
+"""Integration tests for POST /game/start (host-only).
 
-import os
+Questions are fetched synchronously when the host starts the game, so after a
+``create`` the lobby is ``LOBBY_READY`` with no questions, and after ``start``
+the question subcollections are populated and the first question is revealed.
+"""
+
 import time
 from collections.abc import Callable
 from typing import Any
 
-import httpx
 from fastapi.testclient import TestClient
 
 
-def _get_question_doc(game_id: str, question_uid: str) -> dict[str, Any]:
-    """Fetch a question subdocument via Firestore emulator REST."""
-    project = os.environ['GOOGLE_CLOUD_PROJECT']
-    fs_host = os.environ['FIRESTORE_EMULATOR_HOST']
-    base = f'http://{fs_host}/v1/projects/{project}/databases/(default)/documents'
-    r = httpx.get(
-        f'{base}/games/{game_id}/questions/{question_uid}',
-        headers={'Authorization': 'Bearer owner', 'X-Goog-User-Project': project},
-        timeout=2.0,
-    )
-    r.raise_for_status()
-    body = r.json()
-    fields = body.get('fields', {}) if isinstance(body, dict) else {}
-    # Minimal conversion for fields we need
-    out: dict[str, Any] = {}
-    for k, v in fields.items():
-        if isinstance(v, dict):
-            if 'stringValue' in v:
-                out[k] = v['stringValue']
-            elif 'integerValue' in v:
-                try:
-                    out[k] = int(v['integerValue'])
-                except Exception:  # pragma: no cover - best effort
-                    out[k] = v['integerValue']
-            elif 'doubleValue' in v:
-                try:
-                    out[k] = float(v['doubleValue'])
-                except Exception:  # pragma: no cover - best effort
-                    out[k] = v['doubleValue']
-    return out
-
-
-def _wait_ready_with_questions(
+def _wait_ready(
     get_firestore_doc: Callable[[str], dict[str, Any]],
     game_id: str,
     *,
     timeout_s: float = 6.0,
     interval_s: float = 0.1,
-) -> tuple[list[str], dict[str, Any]]:
-    """Poll until game is LOBBY_READY with non-empty question_uids.
-
-    Returns the (question_uids, final_doc).
-    """
+) -> dict[str, Any]:
+    """Poll until the game is LOBBY_READY (state == 2). Returns the doc."""
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         doc = get_firestore_doc(game_id)
-        if doc and doc.get('state') == 2 and doc.get('question_uids'):
-            q_uids = [str(u) for u in doc['question_uids']]
-            return q_uids, doc
+        if doc and doc.get('state') == 2:
+            return doc
         time.sleep(interval_s)
-    raise AssertionError('Game did not become LOBBY_READY with question_uids in time')
+    raise AssertionError('Game did not become LOBBY_READY in time')
 
 
-def test_start_game_by_host_reveals_first_and_inits_progress(
+def test_start_game_by_host_fetches_questions_reveals_first_and_inits_progress(
     api_client: TestClient,
     get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
     create_private_game: Callable[[dict[str, str]], str],
     get_firestore_doc: Callable[[str], dict[str, Any]],
 ) -> None:
-    """Host starts in READY: verify reveal, timers, progress, and state."""
+    """Host starts: questions get fetched, first revealed, progress inited."""
     host_headers = get_api_auth_headers(
         'dev.user+start-host@example.com',
         'password123',
         'StartHost',
     )
     game_id = create_private_game(host_headers)
+    _wait_ready(get_firestore_doc, game_id)
 
-    question_uids, _ = _wait_ready_with_questions(get_firestore_doc, game_id)
-    first_q = question_uids[0]
-
-    # Start the game
+    # Start the game (questions are fetched synchronously here)
     r = api_client.post(
         '/api/v1/game/start',
         json={'resource_id': game_id},
@@ -92,10 +57,13 @@ def test_start_game_by_host_reveals_first_and_inits_progress(
         doc = get_firestore_doc(game_id)
         state = doc.get('state')
         if state in (3, 5):  # QUESTION_N or QUESTION_LAST
+            # questions were populated at start
+            question_uids = [str(u) for u in (doc.get('question_uids') or [])]
+            assert question_uids, 'question_uids should be populated at start'
             # started_at should be present (timestamp string)
             assert 'started_at' in doc
-            # current question fields
-            assert doc.get('question_uid') == first_q
+            # current question fields point at the first question
+            assert doc.get('question_uid') == question_uids[0]
             assert doc.get('question_order') == 1
             # Progress initialized
             progress = doc.get('progress') or {}
@@ -122,7 +90,7 @@ def test_start_game_by_non_host_returns_403(
         'StartHost2',
     )
     game_id = create_private_game(host_headers)
-    _wait_ready_with_questions(get_firestore_doc, game_id)
+    _wait_ready(get_firestore_doc, game_id)
 
     non_host_headers = get_api_auth_headers(
         'dev.user+start-nonhost@example.com',
@@ -137,12 +105,13 @@ def test_start_game_by_non_host_returns_403(
     assert r.status_code == 403
 
 
-def test_start_game_immediately_when_no_questions_returns_409(
+def test_start_game_immediately_fetches_questions_and_starts(
     api_client: TestClient,
     get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
     create_private_game: Callable[[dict[str, str]], str],
+    get_firestore_doc: Callable[[str], dict[str, Any]],
 ) -> None:
-    """Starting before questions are populated should 409 (no questions)."""
+    """Starting right after create succeeds: questions are fetched at start."""
     host_headers = get_api_auth_headers(
         'dev.user+start-early@example.com',
         'password123',
@@ -155,9 +124,11 @@ def test_start_game_immediately_when_no_questions_returns_409(
         json={'resource_id': game_id},
         headers=host_headers,
     )
-    # Depending on timing, it could already be ready; if so, skip this assertion
-    if r.status_code != 200:
-        assert r.status_code == 409
+    assert r.status_code == 200
+
+    doc = get_firestore_doc(game_id)
+    assert doc.get('state') in (3, 5)
+    assert doc.get('question_uids'), 'questions should be fetched at start'
 
 
 def test_start_game_second_time_returns_409_not_ready(
@@ -173,7 +144,7 @@ def test_start_game_second_time_returns_409_not_ready(
         'StartTwice',
     )
     game_id = create_private_game(host_headers)
-    _wait_ready_with_questions(get_firestore_doc, game_id)
+    _wait_ready(get_firestore_doc, game_id)
 
     r1 = api_client.post(
         '/api/v1/game/start',

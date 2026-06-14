@@ -181,6 +181,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
         }
       });
+    } on SearchNoResultsException catch (_) {
+      // "Too few matches" is surfaced inline on the search box (the party
+      // sheet rebuilds from controller.searchError); no snackbar/retry here.
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),

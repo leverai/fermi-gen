@@ -7,6 +7,7 @@ from typing import Any
 
 import sqlalchemy as sa
 from fermi_core.utils import utcnow_naive
+from pgvector.sqlalchemy import Vector
 from sqlmodel import Field, SQLModel
 
 from fermi_db.schemas import (
@@ -45,6 +46,13 @@ class Fermi(SQLModel, table=True):
     used_ai_overview: bool
     difficulty: QuestionDifficulty | None
     category: QuestionCategory | None
+    # Semantic embedding (backfilled from fermi_questions). Nullable: rows enriched
+    # before this column existed, or not yet backfilled, have NULL. Used by smart
+    # search (cosine distance). Mirrors the Vector(1536) used on fermi_questions.
+    embedding: list[float] | None = Field(
+        default=None,
+        sa_column=sa.Column(Vector(1536)),
+    )
     random_sort_key: int = Field(index=True)
     created_at: datetime.datetime = Field(
         sa_column=sa.Column(sa.TIMESTAMP(timezone=False)),
@@ -215,4 +223,49 @@ class PartyGameHosting(SQLModel, table=True):
     created_at: datetime.datetime = Field(
         default_factory=utcnow_naive,
         index=True,
+    )
+
+
+class SmartSearchEvent(SQLModel, table=True):
+    """Telemetry for a single smart-search game-start attempt.
+
+    Records what a host searched for and what the similarity-gated pool returned,
+    so the similarity floor and candidate-pool size can be tuned from real traffic.
+    ``returned_similarities`` (cosine similarity = ``1 - distance``, parallel to
+    ``returned_uids``) is the signal that drives floor tuning. Joinable to
+    ``answer_events`` (via ``game_id``) for downstream relevance evaluation.
+
+    ``game_id`` is nullable: a search that yields too few matches (or whose embed
+    call failed) never creates a game, but is still recorded for tuning.
+    """
+
+    __tablename__ = 'smart_search_events'  # type: ignore
+
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: str = Field(index=True)
+    # Null when the search produced no game (too_few / embed_error).
+    game_id: str | None = Field(default=None, index=True)
+    query: str
+    difficulty: QuestionDifficulty | None = None
+    # uids of the questions served, parallel to returned_similarities.
+    returned_uids: list[uuid.UUID] = Field(
+        default_factory=list,
+        sa_column=sa.Column(sa.JSON),
+    )
+    n: int
+    # Cosine similarity (1 - distance) per returned question; tunes the floor.
+    returned_similarities: list[float] = Field(
+        default_factory=list,
+        sa_column=sa.Column(sa.JSON),
+    )
+    # How many questions cleared the floor + pool cap, before fairness/limit.
+    candidate_pool_size: int
+    # 'ok' | 'too_few' | 'embed_error'.
+    outcome: str
+    # The dials in effect for this row, so historical data stays interpretable.
+    floor_used: float
+    pool_size_used: int
+    created_at: datetime.datetime = Field(
+        default_factory=utcnow_naive,
+        sa_column=sa.Column(sa.TIMESTAMP(timezone=False)),
     )

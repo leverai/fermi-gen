@@ -330,9 +330,14 @@ class LastRoundSettings {
   /// Difficulty setting: 'EASY' | 'MEDIUM' | 'HARD' | null
   final String? difficulty;
 
+  /// Smart-search query used last round, or null if categories were used.
+  /// Mutually exclusive with [categories] (in-session restore only).
+  final String? searchQuery;
+
   const LastRoundSettings({
     required this.categories,
     required this.difficulty,
+    this.searchQuery,
   });
 }
 

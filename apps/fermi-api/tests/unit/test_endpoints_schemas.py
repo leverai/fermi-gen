@@ -3,7 +3,10 @@
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.endpoints import UpdateUserProfileRequest
+from app.schemas.endpoints import (
+    QuestionRoundSettings,
+    UpdateUserProfileRequest,
+)
 
 
 def test_update_user_profile_request_valid_display_name() -> None:
@@ -106,3 +109,54 @@ def test_update_user_profile_request_display_name_stripped() -> None:
     """Test that display names are stripped of whitespace."""
     request = UpdateUserProfileRequest(display_name='  John Doe  ')
     assert request.display_name == 'John Doe'
+
+
+def test_question_round_settings_search_query_default_none() -> None:
+    """search_query defaults to None (no search)."""
+    qrs = QuestionRoundSettings(difficulty=None)
+    assert qrs.search_query is None
+
+
+def test_question_round_settings_search_query_trimmed() -> None:
+    """A valid search query is trimmed of surrounding whitespace."""
+    qrs = QuestionRoundSettings(difficulty=None, search_query='  space scale  ')
+    assert qrs.search_query == 'space scale'
+
+
+def test_question_round_settings_search_query_all_whitespace_is_none() -> None:
+    """An all-whitespace query trims to empty and is treated as no search."""
+    qrs = QuestionRoundSettings(difficulty=None, search_query='    ')
+    assert qrs.search_query is None
+
+
+def test_question_round_settings_search_query_too_short_rejected() -> None:
+    """A 1-char (post-trim) query is rejected (min length 2)."""
+    with pytest.raises(ValidationError) as exc_info:
+        QuestionRoundSettings(difficulty=None, search_query='a')
+    assert 'between 2 and 100' in str(exc_info.value)
+
+
+def test_question_round_settings_search_query_too_long_rejected() -> None:
+    """A 101-char query is rejected (max length 100)."""
+    with pytest.raises(ValidationError) as exc_info:
+        QuestionRoundSettings(difficulty=None, search_query='x' * 101)
+    assert 'between 2 and 100' in str(exc_info.value)
+
+
+def test_question_round_settings_search_query_boundaries_accepted() -> None:
+    """Exactly 2 and exactly 100 chars are both accepted."""
+    assert (
+        QuestionRoundSettings(
+            difficulty=None,
+            search_query='ab',
+        ).search_query
+        == 'ab'
+    )
+    long_query = 'x' * 100
+    assert (
+        QuestionRoundSettings(
+            difficulty=None,
+            search_query=long_query,
+        ).search_query
+        == long_query
+    )

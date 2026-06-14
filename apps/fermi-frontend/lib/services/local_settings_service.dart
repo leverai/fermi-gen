@@ -19,8 +19,16 @@ class LocalSettingsService {
   static const String _keyOwnedSoundProfiles = 'owned_sound_profiles';
   static const String _keyOwnedAvatars = 'owned_avatars';
 
+  /// Per-user smart-search recents are stored under `recent_searches_<uid>`.
+  static const String _keyRecentSearchesPrefix = 'recent_searches_';
+
+  /// Maximum number of recent searches retained per user (MRU eviction).
+  static const int _maxRecentSearches = 10;
+
   // State
-  late final SharedPreferences _prefs;
+  // Not `final`: re-assignable so tests can reset the backing store via
+  // [resetForTest] + [initialize] with fresh mock values.
+  late SharedPreferences _prefs;
   final ValueNotifier<bool> feedbackEnabled = ValueNotifier<bool>(true);
   final ValueNotifier<ThemeMode> themeMode =
       ValueNotifier<ThemeMode>(ThemeMode.system);
@@ -31,9 +39,28 @@ class LocalSettingsService {
   final ValueNotifier<Set<String>> ownedAvatars =
       ValueNotifier<Set<String>>({});
 
+  /// MRU-ordered recent smart-search queries for the most recently accessed
+  /// user. Updated whenever [getRecentSearches] or [addRecentSearch] runs so
+  /// widgets can rebuild their recent-search chips. Keyed by [_recentsUid].
+  final ValueNotifier<List<String>> recentSearches =
+      ValueNotifier<List<String>>(const <String>[]);
+
+  /// The uid whose recents are currently reflected in [recentSearches.value].
+  String? _recentsUid;
+
   bool _isInitialized = false;
 
   LocalSettingsService._internal();
+
+  /// Resets in-memory initialization state so the next [initialize] re-reads
+  /// from `SharedPreferences`. Test-only (the singleton otherwise latches its
+  /// backing store for the process lifetime).
+  @visibleForTesting
+  void resetForTest() {
+    _isInitialized = false;
+    _recentsUid = null;
+    recentSearches.value = const <String>[];
+  }
 
   /// Initialize the service and load saved preferences.
   Future<void> initialize() async {
@@ -154,5 +181,63 @@ class LocalSettingsService {
     ownedAvatars.value = updated;
     await _prefs.setStringList(_keyOwnedAvatars, updated.toList());
     debugPrint('LocalSettingsService: Purchased avatar: $url');
+  }
+
+  // --- Smart-search recents (per user) ---
+
+  String _recentSearchesKey(String uid) => '$_keyRecentSearchesPrefix$uid';
+
+  /// Returns the user's recent smart-search queries, most-recent first.
+  ///
+  /// Strings are returned exactly as stored (raw, trimmed, original casing).
+  /// Also refreshes [recentSearches] so listeners reflect this user's list.
+  Future<List<String>> getRecentSearches(String uid) async {
+    if (!_isInitialized) await initialize();
+
+    final List<String> stored =
+        _prefs.getStringList(_recentSearchesKey(uid)) ?? const <String>[];
+    _recentsUid = uid;
+    recentSearches.value = List<String>.unmodifiable(stored);
+    return List<String>.from(stored);
+  }
+
+  /// Adds [query] to the user's recent searches and persists the result.
+  ///
+  /// Semantics (see handoff §2 "Recents detail"):
+  /// - The query is trimmed; empty/whitespace-only queries are ignored.
+  /// - Stored as the raw trimmed string (original casing preserved).
+  /// - Case-insensitive dedup: an existing entry equal ignoring case is
+  ///   removed, then the new (trimmed, original-cased) value is inserted at
+  ///   the front (MRU).
+  /// - The list is capped at [_maxRecentSearches]; the least-recently-used
+  ///   entries beyond the cap are evicted.
+  Future<void> addRecentSearch(String uid, String query) async {
+    if (!_isInitialized) await initialize();
+
+    final String trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+
+    final List<String> current = List<String>.from(
+        _prefs.getStringList(_recentSearchesKey(uid)) ?? const <String>[]);
+
+    // Case-insensitive dedup: drop any existing entry equal ignoring case.
+    final String lowered = trimmed.toLowerCase();
+    current.removeWhere((e) => e.toLowerCase() == lowered);
+
+    // Insert at front (MRU) and cap.
+    current.insert(0, trimmed);
+    final List<String> capped = current.length > _maxRecentSearches
+        ? current.sublist(0, _maxRecentSearches)
+        : current;
+
+    await _prefs.setStringList(_recentSearchesKey(uid), capped);
+
+    // Keep the notifier in sync if it currently reflects this user.
+    if (_recentsUid == null || _recentsUid == uid) {
+      _recentsUid = uid;
+      recentSearches.value = List<String>.unmodifiable(capped);
+    }
+    debugPrint(
+        'LocalSettingsService: Recent searches for $uid now ${capped.length}');
   }
 }

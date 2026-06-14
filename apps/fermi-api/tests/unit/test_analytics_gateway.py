@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any, cast
 
+import pytest
 from fermi_db.models import AnswerEvent
 from fermi_db.schemas import (
     AnswerBare,
@@ -20,6 +21,8 @@ from app.schemas.endpoints import (
     QuestionRoundSettings,
     QuestionSettings,
 )
+from app.services.game.errors import SearchEmbeddingError, SearchNoResultsError
+from app.services.game.gateways import analytics_gateway as gw_mod
 from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
 
 
@@ -32,10 +35,29 @@ class _FakeQuantiles:
         return dict(self._values)
 
 
+def _sample_question(text: str = 'Q') -> SimpleNamespace:
+    """Build a minimal Fermi-like row with the fields the gateway/docs read."""
+    return SimpleNamespace(
+        uid=uuid.uuid4(),
+        text=text,
+        category=QuestionCategory.PLANET_EARTH,
+        difficulty=QuestionDifficulty.MEDIUM,
+        updated_at=datetime(2024, 1, 1, tzinfo=UTC),
+        unit='meter',
+        number=1000.0,
+        snippet='p',
+    )
+
+
 class _FakeFermi:
     def __init__(self, call_log: list[str]) -> None:
         self._call_log = call_log
         self.last_get_params: dict[str, Any] | None = None
+        # Smart-search controls / spies.
+        self.last_similar_params: dict[str, Any] | None = None
+        self.similar_rows: list[tuple[Any, float]] = []
+        self.events: list[Any] = []
+        self.insert_event_raises: bool = False
 
     async def get_unseen_random_questions(
         self,
@@ -45,36 +67,42 @@ class _FakeFermi:
         categories: list[QuestionCategory] | None,
         difficulty: QuestionDifficulty | None,
     ) -> list[Any]:
+        self._call_log.append('random')
         self.last_get_params = {
             'count': count,
             'for_user_ids': for_user_ids,
             'categories': categories,
             'difficulty': difficulty,
         }
-        now = datetime(2024, 1, 1, tzinfo=UTC)
         # Two sample questions, unitful
-        return [
-            SimpleNamespace(
-                uid=uuid.uuid4(),
-                text='Q1',
-                category=QuestionCategory.PLANET_EARTH,
-                difficulty=QuestionDifficulty.MEDIUM,
-                updated_at=now,
-                unit='meter',
-                number=1000.0,
-                snippet='p',
-            ),
-            SimpleNamespace(
-                uid=uuid.uuid4(),
-                text='Q2',
-                category=QuestionCategory.POP_CULTURE,
-                difficulty=QuestionDifficulty.EASY,
-                updated_at=now,
-                unit='meter',
-                number=1.0,
-                snippet='p',
-            ),
-        ]
+        return [_sample_question('Q1'), _sample_question('Q2')]
+
+    async def get_unseen_similar_questions(
+        self,
+        *,
+        query_embedding: list[float],
+        count: int,
+        for_user_ids: list[str],
+        candidate_pool_size: int,
+        similarity_floor: float,
+        difficulty: QuestionDifficulty | None,
+    ) -> list[tuple[Any, float]]:
+        self._call_log.append('similar')
+        self.last_similar_params = {
+            'query_embedding': query_embedding,
+            'count': count,
+            'for_user_ids': for_user_ids,
+            'candidate_pool_size': candidate_pool_size,
+            'similarity_floor': similarity_floor,
+            'difficulty': difficulty,
+        }
+        return self.similar_rows
+
+    async def insert_smart_search_event(self, event: Any) -> None:
+        self._call_log.append('event')
+        if self.insert_event_raises:
+            raise RuntimeError('telemetry boom')
+        self.events.append(event)
 
 
 class _FakeUsersHistory:
@@ -345,3 +373,292 @@ def test_set_user_vote_forwards_to_dal() -> None:
     assert uid == uuid.UUID(qid)
     assert user_id == 'u1'
     assert v == 1
+
+
+# --- Smart-search path -------------------------------------------------------
+#
+# Tests run the coroutine via run_until_complete to match this module's existing
+# convention (the package sets asyncio_mode = "strict", so bare `async def` tests
+# are not collected without an explicit marker). The embedder and DB are mocked;
+# no real OpenAI/DB calls are made.
+
+
+def _run(coro: Any) -> Any:
+    return asyncio.get_event_loop().run_until_complete(coro)
+
+
+def _patch_embed(
+    monkeypatch: pytest.MonkeyPatch,
+    vec: list[float] | None = None,
+    *,
+    raises: bool = False,
+) -> dict[str, Any]:
+    """Patch the embedder used by the gateway. Returns a spy dict."""
+    spy: dict[str, Any] = {'calls': []}
+
+    async def fake_embed(text: str) -> list[float]:
+        spy['calls'].append(text)
+        if raises:
+            raise RuntimeError('openai down')
+        return vec if vec is not None else [0.1, 0.2, 0.3]
+
+    monkeypatch.setattr(gw_mod, 'aget_query_embedding_3small', fake_embed)
+    return spy
+
+
+def _patch_dials(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    pool: int = 25,
+    floor: float = 0.30,
+    min_results: int = 6,
+) -> None:
+    """Override the smart-search dials the gateway reads from settings."""
+    monkeypatch.setattr(gw_mod.settings, 'smart_search_pool_size', pool)
+    monkeypatch.setattr(gw_mod.settings, 'smart_search_similarity_floor', floor)
+    monkeypatch.setattr(gw_mod.settings, 'smart_search_min_results', min_results)
+
+
+def test_search_path_calls_similar_with_floor_pool_difficulty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    log: list[str] = []
+    db = _FakeDbClient(log)
+    db.fermi.similar_rows = [(_sample_question(f'Q{i}'), 0.1 * i) for i in range(6)]
+    _patch_embed(monkeypatch, [0.5, 0.6])
+    _patch_dials(monkeypatch, pool=25, floor=0.30, min_results=6)
+    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+
+    qrs = QuestionRoundSettings(
+        n_questions=6,
+        categories=None,
+        difficulty=QuestionDifficulty.HARD,
+        search_query='space scale',
+    )
+    questions_docs, answers_docs = _run(
+        gw.get_questions_and_answers_docs(
+            user_ids=['u1'],
+            question_round_settings=qrs,
+            game_id='g-1',
+            host_user_id='host-1',
+        ),
+    )
+
+    # Similar path used, legacy random path NOT used.
+    assert 'similar' in log
+    assert 'random' not in log
+    params = db.fermi.last_similar_params
+    assert params is not None
+    assert params['query_embedding'] == [0.5, 0.6]
+    assert params['count'] == 6
+    assert params['for_user_ids'] == ['u1']
+    assert params['candidate_pool_size'] == 25
+    assert params['similarity_floor'] == 0.30
+    assert params['difficulty'] == QuestionDifficulty.HARD
+    assert len(questions_docs) == 6
+    assert len(answers_docs) == 6
+
+
+def test_category_path_calls_random_and_emits_no_event(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    log: list[str] = []
+    db = _FakeDbClient(log)
+    # Embedder patched to blow up if ever called on the legacy path.
+    spy = _patch_embed(monkeypatch, raises=True)
+    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+
+    qrs = QuestionRoundSettings(
+        n_questions=2,
+        categories=None,
+        difficulty=None,
+    )
+    _run(
+        gw.get_questions_and_answers_docs(
+            user_ids=['u1'],
+            question_round_settings=qrs,
+            game_id='g-1',
+            host_user_id='host-1',
+        ),
+    )
+
+    assert 'random' in log
+    assert 'similar' not in log
+    assert spy['calls'] == []  # embedder never touched
+    assert db.fermi.events == []  # legacy path emits no telemetry
+    assert 'event' not in log
+
+
+def test_search_embed_failure_raises_embedding_error_and_records_event(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    log: list[str] = []
+    db = _FakeDbClient(log)
+    _patch_embed(monkeypatch, raises=True)
+    _patch_dials(monkeypatch)
+    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+
+    qrs = QuestionRoundSettings(
+        n_questions=6,
+        categories=None,
+        difficulty=None,
+        search_query='space scale',
+    )
+    with pytest.raises(SearchEmbeddingError):
+        _run(
+            gw.get_questions_and_answers_docs(
+                user_ids=['u1'],
+                question_round_settings=qrs,
+                game_id='g-1',
+                host_user_id='host-1',
+            ),
+        )
+    # Similar-questions never reached; embed_error event recorded.
+    assert 'similar' not in log
+    assert len(db.fermi.events) == 1
+    assert db.fermi.events[0].outcome == 'embed_error'
+    assert db.fermi.events[0].game_id is None
+
+
+@pytest.mark.parametrize('n_rows', [0, 3])
+def test_search_too_few_raises_no_results_and_records_event(
+    monkeypatch: pytest.MonkeyPatch,
+    n_rows: int,
+) -> None:
+    """Both k=0 and 0<k<min_results -> SearchNoResultsError (not embed error)."""
+    log: list[str] = []
+    db = _FakeDbClient(log)
+    db.fermi.similar_rows = [
+        (_sample_question(f'Q{i}'), 0.1 * i) for i in range(n_rows)
+    ]
+    _patch_embed(monkeypatch, [0.1])
+    _patch_dials(monkeypatch, min_results=6)
+    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+
+    qrs = QuestionRoundSettings(
+        n_questions=6,
+        categories=None,
+        difficulty=None,
+        search_query='asdfqwer',
+    )
+    with pytest.raises(SearchNoResultsError) as exc_info:
+        _run(
+            gw.get_questions_and_answers_docs(
+                user_ids=['u1'],
+                question_round_settings=qrs,
+                game_id='g-1',
+                host_user_id='host-1',
+            ),
+        )
+    assert exc_info.value.found == n_rows
+    assert exc_info.value.query == 'asdfqwer'
+    # too_few event recorded, with game_id null and the similarities that matched.
+    assert len(db.fermi.events) == 1
+    event = db.fermi.events[0]
+    assert event.outcome == 'too_few'
+    assert event.game_id is None
+    assert len(event.returned_similarities) == n_rows
+
+
+def test_search_min_results_gate_uses_max_with_n_questions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A custom n_questions above min_results still requires a full game."""
+    log: list[str] = []
+    db = _FakeDbClient(log)
+    # 8 rows returned, n_questions=10, min_results=6 -> gate is max(6,10)=10 -> too few.
+    db.fermi.similar_rows = [(_sample_question(f'Q{i}'), 0.05 * i) for i in range(8)]
+    _patch_embed(monkeypatch, [0.1])
+    _patch_dials(monkeypatch, min_results=6)
+    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+
+    qrs = QuestionRoundSettings(
+        n_questions=10,
+        categories=None,
+        difficulty=None,
+        search_query='space scale',
+    )
+    with pytest.raises(SearchNoResultsError):
+        _run(
+            gw.get_questions_and_answers_docs(
+                user_ids=['u1'],
+                question_round_settings=qrs,
+                game_id='g-1',
+                host_user_id='host-1',
+            ),
+        )
+    assert db.fermi.events[0].outcome == 'too_few'
+
+
+def test_search_success_records_ok_event_with_similarities(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    log: list[str] = []
+    db = _FakeDbClient(log)
+    # distances -> similarities = 1 - distance
+    distances = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+    db.fermi.similar_rows = [
+        (_sample_question(f'Q{i}'), d) for i, d in enumerate(distances)
+    ]
+    _patch_embed(monkeypatch, [0.1])
+    _patch_dials(monkeypatch, pool=25, floor=0.30, min_results=6)
+    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+
+    qrs = QuestionRoundSettings(
+        n_questions=6,
+        categories=None,
+        difficulty=QuestionDifficulty.EASY,
+        search_query='space scale',
+    )
+    _run(
+        gw.get_questions_and_answers_docs(
+            user_ids=['u1'],
+            question_round_settings=qrs,
+            game_id='g-42',
+            host_user_id='host-1',
+        ),
+    )
+
+    assert len(db.fermi.events) == 1
+    event = db.fermi.events[0]
+    assert event.outcome == 'ok'
+    assert event.game_id == 'g-42'
+    assert event.user_id == 'host-1'
+    assert event.n == 6
+    assert event.candidate_pool_size == 6
+    assert event.floor_used == 0.30
+    assert event.pool_size_used == 25
+    assert event.difficulty == QuestionDifficulty.EASY
+    # similarities = 1 - distance, parallel to returned_uids.
+    assert event.returned_similarities == pytest.approx([1 - d for d in distances])
+    assert len(event.returned_uids) == 6
+
+
+def test_search_telemetry_failure_is_non_fatal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A telemetry insert error must not break a successful game start."""
+    log: list[str] = []
+    db = _FakeDbClient(log)
+    db.fermi.similar_rows = [(_sample_question(f'Q{i}'), 0.1 * i) for i in range(6)]
+    db.fermi.insert_event_raises = True
+    _patch_embed(monkeypatch, [0.1])
+    _patch_dials(monkeypatch, min_results=6)
+    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+
+    qrs = QuestionRoundSettings(
+        n_questions=6,
+        categories=None,
+        difficulty=None,
+        search_query='space scale',
+    )
+    # Does not raise despite telemetry blowing up.
+    questions_docs, _ = _run(
+        gw.get_questions_and_answers_docs(
+            user_ids=['u1'],
+            question_round_settings=qrs,
+            game_id='g-1',
+            host_user_id='host-1',
+        ),
+    )
+    assert len(questions_docs) == 6

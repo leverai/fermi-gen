@@ -10,6 +10,7 @@ from .game import (
     Fermi,
     PartyGameHosting,
     QuestionVote,
+    SmartSearchEvent,
     UserQuestionHistory,
     VoteVerdict,
 )
@@ -45,6 +46,7 @@ __all__ = [
     'RawQuestion',
     'Seed',
     'SeedsUsage',
+    'SmartSearchEvent',
     'Subscription',
     'SubscriptionPlatform',
     'SubscriptionTier',

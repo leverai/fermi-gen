@@ -101,21 +101,3 @@ class GameQuestionsWriter:
             game_ref.collection('answers').document(question_uid),
             {'revealed': True},
         )
-
-    def clear_questions(
-        self,
-        game_ref: 'AsyncDocumentReference',
-        writer: 'Writeable',
-        question_uids: list[str],
-    ) -> None:
-        """Clear questions and answers sub-collections for the provided UIDs."""
-        questions_ref = cast(
-            'AsyncCollectionReference',
-            game_ref.collection('questions'),
-        )
-        answers_ref = cast('AsyncCollectionReference', game_ref.collection('answers'))
-        for question_uid in question_uids:
-            writer.delete(questions_ref.document(question_uid))
-            writer.delete(answers_ref.document(question_uid))
-
-        writer.update(game_ref, {'question_uids': []})

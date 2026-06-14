@@ -134,6 +134,7 @@ class EnrichmentRepository(BaseRepository):
                 used_ai_overview,
                 difficulty,
                 category,
+                embedding,
                 random_sort_key,
                 created_at,
                 updated_at,
@@ -170,6 +171,7 @@ class EnrichmentRepository(BaseRepository):
                 fa.used_ai_overview,
                 fq.difficulty,
                 fq.category,
+                fq.embedding,
                 floor(random() * 2147483647)::int AS random_sort_key,
                 fq.created_at,
                 GREATEST(

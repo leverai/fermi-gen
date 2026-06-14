@@ -22,6 +22,30 @@ class RateLimitException implements Exception {
       'Too many requests. Please wait $retryAfterSeconds seconds.';
 }
 
+/// Stable error code returned by the backend when a smart-search query
+/// matches too few questions to build a game (HTTP 422).
+const String kSearchNoResultsCode = 'search_no_results';
+
+/// Thrown when a smart-search game create fails because the query matched too
+/// few questions (HTTP 422, `detail.code == 'search_no_results'`).
+///
+/// This is a user-actionable, non-retryable failure: the UI should surface
+/// [message] inline on the search box, keep the typed query, and NOT save the
+/// query to recents. It is intentionally distinct from the transient 503 path
+/// (embed failure / no questions), which uses the generic retry handling.
+class SearchNoResultsException implements Exception {
+  /// The query the user searched for (echoed back so the UI can keep it).
+  final String query;
+
+  /// The server-provided, query-actionable message to show inline.
+  final String message;
+
+  SearchNoResultsException({required this.query, required this.message});
+
+  @override
+  String toString() => message;
+}
+
 class ApiService {
   final String _apiBaseUrl;
   final AuthService authService;
@@ -206,13 +230,22 @@ class ApiService {
     List<String>? categories,
     String? difficulty,
     int? nQuestions,
+    String? searchQuery,
   }) async {
     try {
+      // Smart search and category selection are mutually exclusive: when a
+      // (non-empty) search is sent we omit categories. The backend also nulls
+      // categories itself when a search is present, but we keep the request
+      // clean here too.
+      final String? trimmedQuery = searchQuery?.trim();
+      final bool hasSearch = trimmedQuery != null && trimmedQuery.isNotEmpty;
+
       final body = {
         'question_round_settings': {
           if (nQuestions != null) 'n_questions': nQuestions,
-          'categories': categories,
+          'categories': hasSearch ? null : categories,
           'difficulty': difficulty,
+          if (hasSearch) 'search_query': trimmedQuery,
         },
       };
 
@@ -222,12 +255,51 @@ class ApiService {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         return (data['resource_id'] as String);
       }
+
+      // Distinguish the "too few matches" search failure (HTTP 422 with a
+      // stable detail.code) from all other failures. This one is
+      // user-actionable and must be surfaced inline (not retried).
+      if (hasSearch && response.statusCode == 422) {
+        final SearchNoResultsException? noResults =
+            _parseSearchNoResults(response, trimmedQuery);
+        if (noResults != null) throw noResults;
+      }
+
       final error = jsonDecode(response.body)['detail'];
       throw Exception('Failed to create game: $error');
     } on http.ClientException catch (_) {
       throw Exception('Network error: Please check your connection.');
     } catch (e) {
       rethrow;
+    }
+  }
+
+  /// Parses a `search_no_results` 422 body into a [SearchNoResultsException].
+  ///
+  /// Returns null when the body does not match the expected shape
+  /// (`{ "detail": { "code": "search_no_results", "message": "..." } }`), so
+  /// the caller falls through to generic error handling. Branches strictly on
+  /// `detail.code`, never on message text.
+  SearchNoResultsException? _parseSearchNoResults(
+    http.Response response,
+    String query,
+  ) {
+    try {
+      // Decode as UTF-8 explicitly: the server message can contain non-Latin1
+      // characters (e.g. an em-dash) and http's `.body` falls back to Latin1
+      // when the response omits `charset=utf-8`.
+      final dynamic body = jsonDecode(utf8.decode(response.bodyBytes));
+      if (body is! Map<String, dynamic>) return null;
+      final dynamic detail = body['detail'];
+      if (detail is! Map<String, dynamic>) return null;
+      if (detail['code'] != kSearchNoResultsCode) return null;
+      final dynamic msg = detail['message'];
+      final String message = (msg is String && msg.isNotEmpty)
+          ? msg
+          : "No questions match '$query' — try a broader or different search.";
+      return SearchNoResultsException(query: query, message: message);
+    } catch (_) {
+      return null;
     }
   }
 

@@ -40,12 +40,35 @@ class QuestionRoundSettings(BaseModel):
         n_questions: Number of questions in the round.
         categories: List of categories to filter by, or None for all categories.
         difficulty: Difficulty level to filter by, or None for all difficulties.
+        search_query: Optional semantic smart-search query. When set, it replaces
+            categories (the two are mutually exclusive); the game is built from
+            questions semantically similar to the query. Trimmed; if non-empty it
+            must be 2-100 characters. An all-whitespace string trims to empty and
+            is treated as no search.
 
     """
 
     n_questions: int = 6
     categories: list[RequestCategory] | None = None
     difficulty: RequestDifficulty
+    search_query: str | None = None
+
+    @field_validator('search_query')
+    @classmethod
+    def validate_search_query(cls, v: str | None) -> str | None:
+        """Trim the search query; enforce 2-100 chars when present.
+
+        An all-whitespace string trims to empty and is normalized to ``None``
+        (treated as "no search").
+        """
+        if v is None:
+            return None
+        trimmed = v.strip()
+        if not trimmed:
+            return None
+        if not (2 <= len(trimmed) <= 100):
+            raise ValueError('Search query must be between 2 and 100 characters')
+        return trimmed
 
 
 class GameCreateRequest(BaseModel):
@@ -220,6 +243,8 @@ class GameConfigResponse(BaseModel):
     categories: list['GameConfigResponse.CategoryInfo']
     difficulties: list['GameConfigResponse.DifficultyInfo']
     ranks: list['GameConfigResponse.RankDefinition']
+    smart_search_enabled: bool
+    """Server flag: whether semantic smart-search is available to clients."""
 
 
 class SetLocaleRequest(BaseModel):

@@ -43,6 +43,12 @@ void showPartyBottomSheet({
     });
   }
 
+  // Search box controller is owned here so its text survives sheet rebuilds
+  // and can be set programmatically (recent-search chips). Seeded from any
+  // restored/in-progress query.
+  final TextEditingController searchController =
+      TextEditingController(text: controller.searchQuery ?? '');
+
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
@@ -56,6 +62,13 @@ void showPartyBottomSheet({
               final items = _buildCategories(controller);
               final UserLimits? userLimits = controller.userLimitsDto;
               final bool canHost = userLimits?.canHost ?? true;
+              // Keep the text field in sync if the controller cleared the
+              // query externally (e.g. a chip tap cleared the search).
+              final String desiredText = controller.searchQuery ?? '';
+              if (searchController.text != desiredText &&
+                  !controller.isSearching) {
+                searchController.text = desiredText;
+              }
               return Padding(
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -120,7 +133,7 @@ void showPartyBottomSheet({
                           ],
                         ),
                       ),
-                      // Category chip selector
+                      // Category chip selector (with optional smart search)
                       const SizedBox(height: 8),
                       CategoryChipSelector(
                         categories: items,
@@ -128,7 +141,27 @@ void showPartyBottomSheet({
                             controller.selectedCategoryIndices,
                         onSelectionChanged: controller.selectCategoryIndices,
                         startColor: HSLColor.fromColor(appTheme.primary),
+                        searchEnabled: controller.smartSearchEnabled,
+                        searchController: searchController,
+                        onSearchChanged: controller.setSearchQuery,
+                        searchError: controller.searchError,
+                        isSearching: controller.isSearching,
                       ),
+                      // Recent searches (tappable chips), only when smart
+                      // search is on and the user has any.
+                      if (controller.smartSearchEnabled &&
+                          controller.recentSearches.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        _RecentSearches(
+                          recents: controller.recentSearches,
+                          onTap: (q) {
+                            searchController.text = q;
+                            searchController.selection =
+                                TextSelection.collapsed(offset: q.length);
+                            controller.setSearchQuery(q);
+                          },
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -189,7 +222,93 @@ void showPartyBottomSheet({
         },
       );
     },
-  );
+  ).whenComplete(searchController.dispose);
+}
+
+/// Horizontally-scrolling row of tappable recent-search chips.
+class _RecentSearches extends StatelessWidget {
+  final List<String> recents;
+  final ValueChanged<String> onTap;
+
+  const _RecentSearches({required this.recents, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Recent searches:',
+          style: AppFont.primaryTextStyle(
+            context,
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: appTheme.text,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: recents
+              .map((q) => _RecentSearchChip(label: q, onTap: () => onTap(q)))
+              .toList(growable: false),
+        ),
+      ],
+    );
+  }
+}
+
+/// A single tappable recent-search chip.
+class _RecentSearchChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _RecentSearchChip({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          FeedbackService.instance.secondaryClick();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 32,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: appTheme.bgDark,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: appTheme.borderMuted, width: 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.history, size: 14, color: appTheme.textMuted),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: AppFont.primaryTextStyle(
+                  context,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  color: appTheme.text,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 List<CategoryChipItem> _buildCategories(MainScreenController controller) {

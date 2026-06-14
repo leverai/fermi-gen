@@ -1,7 +1,6 @@
 """Game service."""
 
 import logging
-import uuid
 from typing import TYPE_CHECKING, Optional
 
 from fastapi import BackgroundTasks, HTTPException, Request, status
@@ -22,7 +21,6 @@ from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
 from app.services.game.ranks import get_all_ranks, get_rank_for_percentile
 from app.services.game.repositories.game_repo import GameRepository
 from app.services.game.tasks.archive_game_results import archive_game_results
-from app.services.game.tasks.fetch_and_set_questions import fetch_and_set_questions
 from app.services.game.transactions.runner import TransactionRunner
 from app.services.game.use_cases.end_game import EndGameUseCase
 from app.services.game.use_cases.join_game import JoinGameUseCase
@@ -48,7 +46,6 @@ if TYPE_CHECKING:
     from fermi_db.repositories.survival_run_repository import SurvivalRunRepository
     from google.cloud.firestore_v1 import (
         AsyncClient,
-        AsyncTransaction,
     )
 
 # Free tier party hosting limit (per calendar week)
@@ -76,7 +73,6 @@ class GameService:
         self,
         request: Request,
         payload: GameCreateRequest,
-        background_tasks: BackgroundTasks,
         current_user: 'User',
         firestore_client: 'AsyncClient',
         hosting_repo: 'PartyHostingRepository',
@@ -99,6 +95,19 @@ class GameService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail='Weekly party hosting limit reached',
             )
+
+        # 0b. Smart-search gating. The feature is server-flagged; reject a search
+        # when it's off. When a search IS present, it replaces categories
+        # (decision #1: search and categories are mutually exclusive), so null
+        # out categories on the settings that get persisted to the game doc.
+        round_settings = payload.question_round_settings
+        if round_settings.search_query:
+            if not settings.smart_search_enabled:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail='Smart search is not available',
+                )
+            round_settings = round_settings.model_copy(update={'categories': None})
 
         # 1. Prepare resources
         batch = firestore_client.batch()
@@ -127,80 +136,60 @@ class GameService:
                 detail=str(err),
             ) from err
 
-        # 4. Set misc fields
-        version_uid = str(uuid.uuid4())
+        # 4. Set misc fields and persist the round settings for use at start time.
         # Use ChottuLink URL if configured, otherwise fall back to API trampoline
-
         if settings.invite_url_base:
             join_url = f'{settings.invite_url_base}/invite?mode=party&id={game_ref.id}'
         else:
             # Local dev: use API trampoline endpoint
             base = str(request.base_url).rstrip('/')
             join_url = f'{base}/api/v1/game/invite/{game_ref.id}'
-        misc = {
-            'join_url': join_url,
-            'version_uid': version_uid,
-        }
-        batch.update(game_ref, misc)
-
-        # 5. Commit the batch
-        await batch.commit()
-
-        # 5. Fetch questions in the background and set them
-        background_tasks.add_task(
-            fetch_and_set_questions,
-            lifecycle=self._lifecycle_writer,
-            players_answers=self._players_results_writer,
-            questions=self._questions_writer,
-            game_ref=game_ref,
-            batch=firestore_client.batch(),  # New batch
-            user_ids=[current_user.firebase_uid],
-            question_round_settings=payload.question_round_settings,
-            version_uid=version_uid,
+        batch.update(
+            game_ref,
+            {
+                'join_url': join_url,
+                # Requested count, shown in the lobby. Overwritten with the
+                # actual fetched count when questions are set at start time.
+                'n_questions': round_settings.n_questions,
+                # Persisted so the start handler knows what to fetch. (Categories
+                # are already nulled above when a search query is present.)
+                'question_round_settings': round_settings.model_dump(
+                    mode='json',
+                ),
+            },
         )
+
+        # 5. Lobby is ready immediately. Questions are fetched at start time,
+        # so there is no background work to wait on before the host can start.
+        self._lifecycle_writer.set_ready(game_ref=game_ref, writer=batch)
+
+        # 6. Commit the batch
+        await batch.commit()
 
         return IdModel(resource_id=game_ref.id)
 
     async def join_game(
         self,
         payload: IdModel,
-        background_tasks: BackgroundTasks,
         current_user: 'User',
         firestore_client: 'AsyncClient',
-        transaction: Optional['AsyncTransaction'] = None,
     ) -> IdModel:
         """Join an existing game by delegating to the use case.
 
-        Schedules post-commit question fetching once the transaction completes.
+        Questions are fetched at start time, so joining only adds the player to
+        the lobby — there is no post-commit fetch to schedule.
         """
-        # Delegate to use case and schedule post-commit task.
         use_case = JoinGameUseCase(
             firestore_client=firestore_client,
             txn_runner=TransactionRunner(firestore_client),
             repo=GameRepository(firestore_client),
             lifecycle=self._lifecycle_writer,
             players=self._players_writer,
-            questions=self._questions_writer,
         )
-        result = await use_case.execute(
+        return await use_case.execute(
             game_id=payload.resource_id,
             current_user=current_user,
         )
-
-        game_ref = firestore_client.collection('games').document(payload.resource_id)
-        background_tasks.add_task(
-            fetch_and_set_questions,
-            lifecycle=self._lifecycle_writer,
-            players_answers=self._players_results_writer,
-            questions=self._questions_writer,
-            game_ref=game_ref,
-            batch=firestore_client.batch(),
-            user_ids=result['players_uids'],
-            question_round_settings=result['question_round_settings'],
-            version_uid=result['version_uid'],
-        )
-
-        return IdModel(resource_id=payload.resource_id)
 
     async def start_game(
         self,
@@ -221,6 +210,7 @@ class GameService:
         use_case = StartGameUseCase(
             firestore_client=firestore_client,
             repo=GameRepository(firestore_client),
+            db_gateway=self._db_gateway,
             lifecycle=self._lifecycle_writer,
             questions=self._questions_writer,
             players_answers=self._players_results_writer,
@@ -500,6 +490,7 @@ class GameService:
             categories=get_request_categories(),
             difficulties=get_request_difficulties(request),
             ranks=get_all_ranks(request),
+            smart_search_enabled=settings.smart_search_enabled,
         )
 
     async def get_user_limits(

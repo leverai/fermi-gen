@@ -205,7 +205,7 @@ async def test_next_question_invalid_state_raises_conflict(
 
 
 @pytest.mark.asyncio
-async def test_join_game_in_lobby_transitions_to_not_ready(
+async def test_join_game_in_lobby_keeps_lobby_ready(
     recorder_writer: 'RecorderWriter',
     fake_doc_ref: object,
 ) -> None:
@@ -214,7 +214,7 @@ async def test_join_game_in_lobby_transitions_to_not_ready(
     lw = GameLifecycleWriter()
 
     lw.join_game(cast(Any, game_ref), cast(Any, writer), state=GameState.LOBBY_READY)
-    assert writer.updates[0][1]['state'] == GameState.LOBBY_NOT_READY
+    assert writer.updates[0][1]['state'] == GameState.LOBBY_READY
 
 
 @pytest.mark.asyncio

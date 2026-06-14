@@ -96,7 +96,6 @@ class GameDoc(
     """Game document."""
 
     join_url: str
-    version_uid: str
 
 
 class UnitInfo(TypedDict):

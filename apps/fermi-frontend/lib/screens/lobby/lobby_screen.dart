@@ -16,6 +16,7 @@ class LobbyScreen extends StatelessWidget {
     required this.players,
     required this.onStart,
     this.startEnabled = true,
+    this.isStarting = false,
     this.onShare,
     this.joinUrl,
     this.onLeave,
@@ -31,6 +32,10 @@ class LobbyScreen extends StatelessWidget {
   final VoidCallback onStart;
   final VoidCallback? onShare;
   final bool startEnabled;
+
+  /// Whether the start request is in flight (questions are being fetched
+  /// server-side). Shows a loading state on the start button.
+  final bool isStarting;
   final String? joinUrl;
   final VoidCallback? onLeave;
   final String? currentPlayerId;
@@ -136,6 +141,7 @@ class LobbyScreen extends StatelessWidget {
                         // Removed Spacer to keep buttons significantly closer to the start button
                         MainButton(
                           onPressed: startEnabled ? onStart : null,
+                          isLoading: isStarting,
                           label: MainButtonLabel.start,
                           iconAssetPath: 'assets/icons/spacebar.svg',
                         ),

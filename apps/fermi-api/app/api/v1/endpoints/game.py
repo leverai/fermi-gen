@@ -42,7 +42,6 @@ router = APIRouter()
 async def create_game(
     request: Request,
     payload: GameCreateRequest,
-    background_tasks: BackgroundTasks,
     auth_user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     game_service: Annotated[GameService, Depends(get_game_service)],
@@ -61,7 +60,6 @@ async def create_game(
     return await game_service.create_game(
         request=request,
         payload=payload,
-        background_tasks=background_tasks,
         current_user=auth_user.user,
         firestore_client=firestore_client,
         hosting_repo=hosting_repo,
@@ -137,7 +135,6 @@ async def end_game(
 @router.post('/join', response_model=IdModel)
 async def join_game(
     payload: IdModel,
-    background_tasks: BackgroundTasks,
     current_user: Annotated[User, Depends(get_current_user)],
     firestore_client: Annotated[AsyncClient, Depends(get_firestore_client)],
     game_service: Annotated[GameService, Depends(get_game_service)],
@@ -148,7 +145,6 @@ async def join_game(
     span.set_attribute(api_attrs.GAME_ID, payload.resource_id)
     return await game_service.join_game(
         payload=payload,
-        background_tasks=background_tasks,
         current_user=current_user,
         firestore_client=firestore_client,
     )

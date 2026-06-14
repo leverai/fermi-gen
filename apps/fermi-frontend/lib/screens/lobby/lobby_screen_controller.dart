@@ -40,6 +40,7 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
   List<PlayerState> _players = const <PlayerState>[];
   bool _isHost = false;
   bool _isLobbyReady = false;
+  bool _isStarting = false;
   String? _joinUrl;
   bool _navigatedToQuestions = false;
   GameSessionController? _session;
@@ -160,10 +161,18 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
   }
 
   Future<void> _startGame() async {
+    if (_isStarting) return;
+    setState(() => _isStarting = true);
     try {
+      // Questions are fetched server-side when the game starts, so this call
+      // may take a moment. The loading state keeps the host informed and
+      // guards against double taps. Navigation to the question screen happens
+      // via the realtime listener once the state flips to a question state.
       await widget.api.startGame(gameId: widget.gameId);
+      // On success we keep the loading state until the listener navigates away.
     } catch (e) {
       if (!mounted) return;
+      setState(() => _isStarting = false);
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Failed to start game: $e')));
     }
@@ -246,7 +255,8 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
       data: themed,
       child: LobbyScreen(
         players: _players,
-        startEnabled: _isHost && _isLobbyReady,
+        startEnabled: _isHost && _isLobbyReady && !_isStarting,
+        isStarting: _isStarting,
         onStart: _startGame,
         joinUrl: _joinUrl,
         onShare: _shareInvite,

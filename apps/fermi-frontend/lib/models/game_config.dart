@@ -3,10 +3,15 @@ class GameConfig {
   final List<DifficultyInfo> difficulties;
   final List<RankDefinition> ranks;
 
+  /// Server-controlled flag gating the smart-search feature. Defaults to
+  /// false so the search box stays hidden unless the backend opts in.
+  final bool smartSearchEnabled;
+
   const GameConfig({
     required this.categories,
     required this.difficulties,
     required this.ranks,
+    this.smartSearchEnabled = false,
   });
 
   factory GameConfig.fromJson(Map<String, dynamic> json) {
@@ -32,6 +37,7 @@ class GameConfig {
       categories: cats,
       difficulties: diffs,
       ranks: ranks,
+      smartSearchEnabled: json['smart_search_enabled'] == true,
     );
   }
 }

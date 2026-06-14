@@ -138,7 +138,11 @@ class GameLifecycleWriter:
         writer: 'Writeable',
         state: GameState,
     ) -> None:
-        """Join a game by transitioning state back to not-ready in the lobby.
+        """Join a game, keeping the lobby in the ready state.
+
+        Questions are fetched at start time, so a join no longer needs to
+        reset readiness to wait for a background re-fetch. We simply keep the
+        game in ``LOBBY_READY`` and reject joins once the game has started.
 
         Raises:
             StateConflictError: If attempting to join outside of the lobby
@@ -148,7 +152,7 @@ class GameLifecycleWriter:
         if state > GameState.LOBBY_READY:
             raise StateConflictError('Cannot join a game outside of lobby')
 
-        writer.update(game_ref, {'state': GameState.LOBBY_NOT_READY})
+        writer.update(game_ref, {'state': GameState.LOBBY_READY})
 
     def finish_question(
         self,

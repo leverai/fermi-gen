@@ -54,5 +54,16 @@ class Settings(BaseSettings):
     log_level: str = 'INFO'
     log_format: str = 'auto'  # 'json', 'text', or 'auto' (auto-detect)
 
+    # Smart search (semantic party-game search). Feature ships dark: only
+    # `smart_search_enabled` is exposed to clients (via GameConfigResponse); the
+    # rest are server-side dials tuned from telemetry.
+    smart_search_enabled: bool = False
+    smart_search_pool_size: int = 25
+    """Candidate pool size M: nearest kept after the floor, before fairness."""
+    smart_search_similarity_floor: float = 0.30
+    """Min cosine similarity in [0, 1] (generous start; tune up via telemetry)."""
+    smart_search_min_results: int = 6
+    """Min matches for a search game; fewer -> 'broaden your search' error."""
+
 
 settings = Settings()

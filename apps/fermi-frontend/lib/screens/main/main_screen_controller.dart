@@ -1,11 +1,14 @@
 // ignore_for_file: avoid_print
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/services/game_realtime.dart';
 import 'package:fermi_frontend/services/firestore_game_realtime.dart';
+import 'package:fermi_frontend/services/local_settings_service.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:fermi_frontend/models/game_config.dart';
 import 'package:fermi_frontend/models/player_stats.dart';
@@ -13,10 +16,15 @@ import 'package:fermi_frontend/models/user_limits.dart';
 
 /// Controller for MainScreen: owns side-effects and derived state.
 class MainScreenController extends ChangeNotifier {
-  MainScreenController({required this.api, required this.auth});
+  MainScreenController({
+    required this.api,
+    required this.auth,
+    LocalSettingsService? localSettings,
+  }) : localSettings = localSettings ?? LocalSettingsService.instance;
 
   final ApiService api;
   final AuthService auth;
+  final LocalSettingsService localSettings;
 
   // DTO-backed state
   GameConfig? _configDto;
@@ -30,6 +38,30 @@ class MainScreenController extends ChangeNotifier {
   bool isSubmitting = false;
   String? errorMessage;
   DateTime? _lastRefreshTime;
+
+  /// Current smart-search query (null/empty = not searching).
+  ///
+  /// Mutually exclusive with [selectedCategoryIndices]: a non-empty query
+  /// clears and disables the category chips (see [setSearchQuery]); selecting
+  /// a chip clears the query (see [selectCategoryIndices]). Difficulty applies
+  /// in both modes.
+  String? searchQuery;
+
+  /// Inline, query-actionable error to show on the search box (e.g. the
+  /// "too few matches" message from a 422 `search_no_results`). Null when
+  /// there is no inline search error to display.
+  String? searchError;
+
+  /// The current user's recent smart-search queries (MRU order), loaded from
+  /// [LocalSettingsService]. Rendered as tappable chips in the party sheet.
+  List<String> recentSearches = const <String>[];
+
+  /// Whether smart search is enabled server-side (from `/game/config`).
+  /// While false the search box is hidden and the screen behaves as before.
+  bool smartSearchEnabled = false;
+
+  /// True when a non-empty search query is active (categories are disabled).
+  bool get isSearching => (searchQuery?.trim().isNotEmpty ?? false);
 
   // Public accessors
   GameConfig? get configDto => _configDto;
@@ -83,24 +115,16 @@ class MainScreenController extends ChangeNotifier {
       _configDto = preloadedConfig;
       _userLimitsDto = preloadedUserLimits;
       _playerStatsDto = preloadedStats;
+      smartSearchEnabled = preloadedConfig.smartSearchEnabled;
       isLoading = false;
       errorMessage = null;
 
-      // Restore last round settings if available
-      final LastRoundSettings? lrs = auth.lastRoundSettings;
-      if (lrs != null) {
-        selectedDifficulty = lrs.difficulty;
-        // Restore categories from saved list
-        if (lrs.categories != null) {
-          final categories = _configDto?.categories ?? const <CategoryInfo>[];
-          selectedCategoryIndices = lrs.categories!
-              .map((name) => categories.indexWhere((c) => c.name == name))
-              .where((idx) => idx >= 0)
-              .toSet();
-        }
-      }
+      _restoreLastRoundSettings();
 
       notifyListeners();
+
+      // Load this user's recent searches (best-effort) for the party sheet.
+      unawaited(loadRecentSearches());
 
       // Fetch fresh user limits and stats in background
       refreshInBackground();
@@ -130,19 +154,10 @@ class MainScreenController extends ChangeNotifier {
       _configDto = config;
       _userLimitsDto = userLimits;
       _playerStatsDto = stats;
-      // Restore last round settings if available
-      final LastRoundSettings? lrs = auth.lastRoundSettings;
-      if (lrs != null) {
-        selectedDifficulty = lrs.difficulty;
-        // Restore categories from saved list
-        if (lrs.categories != null) {
-          final categories = _configDto?.categories ?? const <CategoryInfo>[];
-          selectedCategoryIndices = lrs.categories!
-              .map((name) => categories.indexWhere((c) => c.name == name))
-              .where((idx) => idx >= 0)
-              .toSet();
-        }
-      }
+      smartSearchEnabled = config.smartSearchEnabled;
+      _restoreLastRoundSettings();
+      // Load this user's recent searches (best-effort) for the party sheet.
+      unawaited(loadRecentSearches());
       print('[MainScreenController] initialize complete');
     } catch (e, st) {
       errorMessage = e.toString();
@@ -151,6 +166,44 @@ class MainScreenController extends ChangeNotifier {
     } finally {
       isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Restores in-session last-round settings (categories, difficulty, and
+  /// search query). When a search query was last used, it takes precedence
+  /// over categories (the two are mutually exclusive).
+  void _restoreLastRoundSettings() {
+    final LastRoundSettings? lrs = auth.lastRoundSettings;
+    if (lrs == null) return;
+    selectedDifficulty = lrs.difficulty;
+    final String? q = lrs.searchQuery?.trim();
+    if (q != null && q.isNotEmpty) {
+      searchQuery = lrs.searchQuery;
+      selectedCategoryIndices = {};
+      return;
+    }
+    if (lrs.categories != null) {
+      final categories = _configDto?.categories ?? const <CategoryInfo>[];
+      selectedCategoryIndices = lrs.categories!
+          .map((name) => categories.indexWhere((c) => c.name == name))
+          .where((idx) => idx >= 0)
+          .toSet();
+    }
+  }
+
+  /// Loads the current user's recent smart-search queries (best-effort) and
+  /// notifies listeners. No-op without an authenticated user.
+  Future<void> loadRecentSearches() async {
+    final String? uid = auth.firebaseUid;
+    if (uid == null || uid.isEmpty) {
+      recentSearches = const <String>[];
+      return;
+    }
+    try {
+      recentSearches = await localSettings.getRecentSearches(uid);
+      notifyListeners();
+    } catch (e) {
+      print('⚠️ MainScreenController.loadRecentSearches error: $e');
     }
   }
 
@@ -206,31 +259,84 @@ class MainScreenController extends ChangeNotifier {
 
   // Actions
   void selectDifficulty(String? value) {
+    // Difficulty applies in both search and category modes; leave the other
+    // inputs untouched.
     selectedDifficulty = value;
     notifyListeners();
   }
 
   void selectCategoryIndices(Set<int> indices) {
     selectedCategoryIndices = indices;
+    // Selecting a category clears any active search (mutually exclusive).
+    if (indices.isNotEmpty && isSearching) {
+      searchQuery = null;
+      searchError = null;
+    }
+    notifyListeners();
+  }
+
+  /// Sets the smart-search query. A non-empty query clears and disables the
+  /// category chips (mutually exclusive); clearing the query re-enables them.
+  /// Editing the query also clears any inline [searchError].
+  void setSearchQuery(String? value) {
+    final String? trimmed = value?.trim();
+    searchQuery = (trimmed == null || trimmed.isEmpty) ? null : value;
+    searchError = null;
+    if (isSearching && selectedCategoryIndices.isNotEmpty) {
+      selectedCategoryIndices = {};
+    }
+    notifyListeners();
+  }
+
+  /// Clears the smart-search query and any inline error.
+  void clearSearchQuery() {
+    if (searchQuery == null && searchError == null) return;
+    searchQuery = null;
+    searchError = null;
     notifyListeners();
   }
 
   Future<String> createGame({int? nQuestions}) async {
     isSubmitting = true;
     errorMessage = null;
+    searchError = null;
     notifyListeners();
+    final String? activeQuery = isSearching ? searchQuery!.trim() : null;
     try {
       final String gameId = await api.createGame(
         categories: currentCategoryBackendNames,
         difficulty: selectedDifficulty,
         nQuestions: nQuestions ?? 6,
+        searchQuery: activeQuery,
       );
-      // Persist last round settings so we can restore on return
+      // Persist last round settings so we can restore on return.
       auth.lastRoundSettings = LastRoundSettings(
-        categories: currentCategoryBackendNames,
+        categories: activeQuery != null ? null : currentCategoryBackendNames,
         difficulty: selectedDifficulty,
+        searchQuery: activeQuery,
       );
+      // Recents are saved only on a successful create with a non-empty query
+      // (decision #7), keyed by user id.
+      if (activeQuery != null) {
+        final String? uid = auth.firebaseUid;
+        if (uid != null && uid.isNotEmpty) {
+          try {
+            await localSettings.addRecentSearch(uid, activeQuery);
+            recentSearches = await localSettings.getRecentSearches(uid);
+          } catch (e) {
+            print('⚠️ MainScreenController: failed to save recent search: $e');
+          }
+        }
+      }
       return gameId;
+    } on SearchNoResultsException catch (e) {
+      // Too-few-matches: surface inline on the search box, keep the query,
+      // do NOT save to recents, do NOT set the generic errorMessage (so the
+      // generic snackbar/retry path is not triggered).
+      searchError = e.message;
+      print(
+          'ℹ️ MainScreenController.createGame: search_no_results: ${e.message}');
+      rethrow;
     } catch (e, st) {
       errorMessage = e.toString();
       print('❌ MainScreenController.createGame error: $e');

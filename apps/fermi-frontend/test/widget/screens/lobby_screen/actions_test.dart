@@ -42,6 +42,40 @@ void main() {
       expect(startCalled, isTrue);
     });
 
+    testWidgets('should not call onStart while starting (loading)',
+        (tester) async {
+      // ARRANGE
+      bool startCalled = false;
+      final players = [
+        const PlayerState(
+          playerId: 'player_1',
+          isHost: true,
+          status: PlayerStatus.none,
+          displayName: 'Alice',
+          ringState: RingState.review,
+        ),
+      ];
+
+      // ACT: start request in flight -> button shows loading and is disabled
+      await pumpLobbyScreen(
+        tester,
+        players: players,
+        startEnabled: true,
+        isStarting: true,
+        onStart: () {
+          startCalled = true;
+        },
+        currentPlayerId: 'player_1',
+      );
+      await pumpLobbyFrames(tester);
+
+      await tester.tap(find.byType(MainButton));
+      await pumpLobbyFrames(tester);
+
+      // ASSERT: tapping a loading start button does nothing (guards double-tap)
+      expect(startCalled, isFalse);
+    });
+
     testWidgets('should call onShare when share button tapped', (tester) async {
       // ARRANGE
       bool shareCalled = false;
