@@ -10,6 +10,7 @@ import 'package:fermi_frontend/services/game_realtime.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
+import 'package:fermi_frontend/widgets/styled_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
@@ -24,12 +25,26 @@ class LobbyScreenController extends StatefulWidget {
     required this.realtime,
     required this.api,
     this.initialPlayers,
+    this.searchQuery,
+    this.onStartSucceeded,
   });
 
   final String gameId;
   final GameRealtime realtime;
   final ApiService api;
   final List<PlayerState>? initialPlayers;
+
+  /// The smart-search query for this game, if it is a search game (null for
+  /// category games and for join/deep-link entry, which has no local query).
+  ///
+  /// The search runs server-side at start; on a successful start this query is
+  /// the one to persist to recents (the host who created the game owns it).
+  final String? searchQuery;
+
+  /// Invoked once the game START call succeeds. The create flow wires this to
+  /// save [searchQuery] to recents (recents reflect queries that produced a
+  /// playable game). Null when there is nothing to do on start (e.g. join).
+  final VoidCallback? onStartSucceeded;
 
   @override
   State<LobbyScreenController> createState() => _LobbyScreenControllerState();
@@ -164,18 +179,64 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
     if (_isStarting) return;
     setState(() => _isStarting = true);
     try {
-      // Questions are fetched server-side when the game starts, so this call
-      // may take a moment. The loading state keeps the host informed and
-      // guards against double taps. Navigation to the question screen happens
-      // via the realtime listener once the state flips to a question state.
+      // Questions are fetched server-side when the game starts (the smart
+      // search, if any, runs here too), so this call may take a moment. The
+      // loading state keeps the host informed and guards against double taps.
+      // Navigation to the question screen happens via the realtime listener
+      // once the state flips to a question state.
       await widget.api.startGame(gameId: widget.gameId);
-      // On success we keep the loading state until the listener navigates away.
-    } catch (e) {
+      // The game started: persist the search query to recents now (only
+      // queries that produced a playable game are remembered). We keep the
+      // loading state until the realtime listener navigates away.
+      widget.onStartSucceeded?.call();
+    } on SearchNoResultsException catch (e) {
+      // Too few matches: not retryable for the same query. Surface the
+      // server's actionable message in a dialog and let the host change the
+      // search (resetting the starting state so Start is tappable again).
       if (!mounted) return;
       setState(() => _isStarting = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed to start game: $e')));
+      await _showStartErrorDialog(
+        title: 'No questions found',
+        message: e.message,
+      );
+    } on SearchEmbeddingException catch (e) {
+      // Transient embed failure: retrying the same query is reasonable.
+      if (!mounted) return;
+      setState(() => _isStarting = false);
+      await _showStartErrorDialog(
+        title: "Couldn't start the game",
+        message: e.message,
+      );
+    } catch (e) {
+      // Generic start failure (non-search, or any other error).
+      if (!mounted) return;
+      setState(() => _isStarting = false);
+      await _showStartErrorDialog(
+        title: "Couldn't start the game",
+        message: 'Something went wrong starting the game. Please try again.',
+      );
     }
+  }
+
+  /// Shows a single-action ("OK") styled dialog explaining why the game did not
+  /// start. Used for the search-specific failures and the generic fallback.
+  Future<void> _showStartErrorDialog({
+    required String title,
+    required String message,
+  }) async {
+    final AppTheme appTheme =
+        Theme.of(context).extension<AppTheme>() ?? AppTheme.defaultTheme();
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StyledDialog(
+        message: title,
+        secondaryMessage: message,
+        primaryButtonLabel: 'OK',
+        primaryButtonColor: appTheme.highlight,
+        onPrimaryPressed: () => Navigator.of(ctx).pop(),
+        showAsDialog: true,
+      ),
+    );
   }
 
   Future<void> _shareInvite() async {

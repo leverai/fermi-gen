@@ -1,16 +1,119 @@
 """Unit tests for GameLifecycleWriter state transitions."""
 
 # ruff: noqa: D103
+import datetime
 from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 
 from app.schemas.game import GameState
 from app.services.game.errors import StateConflictError
-from app.services.game.writers.lifecycle_writer import GameLifecycleWriter
+from app.services.game.writers.lifecycle_writer import (
+    START_CLAIM_TTL,
+    GameLifecycleWriter,
+)
 
 if TYPE_CHECKING:
     from tests.unit.conftest import RecorderWriter
+
+
+@pytest.mark.asyncio
+async def test_claim_start_in_lobby_ready_stamps_claim(
+    recorder_writer: 'RecorderWriter',
+    fake_doc_ref: object,
+) -> None:
+    writer = recorder_writer
+    game_ref = fake_doc_ref
+    lw = GameLifecycleWriter()
+    now = datetime.datetime.now(datetime.UTC)
+
+    lw.claim_start(
+        cast(Any, game_ref),
+        cast(Any, writer),
+        state=GameState.LOBBY_READY,
+        claimed_at=None,
+        now=now,
+    )
+
+    assert len(writer.updates) == 1
+    ref, data = writer.updates[0]
+    assert ref is game_ref
+    assert 'start_claimed_at' in data
+
+
+@pytest.mark.asyncio
+async def test_claim_start_rejects_non_lobby_ready(
+    recorder_writer: 'RecorderWriter',
+    fake_doc_ref: object,
+) -> None:
+    lw = GameLifecycleWriter()
+    now = datetime.datetime.now(datetime.UTC)
+
+    with pytest.raises(StateConflictError):
+        lw.claim_start(
+            cast(Any, fake_doc_ref),
+            cast(Any, recorder_writer),
+            state=GameState.QUESTION_N,
+            claimed_at=None,
+            now=now,
+        )
+    assert recorder_writer.updates == []
+
+
+@pytest.mark.asyncio
+async def test_claim_start_rejects_when_fresh_claim_held(
+    recorder_writer: 'RecorderWriter',
+    fake_doc_ref: object,
+) -> None:
+    lw = GameLifecycleWriter()
+    now = datetime.datetime.now(datetime.UTC)
+    fresh = now - datetime.timedelta(seconds=1)
+
+    with pytest.raises(StateConflictError):
+        lw.claim_start(
+            cast(Any, fake_doc_ref),
+            cast(Any, recorder_writer),
+            state=GameState.LOBBY_READY,
+            claimed_at=fresh,
+            now=now,
+        )
+    assert recorder_writer.updates == []
+
+
+@pytest.mark.asyncio
+async def test_claim_start_reclaims_when_claim_is_stale(
+    recorder_writer: 'RecorderWriter',
+    fake_doc_ref: object,
+) -> None:
+    lw = GameLifecycleWriter()
+    now = datetime.datetime.now(datetime.UTC)
+    stale = now - START_CLAIM_TTL - datetime.timedelta(seconds=1)
+
+    lw.claim_start(
+        cast(Any, fake_doc_ref),
+        cast(Any, recorder_writer),
+        state=GameState.LOBBY_READY,
+        claimed_at=stale,
+        now=now,
+    )
+
+    assert len(recorder_writer.updates) == 1
+    assert 'start_claimed_at' in recorder_writer.updates[0][1]
+
+
+@pytest.mark.asyncio
+async def test_release_start_claim_deletes_field(
+    recorder_writer: 'RecorderWriter',
+    fake_doc_ref: object,
+) -> None:
+    from google.cloud import firestore
+
+    lw = GameLifecycleWriter()
+    lw.release_start_claim(cast(Any, fake_doc_ref), cast(Any, recorder_writer))
+
+    assert len(recorder_writer.updates) == 1
+    _, data = recorder_writer.updates[0]
+    assert data['start_claimed_at'] is firestore.DELETE_FIELD
 
 
 @pytest.mark.asyncio

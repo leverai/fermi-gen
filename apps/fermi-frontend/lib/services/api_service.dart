@@ -26,21 +26,51 @@ class RateLimitException implements Exception {
 /// matches too few questions to build a game (HTTP 422).
 const String kSearchNoResultsCode = 'search_no_results';
 
-/// Thrown when a smart-search game create fails because the query matched too
-/// few questions (HTTP 422, `detail.code == 'search_no_results'`).
+/// Stable machine-readable `detail.code` the backend returns on a transient
+/// smart-search embedding failure at game start (HTTP 503, body
+/// `{ "detail": { "code": "search_embedding_error", "message": "..." } }`).
+/// Branching on this code (not the display text) distinguishes the retryable
+/// embed failure from any other 503 (e.g. the legacy category "No questions
+/// available" 503, whose `detail` is a plain string). Keep in sync with the
+/// backend StartGameUseCase embed-error handler.
+const String kSearchEmbeddingCode = 'search_embedding_error';
+
+/// Thrown when a smart-search game fails because the query matched too few
+/// questions. The search now runs at GAME START, so this is raised from
+/// [ApiService.startGame] on an HTTP 422 with `detail.code ==
+/// 'search_no_results'`.
 ///
-/// This is a user-actionable, non-retryable failure: the UI should surface
-/// [message] inline on the search box, keep the typed query, and NOT save the
-/// query to recents. It is intentionally distinct from the transient 503 path
-/// (embed failure / no questions), which uses the generic retry handling.
+/// This is a user-actionable, non-retryable failure: the host must broaden or
+/// change the query. The UI should surface [message] in a dialog (the game did
+/// NOT start) and must NOT save the query to recents.
+///
+/// It is intentionally distinct from the transient 503 path
+/// ([SearchEmbeddingException]), which is retryable for the same query.
 class SearchNoResultsException implements Exception {
   /// The query the user searched for (echoed back so the UI can keep it).
   final String query;
 
-  /// The server-provided, query-actionable message to show inline.
+  /// The server-provided, query-actionable message to show inline/in a dialog.
   final String message;
 
   SearchNoResultsException({required this.query, required this.message});
+
+  @override
+  String toString() => message;
+}
+
+/// Thrown when a smart-search game fails to start because building the search
+/// embedding failed transiently (HTTP 503, `detail.code == kSearchEmbeddingCode`).
+///
+/// Unlike [SearchNoResultsException] this IS retryable for the same query
+/// (the failure is server-side/transient, not a "too few matches" outcome), so
+/// the UI should show a "try again" dialog and let the host re-tap Start. The
+/// query is NOT saved to recents because the game never started.
+class SearchEmbeddingException implements Exception {
+  /// The server-provided, user-facing "try again" message.
+  final String message;
+
+  SearchEmbeddingException({required this.message});
 
   @override
   String toString() => message;
@@ -256,15 +286,12 @@ class ApiService {
         return (data['resource_id'] as String);
       }
 
-      // Distinguish the "too few matches" search failure (HTTP 422 with a
-      // stable detail.code) from all other failures. This one is
-      // user-actionable and must be surfaced inline (not retried).
-      if (hasSearch && response.statusCode == 422) {
-        final SearchNoResultsException? noResults =
-            _parseSearchNoResults(response, trimmedQuery);
-        if (noResults != null) throw noResults;
-      }
-
+      // NOTE: the smart-search query is run at GAME START, not at create, so
+      // /game/create never returns the 422 `search_no_results` (nor the 503
+      // embed failure). Those are parsed and thrown from [startGame]. Create
+      // only validates + persists the round settings, so every non-200 here is
+      // a generic failure. (`hasSearch`/`trimmedQuery` above still shape the
+      // request body — search vs categories are mutually exclusive.)
       final error = jsonDecode(response.body)['detail'];
       throw Exception('Failed to create game: $error');
     } on http.ClientException catch (_) {
@@ -280,9 +307,13 @@ class ApiService {
   /// (`{ "detail": { "code": "search_no_results", "message": "..." } }`), so
   /// the caller falls through to generic error handling. Branches strictly on
   /// `detail.code`, never on message text.
+  ///
+  /// [query] is echoed back on the exception and used only to build a fallback
+  /// message when the body omits one. It may be null at start time (the start
+  /// handler doesn't carry the query); the fallback then drops the query.
   SearchNoResultsException? _parseSearchNoResults(
     http.Response response,
-    String query,
+    String? query,
   ) {
     try {
       // Decode as UTF-8 explicitly: the server message can contain non-Latin1
@@ -294,10 +325,39 @@ class ApiService {
       if (detail is! Map<String, dynamic>) return null;
       if (detail['code'] != kSearchNoResultsCode) return null;
       final dynamic msg = detail['message'];
+      final String fallback = (query != null && query.isNotEmpty)
+          ? "No questions match '$query' — try a broader or different search."
+          : 'No questions match your search — try a broader or different search.';
+      final String message =
+          (msg is String && msg.isNotEmpty) ? msg : fallback;
+      return SearchNoResultsException(query: query ?? '', message: message);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Parses a transient smart-search embed-failure 503 body into a
+  /// [SearchEmbeddingException].
+  ///
+  /// Returns null unless `detail` is a map with `code == kSearchEmbeddingCode`,
+  /// so other 503s (e.g. the legacy category "No questions available to start
+  /// the game", whose detail is a plain string) fall through to generic
+  /// handling. Branches strictly on `detail.code`, never on message text.
+  /// Decodes UTF-8 explicitly for consistency with [_parseSearchNoResults].
+  SearchEmbeddingException? _parseSearchEmbeddingFailure(
+    http.Response response,
+  ) {
+    try {
+      final dynamic body = jsonDecode(utf8.decode(response.bodyBytes));
+      if (body is! Map<String, dynamic>) return null;
+      final dynamic detail = body['detail'];
+      if (detail is! Map<String, dynamic>) return null;
+      if (detail['code'] != kSearchEmbeddingCode) return null;
+      final dynamic msg = detail['message'];
       final String message = (msg is String && msg.isNotEmpty)
           ? msg
-          : "No questions match '$query' — try a broader or different search.";
-      return SearchNoResultsException(query: query, message: message);
+          : "Couldn't build your search game, try again";
+      return SearchEmbeddingException(message: message);
     } catch (_) {
       return null;
     }
@@ -320,14 +380,38 @@ class ApiService {
     }
   }
 
+  /// Starts the game. The smart-search query (when present) is run server-side
+  /// here, so the search-specific failures surface from this call:
+  ///
+  /// - HTTP 422 `detail.code == 'search_no_results'` -> [SearchNoResultsException]
+  ///   (not retryable for the same query; host must broaden/change it).
+  /// - HTTP 503 `detail.code == 'search_embedding_error'` -> [SearchEmbeddingException]
+  ///   (transient embed failure; retrying the same query is reasonable).
+  ///
+  /// All other non-200 responses become a generic [Exception]. Non-search game
+  /// starts only ever hit the generic path.
   Future<void> startGame({required String gameId}) async {
     try {
       final response = await _authPost('/game/start', {'resource_id': gameId});
 
-      if (response.statusCode != 200) {
-        final error = _extractErrorMessage(response);
-        throw Exception('Failed to start game: $error');
+      if (response.statusCode == 200) return;
+
+      // Search-specific, typed failures so the lobby can show the right dialog.
+      // We don't have the original query here; the 422 body carries the
+      // user-facing message, so a null query just affects the fallback text.
+      if (response.statusCode == 422) {
+        final SearchNoResultsException? noResults =
+            _parseSearchNoResults(response, null);
+        if (noResults != null) throw noResults;
       }
+      if (response.statusCode == 503) {
+        final SearchEmbeddingException? embedFailure =
+            _parseSearchEmbeddingFailure(response);
+        if (embedFailure != null) throw embedFailure;
+      }
+
+      final error = _extractErrorMessage(response);
+      throw Exception('Failed to start game: $error');
     } on http.ClientException catch (_) {
       throw Exception('Network error: Please check your connection.');
     } catch (e) {

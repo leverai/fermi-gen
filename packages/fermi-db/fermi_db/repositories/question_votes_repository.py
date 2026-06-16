@@ -1,6 +1,6 @@
 """Repository for question vote operations."""
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from uuid import UUID
 
 from fermi_core.utils import utcnow_naive
@@ -92,6 +92,30 @@ class QuestionVotesRepository(BaseRepository):
         """Return upvotes counted from questions_votes."""
         return await self._get_vote_count(question_uid, VoteVerdict.UPVOTE)
 
+    async def get_upvotes_bulk(
+        self,
+        question_uids: Sequence[UUID],
+    ) -> dict[UUID, int]:
+        """Return upvote counts for many questions in a single query.
+
+        Bulk equivalent of :meth:`get_upvotes`. Returns a dict mapping each
+        ``question_uid`` to its upvote count. A uid with no upvotes is absent from
+        the result (the ``GROUP BY`` yields no row); callers must default a
+        missing uid to ``0``, identical to the per-uid method.
+        """
+        if not question_uids:
+            return {}
+        stmt = (
+            select(QuestionVote.question_uid, func.count())
+            .where(
+                (QuestionVote.question_uid.in_(list(question_uids)))  # pyright: ignore[reportAttributeAccessIssue]
+                & (QuestionVote.verdict == int(VoteVerdict.UPVOTE)),
+            )
+            .group_by(QuestionVote.question_uid)  # pyright: ignore[reportArgumentType]
+        )
+        results = await self.session.exec(stmt)
+        return {uid: int(count) for uid, count in results}
+
     async def get_downvotes(self, question_uid: UUID) -> int:
         """Return downvotes counted from questions_votes."""
         return await self._get_vote_count(question_uid, VoteVerdict.DOWNVOTE)
@@ -119,6 +143,51 @@ class QuestionVotesRepository(BaseRepository):
                 for result in results
             },
         )
+        return verdicts
+
+    async def get_players_vote_verdicts_bulk(
+        self,
+        question_uids: Sequence[UUID],
+        user_ids: Sequence[str],
+    ) -> dict[UUID, dict[str, VoteVerdict]]:
+        """Return per-question verdicts for a set of users in a single query.
+
+        Bulk equivalent of :meth:`get_players_vote_verdicts`. Returns a dict
+        mapping every requested ``question_uid`` to a ``{firebase_uid: VoteVerdict}``
+        dict that is pre-seeded with ``VoteVerdict.NO_VOTE`` for every id in
+        ``user_ids`` and then updated with any actual votes found -- identical to
+        the per-uid method, but for all questions at once. Every requested uid is
+        present in the result (even ones with no votes), each seeded with NO_VOTE
+        for all users.
+
+        This totality is part of the contract: callers index the result directly
+        (``result[uid]``), unlike the upvotes/quantiles bulk methods which omit
+        empty uids and are read with a ``.get(uid, default)``. Do NOT "optimize"
+        this to seed lazily (only uids that have votes) -- that would KeyError the
+        callers on a question with no votes.
+        """
+        # Pre-seed every requested question with NO_VOTE for every user, so the
+        # "user hasn't voted" default matches the per-uid method exactly and every
+        # requested uid is always present in the result.
+        verdicts: dict[UUID, dict[str, VoteVerdict]] = {
+            uid: dict.fromkeys(user_ids, VoteVerdict.NO_VOTE) for uid in question_uids
+        }
+        if not question_uids or not user_ids:
+            return verdicts
+
+        stmt = select(QuestionVote).where(
+            (QuestionVote.question_uid.in_(list(question_uids)))  # pyright: ignore[reportAttributeAccessIssue]
+            & (QuestionVote.user_firebase_uid.in_(list(user_ids))),  # pyright: ignore[reportAttributeAccessIssue]
+        )
+        results = await self.session.exec(stmt)
+        for result in results:
+            # A vote could in principle exist for a uid not requested; guard with
+            # the pre-seeded dict so we only fill in requested questions.
+            question_verdicts = verdicts.get(result.question_uid)
+            if question_verdicts is not None:
+                question_verdicts[result.user_firebase_uid] = VoteVerdict(
+                    result.verdict,
+                )
         return verdicts
 
     async def get_player_vote_verdict(

@@ -1,5 +1,6 @@
 """Repository for answer-events-related database operations."""
 
+from collections.abc import Sequence
 from typing import Any, cast
 from uuid import UUID
 
@@ -84,6 +85,85 @@ class AnswerRepository(BaseRepository):
             p95=m['p95'] or 0.0,
             p99=m['p99'] or 0.0,
         )
+
+    async def get_questions_quantiles(
+        self,
+        question_uids: Sequence[UUID],
+    ) -> dict[UUID, AnswersQuantiles]:
+        """Compute score quantiles for many questions in a single query.
+
+        Bulk equivalent of :meth:`get_question_quantiles`. Returns a dict mapping
+        each requested ``question_uid`` to its ``AnswersQuantiles``. A uid is
+        present in the result only if it has at least one answer event (the
+        ``GROUP BY`` yields no row for questions with no answers); callers MUST
+        default a missing uid to ``AnswersQuantiles.easy(uid)`` (cold-start linear
+        quantiles), NOT all-zeros ``AnswersQuantiles(question_uid=uid)``. That
+        mirrors the per-uid method's *effective* behavior: its UNGROUPED aggregate
+        always returns one row with ``cnt=0`` for a no-answer question, which is
+        ``< MIN_QUANTILE_SAMPLE_SIZE`` and so falls through to ``easy()`` -- its
+        ``row is None`` all-zeros branch is unreachable for that ungrouped query.
+        Defaulting a missing uid to all-zeros would score never-answered questions
+        against a degenerate distribution. Questions whose sample count is below
+        ``MIN_QUANTILE_SAMPLE_SIZE`` likewise get ``AnswersQuantiles.easy``,
+        identical to the per-uid method.
+        """
+        if not question_uids:
+            return {}
+
+        score_col = cast(Any, AnswerEvent.score_number)
+        question_col = cast(Any, AnswerEvent.question_uid)
+
+        cols = [
+            question_col.label('question_uid'),
+            func.count(score_col).label('cnt'),
+            func.percentile_cont(0.01).within_group(score_col.asc()).label('p01'),
+            func.percentile_cont(0.05).within_group(score_col.asc()).label('p05'),
+            func.percentile_cont(0.10).within_group(score_col.asc()).label('p10'),
+            func.percentile_cont(0.25).within_group(score_col.asc()).label('p25'),
+            func.percentile_cont(0.50).within_group(score_col.asc()).label('p50'),
+            func.percentile_cont(0.60).within_group(score_col.asc()).label('p60'),
+            func.percentile_cont(0.75).within_group(score_col.asc()).label('p75'),
+            func.percentile_cont(0.80).within_group(score_col.asc()).label('p80'),
+            func.percentile_cont(0.85).within_group(score_col.asc()).label('p85'),
+            func.percentile_cont(0.90).within_group(score_col.asc()).label('p90'),
+            func.percentile_cont(0.95).within_group(score_col.asc()).label('p95'),
+            func.percentile_cont(0.99).within_group(score_col.asc()).label('p99'),
+        ]
+        stmt = (
+            select(*cols)
+            .where(question_col.in_(list(question_uids)))
+            .group_by(question_col)
+        )
+
+        result = await self.session.execute(stmt)
+
+        quantiles: dict[UUID, AnswersQuantiles] = {}
+        for row in result.all():
+            m = row._mapping
+            uid = m['question_uid']
+            sample_count = int(m['cnt'] or 0)
+
+            # Return linear quantiles for cold-start protection
+            if sample_count < MIN_QUANTILE_SAMPLE_SIZE:
+                quantiles[uid] = AnswersQuantiles.easy(uid)
+                continue
+
+            quantiles[uid] = AnswersQuantiles(
+                question_uid=uid,
+                p01=m['p01'] or 0.0,
+                p05=m['p05'] or 0.0,
+                p10=m['p10'] or 0.0,
+                p25=m['p25'] or 0.0,
+                p50=m['p50'] or 0.0,
+                p60=m['p60'] or 0.0,
+                p75=m['p75'] or 0.0,
+                p80=m['p80'] or 0.0,
+                p85=m['p85'] or 0.0,
+                p90=m['p90'] or 0.0,
+                p95=m['p95'] or 0.0,
+                p99=m['p99'] or 0.0,
+            )
+        return quantiles
 
     async def count_user_party_games(self, firebase_uid: str) -> int:
         """Count the number of distinct party games a user has played.

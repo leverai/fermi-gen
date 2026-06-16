@@ -7,6 +7,7 @@ Start. Question selection accounts for every active (human) player so serving
 stays fair across the whole party.
 """
 
+import datetime
 from typing import TYPE_CHECKING, cast
 
 from fastapi import HTTPException, status
@@ -22,9 +23,11 @@ from app.services.game.errors import (
     StateConflictError,
 )
 from app.services.game.repositories.game_repo import GameRepository
+from app.services.game.transactions.runner import TransactionRunner
 
 if TYPE_CHECKING:
     from fermi_db.models.user import User
+    from google.cloud.firestore_v1 import AsyncDocumentReference, AsyncTransaction
     from google.cloud.firestore_v1.async_client import AsyncClient
 
     from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
@@ -56,16 +59,21 @@ class StartGameUseCase:
         self._questions = questions
         self._players_answers = players_answers
 
-    async def execute(
+    async def _claim_start(
         self,
         *,
-        game_id: str,
+        game_ref: 'AsyncDocumentReference',
+        tx: 'AsyncTransaction',
         current_user: 'User',
-    ) -> IdModel:
-        """Start the game and reveal the first question for `game_id`."""
-        game_ref = self._client.collection('games').document(game_id)
+    ) -> dict:
+        """Validate and atomically claim the start, inside a transaction.
 
-        # Read minimal fields
+        Reads the same minimal fields transactionally, enforces existence /
+        host / startable-state, and stamps a start claim so a concurrent or
+        retried start fails fast here (409) instead of running a second,
+        expensive question fetch. Returns the validated game data for the
+        caller to use outside the transaction.
+        """
         data = await self._repo.get_game_fields(
             game_ref,
             fields=[
@@ -74,7 +82,9 @@ class StartGameUseCase:
                 'state',
                 'n_questions',
                 'question_round_settings',
+                'start_claimed_at',
             ],
+            tx=tx,
         )
         if not data:
             raise HTTPException(
@@ -96,14 +106,92 @@ class StartGameUseCase:
                 detail='Only host can start the game',
             )
 
-        # Reject if the game is not in a startable state (before fetching, so a
-        # double-start doesn't trigger a redundant question fetch).
-        if state != GameState.LOBBY_READY:
+        # Reject if not startable, or if a start is already in flight, before
+        # fetching — so a double/retried start doesn't trigger a redundant
+        # (and costly) question fetch. The transaction makes this atomic.
+        try:
+            self._lifecycle.claim_start(
+                game_ref=game_ref,
+                writer=tx,
+                state=state,
+                claimed_at=data.get('start_claimed_at'),
+                now=datetime.datetime.now(datetime.UTC),
+            )
+        except StateConflictError as err:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail='Game is not ready',
+                detail=str(err),
+            ) from err
+
+        return data
+
+    async def execute(
+        self,
+        *,
+        game_id: str,
+        current_user: 'User',
+    ) -> IdModel:
+        """Start the game and reveal the first question for `game_id`."""
+        game_ref = self._client.collection('games').document(game_id)
+
+        # Atomically claim the start before doing any expensive work. The loser
+        # of a double-start race fails fast (409) here and never reaches the
+        # embedding/DB fetch below.
+        async def _claim(tx: 'AsyncTransaction') -> dict:
+            return await self._claim_start(
+                game_ref=game_ref,
+                tx=tx,
+                current_user=current_user,
             )
 
+        data = await TransactionRunner(self._client).run(_claim)
+
+        state = GameState(int(data['state']))
+        players = cast(dict[str, GamePlayer], data.get('players', {}))
+
+        # From here on the start is claimed. Release the claim on any failure so
+        # the host can retry immediately (e.g. a retryable 503 embed error)
+        # instead of waiting for the claim TTL to expire.
+        try:
+            return await self._fetch_and_start(
+                game_ref=game_ref,
+                game_id=game_id,
+                data=data,
+                state=state,
+                players=players,
+                current_user=current_user,
+            )
+        except Exception:
+            await self._release_claim(game_ref)
+            raise
+
+    async def _release_claim(self, game_ref: 'AsyncDocumentReference') -> None:
+        """Best-effort clear of the start claim (never masks the real error)."""
+        try:
+            release = self._client.batch()
+            self._lifecycle.release_start_claim(game_ref=game_ref, writer=release)
+            await release.commit()
+        except Exception:
+            # Releasing the claim is best-effort: a stale claim self-heals via
+            # the TTL, so a failure here must never shadow the original cause.
+            trace.get_current_span().add_event('start_claim_release_failed')
+
+    async def _fetch_and_start(
+        self,
+        *,
+        game_ref: 'AsyncDocumentReference',
+        game_id: str,
+        data: dict,
+        state: GameState,
+        players: dict[str, GamePlayer],
+        current_user: 'User',
+    ) -> IdModel:
+        """Fetch questions and commit the start writes (outside any transaction).
+
+        Intentionally not inside the claim transaction: the embedding + pgvector
+        query can take seconds, and long Firestore transactions cause contention
+        and timeouts.
+        """
         # Fetch questions for all active human players so serving is fair.
         raw_settings = data.get('question_round_settings')
         if raw_settings:
@@ -133,9 +221,15 @@ class StartGameUseCase:
             )
         except SearchEmbeddingError as err:
             # Transient embed failure (OpenAI down/timeout) -> retryable 503.
+            # Stable `code` (like search_no_results) lets the frontend branch to
+            # the retryable-embed dialog without matching on display text. Keep
+            # this in sync with kSearchEmbeddingCode on the frontend.
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Couldn't build your search game, try again",
+                detail={
+                    'code': 'search_embedding_error',
+                    'message': "Couldn't build your search game, try again",
+                },
             ) from err
         except SearchNoResultsError as err:
             # The floor left too few matches. Not retryable for the same query;
@@ -207,6 +301,11 @@ class StartGameUseCase:
                 status_code=status.HTTP_409_CONFLICT,
                 detail=str(err),
             ) from err
+
+        # Clear the start claim in the same batch: the state has now advanced
+        # past LOBBY_READY (which alone blocks restarts), and tidying the field
+        # keeps the doc clean.
+        self._lifecycle.release_start_claim(game_ref=game_ref, writer=batch)
 
         await batch.commit()
         return IdModel(resource_id=game_id)

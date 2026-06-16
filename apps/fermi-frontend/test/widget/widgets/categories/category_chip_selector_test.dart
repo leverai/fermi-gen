@@ -66,28 +66,4 @@ void main() {
 
     searchController.dispose();
   });
-
-  testWidgets('shows the inline searchError under the box',
-      (WidgetTester tester) async {
-    final searchController = TextEditingController(text: 'asdfqwer');
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: CategoryChipSelector(
-            categories: categories,
-            searchEnabled: true,
-            searchController: searchController,
-            isSearching: true,
-            searchError: "No questions match 'asdfqwer' — try a broader search",
-          ),
-        ),
-      ),
-    );
-
-    expect(find.text("No questions match 'asdfqwer' — try a broader search"),
-        findsOneWidget);
-
-    searchController.dispose();
-  });
 }

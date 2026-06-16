@@ -73,7 +73,6 @@ def upgrade() -> None:
         sa.Column('returned_uids', sa.JSON(), nullable=False),
         sa.Column('n', sa.Integer(), nullable=False),
         sa.Column('returned_similarities', sa.JSON(), nullable=False),
-        sa.Column('candidate_pool_size', sa.Integer(), nullable=False),
         sa.Column('outcome', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column('floor_used', sa.Float(), nullable=False),
         sa.Column('pool_size_used', sa.Integer(), nullable=False),

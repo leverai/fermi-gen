@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:fermi_frontend/screens/lobby/lobby_screen_controller.dart';
+import 'package:fermi_frontend/services/api_service.dart';
 import 'package:fermi_frontend/services/game_realtime.dart';
+import 'package:fermi_frontend/widgets/main_button.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
+import 'package:fermi_frontend/widgets/styled_dialog.dart';
 import '../../fixtures/game_snapshots.dart';
 import '../../fixtures/player_data.dart';
 import '../../helpers/mock_factories.dart';
@@ -473,12 +476,13 @@ void main() {
         verifyNever(() => mockApi.startGame(gameId: any(named: 'gameId')));
       });
 
-      testWidgets('should handle start game errors', (tester) async {
-        // ARRANGE
+      testWidgets(
+          'a generic start failure shows an error dialog and re-enables start',
+          (tester) async {
+        // ARRANGE: host in a ready lobby; startGame throws a generic error.
         final snapshot = GameSnapshotFixtures.lobbyReady(
           currentPlayerId: currentPlayerId,
         );
-
         when(() => mockApi.startGame(gameId: gameId))
             .thenThrow(Exception('Failed to start game'));
 
@@ -492,14 +496,20 @@ void main() {
             ),
           ),
         );
-
         streamController.add(snapshot);
         await tester.pump();
 
-        // ASSERT
-        expect(find.byType(LobbyScreenController), findsOneWidget);
+        await tester.tap(find.byType(MainButton));
+        await tester.pumpAndSettle();
 
-        // Clean up TextScroll timers
+        // ASSERT: a dialog is shown (not a SnackBar); start was attempted.
+        verify(() => mockApi.startGame(gameId: gameId)).called(1);
+        expect(find.byType(StyledDialog), findsOneWidget);
+        expect(find.text("Couldn't start the game"), findsOneWidget);
+
+        // Dismiss and clean up.
+        await tester.tap(find.text('OK'));
+        await tester.pumpAndSettle();
         await cleanupTextScrollTimers(tester);
       });
 
@@ -529,6 +539,133 @@ void main() {
         expect(find.byType(LobbyScreenController), findsOneWidget);
 
         // Clean up TextScroll timers
+        await cleanupTextScrollTimers(tester);
+      });
+    });
+
+    group('Smart-search start failures', () {
+      testWidgets(
+          '422 search_no_results shows the actionable dialog, does NOT start, '
+          'and does NOT save recents', (tester) async {
+        // ARRANGE
+        final snapshot = GameSnapshotFixtures.lobbyReady(
+          currentPlayerId: currentPlayerId,
+        );
+        when(() => mockApi.startGame(gameId: gameId)).thenThrow(
+          SearchNoResultsException(
+            query: 'asdfqwer',
+            message:
+                "No questions match 'asdfqwer' — try a broader or different search.",
+          ),
+        );
+        bool startSucceeded = false;
+
+        // ACT
+        await tester.pumpWidget(
+          MaterialApp(
+            home: LobbyScreenController(
+              gameId: gameId,
+              realtime: mockRealtime,
+              api: mockApi,
+              searchQuery: 'asdfqwer',
+              onStartSucceeded: () => startSucceeded = true,
+            ),
+          ),
+        );
+        streamController.add(snapshot);
+        await tester.pump();
+
+        await tester.tap(find.byType(MainButton));
+        await tester.pumpAndSettle();
+
+        // ASSERT: dialog with the server message; success callback NOT fired.
+        expect(find.byType(StyledDialog), findsOneWidget);
+        expect(find.text('No questions found'), findsOneWidget);
+        expect(find.textContaining('broader'), findsOneWidget);
+        expect(startSucceeded, isFalse);
+
+        await tester.tap(find.text('OK'));
+        await tester.pumpAndSettle();
+        await cleanupTextScrollTimers(tester);
+      });
+
+      testWidgets(
+          '503 embed failure shows a "try again" dialog and does NOT start',
+          (tester) async {
+        // ARRANGE
+        final snapshot = GameSnapshotFixtures.lobbyReady(
+          currentPlayerId: currentPlayerId,
+        );
+        when(() => mockApi.startGame(gameId: gameId)).thenThrow(
+          SearchEmbeddingException(
+            message: "Couldn't build your search game, try again",
+          ),
+        );
+        bool startSucceeded = false;
+
+        // ACT
+        await tester.pumpWidget(
+          MaterialApp(
+            home: LobbyScreenController(
+              gameId: gameId,
+              realtime: mockRealtime,
+              api: mockApi,
+              searchQuery: 'space',
+              onStartSucceeded: () => startSucceeded = true,
+            ),
+          ),
+        );
+        streamController.add(snapshot);
+        await tester.pump();
+
+        await tester.tap(find.byType(MainButton));
+        await tester.pumpAndSettle();
+
+        // ASSERT
+        expect(find.byType(StyledDialog), findsOneWidget);
+        expect(find.text("Couldn't start the game"), findsOneWidget);
+        expect(find.textContaining('try again'), findsOneWidget);
+        expect(startSucceeded, isFalse);
+
+        await tester.tap(find.text('OK'));
+        await tester.pumpAndSettle();
+        await cleanupTextScrollTimers(tester);
+      });
+
+      testWidgets(
+          'a successful start fires onStartSucceeded (recents saved there) and '
+          'shows no dialog', (tester) async {
+        // ARRANGE
+        final snapshot = GameSnapshotFixtures.lobbyReady(
+          currentPlayerId: currentPlayerId,
+        );
+        when(() => mockApi.startGame(gameId: gameId))
+            .thenAnswer((_) async {});
+        bool startSucceeded = false;
+
+        // ACT
+        await tester.pumpWidget(
+          MaterialApp(
+            home: LobbyScreenController(
+              gameId: gameId,
+              realtime: mockRealtime,
+              api: mockApi,
+              searchQuery: 'space scale',
+              onStartSucceeded: () => startSucceeded = true,
+            ),
+          ),
+        );
+        streamController.add(snapshot);
+        await tester.pump();
+
+        await tester.tap(find.byType(MainButton));
+        await tester.pumpAndSettle();
+
+        // ASSERT: callback fired (the controller persists recents); no dialog.
+        verify(() => mockApi.startGame(gameId: gameId)).called(1);
+        expect(startSucceeded, isTrue);
+        expect(find.byType(StyledDialog), findsNothing);
+
         await cleanupTextScrollTimers(tester);
       });
     });

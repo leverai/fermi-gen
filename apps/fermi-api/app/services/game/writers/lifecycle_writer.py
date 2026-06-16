@@ -5,6 +5,7 @@ Firestore writes. It does not perform reads and raises domain-specific
 exceptions instead of HTTP-aware ones.
 """
 
+import datetime
 import uuid
 from typing import TYPE_CHECKING, cast
 
@@ -20,6 +21,13 @@ if TYPE_CHECKING:
     )
 
     from app.services.game.utils import Writeable
+
+
+# How long a start "claim" is honored before it is considered stale and a new
+# start may reclaim. Question fetching takes a few seconds at most; this TTL is
+# generous so that a normal (or slow) start is never blocked, while a process
+# that crashes mid-start cannot deadlock the game forever.
+START_CLAIM_TTL = datetime.timedelta(seconds=60)
 
 
 class GameLifecycleWriter:
@@ -50,6 +58,55 @@ class GameLifecycleWriter:
     ) -> None:
         """Set the game state to ready."""
         writer.update(game_ref, {'state': GameState.LOBBY_READY})
+
+    def claim_start(
+        self,
+        game_ref: 'AsyncDocumentReference',
+        writer: 'Writeable',
+        *,
+        state: GameState,
+        claimed_at: datetime.datetime | None,
+        now: datetime.datetime,
+    ) -> None:
+        """Atomically claim the right to start the game.
+
+        Run this inside a Firestore transaction *before* the (expensive)
+        question fetch. It verifies the game is in ``LOBBY_READY`` and that no
+        other start is already in flight, then stamps ``start_claimed_at``.
+        Because the enclosing transaction reads and writes the same document,
+        only one of two concurrent claims can commit; the loser re-runs, sees
+        the winner's claim, and conflicts here instead of paying for a second
+        embedding/fetch.
+
+        ``claimed_at`` is the currently persisted ``start_claimed_at`` (or
+        ``None``). A claim older than ``START_CLAIM_TTL`` is treated as stale
+        (e.g. the previous attempt crashed) and may be reclaimed.
+
+        Raises:
+            StateConflictError: If the game is not ``LOBBY_READY`` or another
+                start is already in progress.
+
+        """
+        if state != GameState.LOBBY_READY:
+            raise StateConflictError('Game is not ready')
+
+        if claimed_at is not None and now - claimed_at < START_CLAIM_TTL:
+            raise StateConflictError('Game start already in progress')
+
+        writer.update(game_ref, {'start_claimed_at': firestore.SERVER_TIMESTAMP})
+
+    def release_start_claim(
+        self,
+        game_ref: 'AsyncDocumentReference',
+        writer: 'Writeable',
+    ) -> None:
+        """Clear the start claim so a future/retried start may proceed.
+
+        Used both to tidy up after a successful start and to release the claim
+        when starting fails (e.g. a retryable embedding error), so the host can
+        retry immediately instead of waiting for the claim to expire.
+        """
+        writer.update(game_ref, {'start_claimed_at': firestore.DELETE_FIELD})
 
     def start_game(
         self,

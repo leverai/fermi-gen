@@ -47,11 +47,6 @@ class MainScreenController extends ChangeNotifier {
   /// in both modes.
   String? searchQuery;
 
-  /// Inline, query-actionable error to show on the search box (e.g. the
-  /// "too few matches" message from a 422 `search_no_results`). Null when
-  /// there is no inline search error to display.
-  String? searchError;
-
   /// The current user's recent smart-search queries (MRU order), loaded from
   /// [LocalSettingsService]. Rendered as tappable chips in the party sheet.
   List<String> recentSearches = const <String>[];
@@ -270,36 +265,31 @@ class MainScreenController extends ChangeNotifier {
     // Selecting a category clears any active search (mutually exclusive).
     if (indices.isNotEmpty && isSearching) {
       searchQuery = null;
-      searchError = null;
     }
     notifyListeners();
   }
 
   /// Sets the smart-search query. A non-empty query clears and disables the
   /// category chips (mutually exclusive); clearing the query re-enables them.
-  /// Editing the query also clears any inline [searchError].
   void setSearchQuery(String? value) {
     final String? trimmed = value?.trim();
     searchQuery = (trimmed == null || trimmed.isEmpty) ? null : value;
-    searchError = null;
     if (isSearching && selectedCategoryIndices.isNotEmpty) {
       selectedCategoryIndices = {};
     }
     notifyListeners();
   }
 
-  /// Clears the smart-search query and any inline error.
+  /// Clears the smart-search query.
   void clearSearchQuery() {
-    if (searchQuery == null && searchError == null) return;
+    if (searchQuery == null) return;
     searchQuery = null;
-    searchError = null;
     notifyListeners();
   }
 
   Future<String> createGame({int? nQuestions}) async {
     isSubmitting = true;
     errorMessage = null;
-    searchError = null;
     notifyListeners();
     final String? activeQuery = isSearching ? searchQuery!.trim() : null;
     try {
@@ -309,34 +299,20 @@ class MainScreenController extends ChangeNotifier {
         nQuestions: nQuestions ?? 6,
         searchQuery: activeQuery,
       );
-      // Persist last round settings so we can restore on return.
+      // Persist last round settings so we can restore on return. This is also
+      // the source of truth for the search query at start-success time (the
+      // lobby reads it back via [saveSearchToRecents]).
       auth.lastRoundSettings = LastRoundSettings(
         categories: activeQuery != null ? null : currentCategoryBackendNames,
         difficulty: selectedDifficulty,
         searchQuery: activeQuery,
       );
-      // Recents are saved only on a successful create with a non-empty query
-      // (decision #7), keyed by user id.
-      if (activeQuery != null) {
-        final String? uid = auth.firebaseUid;
-        if (uid != null && uid.isNotEmpty) {
-          try {
-            await localSettings.addRecentSearch(uid, activeQuery);
-            recentSearches = await localSettings.getRecentSearches(uid);
-          } catch (e) {
-            print('⚠️ MainScreenController: failed to save recent search: $e');
-          }
-        }
-      }
+      // NOTE: recents are NOT saved here. The search runs at GAME START (not at
+      // create), so a query that matches too few questions still creates a
+      // game successfully and only fails at start. Saving recents on create
+      // would record queries that never produced a playable game. Recents are
+      // instead saved on a successful START via [saveSearchToRecents].
       return gameId;
-    } on SearchNoResultsException catch (e) {
-      // Too-few-matches: surface inline on the search box, keep the query,
-      // do NOT save to recents, do NOT set the generic errorMessage (so the
-      // generic snackbar/retry path is not triggered).
-      searchError = e.message;
-      print(
-          'ℹ️ MainScreenController.createGame: search_no_results: ${e.message}');
-      rethrow;
     } catch (e, st) {
       errorMessage = e.toString();
       print('❌ MainScreenController.createGame error: $e');
@@ -347,6 +323,31 @@ class MainScreenController extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Saves [query] to the current user's recent smart-search queries.
+  ///
+  /// Called after a smart-search game STARTS successfully (recents must reflect
+  /// queries that actually produced a playable game — the search runs at start,
+  /// not at create). Best-effort and keyed by firebase uid; a null/blank query
+  /// or missing uid is a no-op. Refreshes [recentSearches] and notifies.
+  Future<void> saveSearchToRecents(String? query) async {
+    final String? trimmed = query?.trim();
+    if (trimmed == null || trimmed.isEmpty) return;
+    final String? uid = auth.firebaseUid;
+    if (uid == null || uid.isEmpty) return;
+    try {
+      await localSettings.addRecentSearch(uid, trimmed);
+      recentSearches = await localSettings.getRecentSearches(uid);
+      notifyListeners();
+    } catch (e) {
+      print('⚠️ MainScreenController.saveSearchToRecents error: $e');
+    }
+  }
+
+  /// The smart-search query from the most recent create, or null. This is the
+  /// query that will be run at game start; the lobby threads it back to
+  /// [saveSearchToRecents] on a successful start.
+  String? get lastSearchQuery => auth.lastRoundSettings?.searchQuery;
 
   /// Factory for realtime adapter used by downstream screens.
   GameRealtime buildRealtimeAdapter() {

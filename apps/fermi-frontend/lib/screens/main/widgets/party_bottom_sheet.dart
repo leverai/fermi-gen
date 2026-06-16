@@ -144,7 +144,6 @@ void showPartyBottomSheet({
                         searchEnabled: controller.smartSearchEnabled,
                         searchController: searchController,
                         onSearchChanged: controller.setSearchQuery,
-                        searchError: controller.searchError,
                         isSearching: controller.isSearching,
                       ),
                       // Recent searches (tappable chips), only when smart

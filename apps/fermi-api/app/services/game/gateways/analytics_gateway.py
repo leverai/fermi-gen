@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, cast
 from fermi_core.op.embed import aget_query_embedding_3small
 from fermi_core.units import get_unit_family
 from fermi_db.models import AnswerEvent, SmartSearchEvent
-from fermi_db.models.game import VoteVerdict
+from fermi_db.models.game import AnswersQuantiles, VoteVerdict
 from fermi_db.schemas import GameMode, QuestionCategory
 
 from app.core.config import settings
@@ -84,31 +84,50 @@ class GameAnalyticsGateway:
                 difficulty=question_round_settings.difficulty,
             )
 
-        # 2. Get quantiles
-        quantiles = [
-            await self._db_client.answers.get_question_quantiles(question.uid)
-            for question in questions
-        ]
+        # 2. Bulk-fetch all per-question aggregates in 3 round-trips (not ~3N).
+        # The repositories share ONE AsyncSession, which cannot run concurrent
+        # operations on its single connection, so these are awaited sequentially
+        # (NOT gathered). Each bulk call replaces an N-iteration loop with a single
+        # IN (:uids) query, keyed by question_uid so we reassemble in input order
+        # below. Missing-uid handling mirrors the per-uid methods exactly:
+        #   - quantiles: a uid with no answer rows is absent -> easy() cold-start
+        #     quantiles. This matches get_question_quantiles: its UNGROUPED
+        #     aggregate always returns one row with cnt=0 for a no-answer question,
+        #     which is < MIN_QUANTILE_SAMPLE_SIZE and falls through to easy() (the
+        #     `row is None` branch never fires for an ungrouped aggregate).
+        #   - upvotes: a uid with no upvotes is absent -> default 0.
+        #   - verdicts: every requested uid is pre-seeded NO_VOTE for all user_ids.
+        question_uids = [question.uid for question in questions]
+        quantiles_by_uid = await self._db_client.answers.get_questions_quantiles(
+            question_uids,
+        )
+        upvotes_by_uid = await self._db_client.question_votes.get_upvotes_bulk(
+            question_uids,
+        )
+        verdicts_by_uid = (
+            await self._db_client.question_votes.get_players_vote_verdicts_bulk(
+                question_uids,
+                user_ids,
+            )
+        )
 
-        # 3. Create docs
+        # 3. Create docs, preserving the input order (order = enumerate start=1).
         questions_docs: list[QuestionDoc] = []
         answers_docs: list[AnswerDoc] = []
-        for idx, (question, q_quantiles) in enumerate(
-            zip(questions, quantiles, strict=True),
-            start=1,
-        ):
-            units = get_unit_family(question.unit) if question.unit else None
-            # Aggregate upvotes from votes table
-            upvotes = await self._db_client.question_votes.get_upvotes(
+        for idx, question in enumerate(questions, start=1):
+            # Absent uid == "no answer rows": cold-start easy() quantiles, matching
+            # get_question_quantiles (cnt=0 < MIN_QUANTILE_SAMPLE_SIZE -> easy(),
+            # NOT all-zeros — an all-zeros distribution would break cold-start
+            # scoring for never-answered questions).
+            q_quantiles = quantiles_by_uid.get(
                 question.uid,
+                AnswersQuantiles.easy(question.uid),
             )
-            # Aggregate players votes from votes table
-            players_votes = (
-                await self._db_client.question_votes.get_players_vote_verdicts(
-                    question.uid,
-                    user_ids,
-                )
-            )
+            units = get_unit_family(question.unit) if question.unit else None
+            # Aggregate upvotes from votes table (absent uid -> 0).
+            upvotes = upvotes_by_uid.get(question.uid, 0)
+            # Aggregate players votes from votes table (uid always pre-seeded).
+            players_votes = verdicts_by_uid[question.uid]
             questions_docs.append(
                 QuestionDoc(
                     question_uid=str(question.uid),
@@ -177,7 +196,6 @@ class GameAnalyticsGateway:
                 difficulty=question_round_settings.difficulty,
                 returned_uids=[],
                 returned_similarities=[],
-                candidate_pool_size=0,
                 outcome='embed_error',
                 floor_used=floor,
                 pool_size_used=pool_size,
@@ -209,9 +227,8 @@ class GameAnalyticsGateway:
                 host_user_id=host_user_id,
                 query=query,
                 difficulty=question_round_settings.difficulty,
-                returned_uids=[fermi.uid for fermi in questions],
+                returned_uids=[str(fermi.uid) for fermi in questions],
                 returned_similarities=similarities,
-                candidate_pool_size=len(rows),
                 outcome='too_few',
                 floor_used=floor,
                 pool_size_used=pool_size,
@@ -224,9 +241,8 @@ class GameAnalyticsGateway:
             host_user_id=host_user_id,
             query=query,
             difficulty=question_round_settings.difficulty,
-            returned_uids=[fermi.uid for fermi in questions],
+            returned_uids=[str(fermi.uid) for fermi in questions],
             returned_similarities=similarities,
-            candidate_pool_size=len(rows),
             outcome='ok',
             floor_used=floor,
             pool_size_used=pool_size,
@@ -240,9 +256,8 @@ class GameAnalyticsGateway:
         host_user_id: str | None,
         query: str,
         difficulty: 'QuestionDifficulty | None',
-        returned_uids: list[uuid.UUID],
+        returned_uids: list[str],
         returned_similarities: list[float],
-        candidate_pool_size: int,
         outcome: str,
         floor_used: float,
         pool_size_used: int,
@@ -250,7 +265,9 @@ class GameAnalyticsGateway:
         """Insert a SmartSearchEvent, best-effort.
 
         Telemetry must never break a game start, so any failure (incl. a missing
-        host id) is swallowed and logged rather than propagated.
+        host id) is swallowed and logged rather than propagated. ``returned_uids``
+        are strings (not ``uuid.UUID``): they land in a JSON column whose default
+        serializer can't encode ``uuid.UUID``.
         """
         if host_user_id is None:
             # No host to attribute the event to; skip rather than fail the start.
@@ -266,7 +283,6 @@ class GameAnalyticsGateway:
                     returned_uids=returned_uids,
                     n=len(returned_uids),
                     returned_similarities=returned_similarities,
-                    candidate_pool_size=candidate_pool_size,
                     outcome=outcome,
                     floor_used=floor_used,
                     pool_size_used=pool_size_used,
@@ -274,6 +290,17 @@ class GameAnalyticsGateway:
             )
         except Exception:
             logger.exception('Failed to record smart-search telemetry')
+            # A failed insert/commit leaves the shared AsyncSession in a
+            # pending-rollback state; without this, the next DB op in the
+            # surrounding request (e.g. get_question_quantiles) would raise
+            # PendingRollbackError and turn a successful search into a 500.
+            # This is the recovery path, so the rollback must never raise out.
+            try:
+                await self._db_client.session.rollback()
+            except Exception:
+                logger.exception(
+                    'Failed to roll back session after telemetry failure',
+                )
 
     def _create_answer_events(
         self,

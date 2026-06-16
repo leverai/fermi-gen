@@ -45,10 +45,6 @@ class CategoryChipSelector extends StatefulWidget {
   /// Called when the search text changes.
   final ValueChanged<String>? onSearchChanged;
 
-  /// Inline error message to show under the search box (e.g. "too few
-  /// matches"), or null for no error.
-  final String? searchError;
-
   /// Whether a (non-empty) search is currently active. When true the chips
   /// are greyed out / disabled.
   final bool isSearching;
@@ -62,7 +58,6 @@ class CategoryChipSelector extends StatefulWidget {
     this.searchEnabled = false,
     this.searchController,
     this.onSearchChanged,
-    this.searchError,
     this.isSearching = false,
   });
 
@@ -193,11 +188,9 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
 
   /// The real smart-search input. Styled after the "Edit profile" name field
   /// (profile_sheet.dart): filled `bgDark`, rounded outline borders that turn
-  /// `danger` on error and `primary` when focused.
+  /// `primary` when focused.
   Widget _buildSearchBox(AppTheme appTheme) {
-    final bool hasError =
-        widget.searchError != null && widget.searchError!.isNotEmpty;
-    final Color borderColor = hasError ? appTheme.danger : appTheme.borderMuted;
+    final Color borderColor = appTheme.borderMuted;
 
     return TextField(
       controller: widget.searchController,
@@ -239,12 +232,8 @@ class _CategoryChipSelectorState extends State<CategoryChipSelector> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: hasError ? appTheme.danger : appTheme.primary,
-          ),
+          borderSide: BorderSide(color: appTheme.primary),
         ),
-        errorText: hasError ? widget.searchError : null,
-        errorStyle: TextStyle(color: appTheme.danger),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       ),

@@ -6,10 +6,17 @@ import 'package:mocktail/mocktail.dart';
 import 'package:fermi_frontend/services/api_service.dart';
 import '../../../helpers/mock_factories.dart';
 
-/// Unit tests for the smart-search additions to [ApiService.createGame]:
-/// - the request carries `search_query` and nulls `categories`
-/// - a 422 `search_no_results` becomes a [SearchNoResultsException]
-/// - other failures (e.g. 503) fall through to the generic exception
+/// Unit tests for the smart-search behaviour of [ApiService].
+///
+/// The search now runs at GAME START, not at create:
+/// - [ApiService.createGame] only shapes the request (carries `search_query`,
+///   nulls `categories`). It does NOT parse search failures: /game/create no
+///   longer returns the 422 `search_no_results` nor the 503 embed failure, so
+///   every non-200 is a generic failure.
+/// - [ApiService.startGame] parses the search failures into typed exceptions:
+///   * 422 `detail.code == 'search_no_results'`      -> [SearchNoResultsException]
+///   * 503 `detail.code == 'search_embedding_error'` -> [SearchEmbeddingException]
+///   * anything else -> generic [Exception]
 void main() {
   late MockAuthService mockAuthService;
 
@@ -74,9 +81,62 @@ void main() {
     });
   });
 
-  group('422 search_no_results handling', () {
+  group('createGame no longer parses search failures', () {
+    test('a 422 search_no_results body is a GENERIC failure at create',
+        () async {
+      // The search runs at start, so even a body that *looks* like
+      // search_no_results must NOT become a SearchNoResultsException here.
+      final client = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'detail': {'code': 'search_no_results', 'message': 'x'}
+          }),
+          422,
+        );
+      });
+
+      await expectLater(
+        buildService(client).createGame(searchQuery: 'asdfqwer'),
+        throwsA(
+          allOf(
+            isA<Exception>(),
+            isNot(isA<SearchNoResultsException>()),
+            isNot(isA<SearchEmbeddingException>()),
+          ),
+        ),
+      );
+    });
+
+    test('a 503 embed-failure body is a GENERIC failure at create', () async {
+      final client = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'detail': {
+              'code': 'search_embedding_error',
+              'message': "Couldn't build your search game, try again",
+            }
+          }),
+          503,
+        );
+      });
+
+      await expectLater(
+        buildService(client).createGame(searchQuery: 'space'),
+        throwsA(
+          allOf(
+            isA<Exception>(),
+            isNot(isA<SearchNoResultsException>()),
+            isNot(isA<SearchEmbeddingException>()),
+          ),
+        ),
+      );
+    });
+  });
+
+  group('startGame: 422 search_no_results', () {
     test('throws SearchNoResultsException with the server message', () async {
       final client = MockClient((request) async {
+        expect(request.url.path, '/game/start');
         return http.Response(
           jsonEncode({
             'detail': {
@@ -93,73 +153,102 @@ void main() {
       });
 
       await expectLater(
-        buildService(client).createGame(searchQuery: 'asdfqwer'),
+        buildService(client).startGame(gameId: 'game-1'),
         throwsA(
           isA<SearchNoResultsException>()
-              .having((e) => e.query, 'query', 'asdfqwer')
               .having((e) => e.message, 'message', contains('broader')),
         ),
       );
     });
 
-    test('branches on detail.code, not message text', () async {
-      // A 422 whose detail is NOT the search_no_results code should fall
-      // through to the generic exception (e.g. a validation error).
-      final client = MockClient((request) async {
-        return http.Response(
-          jsonEncode({'detail': 'String too short'}),
-          422,
-        );
-      });
-
-      await expectLater(
-        buildService(client).createGame(searchQuery: 'x'),
-        throwsA(
-          isA<Exception>()
-              .having((e) => e.toString(), 'msg', contains('Failed to create')),
-        ),
-      );
-    });
-
-    test('does not treat a 422 as search_no_results when no search was sent',
+    test('branches on detail.code, not message text (other 422 is generic)',
         () async {
       final client = MockClient((request) async {
-        return http.Response(
-          jsonEncode({
-            'detail': {'code': 'search_no_results', 'message': 'x'}
-          }),
-          422,
-        );
+        return http.Response(jsonEncode({'detail': 'String too short'}), 422);
       });
 
       await expectLater(
-        buildService(client).createGame(categories: ['GENERAL']),
-        throwsA(isA<Exception>()),
-      );
-      // Specifically NOT a SearchNoResultsException.
-      await expectLater(
-        buildService(client).createGame(categories: ['GENERAL']),
-        throwsA(isNot(isA<SearchNoResultsException>())),
+        buildService(client).startGame(gameId: 'game-1'),
+        throwsA(
+          allOf(
+            isA<Exception>(),
+            isNot(isA<SearchNoResultsException>()),
+          ),
+        ),
       );
     });
   });
 
-  group('503 transient handling falls through to generic', () {
-    test('503 throws a generic Exception, not SearchNoResultsException',
+  group('startGame: 503 embed failure', () {
+    test('throws SearchEmbeddingException on the search_embedding_error code',
         () async {
       final client = MockClient((request) async {
         return http.Response(
-          jsonEncode({'detail': "Couldn't build your search game, try again"}),
+          jsonEncode({
+            'detail': {
+              'code': 'search_embedding_error',
+              'message': "Couldn't build your search game, try again",
+            }
+          }),
           503,
         );
       });
 
       await expectLater(
-        buildService(client).createGame(searchQuery: 'space'),
+        buildService(client).startGame(gameId: 'game-1'),
+        throwsA(
+          isA<SearchEmbeddingException>()
+              .having((e) => e.message, 'message', contains('try again')),
+        ),
+      );
+    });
+
+    test('a different 503 (legacy "No questions available") is generic',
+        () async {
+      final client = MockClient((request) async {
+        return http.Response(
+          jsonEncode({'detail': 'No questions available to start the game'}),
+          503,
+        );
+      });
+
+      await expectLater(
+        buildService(client).startGame(gameId: 'game-1'),
+        throwsA(
+          allOf(
+            isA<Exception>(),
+            isNot(isA<SearchEmbeddingException>()),
+            isNot(isA<SearchNoResultsException>()),
+          ),
+        ),
+      );
+    });
+  });
+
+  group('startGame: success and generic failures', () {
+    test('returns normally (no throw) on 200', () async {
+      final client = MockClient((request) async {
+        return http.Response('{"resource_id": "game-1"}', 200);
+      });
+
+      await expectLater(
+        buildService(client).startGame(gameId: 'game-1'),
+        completes,
+      );
+    });
+
+    test('a 500 is a generic Exception, not a search exception', () async {
+      final client = MockClient((request) async {
+        return http.Response('boom', 500);
+      });
+
+      await expectLater(
+        buildService(client).startGame(gameId: 'game-1'),
         throwsA(
           allOf(
             isA<Exception>(),
             isNot(isA<SearchNoResultsException>()),
+            isNot(isA<SearchEmbeddingException>()),
           ),
         ),
       );

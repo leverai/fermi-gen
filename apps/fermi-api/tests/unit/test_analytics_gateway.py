@@ -125,7 +125,7 @@ class _FakeAnswers:
         self._call_log = call_log
         self.added: list[AnswerEvent] | None = None
 
-    async def get_question_quantiles(self, question_uid: uuid.UUID) -> _FakeQuantiles:
+    def _quantiles(self) -> _FakeQuantiles:
         return _FakeQuantiles(
             p01=10.0,
             p05=20.0,
@@ -140,6 +140,17 @@ class _FakeAnswers:
             p95=110.0,
             p99=120.0,
         )
+
+    async def get_question_quantiles(self, question_uid: uuid.UUID) -> _FakeQuantiles:
+        return self._quantiles()
+
+    async def get_questions_quantiles(
+        self,
+        question_uids: list[uuid.UUID],
+    ) -> dict[uuid.UUID, _FakeQuantiles]:
+        # Bulk: one entry per requested uid, mirroring the real repo's keying.
+        self._call_log.append('quantiles_bulk')
+        return {uid: self._quantiles() for uid in question_uids}
 
     async def add_answers(self, events: list[AnswerEvent]) -> None:
         self._call_log.append('answers')
@@ -167,6 +178,19 @@ class _FakeQuestionVotes:
     async def get_upvotes(self, question_uid: uuid.UUID) -> int:
         return self.counts.get(question_uid, (0, 0))[0]
 
+    async def get_upvotes_bulk(
+        self,
+        question_uids: list[uuid.UUID],
+    ) -> dict[uuid.UUID, int]:
+        # Bulk: mirror real repo -- only include uids that have upvotes (>0), so a
+        # uid with zero upvotes is absent and the gateway must default it to 0.
+        out: dict[uuid.UUID, int] = {}
+        for uid in question_uids:
+            up = self.counts.get(uid, (0, 0))[0]
+            if up:
+                out[uid] = up
+        return out
+
     async def get_downvotes(self, question_uid: uuid.UUID) -> int:
         return self.counts.get(question_uid, (0, 0))[1]
 
@@ -176,6 +200,15 @@ class _FakeQuestionVotes:
         user_ids: list[str],
     ) -> dict[str, int]:
         return dict.fromkeys(user_ids, 1)
+
+    async def get_players_vote_verdicts_bulk(
+        self,
+        question_uids: list[uuid.UUID],
+        user_ids: list[str],
+    ) -> dict[uuid.UUID, dict[str, int]]:
+        # Bulk: every requested uid present, pre-seeded for all users (here all 1
+        # to match the per-uid fake's behavior).
+        return {uid: dict.fromkeys(user_ids, 1) for uid in question_uids}
 
 
 class _FakeUsers:
@@ -204,6 +237,16 @@ class _FakeUsers:
         return self.points_store.get(firebase_uid, 0)
 
 
+class _FakeSession:
+    """Spy for the shared AsyncSession; records best-effort rollbacks."""
+
+    def __init__(self) -> None:
+        self.rollback_calls = 0
+
+    async def rollback(self) -> None:
+        self.rollback_calls += 1
+
+
 class _FakeDbClient:
     def __init__(self, call_log: list[str]) -> None:
         self.fermi = _FakeFermi(call_log)
@@ -211,6 +254,9 @@ class _FakeDbClient:
         self.answers = _FakeAnswers(call_log)
         self.question_votes = _FakeQuestionVotes()
         self.users = _FakeUsers()
+        # Shared session: the gateway rolls this back if telemetry fails so a
+        # poisoned session can't break the surrounding request (regression: C1).
+        self.session = _FakeSession()
 
 
 def test_get_questions_and_answers_docs_general_mapping_and_shapes() -> None:
@@ -252,6 +298,92 @@ def test_get_questions_and_answers_docs_general_mapping_and_shapes() -> None:
         'p95',
         'p99',
     }
+
+
+def test_get_questions_and_answers_docs_bulk_order_and_missing_data() -> None:
+    """Bulk path: docs keep input order; absent uids fall back to defaults.
+
+    Locks the M1 refactor: the gateway fetches per-question aggregates in bulk
+    (keyed by uid) but must reassemble strictly in the input `questions` order,
+    with `order` = 1..N, and replicate the per-uid missing-data defaults:
+    absent quantiles -> easy() cold-start (NOT all-zeros), absent upvotes -> 0,
+    verdicts pre-seeded.
+    """
+    log: list[str] = []
+    db = _FakeDbClient(log)
+
+    # Three questions in a fixed order; q2 has no answer rows (absent from the
+    # bulk quantiles result) and no upvotes (absent from the bulk upvotes result).
+    q1, q2, q3 = (
+        _sample_question('Q1'),
+        _sample_question('Q2'),
+        _sample_question('Q3'),
+    )
+    questions = [q1, q2, q3]
+
+    async def fake_questions(**_: Any) -> list[Any]:
+        return questions
+
+    db.fermi.get_unseen_random_questions = fake_questions  # type: ignore[assignment]
+
+    # Sparse bulk quantiles: q1 and q3 present (distinct p50), q2 absent.
+    async def fake_quantiles(question_uids: list[uuid.UUID]) -> dict[uuid.UUID, Any]:
+        log.append('quantiles_bulk')
+        return {
+            q1.uid: _FakeQuantiles(p50=111.0),
+            q3.uid: _FakeQuantiles(p50=333.0),
+        }
+
+    db.answers.get_questions_quantiles = fake_quantiles  # type: ignore[assignment]
+
+    # Sparse bulk upvotes: q1=5, q3=7, q2 absent (-> must default to 0).
+    async def fake_upvotes(question_uids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
+        return {q1.uid: 5, q3.uid: 7}
+
+    db.question_votes.get_upvotes_bulk = fake_upvotes  # type: ignore[assignment]
+
+    # Verdicts: every requested uid present, pre-seeded (q1 actual upvote, rest 0).
+    async def fake_verdicts(
+        question_uids: list[uuid.UUID],
+        user_ids: list[str],
+    ) -> dict[uuid.UUID, dict[str, int]]:
+        out = {uid: dict.fromkeys(user_ids, 0) for uid in question_uids}
+        out[q1.uid] = dict.fromkeys(user_ids, 1)
+        return out
+
+    db.question_votes.get_players_vote_verdicts_bulk = fake_verdicts  # type: ignore[assignment]
+
+    qrs = QuestionRoundSettings(n_questions=3, categories=None, difficulty=None)
+    questions_docs, answers_docs = asyncio.get_event_loop().run_until_complete(
+        gw_mod.GameAnalyticsGateway(
+            db_client=cast(Any, db),
+        ).get_questions_and_answers_docs(
+            user_ids=['u1', 'u2'],
+            question_round_settings=qrs,
+        ),
+    )
+
+    # Order preserved: docs follow the input questions list, order = 1..N.
+    assert [d['question_uid'] for d in questions_docs] == [
+        str(q1.uid),
+        str(q2.uid),
+        str(q3.uid),
+    ]
+    assert [d['order'] for d in questions_docs] == [1, 2, 3]
+
+    # Upvotes mapped per uid; the absent q2 defaults to 0 (per-uid parity).
+    assert [d['upvotes'] for d in questions_docs] == [5, 0, 7]
+
+    # Verdicts wired through per uid; q1 upvotes, q2/q3 pre-seeded NO_VOTE (0).
+    assert questions_docs[0]['players_votes'] == {'u1': 1, 'u2': 1}
+    assert questions_docs[1]['players_votes'] == {'u1': 0, 'u2': 0}
+
+    # Quantiles mapped per uid; absent q2 -> easy() cold-start quantiles, matching
+    # the per-uid path: a no-answer question has cnt=0 < MIN_QUANTILE_SAMPLE_SIZE,
+    # so get_question_quantiles returns easy() (linear 1-1000), NOT all-zeros.
+    assert answers_docs[0]['quantiles']['p50'] == 111.0
+    assert answers_docs[2]['quantiles']['p50'] == 333.0
+    assert answers_docs[1]['quantiles']['p50'] == 500.0
 
 
 def test__create_answer_events_transforms_inputs() -> None:
@@ -625,13 +757,14 @@ def test_search_success_records_ok_event_with_similarities(
     assert event.game_id == 'g-42'
     assert event.user_id == 'host-1'
     assert event.n == 6
-    assert event.candidate_pool_size == 6
     assert event.floor_used == 0.30
     assert event.pool_size_used == 25
     assert event.difficulty == QuestionDifficulty.EASY
     # similarities = 1 - distance, parallel to returned_uids.
     assert event.returned_similarities == pytest.approx([1 - d for d in distances])
+    # uids are recorded as strings (JSON-serializable), parallel to similarities.
     assert len(event.returned_uids) == 6
+    assert all(isinstance(u, str) for u in event.returned_uids)
 
 
 def test_search_telemetry_failure_is_non_fatal(
@@ -662,3 +795,6 @@ def test_search_telemetry_failure_is_non_fatal(
         ),
     )
     assert len(questions_docs) == 6
+    # The failed telemetry insert must roll the shared session back, so the
+    # downstream quantiles/votes reads don't hit a poisoned session (C1 fix).
+    assert db.session.rollback_calls == 1

@@ -247,8 +247,11 @@ class SmartSearchEvent(SQLModel, table=True):
     game_id: str | None = Field(default=None, index=True)
     query: str
     difficulty: QuestionDifficulty | None = None
-    # uids of the questions served, parallel to returned_similarities.
-    returned_uids: list[uuid.UUID] = Field(
+    # uids of the questions served (as strings), parallel to returned_similarities.
+    # Stored as str, not uuid.UUID: the column is a JSON array and the engine's
+    # default json.dumps cannot serialize uuid.UUID (it raises and poisons the
+    # session). Callers pass [str(uid) for ...]; see GameAnalyticsGateway.
+    returned_uids: list[str] = Field(
         default_factory=list,
         sa_column=sa.Column(sa.JSON),
     )
@@ -258,8 +261,6 @@ class SmartSearchEvent(SQLModel, table=True):
         default_factory=list,
         sa_column=sa.Column(sa.JSON),
     )
-    # How many questions cleared the floor + pool cap, before fairness/limit.
-    candidate_pool_size: int
     # 'ok' | 'too_few' | 'embed_error'.
     outcome: str
     # The dials in effect for this row, so historical data stays interpretable.

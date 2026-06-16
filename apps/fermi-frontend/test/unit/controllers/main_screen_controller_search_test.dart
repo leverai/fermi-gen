@@ -77,7 +77,6 @@ void main() {
       expect(controller.selectedCategoryIndices, {1});
       expect(controller.searchQuery, isNull);
       expect(controller.isSearching, isFalse);
-      expect(controller.searchError, isNull);
     });
 
     test('clearing the query (empty string) re-enables categories', () {
@@ -111,8 +110,8 @@ void main() {
 
   group('createGame with search query', () {
     test(
-        'passes the trimmed query to the API and saves it to recents on '
-        'success', () async {
+        'passes the trimmed query to the API and does NOT save recents on '
+        'create (recents are saved on a successful START)', () async {
       controller.setSearchQuery('  space scale  ');
       when(() => mockApi.createGame(
             categories: any(named: 'categories'),
@@ -130,8 +129,13 @@ void main() {
             nQuestions: any(named: 'nQuestions'),
             searchQuery: 'space scale',
           )).called(1);
-      // Recents saved with the raw trimmed query, keyed by uid.
-      verify(() => mockLocal.addRecentSearch('uid-1', 'space scale')).called(1);
+      // The query is persisted to lastRoundSettings (start reads it back) but
+      // NOT to recents yet — the game has not started.
+      final captured = verify(() => mockAuth.lastRoundSettings = captureAny())
+          .captured
+          .last as LastRoundSettings;
+      expect(captured.searchQuery, 'space scale');
+      verifyNever(() => mockLocal.addRecentSearch(any(), any()));
     });
 
     test('does NOT save to recents when no search query is active', () async {
@@ -147,39 +151,8 @@ void main() {
 
       verifyNever(() => mockLocal.addRecentSearch(any(), any()));
     });
-  });
 
-  group('search_no_results (HTTP 422) handling', () {
-    test(
-        'surfaces the inline message, keeps the query, and does NOT save to '
-        'recents', () async {
-      controller.setSearchQuery('asdfqwer');
-      when(() => mockApi.createGame(
-            categories: any(named: 'categories'),
-            difficulty: any(named: 'difficulty'),
-            nQuestions: any(named: 'nQuestions'),
-            searchQuery: 'asdfqwer',
-          )).thenThrow(SearchNoResultsException(
-        query: 'asdfqwer',
-        message: "No questions match 'asdfqwer' — try a broader search.",
-      ));
-
-      await expectLater(
-        controller.createGame(),
-        throwsA(isA<SearchNoResultsException>()),
-      );
-
-      // Inline error set; query preserved; generic errorMessage NOT set.
-      expect(controller.searchError,
-          "No questions match 'asdfqwer' — try a broader search.");
-      expect(controller.searchQuery, 'asdfqwer');
-      expect(controller.errorMessage, isNull);
-      // Not added to recents.
-      verifyNever(() => mockLocal.addRecentSearch(any(), any()));
-      expect(controller.isSubmitting, isFalse);
-    });
-
-    test('a generic failure (e.g. 503) sets errorMessage, not searchError',
+    test('a generic create failure sets errorMessage and saves no recents',
         () async {
       controller.setSearchQuery('space');
       when(() => mockApi.createGame(
@@ -191,16 +164,43 @@ void main() {
 
       await expectLater(controller.createGame(), throwsA(isA<Exception>()));
 
-      expect(controller.searchError, isNull);
       expect(controller.errorMessage, isNotNull);
-      // Generic failures do not save to recents either.
+      verifyNever(() => mockLocal.addRecentSearch(any(), any()));
+    });
+  });
+
+  group('saveSearchToRecents (called on a successful START)', () {
+    test('saves the trimmed query to recents, keyed by uid', () async {
+      when(() => mockLocal.getRecentSearches('uid-1'))
+          .thenAnswer((_) async => const ['space scale']);
+
+      await controller.saveSearchToRecents('  space scale  ');
+
+      verify(() => mockLocal.addRecentSearch('uid-1', 'space scale')).called(1);
+      expect(controller.recentSearches, ['space scale']);
+    });
+
+    test('is a no-op for a null/blank query', () async {
+      await controller.saveSearchToRecents(null);
+      await controller.saveSearchToRecents('   ');
       verifyNever(() => mockLocal.addRecentSearch(any(), any()));
     });
 
-    test('editing the query clears a previous inline searchError', () {
-      controller.searchError = 'old error';
-      controller.setSearchQuery('new query');
-      expect(controller.searchError, isNull);
+    test('is a no-op when there is no firebase uid', () async {
+      when(() => mockAuth.firebaseUid).thenReturn(null);
+      await controller.saveSearchToRecents('space');
+      verifyNever(() => mockLocal.addRecentSearch(any(), any()));
+    });
+
+    test('lastSearchQuery reflects auth.lastRoundSettings.searchQuery', () {
+      when(() => mockAuth.lastRoundSettings).thenReturn(
+        const LastRoundSettings(
+          categories: null,
+          difficulty: 'EASY',
+          searchQuery: 'space scale',
+        ),
+      );
+      expect(controller.lastSearchQuery, 'space scale');
     });
   });
 }

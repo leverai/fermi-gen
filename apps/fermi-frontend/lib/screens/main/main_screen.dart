@@ -140,6 +140,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       final String gameId = await _controller.createGame(
           nQuestions: AppConfig.defaultQuestionCount);
       if (!mounted) return;
+      // The search (if any) runs at START, not create. Thread the query and a
+      // save-on-success callback to the lobby so recents are saved only after
+      // the game actually starts (the host who created it owns the query).
+      final String? searchQuery = _controller.lastSearchQuery;
       Navigator.of(context)
           .push(
         PageRouteBuilder(
@@ -147,6 +151,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             gameId: gameId,
             realtime: _controller.buildRealtimeAdapter(),
             api: widget.apiService,
+            searchQuery: searchQuery,
+            onStartSucceeded: () => _controller.saveSearchToRecents(searchQuery),
             initialPlayers: [
               PlayerState(
                 isHost: true,
@@ -181,10 +187,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
         }
       });
-    } on SearchNoResultsException catch (_) {
-      // "Too few matches" is surfaced inline on the search box (the party
-      // sheet rebuilds from controller.searchError); no snackbar/retry here.
     } catch (e) {
+      // The smart-search "too few matches" / transient failures now happen at
+      // game START (handled by the lobby with a dialog), not at create, so
+      // create only surfaces generic failures here.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
