@@ -35,6 +35,13 @@ const String kSearchNoResultsCode = 'search_no_results';
 /// backend StartGameUseCase embed-error handler.
 const String kSearchEmbeddingCode = 'search_embedding_error';
 
+/// Minimum length (after trimming) of a smart-search query the backend will
+/// accept. The create endpoint validates `search_query` to be 2-100 characters
+/// and rejects a 1-char query with a Pydantic 422. The client guards on this so
+/// a too-short query never produces that avoidable round-trip + opaque error.
+/// Keep in sync with the backend `validate_search_query` rule.
+const int kMinSearchQueryLength = 2;
+
 /// Thrown when a smart-search game fails because the query matched too few
 /// questions. The search now runs at GAME START, so this is raised from
 /// [ApiService.startGame] on an HTTP 422 with `detail.code ==
@@ -71,6 +78,26 @@ class SearchEmbeddingException implements Exception {
   final String message;
 
   SearchEmbeddingException({required this.message});
+
+  @override
+  String toString() => message;
+}
+
+/// Thrown client-side (before any network call) when a smart-search game is
+/// created with a query shorter than [kMinSearchQueryLength] characters.
+///
+/// The backend's create endpoint rejects 1-char queries (it enforces 2-100
+/// chars) with a Pydantic 422 whose body is an opaque error array. Catching the
+/// too-short case locally avoids that round-trip and lets the UI show an
+/// actionable hint. The game is NOT created and nothing is persisted.
+class SearchQueryTooShortException implements Exception {
+  /// The actionable, user-facing message to surface inline.
+  final String message;
+
+  SearchQueryTooShortException({
+    this.message =
+        'Search must be at least $kMinSearchQueryLength characters.',
+  });
 
   @override
   String toString() => message;

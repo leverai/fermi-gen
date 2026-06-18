@@ -167,6 +167,66 @@ void main() {
       expect(controller.errorMessage, isNotNull);
       verifyNever(() => mockLocal.addRecentSearch(any(), any()));
     });
+
+    test(
+        'rejects a too-short (1-char) query client-side without calling the API',
+        () async {
+      controller.setSearchQuery('a'); // 1 char: still "searching" (greys chips)
+      expect(controller.isSearching, isTrue);
+
+      await expectLater(
+        controller.createGame(),
+        throwsA(isA<SearchQueryTooShortException>()),
+      );
+
+      // The backend enforces 2-100 chars; we never hit the network, never
+      // persist the round settings, and never save recents.
+      verifyNever(() => mockApi.createGame(
+            categories: any(named: 'categories'),
+            difficulty: any(named: 'difficulty'),
+            nQuestions: any(named: 'nQuestions'),
+            searchQuery: any(named: 'searchQuery'),
+          ));
+      verifyNever(() => mockAuth.lastRoundSettings = any());
+      verifyNever(() => mockLocal.addRecentSearch(any(), any()));
+      expect(controller.isSubmitting, isFalse);
+    });
+
+    test('rejects a query that is 1 char after trimming', () async {
+      controller.setSearchQuery('  a  '); // trims to 'a'
+
+      await expectLater(
+        controller.createGame(),
+        throwsA(isA<SearchQueryTooShortException>()),
+      );
+
+      verifyNever(() => mockApi.createGame(
+            categories: any(named: 'categories'),
+            difficulty: any(named: 'difficulty'),
+            nQuestions: any(named: 'nQuestions'),
+            searchQuery: any(named: 'searchQuery'),
+          ));
+    });
+
+    test('accepts a 2-char query (boundary) and sends it', () async {
+      controller.setSearchQuery('ab');
+      when(() => mockApi.createGame(
+            categories: any(named: 'categories'),
+            difficulty: any(named: 'difficulty'),
+            nQuestions: any(named: 'nQuestions'),
+            searchQuery: 'ab',
+          )).thenAnswer((_) async => 'game-ab');
+
+      final id = await controller.createGame();
+
+      expect(id, 'game-ab');
+      verify(() => mockApi.createGame(
+            categories: any(named: 'categories'),
+            difficulty: any(named: 'difficulty'),
+            nQuestions: any(named: 'nQuestions'),
+            searchQuery: 'ab',
+          )).called(1);
+    });
   });
 
   group('saveSearchToRecents (called on a successful START)', () {

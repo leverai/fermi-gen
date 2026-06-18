@@ -293,6 +293,12 @@ class MainScreenController extends ChangeNotifier {
     notifyListeners();
     final String? activeQuery = isSearching ? searchQuery!.trim() : null;
     try {
+      // Guard a too-short search client-side: the backend enforces 2-100 chars
+      // and would 422 a 1-char query at create. Surfacing it locally avoids the
+      // round-trip and an opaque error (see [kMinSearchQueryLength]).
+      if (activeQuery != null && activeQuery.length < kMinSearchQueryLength) {
+        throw SearchQueryTooShortException();
+      }
       final String gameId = await api.createGame(
         categories: currentCategoryBackendNames,
         difficulty: selectedDifficulty,

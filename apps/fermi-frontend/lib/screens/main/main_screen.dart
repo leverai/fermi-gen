@@ -187,6 +187,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
         }
       });
+    } on SearchQueryTooShortException catch (e) {
+      // Too-short query rejected client-side (no game created). Show the
+      // actionable hint directly, without the generic "Error:" prefix.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (e) {
       // The smart-search "too few matches" / transient failures now happen at
       // game START (handled by the lobby with a dialog), not at create, so
