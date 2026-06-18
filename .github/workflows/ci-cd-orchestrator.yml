@@ -21,6 +21,7 @@ jobs:
       migrations: ${{ steps.filter.outputs.migrations }}
       api: ${{ steps.filter.outputs.api }}
       etl: ${{ steps.filter.outputs.etl }}
+      db: ${{ steps.filter.outputs.db }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
       - name: Checkout code
@@ -50,6 +51,12 @@ jobs:
               - 'packages/fermi-db/!((docs|**/*.md)/**)/**'
               - 'uv.lock'
               - '.github/workflows/fermi-etl-ci-cd.yml'
+              - 'Makefile'
+            db:
+              - 'packages/fermi-db/!((docs|**/*.md)/**)/**'
+              - 'packages/fermi-core/!((docs|**/*.md)/**)/**'
+              - 'uv.lock'
+              - '.github/workflows/fermi-db-ci.yml'
               - 'Makefile'
             frontend:
               - 'apps/fermi-frontend/!((docs|**/*.md)/**)/**'
@@ -95,6 +102,17 @@ jobs:
       id-token: write
       contents: read
     secrets: inherit
+
+  # fermi-db is a library (no deploy): a pure test gate on PRs and pushes.
+  # It provisions its own ephemeral Postgres via testcontainers, so it does not
+  # depend on the migrations workflow.
+  db:
+    name: DB Workflow
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.db == 'true' }}
+    uses: ./.github/workflows/fermi-db-ci.yml
+    permissions:
+      contents: read
 
 #   frontend:
 #     name: Frontend Workflow

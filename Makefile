@@ -102,6 +102,26 @@ test-api-endpoints:
 	uv run --package fermi-api pytest apps/fermi-api/tests/api/ -r fE --maxfail=1 -o log_cli=false -o log_level=WARNING
 
 # ============================================================================
+# Testing Targets - DB (fermi-db)
+# ============================================================================
+# Integration tests provision Postgres+pgvector via testcontainers, so no
+# `docker compose up` / DATABASE_URL / migrate steps are required here -- only a
+# running Docker daemon. Set DATABASE_URL (postgresql+asyncpg://...) to run
+# against an existing Postgres instead (e.g. a CI service container).
+
+.PHONY: test-db-unit
+test-db-unit:
+	uv run --package fermi-db pytest packages/fermi-db/tests/unit/ -r fE --maxfail=1 -o log_cli=false -o log_level=WARNING
+
+.PHONY: test-db-integration
+test-db-integration:
+	uv run --package fermi-db pytest packages/fermi-db/tests/integration/ -r fE -o log_cli=false -o log_level=WARNING
+
+.PHONY: test-db
+test-db:
+	$(MAKE) test-db-unit && $(MAKE) test-db-integration
+
+# ============================================================================
 # Docker Targets
 # ============================================================================
 

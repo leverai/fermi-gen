@@ -1,0 +1,34 @@
+name: Fermi DB CI
+
+# Reusable workflow: runs the fermi-db test suite as a merge gate.
+#
+# Integration tests provision Postgres + pgvector via testcontainers, which uses
+# the Docker daemon available on GitHub-hosted runners -- so no `services:`
+# block is required. (The harness is dual-mode: set DATABASE_URL to a
+# postgresql+asyncpg:// instance to run against a service container instead.)
+
+on:
+  workflow_call:
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  test:
+    name: fermi-db Unit & Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run fermi-db tests (unit + integration via testcontainers)
+        run: make test-db
