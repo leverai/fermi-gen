@@ -7,7 +7,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.api import api_router
-from app.api.v1.auth_deps import get_current_user
+from app.api.v1.auth_deps import get_authenticated_user, get_current_user
+from app.api.v1.authenticated_user import AuthenticatedUser
 from app.api.v1.dependencies import get_firestore_client, get_game_service
 from app.core.config import settings
 from app.version import __version__
@@ -44,6 +45,18 @@ def client_overrides() -> Generator[TestClient, None, None]:
             self.display_name = 'Dummy'
             self.picture = None
 
+    def _dummy_authenticated_user() -> AuthenticatedUser:
+        from fermi_db.models.user import User
+
+        return AuthenticatedUser(
+            user=User(
+                id=1,
+                firebase_uid='dummy-uid',
+                email='dummy@example.com',
+                display_name='Dummy',
+            ),
+        )
+
     async def _dummy_firestore() -> object:  # pragma: no cover
         class _Dummy:
             pass
@@ -54,6 +67,7 @@ def client_overrides() -> Generator[TestClient, None, None]:
         pass
 
     app.dependency_overrides[get_current_user] = lambda: _DummyUser()
+    app.dependency_overrides[get_authenticated_user] = _dummy_authenticated_user
     app.dependency_overrides[get_firestore_client] = _dummy_firestore
     app.dependency_overrides[get_game_service] = lambda: _DummyService()  # type: ignore[return-value]
 

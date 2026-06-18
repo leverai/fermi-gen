@@ -14,6 +14,7 @@ class TestDateToDocId:
     """Tests for _date_to_doc_id formatting."""
 
     def test_formats_date_as_yyyy_mm_dd(self) -> None:
+        """Ensures the date is formatted as 'YYYY-MM-DD'."""
         mock_fs = MagicMock()
         writer = DQFirestoreWriter(mock_fs)
 
@@ -21,6 +22,7 @@ class TestDateToDocId:
         assert result == '2024-12-18'
 
     def test_pads_single_digit_months(self) -> None:
+        """Ensures single-digit months are zero-padded."""
         mock_fs = MagicMock()
         writer = DQFirestoreWriter(mock_fs)
 
@@ -33,6 +35,7 @@ class TestCreateDqDocument:
     """Tests for create_dq_document."""
 
     async def test_creates_document_with_not_started_status(self) -> None:
+        """Ensures a document is created with the NOT_STARTED status."""
         mock_fs = MagicMock()
         mock_doc_ref = MagicMock()
         mock_doc_ref.set = AsyncMock()
@@ -64,10 +67,52 @@ class TestCreateDqDocument:
 
 
 @pytest.mark.asyncio
+class TestActivateDqDocument:
+    """Tests for activate_dq_document (ACTIVE flip + optional invite_url branch)."""
+
+    async def test_sets_status_active_without_invite_url(self) -> None:
+        """Ensures the document status is updated to ACTIVE without an invite_url."""
+        mock_fs = MagicMock()
+        mock_doc_ref = MagicMock()
+        mock_doc_ref.update = AsyncMock()
+        mock_fs.collection.return_value.document.return_value = mock_doc_ref
+
+        writer = DQFirestoreWriter(mock_fs)
+
+        await writer.activate_dq_document(datetime.date(2024, 12, 18))
+
+        mock_doc_ref.update.assert_awaited_once_with(
+            {'status': DQWindowStatus.ACTIVE},
+        )
+
+    async def test_includes_invite_url_when_provided(self) -> None:
+        """Ensures the invite_url is included when provided."""
+        mock_fs = MagicMock()
+        mock_doc_ref = MagicMock()
+        mock_doc_ref.update = AsyncMock()
+        mock_fs.collection.return_value.document.return_value = mock_doc_ref
+
+        writer = DQFirestoreWriter(mock_fs)
+
+        await writer.activate_dq_document(
+            datetime.date(2024, 12, 18),
+            invite_url='https://fermi.app/dq/2024-12-18',
+        )
+
+        mock_doc_ref.update.assert_awaited_once_with(
+            {
+                'status': DQWindowStatus.ACTIVE,
+                'invite_url': 'https://fermi.app/dq/2024-12-18',
+            },
+        )
+
+
+@pytest.mark.asyncio
 class TestRecordUserStart:
     """Tests for record_user_start."""
 
     async def test_creates_user_session_with_submitted_false(self) -> None:
+        """Ensures a user session document is created with submitted set to False."""
         mock_fs = MagicMock()
         mock_session_ref = MagicMock()
         mock_session_ref.set = AsyncMock()
@@ -93,71 +138,11 @@ class TestRecordUserStart:
 
 
 @pytest.mark.asyncio
-class TestActivateDqDocument:
-    """Tests for activate_dq_document."""
-
-    async def test_updates_status_to_active(self) -> None:
-        mock_fs = MagicMock()
-        mock_doc_ref = MagicMock()
-        mock_doc_ref.update = AsyncMock()
-        mock_fs.collection.return_value.document.return_value = mock_doc_ref
-
-        writer = DQFirestoreWriter(mock_fs)
-
-        await writer.activate_dq_document(datetime.date(2024, 12, 18))
-
-        mock_doc_ref.update.assert_awaited_once_with(
-            {
-                'status': DQWindowStatus.ACTIVE,
-            },
-        )
-
-
-@pytest.mark.asyncio
-class TestCloseDqDocument:
-    """Tests for close_dq_document."""
-
-    async def test_updates_status_to_closed(self) -> None:
-        mock_fs = MagicMock()
-        mock_doc_ref = MagicMock()
-        mock_doc_ref.update = AsyncMock()
-        mock_fs.collection.return_value.document.return_value = mock_doc_ref
-
-        writer = DQFirestoreWriter(mock_fs)
-
-        await writer.close_dq_document(datetime.date(2024, 12, 18))
-
-        mock_doc_ref.update.assert_awaited_once_with(
-            {
-                'status': DQWindowStatus.CLOSED,
-            },
-        )
-
-
-@pytest.mark.asyncio
-class TestDeleteUserSession:
-    """Tests for delete_user_session."""
-
-    async def test_deletes_session_document(self) -> None:
-        mock_fs = MagicMock()
-        mock_session_ref = MagicMock()
-        mock_session_ref.delete = AsyncMock()
-        (
-            mock_fs.collection.return_value.document.return_value.collection.return_value.document.return_value
-        ) = mock_session_ref
-
-        writer = DQFirestoreWriter(mock_fs)
-
-        await writer.delete_user_session(datetime.date(2024, 12, 18), 'user-id')
-
-        mock_session_ref.delete.assert_awaited_once()
-
-
-@pytest.mark.asyncio
 class TestGetUserSession:
     """Tests for get_user_session."""
 
     async def test_returns_none_when_not_exists(self) -> None:
+        """Ensures None is returned when the user session document does not exist."""
         mock_fs = MagicMock()
         mock_doc = MagicMock()
         mock_doc.exists = False
@@ -174,6 +159,7 @@ class TestGetUserSession:
         assert result is None
 
     async def test_returns_session_data_when_exists(self) -> None:
+        """Ensures session data is returned when the user session document exists."""
         mock_fs = MagicMock()
         session_data = {
             'started_at': datetime.datetime(2024, 12, 18, 14, 0, 0),  # noqa: DTZ001

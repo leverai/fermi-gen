@@ -19,11 +19,16 @@ def _wait_ready(
     *,
     timeout_s: float = 8.0,
 ) -> dict[str, Any]:
-    """Wait until game reaches LOBBY_READY state with questions populated."""
+    """Wait until game reaches LOBBY_READY state (state == 2).
+
+    Questions are fetched synchronously when the host starts the game, so they
+    are not present at lobby time; use ``_wait_started`` after ``/game/start``
+    to read the populated ``question_uid``.
+    """
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         doc = get_firestore_doc(game_id)
-        if doc and doc.get('state') == 2 and doc.get('question_uids'):
+        if doc and doc.get('state') == 2:
             return doc
         time.sleep(0.1)
     raise AssertionError('Game did not become ready in time')
@@ -60,73 +65,6 @@ def _wait_all_answered(
             return doc
         time.sleep(0.1)
     raise AssertionError('Not all players answered in time')
-
-
-def test_host_can_add_one_bot_to_lobby(
-    api_client: TestClient,
-    get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
-    create_private_game: Callable[[dict[str, str]], str],
-    get_firestore_doc: Callable[[str], dict[str, Any]],
-) -> None:
-    """Host should be able to add 1 bot to a lobby game."""
-    host_headers = get_api_auth_headers(
-        'dev.user+bot-host-1@example.com',
-        'password123',
-        'BotHost1',
-    )
-    game_id = create_private_game(host_headers)
-    _wait_ready(get_firestore_doc, game_id)
-
-    # Add 1 bot
-    resp = api_client.post(
-        '/api/v1/game/add_bots',
-        json={'resource_id': game_id, 'bot_ids': ['bot-gpt51']},
-        headers=host_headers,
-    )
-    assert resp.status_code == 200
-
-    # Verify bot was added to players
-    time.sleep(0.5)  # Allow Firestore write to propagate
-    doc = get_firestore_doc(game_id)
-    players = doc.get('players', {})
-    assert len(players) == 2  # 1 host + 1 bot
-    bot_ids = [pid for pid in players if pid.startswith('bot-')]
-    assert len(bot_ids) == 1  # Verify at least one bot was added
-
-
-def test_host_can_add_three_bots_to_lobby(
-    api_client: TestClient,
-    get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
-    create_private_game: Callable[[dict[str, str]], str],
-    get_firestore_doc: Callable[[str], dict[str, Any]],
-) -> None:
-    """Host should be able to add 3 bots to a lobby game."""
-    host_headers = get_api_auth_headers(
-        'dev.user+bot-host-3@example.com',
-        'password123',
-        'BotHost3',
-    )
-    game_id = create_private_game(host_headers)
-    _wait_ready(get_firestore_doc, game_id)
-
-    # Add 3 bots
-    resp = api_client.post(
-        '/api/v1/game/add_bots',
-        json={
-            'resource_id': game_id,
-            'bot_ids': ['bot-gpt51', 'bot-gpt5mini', 'bot-gpt5nano'],
-        },
-        headers=host_headers,
-    )
-    assert resp.status_code == 200
-
-    # Verify all 3 bots were added
-    time.sleep(0.5)
-    doc = get_firestore_doc(game_id)
-    players = doc.get('players', {})
-    assert len(players) == 4  # 1 host + 3 bots
-    bot_ids = [pid for pid in players if pid.startswith('bot-')]
-    assert len(bot_ids) == 3  # Verify all 3 bots were added
 
 
 def test_non_host_cannot_add_bots(

@@ -117,16 +117,14 @@ async def test_anonymize_rewrites_references_and_clears_pii(
         assert len(await _rows_for(session, model, column, new_uid)) == 1
 
 
-async def test_anonymize_does_not_rewrite_precision_rush_runs(
+async def test_anonymize_rewrites_precision_rush_runs(
     session: AsyncSession,
 ) -> None:
-    """A precision_rush_runs row keeps the OLD firebase id after anonymization.
+    """A precision_rush_runs row moves to the new anon id after anonymization.
 
-    NOTE: this pins *current* behavior. ``anonymize_user`` rewrites five tables
-    but omits ``precision_rush_runs`` (also keyed by ``user_firebase_uid``),
-    leaving a PII linkage behind -- almost certainly an oversight from when PR
-    mode was added. Flagged for the fermi-api follow-up; the test documents it so
-    a fix is a deliberate, visible change.
+    ``precision_rush_runs`` is keyed by ``user_firebase_uid`` just like the other
+    referencing tables, so ``anonymize_user`` rewrites it too -- no PII linkage is
+    left behind.
     """
     repo = UserRepository(session)
     old = 'victim'
@@ -136,24 +134,24 @@ async def test_anonymize_does_not_rewrite_precision_rush_runs(
     await repo.anonymize_user(user.id)
 
     assert (
+        await _rows_for(
+            session,
+            PrecisionRushRun,
+            PrecisionRushRun.user_firebase_uid,
+            old,
+        )
+        == []
+    )
+    assert (
         len(
             await _rows_for(
                 session,
                 PrecisionRushRun,
                 PrecisionRushRun.user_firebase_uid,
-                old,
+                user.firebase_uid,
             ),
         )
         == 1
-    )
-    assert (
-        await _rows_for(
-            session,
-            PrecisionRushRun,
-            PrecisionRushRun.user_firebase_uid,
-            user.firebase_uid,
-        )
-        == []
     )
 
 

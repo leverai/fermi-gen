@@ -37,4 +37,3 @@ def test_get_player_stats_shape(
     assert 'average_percentile' in stats
     assert isinstance(stats['average_percentile'], int)
     assert 'level' in stats
-    assert stats['level'] == 1  # Level is not yet implemented

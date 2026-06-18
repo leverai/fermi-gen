@@ -38,7 +38,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 # packages/fermi-db/tests/integration/ -> parents[4] is the repo root.
 _REPO_ROOT = Path(__file__).resolve().parents[4]
-_PG_IMAGE = os.environ.get('FERMI_TEST_PG_IMAGE', 'pgvector/pgvector:pg16')
+_PG_IMAGE = os.environ.get('FERMI_TEST_PG_IMAGE', 'pgvector/pgvector:pg17')
 
 # We stop the container explicitly (see ``database_url``), so the Ryuk reaper is
 # an unnecessary extra image pull that can need elevated permissions in CI.

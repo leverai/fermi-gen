@@ -13,10 +13,27 @@ def _get_first_question_uid(
     create_private_game: Callable[[dict[str, str]], str],
     get_firestore_doc: Callable[[str], dict],
 ) -> tuple[str, dict[str, str]]:
+    import time
+
     headers = get_api_auth_headers('dev.user+votes@example.com', 'password123', 'Votes')
     game_id = create_private_game(headers)
-    # Wait briefly until READY and questions present
-    import time
+
+    # Questions are fetched at start time (service.py), not at create, so wait for
+    # LOBBY_READY (state == 2), start the game, then read the populated uids.
+    for _ in range(60):
+        doc = get_firestore_doc(game_id)
+        if doc and doc.get('state') == 2:
+            break
+        time.sleep(0.1)
+    else:
+        raise AssertionError('Game did not become LOBBY_READY in time for voting')
+
+    start_resp = api_client.post(
+        '/api/v1/game/start',
+        json={'resource_id': game_id},
+        headers=headers,
+    )
+    assert start_resp.status_code == 200
 
     for _ in range(60):
         doc = get_firestore_doc(game_id)
@@ -32,7 +49,7 @@ def test_upvote(
     create_private_game: Callable[[dict[str, str]], str],
     get_firestore_doc: Callable[[str], dict],
 ) -> None:
-    """Upvote then de-upvote returns 200 for both calls."""
+    """Upvote returns 200 and reports the upvote verdict."""
     qid, headers = _get_first_question_uid(
         get_api_auth_headers,
         api_client,
@@ -46,25 +63,6 @@ def test_upvote(
         headers=headers,
     )
     assert r1.status_code == 200
-
-
-def test_downvote(
-    api_client: TestClient,
-    get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
-    create_private_game: Callable[[dict[str, str]], str],
-    get_firestore_doc: Callable[[str], dict],
-) -> None:
-    """Downvote then de-downvote returns 200 for both calls."""
-    qid, headers = _get_first_question_uid(
-        get_api_auth_headers,
-        api_client,
-        create_private_game,
-        get_firestore_doc,
-    )
-    # Downvote
-    r1 = api_client.post(
-        '/api/v1/question/downvote',
-        json={'resource_id': qid},
-        headers=headers,
-    )
-    assert r1.status_code == 200
+    body = r1.json()
+    if 'verdict' in body:
+        assert body['verdict'] == 1

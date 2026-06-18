@@ -105,32 +105,6 @@ def test_start_game_by_non_host_returns_403(
     assert r.status_code == 403
 
 
-def test_start_game_immediately_fetches_questions_and_starts(
-    api_client: TestClient,
-    get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
-    create_private_game: Callable[[dict[str, str]], str],
-    get_firestore_doc: Callable[[str], dict[str, Any]],
-) -> None:
-    """Starting right after create succeeds: questions are fetched at start."""
-    host_headers = get_api_auth_headers(
-        'dev.user+start-early@example.com',
-        'password123',
-        'StartEarly',
-    )
-    game_id = create_private_game(host_headers)
-
-    r = api_client.post(
-        '/api/v1/game/start',
-        json={'resource_id': game_id},
-        headers=host_headers,
-    )
-    assert r.status_code == 200
-
-    doc = get_firestore_doc(game_id)
-    assert doc.get('state') in (3, 5)
-    assert doc.get('question_uids'), 'questions should be fetched at start'
-
-
 def test_start_game_second_time_returns_409_not_ready(
     api_client: TestClient,
     get_api_auth_headers: Callable[[str, str, str], dict[str, str]],

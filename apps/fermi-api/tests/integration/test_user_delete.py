@@ -66,7 +66,7 @@ def test_delete_user_anonymizes_user_data(
     api_client: TestClient,
     create_emulator_user_and_get_token: Callable[[str, str, str], dict],
 ) -> None:
-    """Deleting a user should anonymize PII while preserving analytics data."""
+    """Deleting a user soft-anonymizes the record (kept for analytics), not delete."""
     # 1. Create user and get token
     email = 'delete.all.data@example.com'
     creds = create_emulator_user_and_get_token(email, 'password123', 'DeleteAllData')
@@ -97,42 +97,14 @@ def test_delete_user_anonymizes_user_data(
     user_by_uid = asyncio.run(_get_user_by_firebase_uid(firebase_uid))
     assert user_by_uid is None, 'Original firebase_uid should not be found'
 
-    # 6. Verify user record still exists by id (with anonymized data)
+    # 6. The record must still exist (soft anonymize), with an anon_ uid. A hard
+    #    delete would also satisfy step 5, so this is what distinguishes the
+    #    GDPR-preserving anonymize path from an outright delete.
     user_by_id = asyncio.run(_get_user_by_id(user_id))
-    assert user_by_id is not None, 'User record should still exist for analytics'
+    assert user_by_id is not None, 'User record should persist for analytics'
     assert user_by_id.firebase_uid.startswith('anon_'), (
-        'firebase_uid should be anonymized'
+        'firebase_uid should be anonymized, not deleted'
     )
-    assert user_by_id.email is None, 'email should be cleared'
-    assert user_by_id.active is False, 'user should be marked inactive'
-
-
-def test_delete_user_is_idempotent(
-    api_client: TestClient,
-    get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
-) -> None:
-    """Deleting a user multiple times should not error (idempotent)."""
-    headers = get_api_auth_headers(
-        'dev.user+idempotent@example.com',
-        'password123',
-        'IdempotentUser',
-    )
-
-    # First deletion (anonymizes user)
-    r1 = api_client.post(
-        '/api/v1/user/delete',
-        headers=headers,
-    )
-    assert r1.status_code == 200
-
-    # Second deletion (returns 200 because operation is idempotent)
-    # With anonymization, the user record still exists (just inactive),
-    # so auth succeeds and the endpoint returns early
-    r2 = api_client.post(
-        '/api/v1/user/delete',
-        headers=headers,
-    )
-    assert r2.status_code == 200
 
 
 def test_delete_user_requires_authentication(

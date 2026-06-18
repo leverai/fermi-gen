@@ -1,17 +1,36 @@
 """Integration test fixtures for API client and local emulators.
 
 These fixtures assume Firestore and Firebase Auth emulators are running and
-`apps/fermi-api/.env` is present. The DB schema is applied once per
-session when `DATABASE_URL` is set.
+`apps/fermi-api/.env` is present.
+
+Postgres is provisioned dual-mode by the ``database_url`` fixture (mirroring the
+fermi-db harness):
+
+* If ``DATABASE_URL`` already points at an ``asyncpg`` Postgres (e.g. a CI
+  service container), that instance is used as-is.
+* Otherwise an ephemeral ``pgvector/pgvector`` container is started via
+  **testcontainers** and torn down at session end. Override the image with
+  ``FERMI_TEST_PG_IMAGE``.
+
+If Docker is unavailable and no ``DATABASE_URL`` is set, the integration suite is
+**skipped** (not errored). Crucially the container is started and
+``os.environ['DATABASE_URL']`` set BEFORE the app's ``fermi_db.session`` module
+is first imported (which happens when ``api_client`` imports ``main``), because
+``api_client`` and the seed/migrate fixtures depend on ``database_url``.
 """
 
 import asyncio
 import os
+import shutil
+import subprocess
 from collections.abc import Callable, Generator
 from pathlib import Path
 from typing import Any
 
-# Ensure models are registered with SQLModel.metadata
+# Ensure models are registered with SQLModel.metadata. NOTE: importing
+# ``fermi_db.models`` does NOT transitively import ``fermi_db.session`` (verified),
+# so the global ``async_engine`` is NOT bound here; binding is deferred until
+# ``api_client`` imports ``main`` -- by which point ``database_url`` has run.
 import fermi_db.models  # noqa: F401
 import httpx
 import pytest
@@ -21,10 +40,147 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import SQLModel
 
+# apps/fermi-api/tests/integration/ -> parents[4] is the repo root.
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+_PG_IMAGE = os.environ.get('FERMI_TEST_PG_IMAGE', 'pgvector/pgvector:pg17')
+
+# We stop the container explicitly (see ``database_url``), so the Ryuk reaper is
+# an unnecessary extra image pull that can need elevated permissions in CI.
+os.environ.setdefault('TESTCONTAINERS_RYUK_DISABLED', 'true')
+
+
+async def _wait_until_ready(url: str, *, attempts: int = 40) -> None:
+    """Ping Postgres over TCP until it accepts connections (or give up).
+
+    Pinging over TCP (rather than trusting a log line) is robust against the
+    Postgres image's two-phase startup: the init-phase server listens only on a
+    unix socket, so a TCP connection cannot succeed until the real server is up.
+    """
+    from sqlalchemy.pool import NullPool
+
+    last_exc: Exception | None = None
+    for _ in range(attempts):
+        engine = create_async_engine(url, poolclass=NullPool)
+        try:
+            async with engine.connect() as conn:
+                await conn.execute(sa.text('SELECT 1'))
+            return
+        except Exception as exc:
+            last_exc = exc
+            await asyncio.sleep(0.5)
+        finally:
+            await engine.dispose()
+    raise RuntimeError(f'Postgres did not become ready at {url}: {last_exc}')
+
+
+def _ensure_docker_host() -> None:
+    """Make the Docker daemon discoverable by the docker SDK / testcontainers.
+
+    The docker CLI resolves the daemon via *contexts* (e.g. Docker Desktop's
+    ``desktop-linux`` -> ``unix:///home/<user>/.docker/desktop/docker.sock``,
+    or rootless Docker under ``$XDG_RUNTIME_DIR``), but the Python docker SDK
+    only honours ``DOCKER_HOST`` or the default ``/var/run/docker.sock``. Bridge
+    the two by exporting the active context's endpoint when neither is present.
+    Best-effort: stays silent if anything is missing.
+    """
+    if os.environ.get('DOCKER_HOST') or Path('/var/run/docker.sock').exists():
+        return
+    docker = shutil.which('docker')
+    if not docker:
+        return
+    try:
+        result = subprocess.run(  # noqa: S603
+            [docker, 'context', 'inspect', '--format', '{{.Endpoints.docker.Host}}'],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=True,
+        )
+    except Exception:
+        return
+    host = result.stdout.strip()
+    if host:
+        os.environ['DOCKER_HOST'] = host
+
 
 @pytest.fixture(scope='session', autouse=True)
-def _load_env() -> None:
-    """Load `.env` under `apps/fermi-api` for integration tests."""
+def database_url() -> Generator[str, None, None]:
+    """Yield an asyncpg ``DATABASE_URL``, starting a pgvector container if needed.
+
+    Autouse + session-scoped so the container is provisioned and
+    ``os.environ['DATABASE_URL']`` set BEFORE any fixture that imports the app's
+    ``fermi_db.session`` (the app binds its global engine to ``DATABASE_URL`` at
+    import time). ``api_client`` / ``_migrate`` / ``_seed_questions_once`` all
+    depend on this fixture so pytest orders them after it.
+    """
+    existing = os.environ.get('DATABASE_URL')
+    if existing and existing.startswith('postgresql+asyncpg://'):
+        asyncio.run(_wait_until_ready(existing))
+        yield existing
+        return
+
+    _ensure_docker_host()
+    try:
+        from testcontainers.core.container import DockerContainer
+    except ImportError:  # pragma: no cover - dev dependency missing
+        pytest.skip('testcontainers not installed and DATABASE_URL not set')
+
+    container = (
+        DockerContainer(_PG_IMAGE)
+        .with_env('POSTGRES_USER', 'postgres')
+        .with_env('POSTGRES_PASSWORD', 'postgres')
+        .with_env('POSTGRES_DB', 'fermi-db')
+        .with_exposed_ports(5432)
+    )
+    try:
+        container.start()
+    except Exception as exc:
+        pytest.skip(f'Could not start Postgres container (is Docker running?): {exc}')
+
+    try:
+        host = container.get_container_host_ip()
+        port = container.get_exposed_port(5432)
+        url = f'postgresql+asyncpg://postgres:postgres@{host}:{port}/fermi-db'
+        asyncio.run(_wait_until_ready(url))
+        os.environ['DATABASE_URL'] = url
+        yield url
+    finally:
+        container.stop()
+
+
+@pytest.fixture(scope='session', autouse=True)
+def _migrate(database_url: str) -> None:
+    """Apply Alembic migrations to head once per session (builds the real schema).
+
+    Uses Alembic's in-process API from the repo root. ``script_location`` in the
+    root ``alembic.ini`` is relative to the repo root, so cwd is set there and the
+    option is re-asserted. env.py reads ``DATABASE_URL`` from the environment; this
+    fixture is sync, so env.py's ``asyncio.run`` has no running loop to clash with.
+    """
+    from alembic import command
+    from alembic.config import Config
+
+    prev_cwd = Path.cwd()
+    try:
+        os.chdir(_REPO_ROOT)
+        cfg = Config('alembic.ini')
+        cfg.set_main_option('script_location', 'packages/fermi-db/alembic')
+        command.upgrade(cfg, 'head')
+    finally:
+        os.chdir(prev_cwd)
+
+
+@pytest.fixture(scope='session', autouse=True)
+def _load_env(database_url: str) -> None:
+    """Load `.env` under `apps/fermi-api` for integration tests.
+
+    Depends on ``database_url`` so Postgres provisioning reads the *genuine*
+    environment first. ``.env`` ships an app-default ``DATABASE_URL`` (the
+    compose ``db`` on :5433); loading it before ``database_url`` would make the
+    dual-mode fixture take the "external DB" branch and never start a
+    testcontainer. Running after ``database_url`` means ``DATABASE_URL`` is
+    already set to the provisioned DSN and ``override=False`` leaves it intact.
+    """
     # apps/fermi-api/tests/integration/ -> parents[2] is apps/fermi-api
     env_path = Path(__file__).resolve().parents[2] / '.env'
     if env_path.exists():
@@ -87,43 +243,13 @@ def _verify_emulators_reachable() -> None:
     )
 
 
-@pytest.fixture(scope='session', autouse=True)
-def _verify_database_reachable() -> None:
-    """Fail fast if DATABASE_URL is missing or DB is unreachable.
-
-    Ensures integration tests run against Postgres via asyncpg rather than
-    silently falling back to SQLite, which can cause background tasks to no-op.
-    """
-    db_url = os.environ.get('DATABASE_URL')
-    assert db_url, (
-        'DATABASE_URL is not set. Use `make test-api-integration` or export\n'
-        'DATABASE_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/fermi-db'
-    )
-    assert db_url.startswith('postgresql+asyncpg://'), (
-        'DATABASE_URL must use asyncpg driver for integration tests:\n'
-        'expected prefix postgresql+asyncpg://'
-    )
-
-    async def _ping() -> None:
-        eng = create_async_engine(db_url, echo=False)
-        try:
-            async with eng.connect() as conn:  # type: ignore[call-arg]
-                await conn.execute(sa.text('SELECT 1'))
-        finally:
-            await eng.dispose()
-
-    try:
-        asyncio.run(_ping())
-    except Exception as exc:  # pragma: no cover - environment guard
-        raise AssertionError(
-            'Postgres is not reachable at DATABASE_URL. Ensure docker compose db\n'
-            'service is up and listening on 127.0.0.1:5433.',
-        ) from exc
-
-
 @pytest.fixture(scope='session')
-def api_client() -> Generator[TestClient, None, None]:
+def api_client(database_url: str, _migrate: None) -> Generator[TestClient, None, None]:
     """Provide real app `TestClient` with lifespan enabled.
+
+    Depends on ``database_url`` (and ``_migrate``) so the testcontainers Postgres
+    is up and ``DATABASE_URL`` is set BEFORE this fixture imports ``main`` (which
+    imports ``fermi_db.session`` and binds the global engine to ``DATABASE_URL``).
 
     Ensures CWD is `apps/fermi-api` so StaticFiles('static') resolves.
     """
@@ -289,18 +415,23 @@ def _truncate_all_tables_sync() -> None:
 
 
 @pytest.fixture(autouse=True)
-def _reset_db_before_each_test() -> None:
-    """Reset the database state between tests (tables truncated)."""
+def _reset_db_before_each_test(database_url: str) -> None:
+    """Reset the database state between tests (tables truncated).
+
+    Depends on ``database_url`` so truncation runs against the provisioned
+    container DSN (seed tables are excluded by ``_truncate_all_tables_async``).
+    """
     _truncate_all_tables_sync()
 
 
 @pytest.fixture(scope='session', autouse=True)
-def _seed_questions_once() -> None:
+def _seed_questions_once(database_url: str, _migrate: None) -> None:
     """Seed minimal questions into Postgres once per test session.
 
     Seeds the new schema: seeds → fermi_questions → fermi_answers → fermi MV.
     Uses subprocess to avoid event loop conflicts with test isolation.
-    Relies on DATABASE_URL being set by the test harness.
+    Depends on ``database_url`` (container up + ``DATABASE_URL`` set) and
+    ``_migrate`` (schema applied) so seeding runs after both.
     """
     import shutil
     import subprocess
@@ -411,6 +542,71 @@ def get_pro_api_auth_headers(
     return _make
 
 
+def _decode_firestore_value(node: Any) -> Any:
+    """Recursively decode a Firestore REST ``Value`` into a plain Python value."""
+    if isinstance(node, dict):
+        if 'mapValue' in node:
+            fields = node['mapValue'].get('fields', {})
+            return {k: _decode_firestore_value(v) for k, v in fields.items()}
+        if 'arrayValue' in node:
+            vals = node['arrayValue'].get('values', [])
+            return [_decode_firestore_value(v) for v in vals]
+        if 'integerValue' in node:
+            try:
+                return int(node['integerValue'])
+            except Exception:
+                return node['integerValue']
+        if 'doubleValue' in node:
+            try:
+                return float(node['doubleValue'])
+            except Exception:
+                return node['doubleValue']
+        for k in (
+            'stringValue',
+            'booleanValue',
+            'nullValue',
+            'timestampValue',
+        ):
+            if k in node:
+                return node[k]
+        return {k: _decode_firestore_value(v) for k, v in node.items()}
+    return node
+
+
+def _poll_firestore_doc(doc_path: str) -> dict[str, Any]:
+    """GET a Firestore document by path, polling ~5s for eventual consistency.
+
+    ``doc_path`` is relative to the documents base (e.g. ``games/{id}`` or
+    ``games/{id}/answers/{uid}``). Returns the decoded ``fields`` map (with the
+    raw response as a fallback when no ``fields`` key is present), or ``{}`` if
+    the document never appears.
+    """
+    import time
+
+    project = os.environ['GOOGLE_CLOUD_PROJECT']
+    fs_host = os.environ['FIRESTORE_EMULATOR_HOST']
+    base = f'http://{fs_host}/v1/projects/{project}/databases/(default)/documents'
+
+    for _ in range(50):
+        r = httpx.get(
+            f'{base}/{doc_path}',
+            headers={
+                'Authorization': 'Bearer owner',
+                'X-Goog-User-Project': project,
+            },
+            timeout=2.0,
+        )
+        if r.status_code == 200:
+            data = r.json()
+            if 'fields' in data:
+                return {
+                    k: _decode_firestore_value(v) for k, v in data['fields'].items()
+                }
+            return data
+        time.sleep(0.1)
+    return {}
+
+
 @pytest.fixture
 def get_firestore_doc() -> Callable[[str], dict[str, Any]]:
     """Return a callable that fetches a game document via emulator REST API.
@@ -419,41 +615,12 @@ def get_firestore_doc() -> Callable[[str], dict[str, Any]]:
     """
 
     def _get(game_id: str) -> dict[str, Any]:
+        # Poll up to ~5s for eventual consistency
+        import time
+
         project = os.environ['GOOGLE_CLOUD_PROJECT']
         fs_host = os.environ['FIRESTORE_EMULATOR_HOST']
         base = f'http://{fs_host}/v1/projects/{project}/databases/(default)/documents'
-
-        def _convert(node: Any) -> Any:
-            if isinstance(node, dict):
-                if 'mapValue' in node:
-                    fields = node['mapValue'].get('fields', {})
-                    return {k: _convert(v) for k, v in fields.items()}
-                if 'arrayValue' in node:
-                    vals = node['arrayValue'].get('values', [])
-                    return [_convert(v) for v in vals]
-                if 'integerValue' in node:
-                    try:
-                        return int(node['integerValue'])
-                    except Exception:
-                        return node['integerValue']
-                if 'doubleValue' in node:
-                    try:
-                        return float(node['doubleValue'])
-                    except Exception:
-                        return node['doubleValue']
-                for k in (
-                    'stringValue',
-                    'booleanValue',
-                    'nullValue',
-                    'timestampValue',
-                ):
-                    if k in node:
-                        return node[k]
-                return {k: _convert(v) for k, v in node.items()}
-            return node
-
-        # Poll up to ~5s for eventual consistency
-        import time
 
         for _ in range(50):
             r = httpx.get(
@@ -467,8 +634,9 @@ def get_firestore_doc() -> Callable[[str], dict[str, Any]]:
             if r.status_code == 200:
                 data = r.json()
                 if 'fields' in data:
-                    fields = data['fields']
-                    plain: dict[str, Any] = {k: _convert(v) for k, v in fields.items()}
+                    plain: dict[str, Any] = {
+                        k: _decode_firestore_value(v) for k, v in data['fields'].items()
+                    }
                     if 'name' in data and isinstance(data['name'], str):
                         plain['id'] = data['name'].split('/')[-1]
                     return plain
@@ -530,59 +698,7 @@ def get_players_results_doc() -> Callable[[str, str], dict[str, Any]]:
     """
 
     def _get(game_id: str, question_uid: str) -> dict[str, Any]:
-        project = os.environ['GOOGLE_CLOUD_PROJECT']
-        fs_host = os.environ['FIRESTORE_EMULATOR_HOST']
-        base = f'http://{fs_host}/v1/projects/{project}/databases/(default)/documents'
-
-        def _convert(node: Any) -> Any:
-            if isinstance(node, dict):
-                if 'mapValue' in node:
-                    fields = node['mapValue'].get('fields', {})
-                    return {k: _convert(v) for k, v in fields.items()}
-                if 'arrayValue' in node:
-                    vals = node['arrayValue'].get('values', [])
-                    return [_convert(v) for v in vals]
-                if 'integerValue' in node:
-                    try:
-                        return int(node['integerValue'])
-                    except Exception:
-                        return node['integerValue']
-                if 'doubleValue' in node:
-                    try:
-                        return float(node['doubleValue'])
-                    except Exception:
-                        return node['doubleValue']
-                for k in (
-                    'stringValue',
-                    'booleanValue',
-                    'nullValue',
-                    'timestampValue',
-                ):
-                    if k in node:
-                        return node[k]
-                return {k: _convert(v) for k, v in node.items()}
-            return node
-
-        # Poll up to ~5s for eventual consistency
-        import time
-
-        for _ in range(50):
-            r = httpx.get(
-                f'{base}/games/{game_id}/players_results/{question_uid}',
-                headers={
-                    'Authorization': 'Bearer owner',
-                    'X-Goog-User-Project': project,
-                },
-                timeout=2.0,
-            )
-            if r.status_code == 200:
-                data = r.json()
-                if 'fields' in data:
-                    fields = data['fields']
-                    return {k: _convert(v) for k, v in fields.items()}
-                return data
-            time.sleep(0.1)
-        return {}
+        return _poll_firestore_doc(f'games/{game_id}/players_results/{question_uid}')
 
     return _get
 
@@ -595,59 +711,7 @@ def get_answer_doc() -> Callable[[str, str], dict[str, Any]]:
     """
 
     def _get(game_id: str, question_uid: str) -> dict[str, Any]:
-        project = os.environ['GOOGLE_CLOUD_PROJECT']
-        fs_host = os.environ['FIRESTORE_EMULATOR_HOST']
-        base = f'http://{fs_host}/v1/projects/{project}/databases/(default)/documents'
-
-        def _convert(node: Any) -> Any:
-            if isinstance(node, dict):
-                if 'mapValue' in node:
-                    fields = node['mapValue'].get('fields', {})
-                    return {k: _convert(v) for k, v in fields.items()}
-                if 'arrayValue' in node:
-                    vals = node['arrayValue'].get('values', [])
-                    return [_convert(v) for v in vals]
-                if 'integerValue' in node:
-                    try:
-                        return int(node['integerValue'])
-                    except Exception:
-                        return node['integerValue']
-                if 'doubleValue' in node:
-                    try:
-                        return float(node['doubleValue'])
-                    except Exception:
-                        return node['doubleValue']
-                for k in (
-                    'stringValue',
-                    'booleanValue',
-                    'nullValue',
-                    'timestampValue',
-                ):
-                    if k in node:
-                        return node[k]
-                return {k: _convert(v) for k, v in node.items()}
-            return node
-
-        # Poll up to ~5s for eventual consistency
-        import time
-
-        for _ in range(50):
-            r = httpx.get(
-                f'{base}/games/{game_id}/answers/{question_uid}',
-                headers={
-                    'Authorization': 'Bearer owner',
-                    'X-Goog-User-Project': project,
-                },
-                timeout=2.0,
-            )
-            if r.status_code == 200:
-                data = r.json()
-                if 'fields' in data:
-                    fields = data['fields']
-                    return {k: _convert(v) for k, v in fields.items()}
-                return data
-            time.sleep(0.1)
-        return {}
+        return _poll_firestore_doc(f'games/{game_id}/answers/{question_uid}')
 
     return _get
 

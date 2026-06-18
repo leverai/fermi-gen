@@ -46,20 +46,26 @@ def _wait_all_answered(
     raise AssertionError('Progress did not reach all_answered=True in time')
 
 
-def _wait_ready_with_questions(
+def _wait_ready(
     get_firestore_doc: Callable[[str], dict[str, Any]],
     game_id: str,
     *,
     timeout_s: float = 8.0,
     interval_s: float = 0.1,
-) -> list[str]:
+) -> dict[str, Any]:
+    """Poll until the game is LOBBY_READY (state == 2).
+
+    Questions are fetched synchronously when the host starts the game, so they
+    are populated only after ``/game/start`` (state in {3, 5}), not at lobby
+    time.
+    """
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         doc = get_firestore_doc(game_id)
-        if doc and doc.get('state') == 2 and doc.get('question_uids'):
-            return [str(u) for u in doc['question_uids']]
+        if doc and doc.get('state') == 2:
+            return doc
         time.sleep(interval_s)
-    raise AssertionError('Game not ready with questions in time')
+    raise AssertionError('Game not LOBBY_READY in time')
 
 
 def test_e2e_happy_path_two_players_full_rounds(
@@ -83,9 +89,8 @@ def test_e2e_happy_path_two_players_full_rounds(
 
     game_id = create_private_game(host_headers)
 
-    # Wait until LOBBY_READY and questions populated
-    qids = _wait_ready_with_questions(get_firestore_doc, game_id)
-    assert len(qids) >= 1
+    # Wait until LOBBY_READY (questions are fetched at start, not lobby time)
+    _ = _wait_ready(get_firestore_doc, game_id)
 
     # Joiner joins by id → back to NOT_READY then READY again
     rj = api_client.post(
@@ -94,7 +99,7 @@ def test_e2e_happy_path_two_players_full_rounds(
         headers=joiner_headers,
     )
     assert rj.status_code == 200
-    _ = _wait_ready_with_questions(get_firestore_doc, game_id)
+    _ = _wait_ready(get_firestore_doc, game_id)
 
     # B) Host starts game; verify first question revealed and progress initialized
     rs = api_client.post(
@@ -104,6 +109,9 @@ def test_e2e_happy_path_two_players_full_rounds(
     )
     assert rs.status_code == 200
     d_started = _wait_until_state(get_firestore_doc, game_id, {3, 5})
+    # Questions are populated at start; read them now.
+    qids = [str(u) for u in (d_started.get('question_uids') or [])]
+    assert len(qids) >= 1
     assert d_started.get('question_uid') in set(qids)
     assert d_started.get('question_order') == 1
     progress = (d_started.get('progress') or {}).get('answered') or {}

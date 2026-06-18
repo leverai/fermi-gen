@@ -10,43 +10,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 
-class TestXpLevelFormulaCalculations:
-    """Test the XP and level calculation formulas."""
-
-    def test_xp_increment_from_score(self) -> None:
-        """XP increment should be score // 100."""
-        # Formula: xp_increment = score // 100
-        assert 0 // 100 == 0
-        assert int(99.9 // 100) == 0  # Float division needs int()
-        assert 100 // 100 == 1
-        assert 199 // 100 == 1
-        assert 200 // 100 == 2
-        assert 599 // 100 == 5
-        assert 6000 // 100 == 60  # Max score
-
-    def test_level_from_xp(self) -> None:
-        """Level should be (xp // 100) + 1."""
-        # Formula: level = (xp // 100) + 1
-        assert (0 // 100) + 1 == 1  # Level 1 at 0 XP
-        assert (99 // 100) + 1 == 1  # Still level 1 at 99 XP
-        assert (100 // 100) + 1 == 2  # Level 2 at 100 XP
-        assert (199 // 100) + 1 == 2  # Still level 2 at 199 XP
-        assert (200 // 100) + 1 == 3  # Level 3 at 200 XP
-        assert (9999 // 100) + 1 == 100  # Level 100 at 9999 XP
-        assert (10000 // 100) + 1 == 101  # Level 101 at 10000 XP
-
-    def test_level_boundaries(self) -> None:
-        """Test level boundaries are consistent."""
-        for xp in [0, 1, 50, 99]:
-            assert (xp // 100) + 1 == 1
-
-        for xp in [100, 150, 199]:
-            assert (xp // 100) + 1 == 2
-
-        for xp in [200, 250, 299]:
-            assert (xp // 100) + 1 == 3
-
-
 @pytest.fixture
 def mock_user_repository() -> MagicMock:
     """Create a mock user repository."""

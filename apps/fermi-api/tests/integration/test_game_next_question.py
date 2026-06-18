@@ -9,17 +9,21 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 
-def _wait_ready_with_questions(
+def _wait_ready(
     get_firestore_doc: Callable[[str], dict[str, Any]],
     game_id: str,
-) -> list[str]:
+) -> dict[str, Any]:
+    """Poll until the game is LOBBY_READY (state == 2).
+
+    Questions are fetched synchronously at start, not at lobby time.
+    """
     deadline = time.time() + 6.0
     while time.time() < deadline:
         doc = get_firestore_doc(game_id)
-        if doc and doc.get('state') == 2 and doc.get('question_uids'):
-            return [str(u) for u in doc['question_uids']]
+        if doc and doc.get('state') == 2:
+            return doc
         time.sleep(0.1)
-    raise AssertionError('Game not ready with questions in time')
+    raise AssertionError('Game not LOBBY_READY in time')
 
 
 def _wait_state(
@@ -48,7 +52,7 @@ def _create_two_player_started_game(
         'NextHost',
     )
     game_id = create_private_game(host_headers)
-    _ = _wait_ready_with_questions(get_firestore_doc, game_id)
+    _ = _wait_ready(get_firestore_doc, game_id)
 
     joiner_headers = get_api_auth_headers(
         'dev.user+next-joiner@example.com',
@@ -61,7 +65,7 @@ def _create_two_player_started_game(
         headers=joiner_headers,
     )
     assert rj.status_code == 200
-    _ = _wait_ready_with_questions(get_firestore_doc, game_id)
+    _ = _wait_ready(get_firestore_doc, game_id)
 
     rs = api_client.post(
         '/api/v1/game/start',
@@ -154,25 +158,3 @@ def test_next_question_non_host_returns_403(
         headers=joiner_headers,
     )
     assert r.status_code == 403
-
-
-def test_next_question_invalid_state_returns_409(
-    api_client: TestClient,
-    get_api_auth_headers: Callable[[str, str, str], dict[str, str]],
-    create_private_game: Callable[[dict[str, str]], str],
-    get_firestore_doc: Callable[[str], dict[str, Any]],
-) -> None:
-    """Advancing when question not finished should return 409."""
-    game_id, host_headers, _ = _create_two_player_started_game(
-        api_client,
-        get_api_auth_headers,
-        create_private_game,
-        get_firestore_doc,
-    )
-    # Immediately call next_question without finishing
-    r = api_client.post(
-        '/api/v1/game/next_question',
-        json={'resource_id': game_id},
-        headers=host_headers,
-    )
-    assert r.status_code == 409

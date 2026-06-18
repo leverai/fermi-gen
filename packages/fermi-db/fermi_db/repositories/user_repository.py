@@ -10,6 +10,7 @@ from sqlmodel import select
 
 from fermi_db.models.daily_question import DailyQuestionAnswer
 from fermi_db.models.game import AnswerEvent, QuestionVote, UserQuestionHistory
+from fermi_db.models.precision_rush import PrecisionRushRun
 from fermi_db.models.subscription import Subscription, SubscriptionTier
 from fermi_db.models.survival import SurvivalRun
 from fermi_db.models.user import User
@@ -231,6 +232,11 @@ class UserRepository(BaseRepository):
         await self.session.execute(
             update(SurvivalRun)
             .where(SurvivalRun.user_firebase_uid == old_firebase_uid)
+            .values(user_firebase_uid=new_firebase_uid),
+        )
+        await self.session.execute(
+            update(PrecisionRushRun)
+            .where(PrecisionRushRun.user_firebase_uid == old_firebase_uid)
             .values(user_firebase_uid=new_firebase_uid),
         )
         await self.session.execute(

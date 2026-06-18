@@ -129,12 +129,12 @@ class TestIsWithinQdGrace:
 
     def test_within_qd_grace_returns_true(self) -> None:  # noqa: D102
         qd = datetime.datetime(2024, 12, 19, 2, 0, 0)  # noqa: DTZ001
-        now = qd + datetime.timedelta(seconds=15)  # QD_GRACE_S = 20
+        now = qd + datetime.timedelta(seconds=55)  # QD_GRACE_S = 60
         assert is_within_qd_grace(now, qd) is True
 
     def test_past_qd_grace_returns_false(self) -> None:  # noqa: D102
         qd = datetime.datetime(2024, 12, 19, 2, 0, 0)  # noqa: DTZ001
-        now = qd + datetime.timedelta(seconds=25)  # QD_GRACE_S = 20
+        now = qd + datetime.timedelta(seconds=65)  # QD_GRACE_S = 60
         assert is_within_qd_grace(now, qd) is False
 
 

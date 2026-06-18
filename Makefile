@@ -85,16 +85,17 @@ test-api-integration-ci:
 .PHONY: test-api-integration
 test-api-integration:
 	@echo "Starting backend integration tests with automatic cleanup..."
+	@# Postgres is provisioned in-process via testcontainers by the integration
+	@# conftest (it starts a pgvector container + runs Alembic migrations), so we
+	@# bring up ONLY the emulators here and deliberately do NOT set DATABASE_URL
+	@# (and skip `make migrate` / CREATE DATABASE). Leaving DATABASE_URL unset is
+	@# what makes the conftest take the testcontainers branch.
 	@trap 'docker compose down -v' EXIT; \
-	docker compose up -d db emulators && \
+	docker compose up -d emulators && \
 	docker compose exec -T emulators bash -lc 'until (</dev/tcp/127.0.0.1/8080) 2>/dev/null; do sleep 1; done; until (</dev/tcp/127.0.0.1/9099) 2>/dev/null; do sleep 1; done' && \
-	until docker compose exec -T db pg_isready -U postgres >/dev/null; do sleep 1; done && \
-	docker compose exec -T db psql -U postgres -c 'CREATE DATABASE "fermi-db";' 2>/dev/null || true && \
-	export DATABASE_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/fermi-db && \
 	export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 && \
 	export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 && \
 	export GOOGLE_CLOUD_PROJECT=fermi-local && \
-	$(MAKE) migrate && \
 	$(MAKE) test-api-integration-ci
 
 .PHONY: test-api-endpoints

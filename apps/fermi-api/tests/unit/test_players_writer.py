@@ -9,7 +9,7 @@ from tests.unit.conftest import RecorderWriter
 
 from app.schemas.game import GamePlayer, GameState
 from app.services.game.errors import NotFoundError, StateConflictError, ValidationError
-from app.services.game.writers.players_writer import GamePlayersWriter
+from app.services.game.writers.players_writer import GamePlayersWriter, get_max_players
 
 # no additional aliases needed
 
@@ -26,6 +26,11 @@ def _players_map(*uids: str, host: str | None = None) -> dict[str, GamePlayer]:
     for uid in uids:
         players[uid] = lw._user_to_player(_user(uid), is_host=(uid == host))  # type: ignore[attr-defined]
     return players
+
+
+def test_get_max_players_caps_both_tiers_at_20() -> None:
+    assert get_max_players(is_pro=False) == 20
+    assert get_max_players(is_pro=True) == 20
 
 
 def test_set_players_happy_path_sets_players_host_and_full_flag(
