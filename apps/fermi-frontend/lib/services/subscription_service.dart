@@ -99,7 +99,10 @@ class SubscriptionService {
   Future<bool> purchasePackage(Package package) async {
     if (!_isInitialized) return false;
     try {
-      _customerInfo = await Purchases.purchasePackage(package);
+      final purchaseResult = await Purchases.purchase(
+        PurchaseParams.package(package),
+      );
+      _customerInfo = purchaseResult.customerInfo;
       return _customerInfo?.entitlements.active.containsKey(_entitlementId) ??
           false;
     } on PlatformException catch (e) {
