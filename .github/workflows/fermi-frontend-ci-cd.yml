@@ -181,7 +181,7 @@ jobs:
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
-          packageName: com.guesstimate.guesstimate
+          packageName: tech.leverai.guesstimate
           releaseFiles: apps/fermi-frontend/build/app/outputs/bundle/release/app-release.aab
           track: ${{ env.PUBLISH_TRACK }}
           status: ${{ env.PUBLISH_TRACK == 'production' && 'completed' || 'draft' }}
