@@ -66,6 +66,7 @@ class JoinGameUseCase:
                 'players',
                 'full',
                 'max_players',
+                'start_claim_id',
             ],
             tx=tx,
         )
@@ -95,6 +96,7 @@ class JoinGameUseCase:
                 game_ref=game_ref,
                 writer=tx,
                 state=state,
+                start_claim_id=data.get('start_claim_id'),
             )
         except StateConflictError as err:
             raise HTTPException(

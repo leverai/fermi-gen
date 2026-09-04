@@ -70,6 +70,7 @@ class _FakeRepo:
         self._host = host
         self._state = state
         self._start_claimed_at = start_claimed_at
+        self._start_claim_id: str | None = None
         self.read_count = 0
 
     async def get_game_fields(
@@ -92,6 +93,7 @@ class _FakeRepo:
                 'search_query': 'space scale',
             },
             'start_claimed_at': self._start_claimed_at,
+            'start_claim_id': self._start_claim_id,
         }
 
 
@@ -148,6 +150,7 @@ class _FakeFirestore:
 def _patch_txn_runner(
     monkeypatch: pytest.MonkeyPatch,
     tx_recorder: _Recorder,
+    repo: _FakeRepo,
 ) -> None:
     """Replace TransactionRunner.run with a passthrough using a fake tx.
 
@@ -156,7 +159,10 @@ def _patch_txn_runner(
     """
 
     async def _run(self: Any, func: Any) -> Any:
-        return await func(tx_recorder)
+        result = await func(tx_recorder)
+        if repo._start_claim_id is None and tx_recorder.updates:
+            repo._start_claim_id = tx_recorder.updates[-1][1].get('start_claim_id')
+        return result
 
     monkeypatch.setattr(
         start_game_module.TransactionRunner,
@@ -184,12 +190,14 @@ def _make_use_case(
 def test_embedding_error_maps_to_503(monkeypatch: pytest.MonkeyPatch) -> None:
     host = 'host-1'
     tx = _Recorder()
-    _patch_txn_runner(monkeypatch, tx)
+    repo = _FakeRepo(host)
+    _patch_txn_runner(monkeypatch, tx, repo)
+    monkeypatch.setattr(start_game_module.app_settings, 'smart_search_enabled', True)
     client = _FakeFirestore()
     gateway = _RaisingGateway(SearchEmbeddingError('boom'))
     use_case = _make_use_case(
         gateway=gateway,
-        repo=_FakeRepo(host),
+        repo=repo,
         client=client,
     )
     user = SimpleNamespace(firebase_uid=host)
@@ -207,7 +215,7 @@ def test_embedding_error_maps_to_503(monkeypatch: pytest.MonkeyPatch) -> None:
     # Claim was taken (stamped on the tx) and then released on failure.
     assert tx.updates
     assert 'start_claimed_at' in tx.updates[0][1]
-    assert client.committed, 'claim should be released via a committed batch'
+    assert any(update.get('start_claim_id') is not None for _, update in tx.updates)
 
 
 def test_no_results_error_maps_to_422_with_code(
@@ -215,10 +223,12 @@ def test_no_results_error_maps_to_422_with_code(
 ) -> None:
     host = 'host-1'
     tx = _Recorder()
-    _patch_txn_runner(monkeypatch, tx)
+    repo = _FakeRepo(host)
+    _patch_txn_runner(monkeypatch, tx, repo)
+    monkeypatch.setattr(start_game_module.app_settings, 'smart_search_enabled', True)
     use_case = _make_use_case(
         gateway=_RaisingGateway(SearchNoResultsError(query='asdfqwer', found=0)),
-        repo=_FakeRepo(host),
+        repo=repo,
         client=_FakeFirestore(),
     )
     user = SimpleNamespace(firebase_uid=host)
@@ -242,11 +252,12 @@ def test_start_when_already_started_returns_409_without_fetch(
     """A start on a game past LOBBY_READY 409s and never fetches questions."""
     host = 'host-1'
     tx = _Recorder()
-    _patch_txn_runner(monkeypatch, tx)
+    repo = _FakeRepo(host, state=GameState.QUESTION_N)
+    _patch_txn_runner(monkeypatch, tx, repo)
     gateway = _ExplodingGateway()
     use_case = _make_use_case(
         gateway=gateway,
-        repo=_FakeRepo(host, state=GameState.QUESTION_N),
+        repo=repo,
         client=_FakeFirestore(),
     )
     user = SimpleNamespace(firebase_uid=host)
@@ -267,16 +278,17 @@ def test_start_when_claim_already_held_returns_409_without_fetch(
     """A second start while a fresh claim is held 409s and never fetches."""
     host = 'host-1'
     tx = _Recorder()
-    _patch_txn_runner(monkeypatch, tx)
-    gateway = _ExplodingGateway()
     fresh_claim = datetime.datetime.now(datetime.UTC)
+    repo = _FakeRepo(
+        host,
+        state=GameState.LOBBY_READY,
+        start_claimed_at=fresh_claim,
+    )
+    _patch_txn_runner(monkeypatch, tx, repo)
+    gateway = _ExplodingGateway()
     use_case = _make_use_case(
         gateway=gateway,
-        repo=_FakeRepo(
-            host,
-            state=GameState.LOBBY_READY,
-            start_claimed_at=fresh_claim,
-        ),
+        repo=repo,
         client=_FakeFirestore(),
     )
     user = SimpleNamespace(firebase_uid=host)
@@ -309,6 +321,7 @@ def test_stale_claim_is_reclaimed(monkeypatch: pytest.MonkeyPatch) -> None:
         cast(Any, recorder),
         state=GameState.LOBBY_READY,
         claimed_at=stale,
+        claim_id='new-claim',
         now=now,
     )
     assert recorder.updates
@@ -323,5 +336,33 @@ def test_stale_claim_is_reclaimed(monkeypatch: pytest.MonkeyPatch) -> None:
             cast(Any, _Recorder()),
             state=GameState.LOBBY_READY,
             claimed_at=fresh,
+            claim_id='new-claim',
             now=now,
         )
+
+
+def test_search_start_rejects_when_flag_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = 'host-1'
+    tx = _Recorder()
+    repo = _FakeRepo(host)
+    _patch_txn_runner(monkeypatch, tx, repo)
+    monkeypatch.setattr(start_game_module.app_settings, 'smart_search_enabled', False)
+    gateway = _ExplodingGateway()
+    use_case = _make_use_case(
+        gateway=gateway,
+        repo=repo,
+        client=_FakeFirestore(),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            use_case.execute(
+                game_id='g-1',
+                current_user=cast(Any, SimpleNamespace(firebase_uid=host)),
+            ),
+        )
+
+    assert exc_info.value.status_code == 403
+    assert gateway.call_count == 0

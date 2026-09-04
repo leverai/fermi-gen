@@ -1,6 +1,6 @@
 """Repository for answer-events-related database operations."""
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, cast
 from uuid import UUID
 
@@ -15,6 +15,43 @@ from . import BaseRepository
 # Below this threshold, linear quantiles (0→1000) are returned to prevent
 # cold-start volatility where early accurate players skew the distribution.
 MIN_QUANTILE_SAMPLE_SIZE = 20
+QUANTILE_PERCENTILES = (
+    ('p01', 0.01),
+    ('p05', 0.05),
+    ('p10', 0.10),
+    ('p25', 0.25),
+    ('p50', 0.50),
+    ('p60', 0.60),
+    ('p75', 0.75),
+    ('p80', 0.80),
+    ('p85', 0.85),
+    ('p90', 0.90),
+    ('p95', 0.95),
+    ('p99', 0.99),
+)
+
+
+def _quantile_columns(score_col: Any) -> list[Any]:
+    """Return the shared sample-count and percentile SQL expressions."""
+    return [
+        func.count(score_col).label('cnt'),
+        *[
+            func.percentile_cont(percentile).within_group(score_col.asc()).label(label)
+            for label, percentile in QUANTILE_PERCENTILES
+        ],
+    ]
+
+
+def _quantiles_from_mapping(
+    question_uid: UUID,
+    row: Mapping[str, Any],
+) -> AnswersQuantiles:
+    """Map one aggregate row to quantiles with cold-start protection."""
+    if int(row['cnt'] or 0) < MIN_QUANTILE_SAMPLE_SIZE:
+        return AnswersQuantiles.easy(question_uid)
+
+    values = {label: row[label] or 0.0 for label, _ in QUANTILE_PERCENTILES}
+    return AnswersQuantiles(question_uid=question_uid, **values)
 
 
 class AnswerRepository(BaseRepository):
@@ -40,51 +77,16 @@ class AnswerRepository(BaseRepository):
         score_col = cast(Any, AnswerEvent.score_number)
         question_col = cast(Any, AnswerEvent.question_uid)
 
-        cols = [
-            func.count(score_col).label('cnt'),
-            func.percentile_cont(0.01).within_group(score_col.asc()).label('p01'),
-            func.percentile_cont(0.05).within_group(score_col.asc()).label('p05'),
-            func.percentile_cont(0.10).within_group(score_col.asc()).label('p10'),
-            func.percentile_cont(0.25).within_group(score_col.asc()).label('p25'),
-            func.percentile_cont(0.50).within_group(score_col.asc()).label('p50'),
-            func.percentile_cont(0.60).within_group(score_col.asc()).label('p60'),
-            func.percentile_cont(0.75).within_group(score_col.asc()).label('p75'),
-            func.percentile_cont(0.80).within_group(score_col.asc()).label('p80'),
-            func.percentile_cont(0.85).within_group(score_col.asc()).label('p85'),
-            func.percentile_cont(0.90).within_group(score_col.asc()).label('p90'),
-            func.percentile_cont(0.95).within_group(score_col.asc()).label('p95'),
-            func.percentile_cont(0.99).within_group(score_col.asc()).label('p99'),
-        ]
-        stmt = select(*cols).where(question_col == question_uid)
+        stmt = select(*_quantile_columns(score_col)).where(
+            question_col == question_uid,
+        )
 
         result = await self.session.execute(stmt)
         row = result.one_or_none()
         if row is None:
             return AnswersQuantiles(question_uid=question_uid)
 
-        m = row._mapping
-        sample_count = m['cnt'] or 0
-        sample_count = int(sample_count)
-
-        # Return linear quantiles for cold-start protection
-        if sample_count < MIN_QUANTILE_SAMPLE_SIZE:
-            return AnswersQuantiles.easy(question_uid)
-
-        return AnswersQuantiles(
-            question_uid=question_uid,
-            p01=m['p01'] or 0.0,
-            p05=m['p05'] or 0.0,
-            p10=m['p10'] or 0.0,
-            p25=m['p25'] or 0.0,
-            p50=m['p50'] or 0.0,
-            p60=m['p60'] or 0.0,
-            p75=m['p75'] or 0.0,
-            p80=m['p80'] or 0.0,
-            p85=m['p85'] or 0.0,
-            p90=m['p90'] or 0.0,
-            p95=m['p95'] or 0.0,
-            p99=m['p99'] or 0.0,
-        )
+        return _quantiles_from_mapping(question_uid, row._mapping)
 
     async def get_questions_quantiles(
         self,
@@ -113,24 +115,8 @@ class AnswerRepository(BaseRepository):
         score_col = cast(Any, AnswerEvent.score_number)
         question_col = cast(Any, AnswerEvent.question_uid)
 
-        cols = [
-            question_col.label('question_uid'),
-            func.count(score_col).label('cnt'),
-            func.percentile_cont(0.01).within_group(score_col.asc()).label('p01'),
-            func.percentile_cont(0.05).within_group(score_col.asc()).label('p05'),
-            func.percentile_cont(0.10).within_group(score_col.asc()).label('p10'),
-            func.percentile_cont(0.25).within_group(score_col.asc()).label('p25'),
-            func.percentile_cont(0.50).within_group(score_col.asc()).label('p50'),
-            func.percentile_cont(0.60).within_group(score_col.asc()).label('p60'),
-            func.percentile_cont(0.75).within_group(score_col.asc()).label('p75'),
-            func.percentile_cont(0.80).within_group(score_col.asc()).label('p80'),
-            func.percentile_cont(0.85).within_group(score_col.asc()).label('p85'),
-            func.percentile_cont(0.90).within_group(score_col.asc()).label('p90'),
-            func.percentile_cont(0.95).within_group(score_col.asc()).label('p95'),
-            func.percentile_cont(0.99).within_group(score_col.asc()).label('p99'),
-        ]
         stmt = (
-            select(*cols)
+            select(question_col.label('question_uid'), *_quantile_columns(score_col))
             .where(question_col.in_(list(question_uids)))
             .group_by(question_col)
         )
@@ -141,28 +127,7 @@ class AnswerRepository(BaseRepository):
         for row in result.all():
             m = row._mapping
             uid = m['question_uid']
-            sample_count = int(m['cnt'] or 0)
-
-            # Return linear quantiles for cold-start protection
-            if sample_count < MIN_QUANTILE_SAMPLE_SIZE:
-                quantiles[uid] = AnswersQuantiles.easy(uid)
-                continue
-
-            quantiles[uid] = AnswersQuantiles(
-                question_uid=uid,
-                p01=m['p01'] or 0.0,
-                p05=m['p05'] or 0.0,
-                p10=m['p10'] or 0.0,
-                p25=m['p25'] or 0.0,
-                p50=m['p50'] or 0.0,
-                p60=m['p60'] or 0.0,
-                p75=m['p75'] or 0.0,
-                p80=m['p80'] or 0.0,
-                p85=m['p85'] or 0.0,
-                p90=m['p90'] or 0.0,
-                p95=m['p95'] or 0.0,
-                p99=m['p99'] or 0.0,
-            )
+            quantiles[uid] = _quantiles_from_mapping(uid, m)
         return quantiles
 
     async def count_user_party_games(self, firebase_uid: str) -> int:

@@ -11,13 +11,16 @@ from fastapi import HTTPException, status
 
 from app.schemas.game import GamePlayer, GameState
 from app.services.game.bots import BOT_IDS, BOTS
+from app.services.game.errors import StateConflictError
+from app.services.game.transactions.runner import TransactionRunner
 
 if TYPE_CHECKING:
     from fastapi import Request
     from fermi_db.models.user import User
-    from google.cloud.firestore_v1 import AsyncClient
+    from google.cloud.firestore_v1 import AsyncClient, AsyncTransaction
 
     from app.services.game.repositories.game_repo import GameRepository
+    from app.services.game.writers.lifecycle_writer import GameLifecycleWriter
 
 
 class AddBotsUseCase:
@@ -27,11 +30,15 @@ class AddBotsUseCase:
         self,
         *,
         firestore_client: 'AsyncClient',
+        txn_runner: 'TransactionRunner',
         repo: 'GameRepository',
+        lifecycle: 'GameLifecycleWriter',
     ) -> None:
         """Initialize the use case with required collaborators."""
         self._client = firestore_client
+        self._txn_runner = txn_runner
         self._repo = repo
+        self._lifecycle = lifecycle
 
     async def execute(
         self,
@@ -79,80 +86,80 @@ class AddBotsUseCase:
             )
 
         game_ref = self._client.collection('games').document(game_id)
-
-        # Read game data
-        data = await self._repo.get_game_fields(
-            game_ref,
-            fields=['host', 'players', 'state', 'max_players'],
-        )
-        if not data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail='Game not found',
-            )
-
-        # Validate host
-        if data.get('host') != current_user.firebase_uid:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail='Only host can add bots',
-            )
-
-        # Validate state
-        state = GameState(int(data['state']))
-        if state not in (GameState.LOBBY_NOT_READY, GameState.LOBBY_READY):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail='Can only add bots in lobby state',
-            )
-
-        # Validate player count using game's max_players
-        max_players = int(data['max_players'])
-        players = cast(dict[str, GamePlayer], data['players'])
-        existing_bot_ids = {pid for pid in players if pid in BOT_IDS}
-        human_count = len(players) - len(existing_bot_ids)
-
-        # Check for bots already in game
-        already_in_game = [bid for bid in bot_ids if bid in existing_bot_ids]
-        if already_in_game:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f'Bots already in game: {already_in_game}',
-            )
-
-        # Check max players limit
-        total_after_add = human_count + len(existing_bot_ids) + len(bot_ids)
-        if total_after_add > max_players:
-            available_slots = max_players - human_count - len(existing_bot_ids)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f'Adding {len(bot_ids)} bots would exceed max players. '
-                f'Only {available_slots} slot(s) available.',
-            )
-
-        # Construct base URL for absolute avatar URLs
         base_url = str(request.base_url).rstrip('/')
 
-        # Add bots to players map
-        batch = self._client.batch()
-        for bot_id in bot_ids:
-            bot = BOTS[bot_id]
-            # Convert relative picture URL to absolute URL
-            picture_url = f'{base_url}{bot["picture"]}'
-            bot_player = GamePlayer(
-                player_id=bot_id,
-                name=bot['name'],
-                picture=picture_url,
-                score=0,
-                rank=0,
-                is_host=False,
-                is_active=True,
+        async def _tx(tx: 'AsyncTransaction') -> None:
+            data = await self._repo.get_game_fields(
+                game_ref,
+                fields=[
+                    'host',
+                    'players',
+                    'state',
+                    'max_players',
+                    'start_claim_id',
+                ],
+                tx=tx,
             )
-            batch.update(game_ref, {f'players.{bot_id}': bot_player})
+            if not data:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail='Game not found',
+                )
 
-        # Update full flag if needed
-        batch.update(game_ref, {'full': total_after_add >= max_players})
+            if data.get('host') != current_user.firebase_uid:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail='Only host can add bots',
+                )
 
-        await batch.commit()
+            state = GameState(int(data['state']))
+            try:
+                self._lifecycle.ensure_lobby_mutation_allowed(
+                    state=state,
+                    start_claim_id=data.get('start_claim_id'),
+                )
+            except StateConflictError as err:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=str(err),
+                ) from err
+
+            max_players = int(data['max_players'])
+            players = cast(dict[str, GamePlayer], data['players'])
+            existing_bot_ids = {pid for pid in players if pid in BOT_IDS}
+            human_count = len(players) - len(existing_bot_ids)
+
+            already_in_game = [bid for bid in bot_ids if bid in existing_bot_ids]
+            if already_in_game:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f'Bots already in game: {already_in_game}',
+                )
+
+            total_after_add = human_count + len(existing_bot_ids) + len(bot_ids)
+            if total_after_add > max_players:
+                available_slots = max_players - human_count - len(existing_bot_ids)
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f'Adding {len(bot_ids)} bots would exceed max players. '
+                    f'Only {available_slots} slot(s) available.',
+                )
+
+            for bot_id in bot_ids:
+                bot = BOTS[bot_id]
+                bot_player = GamePlayer(
+                    player_id=bot_id,
+                    name=bot['name'],
+                    picture=f'{base_url}{bot["picture"]}',
+                    score=0,
+                    rank=0,
+                    is_host=False,
+                    is_active=True,
+                )
+                tx.update(game_ref, {f'players.{bot_id}': bot_player})
+
+            tx.update(game_ref, {'full': total_after_add >= max_players})
+
+        await self._txn_runner.run(_tx)
 
         return bot_ids

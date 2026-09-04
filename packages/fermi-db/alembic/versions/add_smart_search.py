@@ -26,6 +26,14 @@ down_revision: str | Sequence[str] | None = 'add_points_column'
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
+smart_search_outcome = postgresql.ENUM(
+    'ok',
+    'too_few',
+    'embed_error',
+    name='smartsearchoutcome',
+    create_type=False,
+)
+
 
 def upgrade() -> None:
     """Add embedding column to fermi (+ backfill) and smart_search_events table."""
@@ -53,6 +61,12 @@ def upgrade() -> None:
 
     # 3. Telemetry table for smart-search attempts (game_id nullable: a too-few /
     #    embed-error search produces no game but is still recorded for tuning).
+    postgresql.ENUM(
+        'ok',
+        'too_few',
+        'embed_error',
+        name='smartsearchoutcome',
+    ).create(op.get_bind(), checkfirst=True)
     op.create_table(
         'smart_search_events',
         sa.Column('id', sa.Integer(), nullable=False),
@@ -73,7 +87,7 @@ def upgrade() -> None:
         sa.Column('returned_uids', sa.JSON(), nullable=False),
         sa.Column('n', sa.Integer(), nullable=False),
         sa.Column('returned_similarities', sa.JSON(), nullable=False),
-        sa.Column('outcome', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+        sa.Column('outcome', smart_search_outcome, nullable=False),
         sa.Column('floor_used', sa.Float(), nullable=False),
         sa.Column('pool_size_used', sa.Integer(), nullable=False),
         sa.Column('created_at', sa.TIMESTAMP(), nullable=True),
@@ -102,4 +116,5 @@ def downgrade() -> None:
         table_name='smart_search_events',
     )
     op.drop_table('smart_search_events')
+    smart_search_outcome.drop(op.get_bind(), checkfirst=True)
     op.drop_column('fermi', 'embedding')

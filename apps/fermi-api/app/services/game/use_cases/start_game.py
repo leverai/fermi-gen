@@ -8,12 +8,14 @@ stays fair across the whole party.
 """
 
 import datetime
+import uuid
 from typing import TYPE_CHECKING, cast
 
 from fastapi import HTTPException, status
 from opentelemetry import trace
 
 import app.logging.attributes as attrs
+from app.core.config import settings as app_settings
 from app.schemas.endpoints import IdModel, QuestionRoundSettings
 from app.schemas.game import GamePlayer, GameState
 from app.services.game.bots import is_bot
@@ -30,6 +32,7 @@ if TYPE_CHECKING:
     from google.cloud.firestore_v1 import AsyncDocumentReference, AsyncTransaction
     from google.cloud.firestore_v1.async_client import AsyncClient
 
+    from app.schemas.game import AnswerDoc, QuestionDoc
     from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
     from app.services.game.writers.lifecycle_writer import GameLifecycleWriter
     from app.services.game.writers.players_answers_writer import (
@@ -65,6 +68,7 @@ class StartGameUseCase:
         game_ref: 'AsyncDocumentReference',
         tx: 'AsyncTransaction',
         current_user: 'User',
+        claim_id: str,
     ) -> dict:
         """Validate and atomically claim the start, inside a transaction.
 
@@ -83,6 +87,7 @@ class StartGameUseCase:
                 'n_questions',
                 'question_round_settings',
                 'start_claimed_at',
+                'start_claim_id',
             ],
             tx=tx,
         )
@@ -115,6 +120,7 @@ class StartGameUseCase:
                 writer=tx,
                 state=state,
                 claimed_at=data.get('start_claimed_at'),
+                claim_id=claim_id,
                 now=datetime.datetime.now(datetime.UTC),
             )
         except StateConflictError as err:
@@ -133,6 +139,7 @@ class StartGameUseCase:
     ) -> IdModel:
         """Start the game and reveal the first question for `game_id`."""
         game_ref = self._client.collection('games').document(game_id)
+        claim_id = str(uuid.uuid4())
 
         # Atomically claim the start before doing any expensive work. The loser
         # of a double-start race fails fast (409) here and never reaches the
@@ -142,6 +149,7 @@ class StartGameUseCase:
                 game_ref=game_ref,
                 tx=tx,
                 current_user=current_user,
+                claim_id=claim_id,
             )
 
         data = await TransactionRunner(self._client).run(_claim)
@@ -160,17 +168,37 @@ class StartGameUseCase:
                 state=state,
                 players=players,
                 current_user=current_user,
+                claim_id=claim_id,
             )
         except Exception:
-            await self._release_claim(game_ref)
+            await self._release_claim(game_ref, claim_id=claim_id)
             raise
 
-    async def _release_claim(self, game_ref: 'AsyncDocumentReference') -> None:
+    async def _release_claim(
+        self,
+        game_ref: 'AsyncDocumentReference',
+        *,
+        claim_id: str,
+    ) -> None:
         """Best-effort clear of the start claim (never masks the real error)."""
         try:
-            release = self._client.batch()
-            self._lifecycle.release_start_claim(game_ref=game_ref, writer=release)
-            await release.commit()
+
+            async def _release(tx: 'AsyncTransaction') -> None:
+                data = await self._repo.get_game_fields(
+                    game_ref,
+                    fields=['start_claim_id'],
+                    tx=tx,
+                )
+                if not data or data.get('start_claim_id') != claim_id:
+                    return
+                self._lifecycle.release_owned_start_claim(
+                    game_ref=game_ref,
+                    writer=tx,
+                    persisted_claim_id=data.get('start_claim_id'),
+                    claim_id=claim_id,
+                )
+
+            await TransactionRunner(self._client).run(_release)
         except Exception:
             # Releasing the claim is best-effort: a stale claim self-heals via
             # the TTL, so a failure here must never shadow the original cause.
@@ -185,6 +213,7 @@ class StartGameUseCase:
         state: GameState,
         players: dict[str, GamePlayer],
         current_user: 'User',
+        claim_id: str,
     ) -> IdModel:
         """Fetch questions and commit the start writes (outside any transaction).
 
@@ -203,6 +232,11 @@ class StartGameUseCase:
                 n_questions=int(data.get('n_questions') or 6),
                 categories=None,
                 difficulty=None,
+            )
+        if settings.search_query and not app_settings.smart_search_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail='Smart search is not available',
             )
         user_ids = [
             pid
@@ -253,59 +287,94 @@ class StartGameUseCase:
                 detail='No questions available to start the game',
             )
 
-        # Perform writes in a single batch
-        batch = self._client.batch()
-
-        # Set questions/answers docs and question_uids
-        question_uids = self._questions.set_questions(
+        await self._commit_start(
             game_ref=game_ref,
-            writer=batch,
+            state=state,
+            players=players,
+            settings=settings,
             questions_docs=questions_docs,
             answers_docs=answers_docs,
-            request_categories=settings.categories,
-            game_difficulty=settings.difficulty,
+            claim_id=claim_id,
         )
-
-        # Init players results docs for each question
-        self._players_answers.init_players_results_docs(
-            game_ref=game_ref,
-            writer=batch,
-            question_uids=question_uids,
-        )
-
-        # Reveal first question
-        self._questions.reveal_question(
-            game_ref=game_ref,
-            writer=batch,
-            question_uid=question_uids[0],
-            question_order=1,
-        )
-
-        # Init progress for all players
-        self._players_answers.init_progress(
-            game_ref=game_ref,
-            writer=batch,
-            players_ids=players,
-        )
-
-        # Start lifecycle (sets started_at and state) using the actual count
-        try:
-            self._lifecycle.start_game(
-                game_ref=game_ref,
-                writer=batch,
-                state=state,
-                n_questions=len(question_uids),
-            )
-        except StateConflictError as err:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=str(err),
-            ) from err
-
-        # Clear the start claim in the same batch: the state has now advanced
-        # past LOBBY_READY (which alone blocks restarts), and tidying the field
-        # keeps the doc clean.
-        self._lifecycle.release_start_claim(game_ref=game_ref, writer=batch)
-
-        await batch.commit()
         return IdModel(resource_id=game_id)
+
+    async def _commit_start(
+        self,
+        *,
+        game_ref: 'AsyncDocumentReference',
+        state: GameState,
+        players: dict[str, GamePlayer],
+        settings: QuestionRoundSettings,
+        questions_docs: list['QuestionDoc'],
+        answers_docs: list['AnswerDoc'],
+        claim_id: str,
+    ) -> None:
+        """Commit start writes only if this request still owns the claim."""
+
+        async def _commit(tx: 'AsyncTransaction') -> None:
+            latest = await self._repo.get_game_fields(
+                game_ref,
+                fields=['state', 'start_claim_id'],
+                tx=tx,
+            )
+            if not latest or latest.get('start_claim_id') != claim_id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail='Game start claim is no longer owned',
+                )
+            latest_state = GameState(int(latest['state']))
+            if latest_state != state:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail='Game state changed while starting',
+                )
+
+            question_uids = self._questions.set_questions(
+                game_ref=game_ref,
+                writer=tx,
+                questions_docs=questions_docs,
+                answers_docs=answers_docs,
+                request_categories=settings.categories,
+                game_difficulty=settings.difficulty,
+            )
+
+            self._players_answers.init_players_results_docs(
+                game_ref=game_ref,
+                writer=tx,
+                question_uids=question_uids,
+            )
+
+            self._questions.reveal_question(
+                game_ref=game_ref,
+                writer=tx,
+                question_uid=question_uids[0],
+                question_order=1,
+            )
+
+            self._players_answers.init_progress(
+                game_ref=game_ref,
+                writer=tx,
+                players_ids=players,
+            )
+
+            try:
+                self._lifecycle.start_game(
+                    game_ref=game_ref,
+                    writer=tx,
+                    state=latest_state,
+                    n_questions=len(question_uids),
+                )
+            except StateConflictError as err:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=str(err),
+                ) from err
+
+            self._lifecycle.release_owned_start_claim(
+                game_ref=game_ref,
+                writer=tx,
+                persisted_claim_id=latest.get('start_claim_id'),
+                claim_id=claim_id,
+            )
+
+        await TransactionRunner(self._client).run(_commit)

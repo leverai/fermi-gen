@@ -112,7 +112,7 @@ def test_create_game_rejects_search_when_flag_off(
     request = SimpleNamespace(base_url='http://test/')
 
     with pytest.raises(HTTPException) as exc_info:
-        asyncio.get_event_loop().run_until_complete(
+        asyncio.run(
             svc.create_game(
                 request=cast(Any, request),
                 payload=payload,
@@ -142,7 +142,7 @@ def test_create_game_nulls_categories_when_search_present(
     fs = _FakeFirestore()
     request = SimpleNamespace(base_url='http://test/')
 
-    asyncio.get_event_loop().run_until_complete(
+    asyncio.run(
         svc.create_game(
             request=cast(Any, request),
             payload=payload,
@@ -172,7 +172,7 @@ def test_create_game_keeps_categories_when_no_search(
     fs = _FakeFirestore()
     request = SimpleNamespace(base_url='http://test/')
 
-    asyncio.get_event_loop().run_until_complete(
+    asyncio.run(
         svc.create_game(
             request=cast(Any, request),
             payload=payload,

@@ -3,7 +3,7 @@
 import logging
 from typing import TYPE_CHECKING, Optional
 
-from fastapi import BackgroundTasks, HTTPException, Request, status
+from fastapi import BackgroundTasks, Request
 
 from app.core.config import settings
 from app.schemas.endpoints import (
@@ -16,12 +16,12 @@ from app.schemas.endpoints import (
     PlayerStats,
     UserLimits,
 )
-from app.services.game.errors import ValidationError
 from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
 from app.services.game.ranks import get_all_ranks, get_rank_for_percentile
 from app.services.game.repositories.game_repo import GameRepository
 from app.services.game.tasks.archive_game_results import archive_game_results
 from app.services.game.transactions.runner import TransactionRunner
+from app.services.game.use_cases.create_game import CreateGameUseCase
 from app.services.game.use_cases.end_game import EndGameUseCase
 from app.services.game.use_cases.join_game import JoinGameUseCase
 from app.services.game.use_cases.next_question import NextQuestionUseCase
@@ -79,94 +79,19 @@ class GameService:
         *,
         is_pro: bool = False,
     ) -> IdModel:
-        """Create a new game."""
-        # 0. Check hosting limits
-        assert current_user.id is not None
-        allowed = (
-            True
-            if is_pro
-            else await hosting_repo.get_hostings_remaining(
-                user_id=current_user.id,
-                limit=FREE_HOSTING_LIMIT_PER_WEEK,
-            )
+        """Create a new game via the create-game use case."""
+        return await CreateGameUseCase(
+            firestore_client=firestore_client,
+            hosting_repo=hosting_repo,
+            lifecycle=self._lifecycle_writer,
+            players=self._players_writer,
+            free_hosting_limit=FREE_HOSTING_LIMIT_PER_WEEK,
+        ).execute(
+            request=request,
+            payload=payload,
+            current_user=current_user,
+            is_pro=is_pro,
         )
-        if not allowed:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail='Weekly party hosting limit reached',
-            )
-
-        # 0b. Smart-search gating. The feature is server-flagged; reject a search
-        # when it's off. When a search IS present, it replaces categories
-        # (decision #1: search and categories are mutually exclusive), so null
-        # out categories on the settings that get persisted to the game doc.
-        round_settings = payload.question_round_settings
-        if round_settings.search_query:
-            if not settings.smart_search_enabled:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail='Smart search is not available',
-                )
-            round_settings = round_settings.model_copy(update={'categories': None})
-
-        # 1. Prepare resources
-        batch = firestore_client.batch()
-
-        # 2. Create game document
-        game_ref = await self._lifecycle_writer.create_game(
-            games_ref=firestore_client.collection('games'),
-            writer=batch,
-        )
-
-        # 3. Set players with tier-based max_players
-        from app.services.game.writers.players_writer import get_max_players
-
-        max_players = get_max_players(is_pro=is_pro)
-        try:
-            self._players_writer.set_players(
-                game_ref=game_ref,
-                writer=batch,
-                host_id=current_user.firebase_uid,
-                users=[current_user],
-                max_players=max_players,
-            )
-        except ValidationError as err:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(err),
-            ) from err
-
-        # 4. Set misc fields and persist the round settings for use at start time.
-        # Use ChottuLink URL if configured, otherwise fall back to API trampoline
-        if settings.invite_url_base:
-            join_url = f'{settings.invite_url_base}/invite?mode=party&id={game_ref.id}'
-        else:
-            # Local dev: use API trampoline endpoint
-            base = str(request.base_url).rstrip('/')
-            join_url = f'{base}/api/v1/game/invite/{game_ref.id}'
-        batch.update(
-            game_ref,
-            {
-                'join_url': join_url,
-                # Requested count, shown in the lobby. Overwritten with the
-                # actual fetched count when questions are set at start time.
-                'n_questions': round_settings.n_questions,
-                # Persisted so the start handler knows what to fetch. (Categories
-                # are already nulled above when a search query is present.)
-                'question_round_settings': round_settings.model_dump(
-                    mode='json',
-                ),
-            },
-        )
-
-        # 5. Lobby is ready immediately. Questions are fetched at start time,
-        # so there is no background work to wait on before the host can start.
-        self._lifecycle_writer.set_ready(game_ref=game_ref, writer=batch)
-
-        # 6. Commit the batch
-        await batch.commit()
-
-        return IdModel(resource_id=game_ref.id)
 
     async def join_game(
         self,
@@ -268,7 +193,9 @@ class GameService:
 
         use_case = AddBotsUseCase(
             firestore_client=firestore_client,
+            txn_runner=TransactionRunner(firestore_client),
             repo=GameRepository(firestore_client),
+            lifecycle=self._lifecycle_writer,
         )
         await use_case.execute(
             request=request,

@@ -66,6 +66,7 @@ class GameLifecycleWriter:
         *,
         state: GameState,
         claimed_at: datetime.datetime | None,
+        claim_id: str,
         now: datetime.datetime,
     ) -> None:
         """Atomically claim the right to start the game.
@@ -93,20 +94,45 @@ class GameLifecycleWriter:
         if claimed_at is not None and now - claimed_at < START_CLAIM_TTL:
             raise StateConflictError('Game start already in progress')
 
-        writer.update(game_ref, {'start_claimed_at': firestore.SERVER_TIMESTAMP})
+        writer.update(
+            game_ref,
+            {
+                'start_claimed_at': firestore.SERVER_TIMESTAMP,
+                'start_claim_id': claim_id,
+            },
+        )
 
-    def release_start_claim(
+    def release_owned_start_claim(
         self,
         game_ref: 'AsyncDocumentReference',
         writer: 'Writeable',
+        *,
+        persisted_claim_id: str | None,
+        claim_id: str,
     ) -> None:
-        """Clear the start claim so a future/retried start may proceed.
+        """Clear a start claim only when it is still owned by this request."""
+        if persisted_claim_id != claim_id:
+            raise StateConflictError('Game start claim is no longer owned')
 
-        Used both to tidy up after a successful start and to release the claim
-        when starting fails (e.g. a retryable embedding error), so the host can
-        retry immediately instead of waiting for the claim to expire.
-        """
-        writer.update(game_ref, {'start_claimed_at': firestore.DELETE_FIELD})
+        writer.update(
+            game_ref,
+            {
+                'start_claimed_at': firestore.DELETE_FIELD,
+                'start_claim_id': firestore.DELETE_FIELD,
+            },
+        )
+
+    @staticmethod
+    def ensure_lobby_mutation_allowed(
+        *,
+        state: GameState,
+        start_claim_id: str | None,
+    ) -> None:
+        """Reject roster changes after a start request has frozen the lobby."""
+        if state > GameState.LOBBY_READY:
+            raise StateConflictError('Cannot modify players outside of lobby')
+        if start_claim_id is not None:
+            raise StateConflictError('Game start already in progress')
 
     def start_game(
         self,
@@ -194,6 +220,7 @@ class GameLifecycleWriter:
         game_ref: 'AsyncDocumentReference',
         writer: 'Writeable',
         state: GameState,
+        start_claim_id: str | None,
     ) -> None:
         """Join a game, keeping the lobby in the ready state.
 
@@ -206,8 +233,10 @@ class GameLifecycleWriter:
                 (state greater than ``LOBBY_READY``).
 
         """
-        if state > GameState.LOBBY_READY:
-            raise StateConflictError('Cannot join a game outside of lobby')
+        self.ensure_lobby_mutation_allowed(
+            state=state,
+            start_claim_id=start_claim_id,
+        )
 
         writer.update(game_ref, {'state': GameState.LOBBY_READY})
 

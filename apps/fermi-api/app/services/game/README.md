@@ -14,7 +14,7 @@ This directory contains the core logic for the game service. It follows a clean 
 
 - `gateways/`: Acts as an adapter layer to external services. The `AnalyticsGateway` encapsulates all communication with the Postgres analytics database, keeping the core service decoupled from the analytics schema. The underlying data access is now implemented using `SQLModel`, with the `DatabaseClient` from the `fermi-db` package managing repository access within a request-scoped database session.
 
-- `tasks/`: Contains modules for background operations that must run after a transaction commits (post-commit side effects). Examples include fetching questions for a new game or archiving game results.
+- `tasks/`: Contains modules for background operations that must run after a transaction commits (post-commit side effects), such as archiving game results. Party questions are fetched synchronously by the start-game use case, not by a background task.
 
 - `transactions/`: Provides a standardized `TransactionRunner` to ensure Firestore transactions are executed safely and idempotently, preventing side effects from being scheduled inside a transaction body.
 

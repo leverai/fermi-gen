@@ -2,7 +2,7 @@
 
 import datetime
 import uuid
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 from typing import Any
 
 import sqlalchemy as sa
@@ -226,6 +226,14 @@ class PartyGameHosting(SQLModel, table=True):
     )
 
 
+class SmartSearchOutcome(StrEnum):
+    """Allowed outcomes for a smart-search attempt."""
+
+    OK = 'ok'
+    TOO_FEW = 'too_few'
+    EMBED_ERROR = 'embed_error'
+
+
 class SmartSearchEvent(SQLModel, table=True):
     """Telemetry for a single smart-search game-start attempt.
 
@@ -261,8 +269,18 @@ class SmartSearchEvent(SQLModel, table=True):
         default_factory=list,
         sa_column=sa.Column(sa.JSON),
     )
-    # 'ok' | 'too_few' | 'embed_error'.
-    outcome: str
+    outcome: SmartSearchOutcome = Field(
+        sa_column=sa.Column(
+            sa.Enum(
+                SmartSearchOutcome,
+                name='smartsearchoutcome',
+                values_callable=lambda members: [member.value for member in members],
+                create_constraint=True,
+                validate_strings=True,
+            ),
+            nullable=False,
+        ),
+    )
     # The dials in effect for this row, so historical data stays interpretable.
     floor_used: float
     pool_size_used: int

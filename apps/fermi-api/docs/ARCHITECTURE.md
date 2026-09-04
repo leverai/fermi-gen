@@ -314,7 +314,8 @@ The structure of a game document is defined by the `GameDoc` schema (`apps/fermi
     - `answered` (map): A map where keys are `firebase_uid`s and values are booleans indicating if the player has answered.
     - `all_answered` (boolean): Whether all active players have answered the current question.
 - `join_url` (string): The URL to join the game.
-- `version_uid` (string): A UID for the current set of questions to prevent race conditions.
+- `question_round_settings` (map): The categories or smart-search query, difficulty, and requested question count persisted for start time.
+- `start_claimed_at` / `start_claim_id` (optional): An in-flight start lease and ownership token. While present, transactional roster changes are rejected.
 
 ### Subcollections
 
@@ -364,8 +365,8 @@ The structure of a game document is defined by the `GameDoc` schema (`apps/fermi
 
 The `state` field in the game document drives the game's flow. The frontend should react to changes in this field to update the UI accordingly.
 
-- `LOBBY_NOT_READY` (1): The game is in the lobby, but questions are not yet ready. Players can join. The host should see a waiting indicator.
-- `LOBBY_READY` (2): The questions have been fetched, and the game is ready to start. The host can now start the game.
+- `LOBBY_NOT_READY` (1): The lobby document is still being initialized.
+- `LOBBY_READY` (2): The lobby configuration is persisted and the host can start. Questions are fetched synchronously when the host starts the game.
 - `QUESTION_N` (3): A regular question is currently being answered. `N` refers to any question that is not the last one. The UI should display the question and the answer input.
 - `QUESTION_N_FINISHED` (4): All players have answered the question, or the deadline has been reached. The UI should display the correct answer and the results for that round. The host can proceed to the next question.
 - `QUESTION_LAST` (5): The last question of the game is currently being answered.
@@ -401,19 +402,21 @@ In the main screen the player configures the game's category and difficulty, the
 
 Once created/joined, the player is taken to that game's lobby where other players can join until the host hits the main button to start the game.
 
-**2. Questions have arrived**
+**2. Lobby is ready**
 
-At this point the game becomes `LOBBY_READY` and waiting for the host to start the game.
+The lobby configuration is persisted, the game becomes `LOBBY_READY`, and players may join until the host starts it.
 
 **3. New player joins**
 
-When a new player joins, questions need to be re-fetched, so game becomes `LOBBY_NOT_READY` once more.
+Joining updates the roster transactionally and leaves the game in `LOBBY_READY`; no questions have been fetched yet.
 
-**4. Questions updated - game is LOBBY_READY again**
+**4. Host starts the game**
 
-**5. Host starts the game**
+The API atomically claims the start and freezes roster mutations. It then fetches questions for the final active human roster. The claim token fences stale requests from committing or clearing a newer claim.
 
-Game starts and the first question gets revealed. Game becomes in `QUESTION_N` (or `QUESTION_LAST` if only one question) until all players answer the question or the game is aborted.
+**5. Questions arrive and the first question is revealed**
+
+The fetched questions, initial progress, first reveal, and transition to `QUESTION_N` (or `QUESTION_LAST` for one question) commit atomically.
 
 **6. Player answers the question**
 

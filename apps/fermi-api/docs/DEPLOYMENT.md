@@ -101,8 +101,10 @@ The development environment connects to Cloud SQL and production Firebase servic
 ```yaml
 DATABASE_URL: <from Secret Manager: database-url-dev>
 JWT_SECRET_KEY: <from Secret Manager: fermi-api-jwt>
+OPENAI_API_KEY: <from Secret Manager: openai-api-key>
 GOOGLE_CLOUD_PROJECT: guesstimate-5483f
 USE_EMULATORS: false
+SMART_SEARCH_ENABLED: <GitHub dev environment variable; defaults to true>
 WEB_BASE_URL: https://guesstimate.leverai.tech
 # DO NOT SET: FIRESTORE_EMULATOR_HOST, FIREBASE_AUTH_EMULATOR_HOST
 ```
@@ -116,8 +118,10 @@ Production environment uses the same configuration as development but with a dif
 ```yaml
 DATABASE_URL: <from Secret Manager: database-url-prod>
 JWT_SECRET_KEY: <from Secret Manager: fermi-api-jwt>
+OPENAI_API_KEY: <from Secret Manager: openai-api-key>
 GOOGLE_CLOUD_PROJECT: guesstimate-5483f
 USE_EMULATORS: false
+SMART_SEARCH_ENABLED: <GitHub prod environment variable; defaults to false>
 WEB_BASE_URL: https://guesstimate.leverai.tech
 # DO NOT SET: FIRESTORE_EMULATOR_HOST, FIREBASE_AUTH_EMULATOR_HOST
 ```
@@ -189,6 +193,8 @@ gcloud run services logs read fermi-api-dev --region=us-central1
 
 - [ ] All tests passing locally and in CI
 - [ ] Database migrations applied (if schema changed)
+- [ ] `openai-api-key` exists and the API runner can access it
+- [ ] `SMART_SEARCH_ENABLED` is set for the target GitHub environment
 - [ ] Version bumped in `app/version.py`
 - [ ] Breaking changes documented
 - [ ] Firebase security rules updated (if needed)

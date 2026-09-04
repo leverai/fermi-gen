@@ -172,11 +172,12 @@ class MainScreenController extends ChangeNotifier {
     if (lrs == null) return;
     selectedDifficulty = lrs.difficulty;
     final String? q = lrs.searchQuery?.trim();
-    if (q != null && q.isNotEmpty) {
+    if (smartSearchEnabled && q != null && q.isNotEmpty) {
       searchQuery = lrs.searchQuery;
       selectedCategoryIndices = {};
       return;
     }
+    searchQuery = null;
     if (lrs.categories != null) {
       final categories = _configDto?.categories ?? const <CategoryInfo>[];
       selectedCategoryIndices = lrs.categories!
@@ -272,6 +273,10 @@ class MainScreenController extends ChangeNotifier {
   /// Sets the smart-search query. A non-empty query clears and disables the
   /// category chips (mutually exclusive); clearing the query re-enables them.
   void setSearchQuery(String? value) {
+    if (!smartSearchEnabled) {
+      clearSearchQuery();
+      return;
+    }
     final String? trimmed = value?.trim();
     searchQuery = (trimmed == null || trimmed.isEmpty) ? null : value;
     if (isSearching && selectedCategoryIndices.isNotEmpty) {
@@ -291,7 +296,8 @@ class MainScreenController extends ChangeNotifier {
     isSubmitting = true;
     errorMessage = null;
     notifyListeners();
-    final String? activeQuery = isSearching ? searchQuery!.trim() : null;
+    final String? activeQuery =
+        smartSearchEnabled && isSearching ? searchQuery!.trim() : null;
     try {
       // Guard a too-short search client-side: the backend enforces 2-100 chars
       // and would 422 a 1-char query at create. Surfacing it locally avoids the
@@ -337,6 +343,7 @@ class MainScreenController extends ChangeNotifier {
   /// not at create). Best-effort and keyed by firebase uid; a null/blank query
   /// or missing uid is a no-op. Refreshes [recentSearches] and notifies.
   Future<void> saveSearchToRecents(String? query) async {
+    if (!smartSearchEnabled) return;
     final String? trimmed = query?.trim();
     if (trimmed == null || trimmed.isEmpty) return;
     final String? uid = auth.firebaseUid;
@@ -353,7 +360,8 @@ class MainScreenController extends ChangeNotifier {
   /// The smart-search query from the most recent create, or null. This is the
   /// query that will be run at game start; the lobby threads it back to
   /// [saveSearchToRecents] on a successful start.
-  String? get lastSearchQuery => auth.lastRoundSettings?.searchQuery;
+  String? get lastSearchQuery =>
+      smartSearchEnabled ? auth.lastRoundSettings?.searchQuery : null;
 
   /// Factory for realtime adapter used by downstream screens.
   GameRealtime buildRealtimeAdapter() {

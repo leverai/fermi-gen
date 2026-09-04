@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, cast
 
 from fermi_core.op.embed import aget_query_embedding_3small
 from fermi_core.units import get_unit_family
-from fermi_db.models import AnswerEvent, SmartSearchEvent
+from fermi_db.models import AnswerEvent, SmartSearchEvent, SmartSearchOutcome
 from fermi_db.models.game import AnswersQuantiles, VoteVerdict
 from fermi_db.schemas import GameMode, QuestionCategory
 
@@ -196,7 +196,7 @@ class GameAnalyticsGateway:
                 difficulty=question_round_settings.difficulty,
                 returned_uids=[],
                 returned_similarities=[],
-                outcome='embed_error',
+                outcome=SmartSearchOutcome.EMBED_ERROR,
                 floor_used=floor,
                 pool_size_used=pool_size,
             )
@@ -229,7 +229,7 @@ class GameAnalyticsGateway:
                 difficulty=question_round_settings.difficulty,
                 returned_uids=[str(fermi.uid) for fermi in questions],
                 returned_similarities=similarities,
-                outcome='too_few',
+                outcome=SmartSearchOutcome.TOO_FEW,
                 floor_used=floor,
                 pool_size_used=pool_size,
             )
@@ -243,7 +243,7 @@ class GameAnalyticsGateway:
             difficulty=question_round_settings.difficulty,
             returned_uids=[str(fermi.uid) for fermi in questions],
             returned_similarities=similarities,
-            outcome='ok',
+            outcome=SmartSearchOutcome.OK,
             floor_used=floor,
             pool_size_used=pool_size,
         )
@@ -258,7 +258,7 @@ class GameAnalyticsGateway:
         difficulty: 'QuestionDifficulty | None',
         returned_uids: list[str],
         returned_similarities: list[float],
-        outcome: str,
+        outcome: SmartSearchOutcome,
         floor_used: float,
         pool_size_used: int,
     ) -> None:

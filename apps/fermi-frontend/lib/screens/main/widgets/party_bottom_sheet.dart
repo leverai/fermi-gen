@@ -154,6 +154,7 @@ void showPartyBottomSheet({
                         _RecentSearches(
                           recents: controller.recentSearches,
                           onTap: (q) {
+                            FeedbackService.instance.secondaryClick();
                             searchController.text = q;
                             searchController.selection =
                                 TextSelection.collapsed(offset: q.length);
@@ -275,10 +276,7 @@ class _RecentSearchChip extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          FeedbackService.instance.secondaryClick();
-          onTap();
-        },
+        onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
           height: 32,

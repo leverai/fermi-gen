@@ -75,7 +75,14 @@ class RemovePlayerUseCase:
             # Read all data BEFORE any writes (Firestore transaction requirement)
             data = await self._repo.get_game_fields(
                 game_ref,
-                fields=['state', 'players', 'progress', 'host', 'question_uid'],
+                fields=[
+                    'state',
+                    'players',
+                    'progress',
+                    'host',
+                    'question_uid',
+                    'start_claim_id',
+                ],
                 tx=tx,
             )
             if not data:
@@ -85,6 +92,18 @@ class RemovePlayerUseCase:
                 )
 
             state = GameState(int(data['state']))
+
+            if state <= GameState.LOBBY_READY:
+                try:
+                    self._lifecycle.ensure_lobby_mutation_allowed(
+                        state=state,
+                        start_claim_id=data.get('start_claim_id'),
+                    )
+                except StateConflictError as err:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=str(err),
+                    ) from err
 
             # Pre-read players_results if we're in a question state and might need it
             players_results_doc = None

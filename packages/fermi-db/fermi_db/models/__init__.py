@@ -11,6 +11,7 @@ from .game import (
     PartyGameHosting,
     QuestionVote,
     SmartSearchEvent,
+    SmartSearchOutcome,
     UserQuestionHistory,
     VoteVerdict,
 )
@@ -47,6 +48,7 @@ __all__ = [
     'Seed',
     'SeedsUsage',
     'SmartSearchEvent',
+    'SmartSearchOutcome',
     'Subscription',
     'SubscriptionPlatform',
     'SubscriptionTier',

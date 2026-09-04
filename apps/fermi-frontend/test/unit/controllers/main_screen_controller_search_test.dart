@@ -26,6 +26,13 @@ const _config = GameConfig(
   smartSearchEnabled: true,
 );
 
+final _disabledConfig = GameConfig(
+  categories: _config.categories,
+  difficulties: _config.difficulties,
+  ranks: [],
+  smartSearchEnabled: false,
+);
+
 void main() {
   late MockApiService mockApi;
   late MockAuthService mockAuth;
@@ -49,8 +56,7 @@ void main() {
         .thenAnswer((_) async {});
     controller = MainScreenController(
         api: mockApi, auth: mockAuth, localSettings: mockLocal);
-    when(() => mockApi.getGameConfigTyped()).thenAnswer((_) async => _config);
-    await controller.initialize();
+    await controller.initialize(preloadedConfig: _config);
   });
 
   tearDown(() => controller.dispose());
@@ -261,6 +267,50 @@ void main() {
         ),
       );
       expect(controller.lastSearchQuery, 'space scale');
+    });
+  });
+
+  group('feature flag kill switch', () {
+    test('does not restore or submit a saved search while disabled', () async {
+      when(() => mockAuth.lastRoundSettings).thenReturn(
+        const LastRoundSettings(
+          categories: null,
+          difficulty: 'EASY',
+          searchQuery: 'space scale',
+        ),
+      );
+      final disabledController = MainScreenController(
+        api: mockApi,
+        auth: mockAuth,
+        localSettings: mockLocal,
+      );
+      addTearDown(disabledController.dispose);
+
+      await disabledController.initialize(preloadedConfig: _disabledConfig);
+
+      expect(disabledController.searchQuery, isNull);
+      expect(disabledController.lastSearchQuery, isNull);
+      disabledController.setSearchQuery('new search');
+      expect(disabledController.searchQuery, isNull);
+      await disabledController.saveSearchToRecents('space scale');
+      verifyNever(() => mockLocal.addRecentSearch(any(), any()));
+
+      // Defense in depth: even stale/directly assigned controller state cannot
+      // put a search query on the create request while the flag is off.
+      disabledController.searchQuery = 'stale search';
+      when(() => mockApi.createGame(
+            categories: any(named: 'categories'),
+            difficulty: any(named: 'difficulty'),
+            nQuestions: any(named: 'nQuestions'),
+            searchQuery: null,
+          )).thenAnswer((_) async => 'game-disabled');
+      await disabledController.createGame();
+      verify(() => mockApi.createGame(
+            categories: any(named: 'categories'),
+            difficulty: any(named: 'difficulty'),
+            nQuestions: any(named: 'nQuestions'),
+            searchQuery: null,
+          )).called(1);
     });
   });
 }

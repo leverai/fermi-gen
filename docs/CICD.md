@@ -102,6 +102,10 @@ Both workflows trigger on pushes to `develop` or `main` when changes occur in:
 3. `build-and-push` → Docker build and push to Artifact Registry
 4. `deploy` → Deploy to Cloud Run (dev or prod)
 
+For cross-stack changes, the orchestrator waits for the API workflow (including
+its deployment on pushes) before starting the frontend workflow. Develop
+publishes Android to the internal track; main publishes to production.
+
 ---
 
 ## GitHub Configuration
@@ -110,7 +114,7 @@ Both workflows trigger on pushes to `develop` or `main` when changes occur in:
 Location: Settings > Secrets and variables > Actions > Secrets
 
 - `GCP_WORKLOAD_IDENTITY_PROVIDER` - Workload Identity Provider path
-- `OPENAI_API_KEY` - For ETL integration tests
+- `OPENAI_API_KEY` - For ETL integration tests and API smart-search embeddings
 - `SERP_API_KEY` - For ETL integration tests
 
 ### Repository Variables
@@ -121,6 +125,7 @@ Location: Settings > Secrets and variables > Actions > Variables
 - `GCP_REGION` - Deployment region (e.g., `us-central1`)
 - `ARTIFACT_REGISTRY_REPO` - Full registry URL
 - `CLOUD_SQL_INSTANCE` - Cloud SQL instance name
+- `SMART_SEARCH_ENABLED` - Optional per-environment API feature flag (`true` or `false`). If unset, CI enables it in dev and keeps it off in prod.
 
 ### Environment Variables
 Location: Settings > Environments > [dev/prod]
@@ -276,6 +281,7 @@ USE_EMULATORS: true
 ```yaml
 USE_EMULATORS: false
 GOOGLE_CLOUD_PROJECT: guesstimate-5483f
+SMART_SEARCH_ENABLED: ${{ vars.SMART_SEARCH_ENABLED || (inputs.environment == 'dev' && 'true' || 'false') }}
 # DO NOT SET: FIRESTORE_EMULATOR_HOST, FIREBASE_AUTH_EMULATOR_HOST
 ```
 

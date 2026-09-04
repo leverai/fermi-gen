@@ -32,6 +32,7 @@ async def test_claim_start_in_lobby_ready_stamps_claim(
         cast(Any, writer),
         state=GameState.LOBBY_READY,
         claimed_at=None,
+        claim_id='claim-1',
         now=now,
     )
 
@@ -39,6 +40,7 @@ async def test_claim_start_in_lobby_ready_stamps_claim(
     ref, data = writer.updates[0]
     assert ref is game_ref
     assert 'start_claimed_at' in data
+    assert data['start_claim_id'] == 'claim-1'
 
 
 @pytest.mark.asyncio
@@ -55,6 +57,7 @@ async def test_claim_start_rejects_non_lobby_ready(
             cast(Any, recorder_writer),
             state=GameState.QUESTION_N,
             claimed_at=None,
+            claim_id='claim-1',
             now=now,
         )
     assert recorder_writer.updates == []
@@ -75,6 +78,7 @@ async def test_claim_start_rejects_when_fresh_claim_held(
             cast(Any, recorder_writer),
             state=GameState.LOBBY_READY,
             claimed_at=fresh,
+            claim_id='claim-1',
             now=now,
         )
     assert recorder_writer.updates == []
@@ -94,6 +98,7 @@ async def test_claim_start_reclaims_when_claim_is_stale(
         cast(Any, recorder_writer),
         state=GameState.LOBBY_READY,
         claimed_at=stale,
+        claim_id='claim-2',
         now=now,
     )
 
@@ -102,18 +107,42 @@ async def test_claim_start_reclaims_when_claim_is_stale(
 
 
 @pytest.mark.asyncio
-async def test_release_start_claim_deletes_field(
+async def test_release_owned_start_claim_deletes_fields(
     recorder_writer: 'RecorderWriter',
     fake_doc_ref: object,
 ) -> None:
     from google.cloud import firestore
 
     lw = GameLifecycleWriter()
-    lw.release_start_claim(cast(Any, fake_doc_ref), cast(Any, recorder_writer))
+    lw.release_owned_start_claim(
+        cast(Any, fake_doc_ref),
+        cast(Any, recorder_writer),
+        persisted_claim_id='claim-1',
+        claim_id='claim-1',
+    )
 
     assert len(recorder_writer.updates) == 1
     _, data = recorder_writer.updates[0]
     assert data['start_claimed_at'] is firestore.DELETE_FIELD
+    assert data['start_claim_id'] is firestore.DELETE_FIELD
+
+
+@pytest.mark.asyncio
+async def test_release_owned_start_claim_rejects_stale_owner(
+    recorder_writer: 'RecorderWriter',
+    fake_doc_ref: object,
+) -> None:
+    lw = GameLifecycleWriter()
+
+    with pytest.raises(StateConflictError, match='no longer owned'):
+        lw.release_owned_start_claim(
+            cast(Any, fake_doc_ref),
+            cast(Any, recorder_writer),
+            persisted_claim_id='new-claim',
+            claim_id='old-claim',
+        )
+
+    assert recorder_writer.updates == []
 
 
 @pytest.mark.asyncio
@@ -316,7 +345,12 @@ async def test_join_game_in_lobby_keeps_lobby_ready(
     game_ref = fake_doc_ref
     lw = GameLifecycleWriter()
 
-    lw.join_game(cast(Any, game_ref), cast(Any, writer), state=GameState.LOBBY_READY)
+    lw.join_game(
+        cast(Any, game_ref),
+        cast(Any, writer),
+        state=GameState.LOBBY_READY,
+        start_claim_id=None,
+    )
     assert writer.updates[0][1]['state'] == GameState.LOBBY_READY
 
 
@@ -330,7 +364,30 @@ async def test_join_game_invalid_state_raises_conflict(
     lw = GameLifecycleWriter()
 
     with pytest.raises(StateConflictError):
-        lw.join_game(cast(Any, game_ref), cast(Any, writer), state=GameState.QUESTION_N)
+        lw.join_game(
+            cast(Any, game_ref),
+            cast(Any, writer),
+            state=GameState.QUESTION_N,
+            start_claim_id=None,
+        )
+
+
+@pytest.mark.asyncio
+async def test_join_game_rejects_in_flight_start(
+    recorder_writer: 'RecorderWriter',
+    fake_doc_ref: object,
+) -> None:
+    lw = GameLifecycleWriter()
+
+    with pytest.raises(StateConflictError, match='start already in progress'):
+        lw.join_game(
+            cast(Any, fake_doc_ref),
+            cast(Any, recorder_writer),
+            state=GameState.LOBBY_READY,
+            start_claim_id='claim-1',
+        )
+
+    assert recorder_writer.updates == []
 
 
 @pytest.mark.asyncio
