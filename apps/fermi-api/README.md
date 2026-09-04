@@ -184,7 +184,8 @@ Retrieves the game configuration, including requestable categories (with theming
           "picture": "https://<host>/static/difficulties/snai.svg"
         }
         // ... additional DifficultyInfo objects
-      ]
+      ],
+      "smart_search_enabled": true
     }
     ```
 
@@ -192,6 +193,8 @@ Notes:
 - `categories` uses a RequestCategory enum that excludes `OTHER`.
 - `picture` is an absolute URL served by the backend at `/static/categories/<NAME>.png`.
 - `slug` is a human‑readable display name for the frontend.
+- `smart_search_enabled` controls whether clients may show and submit custom
+  semantic categories. The API also enforces the flag during create and start.
 
 #### `POST /game/create`
 Creates a new private game. The user who creates the game becomes the host.
@@ -201,8 +204,9 @@ Creates a new private game. The user who creates the game becomes the host.
     {
       "question_round_settings": {
         "n_questions": 6,
-        "category": "PLANET_EARTH", // RequestCategory value; use None for all categories
-        "difficulty": "MEDIUM"       // or null
+        "categories": ["PLANET_EARTH"],
+        "difficulty": "MEDIUM",
+        "search_query": null
       }
     }
     ```
@@ -214,7 +218,12 @@ Creates a new private game. The user who creates the game becomes the host.
     ```
 -   **Side Effects:**
     -   A new game document is created in Firestore.
-    -   A background task is started to fetch questions for the game. The `state` field will be updated to `LOBBY_NOT_READY` initially, and then to `LOBBY_READY` when the questions are fetched.
+    -   The lobby is immediately set to `LOBBY_READY`; questions are fetched
+        synchronously when the host starts the game.
+
+`categories` and `search_query` are mutually exclusive. To use smart search,
+send `categories: null` and a 2–100 character `search_query`. The API returns
+`403 Forbidden` when smart search is disabled.
 
 #### `POST /game/join`
 Joins a specific game by its ID.
@@ -235,8 +244,8 @@ Joins a specific game by its ID.
     -   `404 Not Found`: If the game does not exist.
     -   `409 Conflict`: If the game has already started or is full.
 -   **Side Effects:**
-    -   The new player is added to the `players` map in the game document, and the `state` is set to `LOBBY_NOT_READY`.
-    -   A background task is started to re-fetch questions. The `state` will be updated to `LOBBY_READY` when done.
+    -   The new player is transactionally added to the `players` map while the
+        lobby remains `LOBBY_READY`. Joining does not fetch questions.
 
 #### `POST /game/start`
 Starts the game. This can only be done by the host.
@@ -255,8 +264,12 @@ Starts the game. This can only be done by the host.
     ```
 -   **Errors:**
     -   `403 Forbidden`: If the user is not the host.
-    -   `409 Conflict`: If the game is not in a startable state (e.g., `LOBBY_READY`).
+    -   `403 Forbidden`: If the lobby uses smart search and the feature was disabled.
+    -   `409 Conflict`: If the game is not in `LOBBY_READY` or another start is in flight.
+    -   `422 Unprocessable Entity`: If too few questions match a smart-search query (`search_no_results`).
+    -   `503 Service Unavailable`: If the query embedding fails (`search_embedding_error`) or no legacy questions are available.
 -   **Side Effects:**
+    -   Questions are fetched synchronously for the final lobby roster.
     -   The game `state` is updated to `QUESTION_N` (or `QUESTION_LAST` if there's only one question) in Firestore, and the first question document in the `questions` subcollection has its `revealed` field set to `true`.
 
 #### `POST /game/answer`
@@ -662,9 +675,9 @@ python scripts/manage_dq.py seed --count 10
     -   Alternatively, if the user has a game ID, they can call `POST /game/join`.
 4.  **Lobby:**
     -   The frontend receives the `game_id` and subscribes to the corresponding game document in Firestore.
-    -   The UI updates in real-time as other players join (by observing the `players` map) and the game `state` changes (e.g., to `LOBBY_READY` when questions are fetched).
+    -   The UI updates in real-time as other players join by observing the `players` map. The lobby is already `LOBBY_READY`; it does not run background question fetches.
 5.  **Start Game:**
-    -   The host calls `POST /game/start`.
+    -   The host calls `POST /game/start`, which fetches questions for the final roster before atomically starting the game.
     -   The frontend listens for the game `state` to change to `QUESTION_N` and then queries the `questions` subcollection for the document with `revealed: true`.
 6.  **Answering Questions:**
     -   Players submit their answers via `POST /game/answer`.

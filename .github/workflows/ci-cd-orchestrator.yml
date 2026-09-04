@@ -79,8 +79,8 @@ jobs:
 
   api:
     name: API Workflow
-    needs: [detect-changes, migrations]
-    if: ${{ always() && needs.detect-changes.outputs.api == 'true' && (needs.migrations.result == 'success' || needs.migrations.result == 'skipped') }}
+    needs: [detect-changes, migrations, db]
+    if: ${{ always() && needs.detect-changes.outputs.api == 'true' && (needs.migrations.result == 'success' || needs.migrations.result == 'skipped') && (needs.db.result == 'success' || needs.db.result == 'skipped') }}
     uses: ./.github/workflows/fermi-api-ci-cd.yml
     with:
       environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
@@ -92,8 +92,8 @@ jobs:
 
   etl:
     name: ETL Workflow
-    needs: [detect-changes, migrations]
-    if: ${{ always() && needs.detect-changes.outputs.etl == 'true' && (needs.migrations.result == 'success' || needs.migrations.result == 'skipped') }}
+    needs: [detect-changes, migrations, db]
+    if: ${{ always() && needs.detect-changes.outputs.etl == 'true' && (needs.migrations.result == 'success' || needs.migrations.result == 'skipped') && (needs.db.result == 'success' || needs.db.result == 'skipped') }}
     uses: ./.github/workflows/fermi-etl-ci-cd.yml
     with:
       environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
@@ -119,8 +119,8 @@ jobs:
   # when the API job is skipped.
   frontend:
     name: Frontend Workflow
-    needs: [detect-changes, migrations, api]
-    if: ${{ always() && needs.detect-changes.outputs.frontend == 'true' && (needs.migrations.result == 'success' || needs.migrations.result == 'skipped') && (needs.api.result == 'success' || needs.api.result == 'skipped') }}
+    needs: [detect-changes, migrations, db, api]
+    if: ${{ always() && needs.detect-changes.outputs.frontend == 'true' && (needs.migrations.result == 'success' || needs.migrations.result == 'skipped') && (needs.db.result == 'success' || needs.db.result == 'skipped') && (needs.api.result == 'success' || needs.api.result == 'skipped') }}
     uses: ./.github/workflows/fermi-frontend-ci-cd.yml
     with:
       environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}

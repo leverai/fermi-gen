@@ -46,7 +46,6 @@ def upgrade() -> None:
             nullable=True,
         ),
     )
-
     # 2. Backfill embeddings from the ETL source table. fermi.uid is a v5 hash of
     #    fermi_questions.id, but fermi also carries the plain question_id, so we
     #    join on that.
@@ -58,9 +57,16 @@ def upgrade() -> None:
         WHERE fermi.question_id = fq.id
         """,
     )
+    op.create_index(
+        'ix_fermi_embedding_hnsw',
+        'fermi',
+        ['embedding'],
+        postgresql_using='hnsw',
+        postgresql_ops={'embedding': 'vector_cosine_ops'},
+    )
 
-    # 3. Telemetry table for smart-search attempts (game_id nullable: a too-few /
-    #    embed-error search produces no game but is still recorded for tuning).
+    # 3. Telemetry table. game_id remains nullable for legacy/direct callers;
+    # party-game starts attribute every outcome to their existing lobby.
     postgresql.ENUM(
         'ok',
         'too_few',
@@ -117,4 +123,5 @@ def downgrade() -> None:
     )
     op.drop_table('smart_search_events')
     smart_search_outcome.drop(op.get_bind(), checkfirst=True)
+    op.drop_index('ix_fermi_embedding_hnsw', table_name='fermi')
     op.drop_column('fermi', 'embedding')

@@ -80,6 +80,7 @@ async def test_add_bots_is_rejected_after_start_claim() -> None:
         txn_runner=cast(Any, _Runner(tx)),
         repo=cast(Any, _Repo()),
         lifecycle=GameLifecycleWriter(),
+        players=cast(Any, SimpleNamespace()),
     )
 
     with pytest.raises(HTTPException) as exc_info:

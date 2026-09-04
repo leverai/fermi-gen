@@ -2,6 +2,9 @@
 
 This directory contains write-focused helpers for the game service. Each writer encapsulates a logical group of Firestore mutations. They were refactored from a broader "Manager" pattern to enforce a clear separation between read and write responsibilities.
 
+The current groups are lifecycle transitions, lobby settings, players, questions,
+and player-answer progress/results.
+
 Writers are the only place where game-related Firestore documents should be mutated. They are orchestrated by the use-case layer.
 
 ## Responsibilities

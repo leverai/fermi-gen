@@ -8,6 +8,7 @@ has no knowledge of Firestore or HTTP semantics.
 
 import logging
 import uuid
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
 from fermi_core.op.embed import aget_query_embedding_3small
@@ -33,6 +34,21 @@ if TYPE_CHECKING:
     from app.schemas.endpoints import QuestionRoundSettings, QuestionSettings
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True, slots=True)
+class _SmartSearchTelemetry:
+    """Data needed to persist one smart-search attempt."""
+
+    game_id: str | None
+    host_user_id: str | None
+    query: str
+    difficulty: 'QuestionDifficulty | None'
+    returned_uids: list[str]
+    returned_similarities: list[float]
+    outcome: SmartSearchOutcome
+    floor_used: float
+    pool_size_used: int
 
 
 class GameAnalyticsGateway:
@@ -183,6 +199,7 @@ class GameAnalyticsGateway:
         # Gate on max(min_results, n_questions) so a custom n_questions still gets a
         # full game rather than a short one.
         min_results = max(settings.smart_search_min_results, n_questions)
+        effective_pool_size = max(pool_size, min_results)
 
         # Embed the query. A failure here is transient (OpenAI down/timeout): the
         # same query may succeed on retry, so it becomes a retryable 503 upstream.
@@ -190,27 +207,29 @@ class GameAnalyticsGateway:
             vec = await aget_query_embedding_3small(query)
         except Exception as exc:
             await self._record_smart_search_event(
-                game_id=None,
-                host_user_id=host_user_id,
-                query=query,
-                difficulty=question_round_settings.difficulty,
-                returned_uids=[],
-                returned_similarities=[],
-                outcome=SmartSearchOutcome.EMBED_ERROR,
-                floor_used=floor,
-                pool_size_used=pool_size,
+                _SmartSearchTelemetry(
+                    game_id=game_id,
+                    host_user_id=host_user_id,
+                    query=query,
+                    difficulty=question_round_settings.difficulty,
+                    returned_uids=[],
+                    returned_similarities=[],
+                    outcome=SmartSearchOutcome.EMBED_ERROR,
+                    floor_used=floor,
+                    pool_size_used=effective_pool_size,
+                ),
             )
             raise SearchEmbeddingError(
                 f'Failed to embed search query {query!r}',
             ) from exc
 
-        # Similarity-gated unseen-fairness pool. Returns up to n_questions rows as
-        # (Fermi, cosine_distance) tuples, possibly fewer (incl. 0).
+        # Fetch enough candidates to enforce the configured quality floor even
+        # when the host requests fewer questions than ``smart_search_min_results``.
         rows = await self._db_client.fermi.get_unseen_similar_questions(
             query_embedding=vec,
-            count=n_questions,
+            count=min_results,
             for_user_ids=user_ids,
-            candidate_pool_size=pool_size,
+            candidate_pool_size=effective_pool_size,
             similarity_floor=floor,
             difficulty=question_round_settings.difficulty,
         )
@@ -223,44 +242,42 @@ class GameAnalyticsGateway:
         # degenerate short game -- surface a query-actionable 4xx instead.
         if len(rows) < min_results:
             await self._record_smart_search_event(
-                game_id=None,
+                _SmartSearchTelemetry(
+                    game_id=game_id,
+                    host_user_id=host_user_id,
+                    query=query,
+                    difficulty=question_round_settings.difficulty,
+                    returned_uids=[str(fermi.uid) for fermi in questions],
+                    returned_similarities=similarities,
+                    outcome=SmartSearchOutcome.TOO_FEW,
+                    floor_used=floor,
+                    pool_size_used=effective_pool_size,
+                ),
+            )
+            raise SearchNoResultsError(query=query, found=len(rows))
+
+        questions = questions[:n_questions]
+        similarities = similarities[:n_questions]
+
+        # Success: record telemetry (game_id is the game being started).
+        await self._record_smart_search_event(
+            _SmartSearchTelemetry(
+                game_id=game_id,
                 host_user_id=host_user_id,
                 query=query,
                 difficulty=question_round_settings.difficulty,
                 returned_uids=[str(fermi.uid) for fermi in questions],
                 returned_similarities=similarities,
-                outcome=SmartSearchOutcome.TOO_FEW,
+                outcome=SmartSearchOutcome.OK,
                 floor_used=floor,
-                pool_size_used=pool_size,
-            )
-            raise SearchNoResultsError(query=query, found=len(rows))
-
-        # Success: record telemetry (game_id is the game being started).
-        await self._record_smart_search_event(
-            game_id=game_id,
-            host_user_id=host_user_id,
-            query=query,
-            difficulty=question_round_settings.difficulty,
-            returned_uids=[str(fermi.uid) for fermi in questions],
-            returned_similarities=similarities,
-            outcome=SmartSearchOutcome.OK,
-            floor_used=floor,
-            pool_size_used=pool_size,
+                pool_size_used=effective_pool_size,
+            ),
         )
         return questions
 
     async def _record_smart_search_event(
         self,
-        *,
-        game_id: str | None,
-        host_user_id: str | None,
-        query: str,
-        difficulty: 'QuestionDifficulty | None',
-        returned_uids: list[str],
-        returned_similarities: list[float],
-        outcome: SmartSearchOutcome,
-        floor_used: float,
-        pool_size_used: int,
+        event: _SmartSearchTelemetry,
     ) -> None:
         """Insert a SmartSearchEvent, best-effort.
 
@@ -269,23 +286,23 @@ class GameAnalyticsGateway:
         are strings (not ``uuid.UUID``): they land in a JSON column whose default
         serializer can't encode ``uuid.UUID``.
         """
-        if host_user_id is None:
+        if event.host_user_id is None:
             # No host to attribute the event to; skip rather than fail the start.
             logger.warning('Skipping smart-search telemetry: missing host_user_id')
             return
         try:
             await self._db_client.fermi.insert_smart_search_event(
                 SmartSearchEvent(
-                    user_id=host_user_id,
-                    game_id=game_id,
-                    query=query,
-                    difficulty=difficulty,
-                    returned_uids=returned_uids,
-                    n=len(returned_uids),
-                    returned_similarities=returned_similarities,
-                    outcome=outcome,
-                    floor_used=floor_used,
-                    pool_size_used=pool_size_used,
+                    user_id=event.host_user_id,
+                    game_id=event.game_id,
+                    query=event.query,
+                    difficulty=event.difficulty,
+                    returned_uids=event.returned_uids,
+                    n=len(event.returned_uids),
+                    returned_similarities=event.returned_similarities,
+                    outcome=event.outcome,
+                    floor_used=event.floor_used,
+                    pool_size_used=event.pool_size_used,
                 ),
             )
         except Exception:

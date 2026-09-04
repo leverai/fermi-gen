@@ -136,6 +136,27 @@ def test_add_player_duplicate_raises_conflict(
         )
 
 
+def test_add_bots_builds_players_and_sets_full(
+    recorder_writer: RecorderWriter,
+    fake_doc_ref: object,
+) -> None:
+    lw = GamePlayersWriter()
+
+    lw.add_bots(
+        game_ref=cast(Any, fake_doc_ref),
+        writer=cast(Any, recorder_writer),
+        bot_ids=['bot-gpt51'],
+        base_url='https://api.example',
+        total_after_add=5,
+        max_players=5,
+    )
+
+    player = recorder_writer.updates[0][1]['players.bot-gpt51']
+    assert player['player_id'] == 'bot-gpt51'
+    assert player['picture'].startswith('https://api.example')
+    assert recorder_writer.updates[1][1] == {'full': True}
+
+
 def test_get_active_player_ids_filters_inactive(players_map_factory: Any) -> None:
     lw = GamePlayersWriter()
     players = players_map_factory('a', 'b', host='a')

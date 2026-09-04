@@ -243,15 +243,15 @@ class SmartSearchEvent(SQLModel, table=True):
     ``returned_uids``) is the signal that drives floor tuning. Joinable to
     ``answer_events`` (via ``game_id``) for downstream relevance evaluation.
 
-    ``game_id`` is nullable: a search that yields too few matches (or whose embed
-    call failed) never creates a game, but is still recorded for tuning.
+    ``game_id`` remains nullable for legacy or direct gateway callers. Party-game
+    start attempts provide the existing lobby id for every outcome.
     """
 
     __tablename__ = 'smart_search_events'  # type: ignore
 
     id: int | None = Field(default=None, primary_key=True)
     user_id: str = Field(index=True)
-    # Null when the search produced no game (too_few / embed_error).
+    # Nullable for legacy/direct callers; party starts always supply their lobby id.
     game_id: str | None = Field(default=None, index=True)
     query: str
     difficulty: QuestionDifficulty | None = None

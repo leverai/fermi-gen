@@ -23,7 +23,7 @@ The Fermi Game database uses PostgreSQL 17 with the `pgvector` extension for sem
 
 1. **Legacy Tables**: Original question and game management tables (UUID-based)
 2. **Pipeline Tables**: ETL pipeline for question generation and deduplication (integer IDs)
-3. **Game Tables**: User history, answer events, and voting
+3. **Game Tables**: User history, answer events, voting, and smart-search telemetry
 
 **Database Naming Convention:**
 - UUID fields: named `uid`
@@ -494,6 +494,7 @@ CREATE TABLE fermi (
     snippet TEXT,
     paragraph TEXT,
     references JSONB,
+    embedding vector(1536),
     -- GPT bot answers (smart, competitive)
     gpt_5_1_number FLOAT NOT NULL,
     gpt_5_1_unit TEXT,
@@ -521,6 +522,7 @@ CREATE INDEX idx_fermi_id ON fermi (id);
 CREATE INDEX idx_fermi_category ON fermi (category);
 CREATE INDEX idx_fermi_difficulty ON fermi (difficulty);
 CREATE INDEX idx_fermi_status ON fermi (status);
+CREATE INDEX ix_fermi_embedding_hnsw ON fermi USING hnsw (embedding vector_cosine_ops);
 ```
 
 **Key Properties:**
@@ -529,6 +531,7 @@ CREATE INDEX idx_fermi_status ON fermi (status);
 - Populated by `sync_fermi_table()` after enrichment and LLM answering complete
 - UUID generated using `uuid_generate_v5()` based on question ID for stability
 - Supports foreign key constraints from other tables
+- `embedding` stores the `text-embedding-3-small` vector used by party smart search
 
 **LLM Answer Columns:**
 - **GPT models** (`gpt_5_1_*`, `gpt_5_mini_*`, `gpt_5_nano_*`): Smart competitive bots
@@ -539,6 +542,37 @@ CREATE INDEX idx_fermi_status ON fermi (status);
 - Simpler data management - no need for `REFRESH MATERIALIZED VIEW`
 - Better referential integrity
 - Rows are inserted directly by the ETL pipeline after successful enrichment
+
+### `smart_search_events`
+
+Best-effort telemetry for every semantic party-game start attempt. Failed
+attempts retain the existing Firestore lobby id when available.
+
+```sql
+CREATE TYPE smartsearchoutcome AS ENUM ('ok', 'too_few', 'embed_error');
+
+CREATE TABLE smart_search_events (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    game_id TEXT,
+    query TEXT NOT NULL,
+    difficulty questiondifficulty,
+    returned_uids JSON NOT NULL,
+    n INTEGER NOT NULL,
+    returned_similarities JSON NOT NULL,
+    outcome smartsearchoutcome NOT NULL,
+    floor_used FLOAT NOT NULL,
+    pool_size_used INTEGER NOT NULL,
+    created_at TIMESTAMP
+);
+
+CREATE INDEX ix_smart_search_events_user_id ON smart_search_events(user_id);
+CREATE INDEX ix_smart_search_events_game_id ON smart_search_events(game_id);
+```
+
+`returned_uids` and `returned_similarities` are parallel arrays. Together with
+the configured floor, candidate-pool size, and outcome enum, they support
+relevance analysis and safe tuning without coupling gameplay to telemetry.
 
 ---
 
@@ -558,6 +592,7 @@ Vector similarity search uses HNSW (Hierarchical Navigable Small World) indexes 
 CREATE INDEX ON seeds USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX ON raw_questions USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX ON fermi_questions USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX ON fermi USING hnsw (embedding vector_cosine_ops);
 ```
 
 **Performance:**
@@ -571,6 +606,7 @@ CREATE INDEX ON fermi_questions USING hnsw (embedding vector_cosine_ops);
 - `fermi_answers.question_id`: One answer per question (UPSERT supported)
 - `user_question_history(user_firebase_uid, question_uid)`: One entry per user per question
 - `questions_votes(user_firebase_uid, question_uid)`: One vote per user per question
+- `smart_search_events.outcome`: `ok`, `too_few`, or `embed_error`
 
 ### Check Constraints
 

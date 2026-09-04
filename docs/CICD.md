@@ -50,7 +50,7 @@ Both applications follow a similar CI/CD pattern with environment-specific deplo
 | **Tests** | Unit + Integration | Unit + API + Integration |
 | **Dependencies** | PostgreSQL only | PostgreSQL + Firebase Emulators |
 | **Emulators** | None | Firestore + Auth (Node 24, Java 21) |
-| **Secrets** | Database, OpenAI, SERP API | Database, JWT, Firebase |
+| **Secrets** | Database, OpenAI, SERP API | Database, JWT, Firebase, OpenAI |
 | **Service Account** | `fermi-etl-runner` | `fermi-api-runner` |
 
 ---
@@ -68,7 +68,7 @@ Both applications follow a similar CI/CD pattern with environment-specific deplo
 ### Secret Manager Secrets
 
 **Shared:**
-- `openai-api-key` (ETL only)
+- `openai-api-key` (ETL and API smart-search embeddings)
 - `serp-api-key` (ETL only)
 - `database-url-dev`
 - `database-url-prod`
@@ -105,6 +105,8 @@ Both workflows trigger on pushes to `develop` or `main` when changes occur in:
 For cross-stack changes, the orchestrator waits for the API workflow (including
 its deployment on pushes) before starting the frontend workflow. Develop
 publishes Android to the internal track; main publishes to production.
+When database-package changes are detected, the DB test workflow is also a hard
+gate for API, ETL, and frontend deployment.
 
 ---
 
@@ -114,7 +116,8 @@ publishes Android to the internal track; main publishes to production.
 Location: Settings > Secrets and variables > Actions > Secrets
 
 - `GCP_WORKLOAD_IDENTITY_PROVIDER` - Workload Identity Provider path
-- `OPENAI_API_KEY` - For ETL integration tests and API smart-search embeddings
+- `OPENAI_API_KEY` - For ETL integration tests. API runtime smart search reads
+  `openai-api-key` from Google Secret Manager rather than this Actions secret.
 - `SERP_API_KEY` - For ETL integration tests
 
 ### Repository Variables

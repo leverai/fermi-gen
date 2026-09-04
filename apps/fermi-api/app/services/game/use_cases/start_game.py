@@ -25,7 +25,6 @@ from app.services.game.errors import (
     StateConflictError,
 )
 from app.services.game.repositories.game_repo import GameRepository
-from app.services.game.transactions.runner import TransactionRunner
 
 if TYPE_CHECKING:
     from fermi_db.models.user import User
@@ -34,6 +33,7 @@ if TYPE_CHECKING:
 
     from app.schemas.game import AnswerDoc, QuestionDoc
     from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
+    from app.services.game.transactions.runner import TransactionRunner
     from app.services.game.writers.lifecycle_writer import GameLifecycleWriter
     from app.services.game.writers.players_answers_writer import (
         GamePlayersAnswersWriter,
@@ -48,6 +48,7 @@ class StartGameUseCase:
         self,
         *,
         firestore_client: 'AsyncClient',
+        txn_runner: 'TransactionRunner',
         repo: GameRepository,
         db_gateway: 'GameAnalyticsGateway',
         lifecycle: 'GameLifecycleWriter',
@@ -56,6 +57,7 @@ class StartGameUseCase:
     ) -> None:
         """Initialize the use case with required collaborators."""
         self._client = firestore_client
+        self._txn_runner = txn_runner
         self._repo = repo
         self._db_gateway = db_gateway
         self._lifecycle = lifecycle
@@ -152,7 +154,7 @@ class StartGameUseCase:
                 claim_id=claim_id,
             )
 
-        data = await TransactionRunner(self._client).run(_claim)
+        data = await self._txn_runner.run(_claim)
 
         state = GameState(int(data['state']))
         players = cast(dict[str, GamePlayer], data.get('players', {}))
@@ -198,7 +200,7 @@ class StartGameUseCase:
                     claim_id=claim_id,
                 )
 
-            await TransactionRunner(self._client).run(_release)
+            await self._txn_runner.run(_release)
         except Exception:
             # Releasing the claim is best-effort: a stale claim self-heals via
             # the TTL, so a failure here must never shadow the original cause.
@@ -377,4 +379,4 @@ class StartGameUseCase:
                 claim_id=claim_id,
             )
 
-        await TransactionRunner(self._client).run(_commit)
+        await self._txn_runner.run(_commit)

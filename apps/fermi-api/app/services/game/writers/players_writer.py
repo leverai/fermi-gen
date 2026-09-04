@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, cast
 from google.cloud import firestore
 
 from app.schemas.game import GameDocPlayers, GamePlayer, GameState
-from app.services.game.bots import is_bot
+from app.services.game.bots import BOTS, is_bot
 from app.services.game.errors import (
     NotFoundError,
     StateConflictError,
@@ -137,6 +137,32 @@ class GamePlayersWriter:
         )
 
         return [*list(players), user.firebase_uid]
+
+    def add_bots(
+        self,
+        *,
+        game_ref: 'AsyncDocumentReference',
+        writer: 'Writeable',
+        bot_ids: list[str],
+        base_url: str,
+        total_after_add: int,
+        max_players: int,
+    ) -> None:
+        """Add validated bots and update the lobby capacity flag."""
+        for bot_id in bot_ids:
+            bot = BOTS[bot_id]
+            bot_player = GamePlayer(
+                player_id=bot_id,
+                name=bot['name'],
+                picture=f'{base_url}{bot["picture"]}',
+                score=0,
+                rank=0,
+                is_host=False,
+                is_active=True,
+            )
+            writer.update(game_ref, {f'players.{bot_id}': bot_player})
+
+        writer.update(game_ref, {'full': total_after_add >= max_players})
 
     def get_active_player_ids(
         self,

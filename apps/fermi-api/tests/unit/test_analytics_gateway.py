@@ -649,7 +649,7 @@ def test_search_embed_failure_raises_embedding_error_and_records_event(
     assert 'similar' not in log
     assert len(db.fermi.events) == 1
     assert db.fermi.events[0].outcome == 'embed_error'
-    assert db.fermi.events[0].game_id is None
+    assert db.fermi.events[0].game_id == 'g-1'
 
 
 @pytest.mark.parametrize('n_rows', [0, 3])
@@ -684,11 +684,11 @@ def test_search_too_few_raises_no_results_and_records_event(
         )
     assert exc_info.value.found == n_rows
     assert exc_info.value.query == 'asdfqwer'
-    # too_few event recorded, with game_id null and the similarities that matched.
+    # The failed attempt remains attributable to the lobby that was started.
     assert len(db.fermi.events) == 1
     event = db.fermi.events[0]
     assert event.outcome == 'too_few'
-    assert event.game_id is None
+    assert event.game_id == 'g-1'
     assert len(event.returned_similarities) == n_rows
 
 
@@ -720,6 +720,43 @@ def test_search_min_results_gate_uses_max_with_n_questions(
             ),
         )
     assert db.fermi.events[0].outcome == 'too_few'
+
+
+def test_search_with_small_game_fetches_quality_pool_then_slices(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A two-question game can pass the six-candidate quality gate."""
+    log: list[str] = []
+    db = _FakeDbClient(log)
+    db.fermi.similar_rows = [(_sample_question(f'Q{i}'), 0.05 * i) for i in range(6)]
+    _patch_embed(monkeypatch, [0.1])
+    _patch_dials(monkeypatch, pool=4, min_results=6)
+    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+
+    qrs = QuestionRoundSettings(
+        n_questions=2,
+        categories=None,
+        difficulty=None,
+        search_query='space scale',
+    )
+    questions_docs, answers_docs = _run(
+        gw.get_questions_and_answers_docs(
+            user_ids=['u1'],
+            question_round_settings=qrs,
+            game_id='g-small',
+            host_user_id='host-1',
+        ),
+    )
+
+    params = db.fermi.last_similar_params
+    assert params is not None
+    assert params['count'] == 6
+    assert params['candidate_pool_size'] == 6
+    assert len(questions_docs) == 2
+    assert len(answers_docs) == 2
+    assert db.fermi.events[0].n == 2
+    assert db.fermi.events[0].game_id == 'g-small'
+    assert db.fermi.events[0].pool_size_used == 6
 
 
 def test_search_success_records_ok_event_with_similarities(

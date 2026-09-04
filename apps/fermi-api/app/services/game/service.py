@@ -35,6 +35,7 @@ from app.services.game.writers.players_answers_writer import (
 )
 from app.services.game.writers.players_writer import GamePlayersWriter
 from app.services.game.writers.questions_writer import GameQuestionsWriter
+from app.services.game.writers.settings_writer import GameSettingsWriter
 
 if TYPE_CHECKING:
     from fermi_db import DatabaseClient
@@ -68,6 +69,7 @@ class GameService:
         self._questions_writer = GameQuestionsWriter()
         self._players_writer = GamePlayersWriter()
         self._players_results_writer = GamePlayersAnswersWriter()
+        self._settings_writer = GameSettingsWriter()
 
     async def create_game(
         self,
@@ -85,6 +87,7 @@ class GameService:
             hosting_repo=hosting_repo,
             lifecycle=self._lifecycle_writer,
             players=self._players_writer,
+            game_settings=self._settings_writer,
             free_hosting_limit=FREE_HOSTING_LIMIT_PER_WEEK,
         ).execute(
             request=request,
@@ -134,6 +137,7 @@ class GameService:
 
         use_case = StartGameUseCase(
             firestore_client=firestore_client,
+            txn_runner=TransactionRunner(firestore_client),
             repo=GameRepository(firestore_client),
             db_gateway=self._db_gateway,
             lifecycle=self._lifecycle_writer,
@@ -196,6 +200,7 @@ class GameService:
             txn_runner=TransactionRunner(firestore_client),
             repo=GameRepository(firestore_client),
             lifecycle=self._lifecycle_writer,
+            players=self._players_writer,
         )
         await use_case.execute(
             request=request,

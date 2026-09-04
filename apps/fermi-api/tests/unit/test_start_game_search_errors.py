@@ -32,6 +32,7 @@ from fastapi import HTTPException
 import app.services.game.use_cases.start_game as start_game_module
 from app.schemas.game import GameState
 from app.services.game.errors import SearchEmbeddingError, SearchNoResultsError
+from app.services.game.transactions.runner import TransactionRunner
 from app.services.game.use_cases.start_game import StartGameUseCase
 from app.services.game.writers.lifecycle_writer import (
     START_CLAIM_TTL,
@@ -165,7 +166,7 @@ def _patch_txn_runner(
         return result
 
     monkeypatch.setattr(
-        start_game_module.TransactionRunner,
+        TransactionRunner,
         'run',
         _run,
     )
@@ -179,6 +180,7 @@ def _make_use_case(
 ) -> StartGameUseCase:
     return StartGameUseCase(
         firestore_client=cast(Any, client),
+        txn_runner=TransactionRunner(cast(Any, client)),
         repo=cast(Any, repo),
         db_gateway=cast(Any, gateway),
         lifecycle=GameLifecycleWriter(),

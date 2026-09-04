@@ -2,7 +2,7 @@
 
 Moves the transactional body from the service layer into a focused use case
 invoked via ``TransactionRunner``. Reads are centralized through the
-``GameRepository`` and writes are delegated to managers.
+``GameRepository`` and writes are delegated to writers.
 
 Questions are fetched at game start (not on join), so joining simply adds the
 player and keeps the lobby ready. There is no per-join re-fetch and therefore

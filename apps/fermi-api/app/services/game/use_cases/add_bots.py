@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, cast
 from fastapi import HTTPException, status
 
 from app.schemas.game import GamePlayer, GameState
-from app.services.game.bots import BOT_IDS, BOTS
+from app.services.game.bots import BOT_IDS
 from app.services.game.errors import StateConflictError
 from app.services.game.transactions.runner import TransactionRunner
 
@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
     from app.services.game.repositories.game_repo import GameRepository
     from app.services.game.writers.lifecycle_writer import GameLifecycleWriter
+    from app.services.game.writers.players_writer import GamePlayersWriter
 
 
 class AddBotsUseCase:
@@ -33,12 +34,14 @@ class AddBotsUseCase:
         txn_runner: 'TransactionRunner',
         repo: 'GameRepository',
         lifecycle: 'GameLifecycleWriter',
+        players: 'GamePlayersWriter',
     ) -> None:
         """Initialize the use case with required collaborators."""
         self._client = firestore_client
         self._txn_runner = txn_runner
         self._repo = repo
         self._lifecycle = lifecycle
+        self._players = players
 
     async def execute(
         self,
@@ -145,20 +148,14 @@ class AddBotsUseCase:
                     f'Only {available_slots} slot(s) available.',
                 )
 
-            for bot_id in bot_ids:
-                bot = BOTS[bot_id]
-                bot_player = GamePlayer(
-                    player_id=bot_id,
-                    name=bot['name'],
-                    picture=f'{base_url}{bot["picture"]}',
-                    score=0,
-                    rank=0,
-                    is_host=False,
-                    is_active=True,
-                )
-                tx.update(game_ref, {f'players.{bot_id}': bot_player})
-
-            tx.update(game_ref, {'full': total_after_add >= max_players})
+            self._players.add_bots(
+                game_ref=game_ref,
+                writer=tx,
+                bot_ids=bot_ids,
+                base_url=base_url,
+                total_after_add=total_after_add,
+                max_players=max_players,
+            )
 
         await self._txn_runner.run(_tx)
 

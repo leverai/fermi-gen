@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
     from app.services.game.writers.lifecycle_writer import GameLifecycleWriter
     from app.services.game.writers.players_writer import GamePlayersWriter
+    from app.services.game.writers.settings_writer import GameSettingsWriter
 
 
 class CreateGameUseCase:
@@ -29,6 +30,7 @@ class CreateGameUseCase:
         hosting_repo: 'PartyHostingRepository',
         lifecycle: 'GameLifecycleWriter',
         players: 'GamePlayersWriter',
+        game_settings: 'GameSettingsWriter',
         free_hosting_limit: int,
     ) -> None:
         """Store collaborators for the create flow."""
@@ -36,6 +38,7 @@ class CreateGameUseCase:
         self._hosting_repo = hosting_repo
         self._lifecycle = lifecycle
         self._players = players
+        self._game_settings = game_settings
         self._free_hosting_limit = free_hosting_limit
 
     async def execute(
@@ -97,13 +100,11 @@ class CreateGameUseCase:
             base_url = str(request.base_url).rstrip('/')
             join_url = f'{base_url}/api/v1/game/invite/{game_ref.id}'
 
-        batch.update(
-            game_ref,
-            {
-                'join_url': join_url,
-                'n_questions': round_settings.n_questions,
-                'question_round_settings': round_settings.model_dump(mode='json'),
-            },
+        self._game_settings.set_lobby_settings(
+            game_ref=game_ref,
+            writer=batch,
+            join_url=join_url,
+            round_settings=round_settings,
         )
         self._lifecycle.set_ready(game_ref=game_ref, writer=batch)
         await batch.commit()
