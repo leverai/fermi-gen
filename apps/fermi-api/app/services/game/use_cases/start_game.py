@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from google.cloud.firestore_v1.async_client import AsyncClient
 
     from app.schemas.game import AnswerDoc, QuestionDoc
-    from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
+    from app.services.game.gateways.analytics_gateway import GameDataGateway
     from app.services.game.transactions.runner import TransactionRunner
     from app.services.game.writers.lifecycle_writer import GameLifecycleWriter
     from app.services.game.writers.players_answers_writer import (
@@ -50,7 +50,7 @@ class StartGameUseCase:
         firestore_client: 'AsyncClient',
         txn_runner: 'TransactionRunner',
         repo: GameRepository,
-        db_gateway: 'GameAnalyticsGateway',
+        db_gateway: 'GameDataGateway',
         lifecycle: 'GameLifecycleWriter',
         questions: 'GameQuestionsWriter',
         players_answers: 'GamePlayersAnswersWriter',

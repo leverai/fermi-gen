@@ -184,7 +184,9 @@ jobs:
           packageName: tech.leverai.guesstimate
           releaseFiles: apps/fermi-frontend/build/app/outputs/bundle/release/app-release.aab
           track: ${{ env.PUBLISH_TRACK }}
-          status: ${{ env.PUBLISH_TRACK == 'production' && 'completed' || 'draft' }}
+          # Both supported tracks should be delivered to their audience. A draft
+          # internal release stays in Play Console and never reaches testers.
+          status: completed
 
 
   # build-ios:

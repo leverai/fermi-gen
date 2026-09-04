@@ -1,4 +1,4 @@
-"""Unit tests for GameAnalyticsGateway."""
+"""Unit tests for GameDataGateway."""
 
 # ruff: noqa: D103
 from __future__ import annotations
@@ -23,7 +23,7 @@ from app.schemas.endpoints import (
 )
 from app.services.game.errors import SearchEmbeddingError, SearchNoResultsError
 from app.services.game.gateways import analytics_gateway as gw_mod
-from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
+from app.services.game.gateways.analytics_gateway import GameDataGateway
 
 
 class _FakeQuantiles:
@@ -262,7 +262,7 @@ class _FakeDbClient:
 def test_get_questions_and_answers_docs_general_mapping_and_shapes() -> None:
     log: list[str] = []
     db = _FakeDbClient(log)
-    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+    gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(
         n_questions=2,
@@ -355,7 +355,7 @@ def test_get_questions_and_answers_docs_bulk_order_and_missing_data() -> None:
 
     qrs = QuestionRoundSettings(n_questions=3, categories=None, difficulty=None)
     questions_docs, answers_docs = asyncio.get_event_loop().run_until_complete(
-        gw_mod.GameAnalyticsGateway(
+        gw_mod.GameDataGateway(
             db_client=cast(Any, db),
         ).get_questions_and_answers_docs(
             user_ids=['u1', 'u2'],
@@ -389,7 +389,7 @@ def test_get_questions_and_answers_docs_bulk_order_and_missing_data() -> None:
 def test__create_answer_events_transforms_inputs() -> None:
     log: list[str] = []
     db = _FakeDbClient(log)
-    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+    gw = GameDataGateway(db_client=cast(Any, db))
     game_id = 'g-1'
     qid = str(uuid.uuid4())
 
@@ -435,7 +435,7 @@ def test__create_answer_events_transforms_inputs() -> None:
 def test_archive_game_results_writes_answers_then_history() -> None:
     log: list[str] = []
     db = _FakeDbClient(log)
-    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+    gw = GameDataGateway(db_client=cast(Any, db))
 
     qid1, qid2 = str(uuid.uuid4()), str(uuid.uuid4())
     players_results_docs = [
@@ -492,7 +492,7 @@ def test_archive_game_results_writes_answers_then_history() -> None:
 def test_set_user_vote_forwards_to_dal() -> None:
     log: list[str] = []
     db = _FakeDbClient(log)
-    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+    gw = GameDataGateway(db_client=cast(Any, db))
     qid = str(uuid.uuid4())
 
     verdict = asyncio.get_event_loop().run_until_complete(
@@ -559,7 +559,7 @@ def test_search_path_calls_similar_with_floor_pool_difficulty(
     db.fermi.similar_rows = [(_sample_question(f'Q{i}'), 0.1 * i) for i in range(6)]
     _patch_embed(monkeypatch, [0.5, 0.6])
     _patch_dials(monkeypatch, pool=25, floor=0.30, min_results=6)
-    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+    gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(
         n_questions=6,
@@ -598,7 +598,7 @@ def test_category_path_calls_random_and_emits_no_event(
     db = _FakeDbClient(log)
     # Embedder patched to blow up if ever called on the legacy path.
     spy = _patch_embed(monkeypatch, raises=True)
-    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+    gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(
         n_questions=2,
@@ -628,7 +628,7 @@ def test_search_embed_failure_raises_embedding_error_and_records_event(
     db = _FakeDbClient(log)
     _patch_embed(monkeypatch, raises=True)
     _patch_dials(monkeypatch)
-    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+    gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(
         n_questions=6,
@@ -665,7 +665,7 @@ def test_search_too_few_raises_no_results_and_records_event(
     ]
     _patch_embed(monkeypatch, [0.1])
     _patch_dials(monkeypatch, min_results=6)
-    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+    gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(
         n_questions=6,
@@ -702,7 +702,7 @@ def test_search_min_results_gate_uses_max_with_n_questions(
     db.fermi.similar_rows = [(_sample_question(f'Q{i}'), 0.05 * i) for i in range(8)]
     _patch_embed(monkeypatch, [0.1])
     _patch_dials(monkeypatch, min_results=6)
-    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+    gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(
         n_questions=10,
@@ -731,7 +731,7 @@ def test_search_with_small_game_fetches_quality_pool_then_slices(
     db.fermi.similar_rows = [(_sample_question(f'Q{i}'), 0.05 * i) for i in range(6)]
     _patch_embed(monkeypatch, [0.1])
     _patch_dials(monkeypatch, pool=4, min_results=6)
-    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+    gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(
         n_questions=2,
@@ -771,7 +771,7 @@ def test_search_success_records_ok_event_with_similarities(
     ]
     _patch_embed(monkeypatch, [0.1])
     _patch_dials(monkeypatch, pool=25, floor=0.30, min_results=6)
-    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+    gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(
         n_questions=6,
@@ -814,7 +814,7 @@ def test_search_telemetry_failure_is_non_fatal(
     db.fermi.insert_event_raises = True
     _patch_embed(monkeypatch, [0.1])
     _patch_dials(monkeypatch, min_results=6)
-    gw = GameAnalyticsGateway(db_client=cast(Any, db))
+    gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(
         n_questions=6,

@@ -16,7 +16,7 @@ from app.schemas.endpoints import (
     PlayerStats,
     UserLimits,
 )
-from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
+from app.services.game.gateways.analytics_gateway import GameDataGateway
 from app.services.game.ranks import get_all_ranks, get_rank_for_percentile
 from app.services.game.repositories.game_repo import GameRepository
 from app.services.game.tasks.archive_game_results import archive_game_results
@@ -64,7 +64,7 @@ class GameService:
 
     def __init__(self, db_client: 'DatabaseClient') -> None:
         """Initialize the game service."""
-        self._db_gateway = GameAnalyticsGateway(db_client=db_client)
+        self._db_gateway = GameDataGateway(db_client=db_client)
         self._lifecycle_writer = GameLifecycleWriter()
         self._questions_writer = GameQuestionsWriter()
         self._players_writer = GamePlayersWriter()

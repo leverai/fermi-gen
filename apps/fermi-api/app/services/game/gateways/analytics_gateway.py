@@ -1,9 +1,9 @@
-"""Gateway to the analytics database.
+"""Gateway to external data services used by party games.
 
-This module serves as an adapter to the Postgres-based analytics and history
-database. It fetches raw data from the database, converts it to domain-specific
-documents, and archives game results. It is designed to be a pure adapter and
-has no knowledge of Firestore or HTTP semantics.
+This boundary coordinates the Postgres analytics/history repositories and the
+query-embedding provider used by smart search. It converts external data into
+game documents and archives results, while remaining independent of Firestore
+and HTTP semantics.
 """
 
 import logging
@@ -51,12 +51,8 @@ class _SmartSearchTelemetry:
     pool_size_used: int
 
 
-class GameAnalyticsGateway:
-    """Gateway for game-related analytics and history database operations.
-
-    This class is a pure adapter to the Postgres DAL. It does not know about
-    HTTP or Firestore.
-    """
+class GameDataGateway:
+    """Coordinate external question, embedding, and analytics data operations."""
 
     def __init__(self, db_client: 'DatabaseClient') -> None:
         """Initialize the game analytics gateway."""

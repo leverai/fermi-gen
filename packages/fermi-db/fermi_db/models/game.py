@@ -258,7 +258,7 @@ class SmartSearchEvent(SQLModel, table=True):
     # uids of the questions served (as strings), parallel to returned_similarities.
     # Stored as str, not uuid.UUID: the column is a JSON array and the engine's
     # default json.dumps cannot serialize uuid.UUID (it raises and poisons the
-    # session). Callers pass [str(uid) for ...]; see GameAnalyticsGateway.
+    # session). Callers pass [str(uid) for ...]; see GameDataGateway.
     returned_uids: list[str] = Field(
         default_factory=list,
         sa_column=sa.Column(sa.JSON),

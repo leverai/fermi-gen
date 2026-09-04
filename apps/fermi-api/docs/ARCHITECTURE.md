@@ -813,7 +813,7 @@ Bot answers are **excluded** from:
 - `answer_events` table (preserves quantile statistics)
 - `user_question_history` table (no history for bots)
 
-This is handled in `GameAnalyticsGateway.archive_game_results()`.
+This is handled in `GameDataGateway.archive_game_results()`.
 
 ### Frontend Integration
 

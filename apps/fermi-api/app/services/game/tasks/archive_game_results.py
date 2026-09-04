@@ -2,7 +2,7 @@
 
 Separates post-commit archiving from transactional logic. Reads are performed
 via ``GameRepository`` to gather the minimal required information, then data is
-persisted using ``GameDbManager``.
+persisted using ``GameDataGateway``.
 
 Important: this task manages its own database session using
 ``fermi_db.session.session_context`` to avoid reusing request-scoped DI
@@ -14,12 +14,11 @@ from typing import TYPE_CHECKING, cast
 from fermi_db.dal import DatabaseClient
 from fermi_db.session import session_context
 
-from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
+from app.services.game.gateways.analytics_gateway import GameDataGateway
 
 if TYPE_CHECKING:
     from google.cloud.firestore_v1 import AsyncClient
 
-    from app.services.game.gateways.analytics_gateway import GameAnalyticsGateway
     from app.services.game.repositories.game_repo import GameRepository
 
 
@@ -55,7 +54,7 @@ async def archive_game_results(
         return
 
     async with session_context() as session:
-        db_gateway = GameAnalyticsGateway(db_client=DatabaseClient(session))
+        db_gateway = GameDataGateway(db_client=DatabaseClient(session))
         await db_gateway.archive_game_results(
             game_id=game_id,
             players_results_docs=players_results_docs,

@@ -14,13 +14,26 @@ See the detailed roadmap at `apps/fermi-api/tests/ROADMAP.md`.
 
 - Prereqs: Python 3.11, uv, Docker
 - Commands (at repo root):
-  - `make test-api-endoints` — API-only tests (no emulators/DB)
-  - `make test-api-integration` — starts Postgres + Firebase emulators (Compose), waits for readiness, runs Alembic migrations, runs integration tests, then tears down
+  - `make test-api-endpoints` — API-only tests (no emulators/DB)
+  - `make test-api-integration` — starts only the Firebase emulators with
+    Compose; pytest provisions an ephemeral pgvector Postgres container,
+    migrates it, runs integration tests, and cleanup tears everything down
   - `make up` / `make down` — start/stop services
 
 ## **Environment**
 
-Integration tests assume `.env` under `apps/fermi-api/` with:
+`make test-api-integration` exports the emulator variables below. The pytest
+fixture intentionally leaves `DATABASE_URL` unset so Testcontainers can create
+an isolated pgvector database. CI may instead provide an external asyncpg URL.
+
+```bash
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
+GOOGLE_CLOUD_PROJECT=fermi-local
+```
+
+The application `.env` under `apps/fermi-api/` may also contain local defaults,
+but an already-provisioned test URL is never overridden:
 
 ```bash
 DATABASE_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/fermi-db
@@ -29,15 +42,6 @@ FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
 GOOGLE_CLOUD_PROJECT=fermi-local
 APP_ENV=local
 USE_EMULATORS=true
-```
-
-and a `.env.compose` under `apps/fermi-api/` with:
-
-```bash
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/fermi
-FIRESTORE_EMULATOR_HOST=emulators:8080
-FIREBASE_AUTH_EMULATOR_HOST=emulators:9099
-GOOGLE_CLOUD_PROJECT=fermi-local
 ```
 
 ## **Guidelines**
@@ -63,7 +67,7 @@ GOOGLE_CLOUD_PROJECT=fermi-local
 6) Keep output readable
 - Use the Makefile targets for quieter runs.
   - Integration: `make test-api-integration`.
-  - API-only: `make test-api-endoints`.
+  - API-only: `make test-api-endpoints`.
   - Unit: `make test-api-unit`.
 
 ## **Fixtures**
@@ -76,12 +80,13 @@ GOOGLE_CLOUD_PROJECT=fermi-local
 ### Integration (`apps/fermi-api/tests/integration/conftest.py`)
 
 - Autouse
-  - `_load_env`: loads `.env` for tests.
+  - `database_url`: uses a supplied asyncpg URL or provisions ephemeral pgvector Postgres with Testcontainers.
+  - `_migrate`: upgrades the selected database to Alembic head once per session.
+  - `_load_env`: loads `.env` without overriding the provisioned database URL.
   - `_verify_emulators_reachable`: fails fast if Firestore emulator isn't reachable (prevents silent hangs).
-  - `_verify_database_reachable`: fails fast if `DATABASE_URL` is missing/unreachable and enforces `postgresql+asyncpg://`.
   - `_reset_emulators_before_each_test`: clears Auth users and Firestore `games/*` before each test.
   - Session end: disposes the async SQLAlchemy engine.
-  - `_seed_questions_once`: seeds minimal questions into Postgres once per session (used by background-population tests).
+  - `_seed_questions_once`: seeds minimal questions into Postgres once per session for start-time question fetching.
 - App/HTTP
   - `api_client`: full app `TestClient` with lifespan; fixture `chdir`s so `StaticFiles('static')` resolves.
 - Emulator helpers
@@ -91,7 +96,6 @@ GOOGLE_CLOUD_PROJECT=fermi-local
   - `get_firestore_doc`: reads `games/{id}` via emulator REST with auth headers, decodes REST types, and polls briefly until present.
   - `list_firestore_subcollection_docs`: lists doc ids under a game's subcollection (`questions`, `answers`, or `players_results`).
   - `create_private_game`: posts `/game/create` with defaults and returns the `game_id`.
-  - `mark_questions_seen_for_user`: marks specific question UIDs as seen in Postgres for a given user id. Intended for deterministic tests that require question re-fetch behavior on join. Uses a small `uv run --package fermi-db` helper script (`scripts/mark_seen.py`) to avoid event-loop conflicts inside tests.
 
 ### Unit (`apps/fermi-api/tests/unit/conftest.py`)
 
@@ -106,7 +110,8 @@ GOOGLE_CLOUD_PROJECT=fermi-local
 
 ## Running in CI
 
-- Start Compose services, wait for Postgres and emulators, export env vars, run Alembic migrations via `fermi-db`, then run `pytest` for `tests/integration` and `tests/api`.
+- Start Firebase emulators, supply CI Postgres through `DATABASE_URL`, export
+  emulator variables, then run `pytest` for `tests/integration` and `tests/api`.
 
 ## Common Scenarios to Cover
 

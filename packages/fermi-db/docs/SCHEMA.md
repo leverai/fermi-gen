@@ -522,7 +522,6 @@ CREATE INDEX idx_fermi_id ON fermi (id);
 CREATE INDEX idx_fermi_category ON fermi (category);
 CREATE INDEX idx_fermi_difficulty ON fermi (difficulty);
 CREATE INDEX idx_fermi_status ON fermi (status);
-CREATE INDEX ix_fermi_embedding_hnsw ON fermi USING hnsw (embedding vector_cosine_ops);
 ```
 
 **Key Properties:**
@@ -532,6 +531,9 @@ CREATE INDEX ix_fermi_embedding_hnsw ON fermi USING hnsw (embedding vector_cosin
 - UUID generated using `uuid_generate_v5()` based on question ID for stability
 - Supports foreign key constraints from other tables
 - `embedding` stores the `text-embedding-3-small` vector used by party smart search
+- The serving embedding deliberately has no approximate ANN index at the current
+  corpus scale. Exact cosine scanning preserves correctness after status,
+  daily-question, and difficulty filters.
 
 **LLM Answer Columns:**
 - **GPT models** (`gpt_5_1_*`, `gpt_5_mini_*`, `gpt_5_nano_*`): Smart competitive bots
@@ -592,7 +594,6 @@ Vector similarity search uses HNSW (Hierarchical Navigable Small World) indexes 
 CREATE INDEX ON seeds USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX ON raw_questions USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX ON fermi_questions USING hnsw (embedding vector_cosine_ops);
-CREATE INDEX ON fermi USING hnsw (embedding vector_cosine_ops);
 ```
 
 **Performance:**

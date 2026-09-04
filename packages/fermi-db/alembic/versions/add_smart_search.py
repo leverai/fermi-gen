@@ -57,14 +57,6 @@ def upgrade() -> None:
         WHERE fermi.question_id = fq.id
         """,
     )
-    op.create_index(
-        'ix_fermi_embedding_hnsw',
-        'fermi',
-        ['embedding'],
-        postgresql_using='hnsw',
-        postgresql_ops={'embedding': 'vector_cosine_ops'},
-    )
-
     # 3. Telemetry table. game_id remains nullable for legacy/direct callers;
     # party-game starts attribute every outcome to their existing lobby.
     postgresql.ENUM(
@@ -123,5 +115,4 @@ def downgrade() -> None:
     )
     op.drop_table('smart_search_events')
     smart_search_outcome.drop(op.get_bind(), checkfirst=True)
-    op.drop_index('ix_fermi_embedding_hnsw', table_name='fermi')
     op.drop_column('fermi', 'embedding')
