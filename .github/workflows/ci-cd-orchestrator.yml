@@ -117,19 +117,19 @@ jobs:
     permissions:
       contents: read
 
-  # When a change spans API and client, wait for the API deployment before
-  # publishing the client that consumes it. Frontend-only changes still run
-  # when the API job is skipped.
-  frontend:
-    name: Frontend Workflow
-    needs: [detect-changes, migrations, db, api]
-    if: ${{ always() && needs.detect-changes.outputs.frontend == 'true' && (needs.migrations.result == 'success' || needs.migrations.result == 'skipped') && (needs.db.result == 'success' || needs.db.result == 'skipped') && (needs.api.result == 'success' || needs.api.result == 'skipped') }}
-    uses: ./.github/workflows/fermi-frontend-ci-cd.yml
-    with:
-      environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
-      should_publish: ${{ github.event_name == 'push' && 'true' || 'false' }}
-      publish_track: ${{ github.ref_name == 'main' && 'production' || 'internal' }}
-    permissions:
-      id-token: write
-      contents: read
-    secrets: inherit
+  # # When a change spans API and client, wait for the API deployment before
+  # # publishing the client that consumes it. Frontend-only changes still run
+  # # when the API job is skipped.
+  # frontend:
+  #   name: Frontend Workflow
+  #   needs: [detect-changes, migrations, db, api]
+  #   if: ${{ always() && needs.detect-changes.outputs.frontend == 'true' && (needs.migrations.result == 'success' || needs.migrations.result == 'skipped') && (needs.db.result == 'success' || needs.db.result == 'skipped') && (needs.api.result == 'success' || needs.api.result == 'skipped') }}
+  #   uses: ./.github/workflows/fermi-frontend-ci-cd.yml
+  #   with:
+  #     environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+  #     should_publish: ${{ github.event_name == 'push' && 'true' || 'false' }}
+  #     publish_track: ${{ github.ref_name == 'main' && 'production' || 'internal' }}
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #   secrets: inherit
