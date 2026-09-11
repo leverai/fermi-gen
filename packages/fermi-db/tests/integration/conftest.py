@@ -14,8 +14,8 @@ Provisioning is dual-mode:
 * Otherwise an ephemeral ``pgvector/pgvector`` container is started and torn
   down at session end. Override the image with ``FERMI_TEST_PG_IMAGE``.
 
-If Docker is unavailable and no ``DATABASE_URL`` is set, the integration suite
-is **skipped** (not errored), so a bare ``pytest`` run stays green.
+If Docker is unavailable and no ``DATABASE_URL`` is set, local runs skip the
+suite while CI fails closed so deployment gates cannot silently pass.
 """
 
 import asyncio
@@ -77,7 +77,7 @@ def _ensure_docker_host() -> None:
     the two by exporting the active context's endpoint when neither is present.
     Best-effort: stays silent if anything is missing.
     """
-    if os.environ.get('DOCKER_HOST') or Path('/var/run/docker.sock').exists():
+    if os.environ.get('DOCKER_HOST'):
         return
     docker = shutil.which('docker')
     if not docker:
@@ -110,18 +110,28 @@ def database_url() -> Generator[str, None, None]:
     try:
         from testcontainers.core.container import DockerContainer
     except ImportError:  # pragma: no cover - dev dependency missing
+        if os.environ.get('CI'):
+            pytest.fail(
+                'testcontainers is required for DB integration tests in CI',
+                pytrace=False,
+            )
         pytest.skip('testcontainers not installed and DATABASE_URL not set')
 
-    container = (
-        DockerContainer(_PG_IMAGE)
-        .with_env('POSTGRES_USER', 'postgres')
-        .with_env('POSTGRES_PASSWORD', 'postgres')
-        .with_env('POSTGRES_DB', 'fermi-db')
-        .with_exposed_ports(5432)
-    )
     try:
+        container = (
+            DockerContainer(_PG_IMAGE)
+            .with_env('POSTGRES_USER', 'postgres')
+            .with_env('POSTGRES_PASSWORD', 'postgres')
+            .with_env('POSTGRES_DB', 'fermi-db')
+            .with_exposed_ports(5432)
+        )
         container.start()
     except Exception as exc:
+        if os.environ.get('CI'):
+            pytest.fail(
+                f'Could not start required Postgres container in CI: {exc}',
+                pytrace=False,
+            )
         pytest.skip(f'Could not start Postgres container (is Docker running?): {exc}')
 
     try:

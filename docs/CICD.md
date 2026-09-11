@@ -107,6 +107,8 @@ its deployment on pushes) before starting the frontend workflow. Develop
 publishes Android to the internal track; main publishes to production.
 When database-package changes are detected, the DB test workflow is also a hard
 gate for API, ETL, and frontend deployment.
+Migration deployment waits for that DB gate as well, so a failed database suite
+cannot mutate the target schema.
 
 ---
 

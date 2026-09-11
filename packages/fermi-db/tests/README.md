@@ -35,9 +35,9 @@ The integration harness (`tests/integration/conftest.py`) is **dual-mode**:
 Other knobs:
 
 - `FERMI_TEST_PG_IMAGE` overrides the container image (default
-  `pgvector/pgvector:pg16`).
-- If Docker is unavailable **and** no `DATABASE_URL` is set, the integration
-  suite is **skipped**, not failed — so a bare `pytest` run stays green.
+  `pgvector/pgvector:pg17`).
+- If Docker is unavailable **and** no `DATABASE_URL` is set, local integration
+  runs skip, but CI fails closed so a missing database cannot bypass the gate.
 - The harness bridges Docker Desktop / rootless Docker automatically (it reads
   the active docker context into `DOCKER_HOST` when needed), and disables the
   testcontainers Ryuk reaper (the container is stopped explicitly).
@@ -93,6 +93,7 @@ schema, not `create_all`.
 | File | Repository method(s) | Behavior pinned |
 | --- | --- | --- |
 | `test_smart_search.py` | `FermiRepository.get_unseen_similar_questions` | cosine floor, distance carry-out, unseen-fairness order, filters |
+| `test_smart_search_migration.py` | `add_smart_search` Alembic revision | existing-row embedding backfill, telemetry enum/indexes, downgrade |
 | `test_answer_repository.py` | `AnswerRepository.get_question(s)_quantiles`, `get_overall_avg_percentile(_batch)` | cold-start guard, `percentile_cont`, `percent_rank` ties, bulk emptiness contracts |
 | `test_leaderboards.py` | Survival & Precision Rush `get_leaderboard` / `get_user_leaderboard_entry` | best-run-per-user, dense ranks, active-vs-completed, user-row join, time windows |
 | `test_question_votes.py` | `QuestionVotesRepository.set_verdict`, `get_upvotes_bulk`, `get_players_vote_verdicts_bulk` | additive toggle, idempotency, FK guard, opposite bulk-emptiness contracts |
@@ -106,8 +107,6 @@ deliberate, visible change). See the docstrings for details:
 
 - `get_overall_avg_percentile` returns **100** for a user with no games, while
   its docstring says 0 — a brand-new user showing as top percentile.
-- `anonymize_user` rewrites five tables but **omits `precision_rush_runs`**
-  (also keyed by `user_firebase_uid`), leaving a PII linkage behind.
 
 ## Not yet covered (good next targets)
 

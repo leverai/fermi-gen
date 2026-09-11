@@ -66,8 +66,8 @@ jobs:
 
   migrations:
     name: Migrations Workflow
-    needs: detect-changes
-    if: ${{ github.event_name == 'push' && needs.detect-changes.outputs.migrations == 'true' }}
+    needs: [detect-changes, db]
+    if: ${{ always() && github.event_name == 'push' && needs.detect-changes.outputs.migrations == 'true' && (needs.db.result == 'success' || needs.db.result == 'skipped') }}
     uses: ./.github/workflows/fermi-migrations-ci-cd.yml
     with:
       environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
