@@ -55,6 +55,9 @@ jobs:
             db:
               - 'packages/fermi-db/!((docs|**/*.md)/**)/**'
               - 'packages/fermi-core/!((docs|**/*.md)/**)/**'
+              - 'alembic.ini'
+              - 'apps/fermi-migrations/**'
+              - '.github/workflows/fermi-migrations-ci-cd.yml'
               - 'uv.lock'
               - '.github/workflows/fermi-db-ci.yml'
               - 'Makefile'

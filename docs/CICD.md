@@ -109,6 +109,9 @@ When database-package changes are detected, the DB test workflow is also a hard
 gate for API, ETL, and frontend deployment.
 Migration deployment waits for that DB gate as well, so a failed database suite
 cannot mutate the target schema.
+Android builds receive a CI-generated version code derived from the workflow run
+and retry numbers, so internal and production uploads never reuse a Play Store
+version code.
 
 ---
 

@@ -149,7 +149,9 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           cd apps/fermi-frontend
+          CI_BUILD_NUMBER=$((100000 + GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))
           flutter build appbundle --${{ env.BUILD_TYPE }} --flavor ${{ env.APP_FLAVOR }} \
+            --build-number="${CI_BUILD_NUMBER}" \
             --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }} \
             --dart-define=USE_EMULATORS=false \
             --dart-define=SUPPRESS_TEST_LOGS=true

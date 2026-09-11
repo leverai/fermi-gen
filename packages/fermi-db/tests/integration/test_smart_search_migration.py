@@ -76,10 +76,15 @@ async def _assert_upgrade(database_url: str) -> None:
     engine = create_async_engine(database_url, poolclass=NullPool)
     try:
         async with engine.connect() as connection:
-            embedding_present = await connection.scalar(
+            embedding_matches_source = await connection.scalar(
                 sa.text(
-                    'SELECT embedding IS NOT NULL FROM fermi '
-                    'WHERE question_id = :question_id',
+                    """
+                    SELECT f.embedding = source.embedding
+                    FROM fermi AS f
+                    JOIN fermi_questions AS source
+                        ON source.id = f.question_id
+                    WHERE f.question_id = :question_id
+                    """,
                 ),
                 {'question_id': _QUESTION_ID},
             )
@@ -119,7 +124,7 @@ async def _assert_upgrade(database_url: str) -> None:
                 .all()
             )
 
-        assert embedding_present is True
+        assert embedding_matches_source is True
         assert table_present is True
         assert outcomes == ['ok', 'too_few', 'embed_error']
         assert {
