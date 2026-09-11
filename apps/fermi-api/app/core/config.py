@@ -59,11 +59,7 @@ class Settings(BaseSettings):
     # rest are server-side dials tuned from telemetry.
     smart_search_enabled: bool = False
     smart_search_pool_size: int = 25
-    """Candidate pool size M: nearest kept after the floor, before fairness."""
-    smart_search_similarity_floor: float = 0.30
-    """Min cosine similarity in [0, 1] (generous start; tune up via telemetry)."""
-    smart_search_min_results: int = 6
-    """Min matches for a search game; fewer -> 'broaden your search' error."""
+    """Candidate pool size M: nearest questions kept before fairness."""
 
 
 settings = Settings()

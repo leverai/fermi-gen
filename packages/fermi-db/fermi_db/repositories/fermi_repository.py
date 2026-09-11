@@ -306,7 +306,7 @@ class FermiRepository(BaseRepository):
            by the fewest users, then fewest total times (same LEFT JOIN / ORDER BY
            as :meth:`get_unseen_random_questions`), then take ``count``.
 
-        Callers pass ``similarity_floor`` as a cosine *similarity* in ``[0, 1]``
+        Callers pass ``similarity_floor`` as a cosine *similarity* in ``[-1, 1]``
         (never a raw distance — that prevents inversion bugs); it is converted
         internally to ``max_distance = 1 - similarity_floor``.
 
@@ -352,7 +352,7 @@ class FermiRepository(BaseRepository):
             for_user_ids: User IDs to check question history against.
             candidate_pool_size: Max questions to keep after the floor, before
                 fairness (the ``M`` cap).
-            similarity_floor: Minimum cosine similarity in ``[0, 1]``; converted to
+            similarity_floor: Minimum cosine similarity in ``[-1, 1]``; converted to
                 ``max_distance = 1 - similarity_floor``.
             difficulty: Difficulty level to filter by, or None for all.
 

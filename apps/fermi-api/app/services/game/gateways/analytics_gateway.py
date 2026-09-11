@@ -35,6 +35,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Cosine similarity is bounded by [-1, 1]. Using its mathematical lower bound
+# keeps every eligible embedded question in play while the repository still
+# ranks the candidate pool by distance.
+_MIN_COSINE_SIMILARITY = -1.0
+
 
 @dataclass(frozen=True, slots=True)
 class _SmartSearchTelemetry:
@@ -69,7 +74,7 @@ class GameDataGateway:
         """Get questions and their answers from the database.
 
         When ``question_round_settings.search_query`` is set, the questions come
-        from a semantic smart-search (embed the query, then the similarity-gated
+        from a semantic smart-search (embed the query, then the similarity-ranked
         unseen-fairness pool); otherwise the legacy random-by-category path runs.
 
         ``game_id`` and ``host_user_id`` are used only for best-effort smart-search
@@ -180,22 +185,19 @@ class GameDataGateway:
         """Run the semantic smart-search path and return the questions to serve.
 
         Embeds the query (same cleaning + model as the corpus), fetches the
-        similarity-gated unseen-fairness pool, and enforces the ``min_results``
-        gate. Records best-effort telemetry on every outcome. Raises:
+        similarity-ranked unseen-fairness pool, and requires enough results for
+        the requested game. Records best-effort telemetry on every outcome. Raises:
 
         - ``SearchEmbeddingError`` if the embed call fails (transient -> 503).
-        - ``SearchNoResultsError`` if fewer than ``max(min_results, n_questions)``
-          questions clear the floor (query-actionable -> 4xx).
+        - ``SearchNoResultsError`` if fewer than ``n_questions`` eligible
+          questions are available to build the requested game.
         """
         query = question_round_settings.search_query
         assert query is not None  # guarded by the caller's `if search_query`
         n_questions = question_round_settings.n_questions
-        floor = settings.smart_search_similarity_floor
+        floor = _MIN_COSINE_SIMILARITY
         pool_size = settings.smart_search_pool_size
-        # Gate on max(min_results, n_questions) so a custom n_questions still gets a
-        # full game rather than a short one.
-        min_results = max(settings.smart_search_min_results, n_questions)
-        effective_pool_size = max(pool_size, min_results)
+        effective_pool_size = max(pool_size, n_questions)
 
         # Embed the query. A failure here is transient (OpenAI down/timeout): the
         # same query may succeed on retry, so it becomes a retryable 503 upstream.
@@ -219,24 +221,21 @@ class GameDataGateway:
                 f'Failed to embed search query {query!r}',
             ) from exc
 
-        # Fetch enough candidates to enforce the configured quality floor even
-        # when the host requests fewer questions than ``smart_search_min_results``.
         rows = await self._db_client.fermi.get_unseen_similar_questions(
             query_embedding=vec,
-            count=min_results,
+            count=n_questions,
             for_user_ids=user_ids,
             candidate_pool_size=effective_pool_size,
             similarity_floor=floor,
             difficulty=question_round_settings.difficulty,
         )
         questions = [fermi for fermi, _ in rows]
-        # Cosine similarity = 1 - distance; carried to telemetry to tune the floor.
+        # Cosine similarity = 1 - distance; retained for relevance telemetry.
         similarities = [1 - distance for _, distance in rows]
 
-        # too-few / no-match gate. Fewer than the required minimum means the floor
-        # left an incomplete game; do NOT backfill below the floor or play a
-        # degenerate short game -- surface a query-actionable 4xx instead.
-        if len(rows) < min_results:
+        # Preserve the full-game invariant. With the floor disabled, this only
+        # fails when the eligible corpus itself has too few questions.
+        if len(rows) < n_questions:
             await self._record_smart_search_event(
                 _SmartSearchTelemetry(
                     game_id=game_id,
@@ -251,9 +250,6 @@ class GameDataGateway:
                 ),
             )
             raise SearchNoResultsError(query=query, found=len(rows))
-
-        questions = questions[:n_questions]
-        similarities = similarities[:n_questions]
 
         # Success: record telemetry (game_id is the game being started).
         await self._record_smart_search_event(

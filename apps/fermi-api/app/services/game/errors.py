@@ -35,15 +35,14 @@ class SearchEmbeddingError(DomainError):
 
 
 class SearchNoResultsError(DomainError):
-    """Raised when a smart-search query matches fewer than the required minimum.
+    """Raised when smart search cannot build a full game from eligible questions.
 
-    The embed succeeded, but the similarity floor left too few questions to build
-    a full game. This is *not* retryable for the same query: the user must broaden
-    or change it. Maps to a non-retryable 4xx at the HTTP boundary.
+    Smart search does not apply a relevance cutoff, so this indicates corpus
+    availability rather than a query the user should rewrite.
     """
 
     def __init__(self, query: str, found: int) -> None:
-        """Capture the offending query and how many matches cleared the floor."""
+        """Capture the query and the number of eligible questions found."""
         self.query = query
         self.found = found
         super().__init__(

@@ -542,23 +542,19 @@ def _patch_dials(
     monkeypatch: pytest.MonkeyPatch,
     *,
     pool: int = 25,
-    floor: float = 0.30,
-    min_results: int = 6,
 ) -> None:
     """Override the smart-search dials the gateway reads from settings."""
     monkeypatch.setattr(gw_mod.settings, 'smart_search_pool_size', pool)
-    monkeypatch.setattr(gw_mod.settings, 'smart_search_similarity_floor', floor)
-    monkeypatch.setattr(gw_mod.settings, 'smart_search_min_results', min_results)
 
 
-def test_search_path_calls_similar_with_floor_pool_difficulty(
+def test_search_path_calls_similar_without_relevance_floor(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     log: list[str] = []
     db = _FakeDbClient(log)
     db.fermi.similar_rows = [(_sample_question(f'Q{i}'), 0.1 * i) for i in range(6)]
     _patch_embed(monkeypatch, [0.5, 0.6])
-    _patch_dials(monkeypatch, pool=25, floor=0.30, min_results=6)
+    _patch_dials(monkeypatch, pool=25)
     gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(
@@ -585,7 +581,7 @@ def test_search_path_calls_similar_with_floor_pool_difficulty(
     assert params['count'] == 6
     assert params['for_user_ids'] == ['u1']
     assert params['candidate_pool_size'] == 25
-    assert params['similarity_floor'] == 0.30
+    assert params['similarity_floor'] == -1.0
     assert params['difficulty'] == QuestionDifficulty.HARD
     assert len(questions_docs) == 6
     assert len(answers_docs) == 6
@@ -657,14 +653,14 @@ def test_search_too_few_raises_no_results_and_records_event(
     monkeypatch: pytest.MonkeyPatch,
     n_rows: int,
 ) -> None:
-    """Both k=0 and 0<k<min_results -> SearchNoResultsError (not embed error)."""
+    """Both zero and partial games raise SearchNoResultsError (not embed error)."""
     log: list[str] = []
     db = _FakeDbClient(log)
     db.fermi.similar_rows = [
         (_sample_question(f'Q{i}'), 0.1 * i) for i in range(n_rows)
     ]
     _patch_embed(monkeypatch, [0.1])
-    _patch_dials(monkeypatch, min_results=6)
+    _patch_dials(monkeypatch)
     gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(
@@ -692,16 +688,16 @@ def test_search_too_few_raises_no_results_and_records_event(
     assert len(event.returned_similarities) == n_rows
 
 
-def test_search_min_results_gate_uses_max_with_n_questions(
+def test_search_requires_every_requested_question(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A custom n_questions above min_results still requires a full game."""
+    """A custom question count still requires a full game."""
     log: list[str] = []
     db = _FakeDbClient(log)
-    # 8 rows returned, n_questions=10, min_results=6 -> gate is max(6,10)=10 -> too few.
+    # Eight rows cannot satisfy a ten-question game.
     db.fermi.similar_rows = [(_sample_question(f'Q{i}'), 0.05 * i) for i in range(8)]
     _patch_embed(monkeypatch, [0.1])
-    _patch_dials(monkeypatch, min_results=6)
+    _patch_dials(monkeypatch)
     gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(
@@ -722,15 +718,15 @@ def test_search_min_results_gate_uses_max_with_n_questions(
     assert db.fermi.events[0].outcome == 'too_few'
 
 
-def test_search_with_small_game_fetches_quality_pool_then_slices(
+def test_search_with_small_game_requires_only_requested_questions(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A two-question game can pass the six-candidate quality gate."""
+    """A two-question game starts when its two requested questions are available."""
     log: list[str] = []
     db = _FakeDbClient(log)
-    db.fermi.similar_rows = [(_sample_question(f'Q{i}'), 0.05 * i) for i in range(6)]
+    db.fermi.similar_rows = [(_sample_question(f'Q{i}'), 0.05 * i) for i in range(2)]
     _patch_embed(monkeypatch, [0.1])
-    _patch_dials(monkeypatch, pool=4, min_results=6)
+    _patch_dials(monkeypatch, pool=4)
     gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(
@@ -750,13 +746,13 @@ def test_search_with_small_game_fetches_quality_pool_then_slices(
 
     params = db.fermi.last_similar_params
     assert params is not None
-    assert params['count'] == 6
-    assert params['candidate_pool_size'] == 6
+    assert params['count'] == 2
+    assert params['candidate_pool_size'] == 4
     assert len(questions_docs) == 2
     assert len(answers_docs) == 2
     assert db.fermi.events[0].n == 2
     assert db.fermi.events[0].game_id == 'g-small'
-    assert db.fermi.events[0].pool_size_used == 6
+    assert db.fermi.events[0].pool_size_used == 4
 
 
 def test_search_success_records_ok_event_with_similarities(
@@ -770,7 +766,7 @@ def test_search_success_records_ok_event_with_similarities(
         (_sample_question(f'Q{i}'), d) for i, d in enumerate(distances)
     ]
     _patch_embed(monkeypatch, [0.1])
-    _patch_dials(monkeypatch, pool=25, floor=0.30, min_results=6)
+    _patch_dials(monkeypatch, pool=25)
     gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(
@@ -794,7 +790,7 @@ def test_search_success_records_ok_event_with_similarities(
     assert event.game_id == 'g-42'
     assert event.user_id == 'host-1'
     assert event.n == 6
-    assert event.floor_used == 0.30
+    assert event.floor_used == -1.0
     assert event.pool_size_used == 25
     assert event.difficulty == QuestionDifficulty.EASY
     # similarities = 1 - distance, parallel to returned_uids.
@@ -813,7 +809,7 @@ def test_search_telemetry_failure_is_non_fatal(
     db.fermi.similar_rows = [(_sample_question(f'Q{i}'), 0.1 * i) for i in range(6)]
     db.fermi.insert_event_raises = True
     _patch_embed(monkeypatch, [0.1])
-    _patch_dials(monkeypatch, min_results=6)
+    _patch_dials(monkeypatch)
     gw = GameDataGateway(db_client=cast(Any, db))
 
     qrs = QuestionRoundSettings(

@@ -237,10 +237,9 @@ class SmartSearchOutcome(StrEnum):
 class SmartSearchEvent(SQLModel, table=True):
     """Telemetry for a single smart-search game-start attempt.
 
-    Records what a host searched for and what the similarity-gated pool returned,
-    so the similarity floor and candidate-pool size can be tuned from real traffic.
+    Records what a host searched for and what the similarity-ranked pool returned.
     ``returned_similarities`` (cosine similarity = ``1 - distance``, parallel to
-    ``returned_uids``) is the signal that drives floor tuning. Joinable to
+    ``returned_uids``) is the signal used to evaluate relevance. Joinable to
     ``answer_events`` (via ``game_id``) for downstream relevance evaluation.
 
     ``game_id`` remains nullable for legacy or direct gateway callers. Party-game
@@ -264,7 +263,7 @@ class SmartSearchEvent(SQLModel, table=True):
         sa_column=sa.Column(sa.JSON),
     )
     n: int
-    # Cosine similarity (1 - distance) per returned question; tunes the floor.
+    # Cosine similarity (1 - distance) per returned question for relevance analysis.
     returned_similarities: list[float] = Field(
         default_factory=list,
         sa_column=sa.Column(sa.JSON),
@@ -281,7 +280,7 @@ class SmartSearchEvent(SQLModel, table=True):
             nullable=False,
         ),
     )
-    # The dials in effect for this row, so historical data stays interpretable.
+    # Historical floor; -1 means no relevance cutoff was applied.
     floor_used: float
     pool_size_used: int
     created_at: datetime.datetime = Field(

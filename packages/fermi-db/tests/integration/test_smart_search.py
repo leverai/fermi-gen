@@ -148,6 +148,26 @@ async def test_floor_boundary_is_inclusive(
     assert distance == pytest.approx(1 - SIMILARITY_FLOOR, abs=1e-6)
 
 
+async def test_negative_one_floor_keeps_even_opposite_candidates(
+    session: AsyncSession,
+    repo: FermiRepository,
+) -> None:
+    """The minimum cosine similarity disables relevance filtering."""
+    close = _make_fermi(0.90)
+    opposite = _make_fermi(-0.75)
+    await _seed(session, [close, opposite])
+
+    rows = await repo.get_unseen_similar_questions(
+        query_embedding=QUERY_EMBEDDING,
+        count=2,
+        for_user_ids=[USER],
+        candidate_pool_size=POOL_SIZE,
+        similarity_floor=-1.0,
+    )
+
+    assert {f.uid for f, _ in rows} == {close.uid, opposite.uid}
+
+
 async def test_distances_carried_out_for_telemetry(
     session: AsyncSession,
     repo: FermiRepository,

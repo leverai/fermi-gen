@@ -22,9 +22,13 @@ class RateLimitException implements Exception {
       'Too many requests. Please wait $retryAfterSeconds seconds.';
 }
 
-/// Stable error code returned by the backend when a smart-search query
-/// matches too few questions to build a game (HTTP 422).
+/// Legacy error code returned by older backend versions when a smart-search
+/// query matched too few questions to build a game (HTTP 422).
 const String kSearchNoResultsCode = 'search_no_results';
+
+/// Stable error code returned when the eligible smart-search corpus cannot
+/// supply enough questions to build a full game (HTTP 503).
+const String kSearchInsufficientQuestionsCode = 'search_insufficient_questions';
 
 /// Stable machine-readable `detail.code` the backend returns on a transient
 /// smart-search embedding failure at game start (HTTP 503, body
@@ -42,10 +46,8 @@ const String kSearchEmbeddingCode = 'search_embedding_error';
 /// Keep in sync with the backend `validate_search_query` rule.
 const int kMinSearchQueryLength = 2;
 
-/// Thrown when a smart-search game fails because the query matched too few
-/// questions. The search now runs at GAME START, so this is raised from
-/// [ApiService.startGame] on an HTTP 422 with `detail.code ==
-/// 'search_no_results'`.
+/// Legacy exception retained while older backend versions may still return
+/// HTTP 422 with `detail.code == 'search_no_results'` at game start.
 ///
 /// This is a user-actionable, non-retryable failure: the host must broaden or
 /// change the query. The UI should surface [message] in a dialog (the game did
@@ -61,6 +63,20 @@ class SearchNoResultsException implements Exception {
   final String message;
 
   SearchNoResultsException({required this.query, required this.message});
+
+  @override
+  String toString() => message;
+}
+
+/// Thrown when the backend cannot build a full smart-search game because the
+/// eligible question corpus is temporarily too small.
+///
+/// This is a service-availability failure, not a signal that the host should
+/// change the query already persisted on the lobby.
+class SearchInsufficientQuestionsException implements Exception {
+  final String message;
+
+  SearchInsufficientQuestionsException({required this.message});
 
   @override
   String toString() => message;
@@ -95,8 +111,7 @@ class SearchQueryTooShortException implements Exception {
   final String message;
 
   SearchQueryTooShortException({
-    this.message =
-        'Search must be at least $kMinSearchQueryLength characters.',
+    this.message = 'Search must be at least $kMinSearchQueryLength characters.',
   });
 
   @override
@@ -355,9 +370,29 @@ class ApiService {
       final String fallback = (query != null && query.isNotEmpty)
           ? "No questions match '$query' — try a broader or different search."
           : 'No questions match your search — try a broader or different search.';
-      final String message =
-          (msg is String && msg.isNotEmpty) ? msg : fallback;
+      final String message = (msg is String && msg.isNotEmpty) ? msg : fallback;
       return SearchNoResultsException(query: query ?? '', message: message);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Parses the smart-search corpus-availability 503 response while preserving
+  /// the server-provided user-facing message.
+  SearchInsufficientQuestionsException? _parseSearchInsufficientQuestions(
+    http.Response response,
+  ) {
+    try {
+      final dynamic body = jsonDecode(utf8.decode(response.bodyBytes));
+      if (body is! Map<String, dynamic>) return null;
+      final dynamic detail = body['detail'];
+      if (detail is! Map<String, dynamic>) return null;
+      if (detail['code'] != kSearchInsufficientQuestionsCode) return null;
+      final dynamic msg = detail['message'];
+      final String message = (msg is String && msg.isNotEmpty)
+          ? msg
+          : 'Not enough questions are available to start this game.';
+      return SearchInsufficientQuestionsException(message: message);
     } catch (_) {
       return null;
     }
@@ -410,8 +445,10 @@ class ApiService {
   /// Starts the game. The smart-search query (when present) is run server-side
   /// here, so the search-specific failures surface from this call:
   ///
-  /// - HTTP 422 `detail.code == 'search_no_results'` -> [SearchNoResultsException]
-  ///   (not retryable for the same query; host must broaden/change it).
+  /// - Legacy HTTP 422 `detail.code == 'search_no_results'` ->
+  ///   [SearchNoResultsException].
+  /// - HTTP 503 `detail.code == 'search_insufficient_questions'` ->
+  ///   [SearchInsufficientQuestionsException] (corpus availability failure).
   /// - HTTP 503 `detail.code == 'search_embedding_error'` -> [SearchEmbeddingException]
   ///   (transient embed failure; retrying the same query is reasonable).
   ///
@@ -432,6 +469,9 @@ class ApiService {
         if (noResults != null) throw noResults;
       }
       if (response.statusCode == 503) {
+        final SearchInsufficientQuestionsException? insufficientQuestions =
+            _parseSearchInsufficientQuestions(response);
+        if (insufficientQuestions != null) throw insufficientQuestions;
         final SearchEmbeddingException? embedFailure =
             _parseSearchEmbeddingFailure(response);
         if (embedFailure != null) throw embedFailure;

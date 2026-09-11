@@ -257,9 +257,9 @@ class StartGameUseCase:
             )
         except SearchEmbeddingError as err:
             # Transient embed failure (OpenAI down/timeout) -> retryable 503.
-            # Stable `code` (like search_no_results) lets the frontend branch to
-            # the retryable-embed dialog without matching on display text. Keep
-            # this in sync with kSearchEmbeddingCode on the frontend.
+            # The stable code lets the frontend branch to the retryable-embed
+            # dialog without matching on display text. Keep this in sync with
+            # kSearchEmbeddingCode on the frontend.
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail={
@@ -268,22 +268,21 @@ class StartGameUseCase:
                 },
             ) from err
         except SearchNoResultsError as err:
-            # The floor left too few matches. Not retryable for the same query;
-            # the host must broaden/change it. Stable `code` lets the frontend
-            # branch (vs. the retryable 503 above) instead of parsing the message.
+            # With relevance filtering disabled, too few rows means the eligible
+            # corpus cannot currently build a full game. This is a service
+            # availability failure, not a query the host should rewrite.
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail={
-                    'code': 'search_no_results',
+                    'code': 'search_insufficient_questions',
                     'message': (
-                        f"No questions match '{err.query}' — "
-                        'try a broader or different search.'
+                        'Not enough questions are available to start this game.'
                     ),
                 },
             ) from err
         if not questions_docs:
-            # Legacy category path only: the search path's min_results gate already
-            # owns the empty/too-few outcome (raising SearchNoResultsError above).
+            # Legacy category path only: the search path's full-game gate already
+            # owns the empty/partial outcome (raising SearchNoResultsError above).
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail='No questions available to start the game',

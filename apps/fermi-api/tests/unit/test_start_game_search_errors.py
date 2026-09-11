@@ -5,7 +5,7 @@ Two concerns are covered here without a Firestore emulator or real OpenAI:
 1. Search-error -> HTTP mapping. The two smart-search failure modes must map to
    distinct HTTP responses:
    - SearchEmbeddingError -> 503 (retryable; OpenAI down/timeout).
-   - SearchNoResultsError -> 422 with a stable `code` (not retryable).
+   - SearchNoResultsError -> 503 when the eligible corpus is too small.
 
 2. The start "claim" (defense against a double/retried start). A start whose
    claim cannot be taken (state already past LOBBY_READY, or a fresh claim
@@ -220,7 +220,7 @@ def test_embedding_error_maps_to_503(monkeypatch: pytest.MonkeyPatch) -> None:
     assert any(update.get('start_claim_id') is not None for _, update in tx.updates)
 
 
-def test_no_results_error_maps_to_422_with_code(
+def test_no_results_error_maps_to_corpus_availability_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     host = 'host-1'
@@ -239,13 +239,12 @@ def test_no_results_error_maps_to_422_with_code(
         asyncio.run(
             use_case.execute(game_id='g-1', current_user=cast(Any, user)),
         )
-    # 422, NOT 503 -- and machine-detectable via a stable `code`.
-    assert exc_info.value.status_code == 422
-    assert exc_info.value.status_code != 503
+    assert exc_info.value.status_code == 503
     detail = exc_info.value.detail
     assert isinstance(detail, dict)
-    assert detail['code'] == 'search_no_results'
-    assert 'asdfqwer' in detail['message']
+    assert detail['code'] == 'search_insufficient_questions'
+    assert detail['message'] == 'Not enough questions are available to start this game.'
+    assert 'asdfqwer' not in detail['message']
 
 
 def test_start_when_already_started_returns_409_without_fetch(

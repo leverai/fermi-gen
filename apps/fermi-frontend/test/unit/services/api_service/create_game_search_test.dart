@@ -14,7 +14,9 @@ import '../../../helpers/mock_factories.dart';
 ///   longer returns the 422 `search_no_results` nor the 503 embed failure, so
 ///   every non-200 is a generic failure.
 /// - [ApiService.startGame] parses the search failures into typed exceptions:
-///   * 422 `detail.code == 'search_no_results'`      -> [SearchNoResultsException]
+///   * legacy 422 `detail.code == 'search_no_results'` -> [SearchNoResultsException]
+///   * 503 `detail.code == 'search_insufficient_questions'`
+///     -> [SearchInsufficientQuestionsException]
 ///   * 503 `detail.code == 'search_embedding_error'` -> [SearchEmbeddingException]
 ///   * anything else -> generic [Exception]
 void main() {
@@ -101,6 +103,7 @@ void main() {
           allOf(
             isA<Exception>(),
             isNot(isA<SearchNoResultsException>()),
+            isNot(isA<SearchInsufficientQuestionsException>()),
             isNot(isA<SearchEmbeddingException>()),
           ),
         ),
@@ -179,6 +182,34 @@ void main() {
     });
   });
 
+  group('startGame: 503 insufficient questions', () {
+    test(
+        'throws SearchInsufficientQuestionsException and preserves the server message',
+        () async {
+      const serverMessage =
+          'Not enough questions are available to start this game.';
+      final client = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'detail': {
+              'code': 'search_insufficient_questions',
+              'message': serverMessage,
+            }
+          }),
+          503,
+        );
+      });
+
+      await expectLater(
+        buildService(client).startGame(gameId: 'game-1'),
+        throwsA(
+          isA<SearchInsufficientQuestionsException>()
+              .having((e) => e.message, 'message', serverMessage),
+        ),
+      );
+    });
+  });
+
   group('startGame: 503 embed failure', () {
     test('throws SearchEmbeddingException on the search_embedding_error code',
         () async {
@@ -218,6 +249,7 @@ void main() {
           allOf(
             isA<Exception>(),
             isNot(isA<SearchEmbeddingException>()),
+            isNot(isA<SearchInsufficientQuestionsException>()),
             isNot(isA<SearchNoResultsException>()),
           ),
         ),
@@ -248,6 +280,7 @@ void main() {
           allOf(
             isA<Exception>(),
             isNot(isA<SearchNoResultsException>()),
+            isNot(isA<SearchInsufficientQuestionsException>()),
             isNot(isA<SearchEmbeddingException>()),
           ),
         ),

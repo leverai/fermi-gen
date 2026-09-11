@@ -545,6 +545,57 @@ void main() {
 
     group('Smart-search start failures', () {
       testWidgets(
+          '503 insufficient questions shows corpus availability without query advice',
+          (tester) async {
+        tester.view.physicalSize = const Size(1200, 1000);
+        addTearDown(tester.view.resetPhysicalSize);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final snapshot = GameSnapshotFixtures.lobbyReady(
+          currentPlayerId: currentPlayerId,
+        );
+        const serverMessage =
+            'Not enough questions are available to start this game.';
+        when(() => mockApi.startGame(gameId: gameId)).thenThrow(
+          SearchInsufficientQuestionsException(message: serverMessage),
+        );
+        bool startSucceeded = false;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: const TextScaler.linear(0.4),
+              ),
+              child: child!,
+            ),
+            home: LobbyScreenController(
+              gameId: gameId,
+              realtime: mockRealtime,
+              api: mockApi,
+              searchQuery: 'physics',
+              onStartSucceeded: () => startSucceeded = true,
+            ),
+          ),
+        );
+        streamController.add(snapshot);
+        await tester.pump();
+
+        await tester.tap(find.byType(MainButton));
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(find.byType(StyledDialog), findsOneWidget);
+        expect(find.text('Not enough questions available'), findsOneWidget);
+        expect(find.text(serverMessage), findsOneWidget);
+        expect(find.textContaining('broader'), findsNothing);
+        expect(startSucceeded, isFalse);
+
+        await tester.tap(find.text('OK'));
+        await tester.pump(const Duration(milliseconds: 500));
+        await cleanupTextScrollTimers(tester);
+      });
+
+      testWidgets(
           '422 search_no_results shows the actionable dialog, does NOT start, '
           'and does NOT save recents', (tester) async {
         // ARRANGE
@@ -639,8 +690,7 @@ void main() {
         final snapshot = GameSnapshotFixtures.lobbyReady(
           currentPlayerId: currentPlayerId,
         );
-        when(() => mockApi.startGame(gameId: gameId))
-            .thenAnswer((_) async {});
+        when(() => mockApi.startGame(gameId: gameId)).thenAnswer((_) async {});
         bool startSucceeded = false;
 
         // ACT

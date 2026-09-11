@@ -189,10 +189,19 @@ class _LobbyScreenControllerState extends State<LobbyScreenController> {
       // queries that produced a playable game are remembered). We keep the
       // loading state until the realtime listener navigates away.
       widget.onStartSucceeded?.call();
+    } on SearchInsufficientQuestionsException catch (e) {
+      // The eligible corpus cannot currently fill a game. The lobby's query is
+      // immutable, so describe this as an availability issue rather than
+      // advising the host to enter a different search here.
+      if (!mounted) return;
+      setState(() => _isStarting = false);
+      await _showStartErrorDialog(
+        title: 'Not enough questions available',
+        message: e.message,
+      );
     } on SearchNoResultsException catch (e) {
-      // Too few matches: not retryable for the same query. Surface the
-      // server's actionable message in a dialog and let the host change the
-      // search (resetting the starting state so Start is tappable again).
+      // Legacy rolling-deploy compatibility for older backends that still
+      // describe a too-small search result as a query-actionable 422.
       if (!mounted) return;
       setState(() => _isStarting = false);
       await _showStartErrorDialog(
