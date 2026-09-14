@@ -178,6 +178,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late final DeepLinkService _deepLinkService;
+  late final Future<void> _deepLinkInitialization;
   late final AuthService _authService;
   late final AuthStateNotifier _authStateNotifier;
   late final SubscriptionService _subscriptionService;
@@ -218,6 +219,7 @@ class _MyAppState extends State<MyApp> {
     );
     _dailyQuestionController.initialize();
     _preloadService = PreloadService(api: _apiService, auth: _authService);
+    _deepLinkService = DeepLinkService();
     _appRouter = AppRouter(
       authService: _authService,
       authStateNotifier: _authStateNotifier,
@@ -228,9 +230,9 @@ class _MyAppState extends State<MyApp> {
       navigatorKey: _navigatorKey,
       scaffoldMessengerKey: _appScaffoldMessengerKey,
       onCheckPendingJoin: () => _checkPendingJoin,
+      canShowFeatureAnnouncements: _canShowFeatureAnnouncements,
     );
-    _deepLinkService = DeepLinkService();
-    _deepLinkService.init(
+    _deepLinkInitialization = _deepLinkService.init(
       onJoinGame: _handleJoinGame,
       onJoinDQ: _handleJoinDQ,
     );
@@ -241,6 +243,12 @@ class _MyAppState extends State<MyApp> {
     // Mark as initialized and trigger rebuild
     _initialized = true;
     if (mounted) setState(() {});
+  }
+
+  Future<bool> _canShowFeatureAnnouncements() async {
+    await _deepLinkInitialization;
+    return _deepLinkService.pendingGameId == null &&
+        _deepLinkService.pendingDQDate == null;
   }
 
   /// Ensures user is authenticated (anonymous or regular).

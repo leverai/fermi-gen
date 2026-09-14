@@ -25,16 +25,19 @@ class DeepLinkService {
   ///
   /// - [onJoinGame]: Called when a game invite link is received (guesstimate://invite/{game_id})
   /// - [onJoinDQ]: Called when a DQ invite link is received (guesstimate://dq/{date})
-  void init({
+  Future<void> init({
     required Function(String gameId) onJoinGame,
     required Function(String questionDate) onJoinDQ,
   }) {
+    late final Future<void> initialLinkCheck;
+
     // On web, check the current URL path for deep links
     if (kIsWeb) {
       _checkWebInitialUrl(onJoinGame, onJoinDQ);
+      initialLinkCheck = Future<void>.value();
     } else {
       // Check initial link (if app was launched via link)
-      _checkInitialLink(onJoinGame, onJoinDQ);
+      initialLinkCheck = _checkInitialLink(onJoinGame, onJoinDQ);
     }
 
     // Listen for subsequent links (while app is running)
@@ -60,6 +63,8 @@ class DeepLinkService {
     }, onError: (err) {
       debugPrint('DeepLinkService: Error processing link: $err');
     });
+
+    return initialLinkCheck;
   }
 
   Future<void> _checkInitialLink(

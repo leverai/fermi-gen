@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:fermi_frontend/models/feature_announcement.dart';
 import 'package:fermi_frontend/theme/app_font.dart';
 import 'package:fermi_frontend/theme/app_theme.dart';
 import 'package:fermi_frontend/screens/lobby/lobby_screen_controller.dart';
@@ -8,6 +11,7 @@ import 'package:fermi_frontend/services/auth_service.dart';
 import 'package:fermi_frontend/screens/main/main_screen_controller.dart';
 import 'package:fermi_frontend/services/preload_service.dart';
 import 'package:fermi_frontend/services/feedback_service.dart';
+import 'package:fermi_frontend/services/feature_announcement_service.dart';
 import 'package:fermi_frontend/config/app_config.dart';
 import 'package:fermi_frontend/widgets/player_widget.dart';
 import 'package:fermi_frontend/screens/main/widgets/settings_sheet.dart';
@@ -25,6 +29,7 @@ import 'package:fermi_frontend/screens/main/widgets/me_tab.dart';
 import 'package:fermi_frontend/screens/main/widgets/games_tab.dart';
 import 'package:fermi_frontend/screens/main/widgets/party_bottom_sheet.dart';
 import 'package:fermi_frontend/screens/main/widgets/profile_sheet.dart';
+import 'package:fermi_frontend/screens/main/widgets/whats_new_bottom_sheet.dart';
 import 'package:fermi_frontend/screens/main/ranks/ranks_screen.dart';
 
 import 'package:fermi_frontend/widgets/responsive_container.dart';
@@ -36,12 +41,14 @@ class MainScreen extends StatefulWidget {
     required this.authService,
     this.preloadService,
     required this.dailyQuestionService,
+    this.canShowFeatureAnnouncements,
   });
 
   final ApiService apiService;
   final AuthService authService;
   final PreloadService? preloadService;
   final DailyQuestionService dailyQuestionService;
+  final Future<bool> Function()? canShowFeatureAnnouncements;
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -49,6 +56,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late final MainScreenController _controller;
+  late final Future<void> _controllerInitialization;
 
   DateTime? _lastResumeTime;
   int _currentIndex = 0; // 0 = Games, 1 = Me
@@ -62,7 +70,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       api: widget.apiService,
       auth: widget.authService,
     );
-    _controller.initialize(
+    _controllerInitialization = _controller.initialize(
       preloadedConfig: widget.preloadService?.cachedConfig,
       preloadedUserLimits: widget.preloadService?.cachedUserLimits,
       preloadedStats: widget.preloadService?.cachedStats,
@@ -73,8 +81,72 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<DailyQuestionController>().refreshArchiveAndSubscribe();
+        unawaited(_showPendingFeatureAnnouncements());
       }
     });
+  }
+
+  Future<void> _showPendingFeatureAnnouncements() async {
+    await _controllerInitialization;
+    if (!mounted) return;
+    if (!await _mayShowFeatureAnnouncements()) return;
+    if (!mounted) return;
+
+    if (_controller.errorMessage != null ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+
+    final userId = widget.authService.firebaseUid;
+    if (userId == null || userId.isEmpty) return;
+
+    List<FeatureAnnouncement> pending;
+    try {
+      pending = await FeatureAnnouncementService.instance.pendingFor(
+        userId: userId,
+        smartSearchEnabled: _controller.smartSearchEnabled,
+      );
+    } catch (error) {
+      debugPrint('Feature announcements could not be loaded: $error');
+      return;
+    }
+
+    if (pending.isEmpty || !await _mayShowFeatureAnnouncements()) return;
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+
+    final action = await showWhatsNewBottomSheet(
+      context: context,
+      announcements: pending,
+    );
+
+    try {
+      await FeatureAnnouncementService.instance.markSeen(
+        userId: userId,
+        announcementIds: pending.map((announcement) => announcement.id),
+      );
+    } catch (error) {
+      debugPrint('Feature announcements could not be marked seen: $error');
+    }
+
+    if (!mounted || action == null) return;
+    switch (action) {
+      case FeatureAnnouncementAction.openPartySettings:
+        _showPartySettings();
+    }
+  }
+
+  Future<bool> _mayShowFeatureAnnouncements() async {
+    final readinessCheck = widget.canShowFeatureAnnouncements;
+    if (readinessCheck == null) return true;
+
+    try {
+      return await readinessCheck();
+    } catch (error) {
+      debugPrint('Feature announcement readiness check failed: $error');
+      return false;
+    }
   }
 
   @override
@@ -123,6 +195,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     setState(() => _currentIndex = index);
   }
 
+  void _showPartySettings() {
+    showPartyBottomSheet(
+      context: context,
+      controller: _controller,
+      onPrimaryAction: _onPrimaryAction,
+      isAnonymous: widget.authService.isAnonymous,
+    );
+  }
+
   // --------------------------------------------------------------------------
   // Game Action Handlers
   // --------------------------------------------------------------------------
@@ -152,7 +233,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             realtime: _controller.buildRealtimeAdapter(),
             api: widget.apiService,
             searchQuery: searchQuery,
-            onStartSucceeded: () => _controller.saveSearchToRecents(searchQuery),
+            onStartSucceeded: () =>
+                _controller.saveSearchToRecents(searchQuery),
             initialPlayers: [
               PlayerState(
                 isHost: true,
@@ -423,12 +505,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                 child: GamesTab(
                                   displayName: widget
                                       .authService.currentUser?.displayName,
-                                  onPartyCardTapped: () => showPartyBottomSheet(
-                                    context: context,
-                                    controller: _controller,
-                                    onPrimaryAction: _onPrimaryAction,
-                                    isAnonymous: widget.authService.isAnonymous,
-                                  ),
+                                  onPartyCardTapped: _showPartySettings,
                                   onSurvivalCardTapped: () {
                                     context.push('/pre-survival').then((_) {
                                       if (mounted) {

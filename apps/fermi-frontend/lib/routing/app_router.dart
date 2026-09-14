@@ -41,6 +41,7 @@ class AppRouter {
   final GlobalKey<NavigatorState> navigatorKey;
   final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
   final VoidCallback Function()? onCheckPendingJoin;
+  final Future<bool> Function()? canShowFeatureAnnouncements;
 
   late final GoRouter router;
 
@@ -54,6 +55,7 @@ class AppRouter {
     required this.navigatorKey,
     required this.scaffoldMessengerKey,
     this.onCheckPendingJoin,
+    this.canShowFeatureAnnouncements,
   }) {
     router = _createRouter();
   }
@@ -273,6 +275,7 @@ class AppRouter {
         authService: authService,
         preloadService: preloadService,
         dailyQuestionService: dailyQuestionService,
+        canShowFeatureAnnouncements: canShowFeatureAnnouncements,
       );
     }
 
@@ -291,6 +294,7 @@ class AppRouter {
             authService: authService,
             preloadService: preloadService,
             dailyQuestionService: dailyQuestionService,
+            canShowFeatureAnnouncements: canShowFeatureAnnouncements,
           );
         }
         WidgetsBinding.instance.addPostFrameCallback((_) {
