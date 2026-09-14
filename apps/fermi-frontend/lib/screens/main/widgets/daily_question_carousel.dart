@@ -68,7 +68,11 @@ class DailyQuestionCarousel extends StatelessWidget {
                   if (index == dates.length) {
                     return Align(
                       alignment: Alignment.bottomCenter,
-                      child: _buildArchiveButton(context, appTheme),
+                      child: _buildArchiveButton(
+                        context,
+                        appTheme,
+                        DateTime.parse(dates.first),
+                      ),
                     );
                   }
 
@@ -257,7 +261,11 @@ class DailyQuestionCarousel extends StatelessWidget {
     );
   }
 
-  Widget _buildArchiveButton(BuildContext context, AppTheme appTheme) {
+  Widget _buildArchiveButton(
+    BuildContext context,
+    AppTheme appTheme,
+    DateTime initialDate,
+  ) {
     return PressEffectWrapper(
       onTap: () {
         final mainController = context.read<MainScreenController>();
@@ -267,6 +275,7 @@ class DailyQuestionCarousel extends StatelessWidget {
           backgroundColor: Colors.transparent,
           builder: (context) => DailyQuestionArchiveSheet(
             mainScreenController: mainController,
+            initialDate: initialDate,
           ),
         );
       },

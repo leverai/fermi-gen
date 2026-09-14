@@ -347,7 +347,7 @@ class DailyQuestionService {
     }
   }
 
-  /// Get lite archive for DQ carousel (past 7 days + today).
+  /// Get the latest eight DQs for the carousel.
   Future<DQLiteArchiveResponse> getWeeklyArchive() async {
     // print('[DQService] Calling getWeeklyArchive...');
     final response = await _api.get('/daily_question/archive/week');

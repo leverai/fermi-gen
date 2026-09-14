@@ -15,10 +15,14 @@ class DailyQuestionArchiveSheet extends StatefulWidget {
   const DailyQuestionArchiveSheet({
     super.key,
     required this.mainScreenController,
+    this.initialDate,
   });
 
   /// Controller for refreshing stats when returning from DQ screen.
   final MainScreenController mainScreenController;
+
+  /// Date whose month is shown when the archive opens.
+  final DateTime? initialDate;
 
   @override
   State<DailyQuestionArchiveSheet> createState() =>
@@ -35,9 +39,9 @@ class _DailyQuestionArchiveSheetState extends State<DailyQuestionArchiveSheet> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now().toUtc();
-    _selectedYear = now.year;
-    _selectedMonth = now.month;
+    final initialDate = widget.initialDate ?? DateTime.now().toUtc();
+    _selectedYear = initialDate.year;
+    _selectedMonth = initialDate.month;
     _loadMonthlyArchive();
   }
 

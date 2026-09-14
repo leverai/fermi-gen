@@ -150,7 +150,7 @@ async def get_archive_week(
     current_user: Annotated[User, Depends(get_current_user)],
     dq_service: Annotated[DailyQuestionService, Depends(get_daily_question_service)],
 ) -> DQLiteArchiveResponse:
-    """Get lite archive for the DQ carousel (past 7 days + today).
+    """Get the latest eight DQs for the carousel.
 
     Returns a lightweight response with dates and participation status.
     Use this for the main screen DQ carousel.

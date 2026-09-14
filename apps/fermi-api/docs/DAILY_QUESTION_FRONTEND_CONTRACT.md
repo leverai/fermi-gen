@@ -26,10 +26,11 @@ For any DQ date X:
 ```
 1. Call GET /daily_question/archive/week
    → Returns: { items: {"2024-12-15": true, ...}, today: "2024-12-17" }
-   
-2. Build DQ carousel using items (8 cards: today + past 7 days)
+
+2. Build DQ carousel using items (the latest 8 dates that have a DQ)
    - Mark cards based on participation (items[date])
-   - Today's card shows live status
+   - Today's card shows live status when a DQ exists for today
+   - Dates may be non-consecutive when DQ publishing has paused
 
 3. Subscribe to Firestore: daily_questions/{today}
    → Listen for status and results_ready changes

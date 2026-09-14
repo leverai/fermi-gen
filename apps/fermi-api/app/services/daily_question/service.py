@@ -586,7 +586,7 @@ class DailyQuestionService:
         self,
         user_firebase_uid: str,
     ) -> DQLiteArchiveResponse:
-        """Get lite archive for the DQ carousel (past 7 days + today).
+        """Get the latest eight DQs for the carousel.
 
         Returns a lightweight response with just dates and participation status.
         Frontend should use this for the carousel view.

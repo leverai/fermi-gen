@@ -226,10 +226,11 @@ class DailyQuestionRepository(BaseRepository):
         user_firebase_uid: str,
         today: datetime.date,
     ) -> dict[str, bool]:
-        """Get lite archive for the past 7 days plus today's DQ.
+        """Get the latest eight DQs up to and including today.
 
         Returns a dictionary keyed by date (YYYY-MM-DD) with boolean values
-        indicating whether the user participated.
+        indicating whether the user participated. Selecting question rows rather
+        than a calendar range keeps the carousel populated when publishing pauses.
 
         Args:
             user_firebase_uid: The user's Firebase UID.
@@ -239,10 +240,7 @@ class DailyQuestionRepository(BaseRepository):
             Dictionary of {date_str: user_participated}.
 
         """
-        # Calculate date range: today and previous 7 days
-        start_date = today - datetime.timedelta(days=7)
-
-        # Get all DQs in range with optional user answer
+        # Get the latest eight DQs with an optional answer from this user.
         statement = (
             select(
                 DailyQuestion.question_date,
@@ -255,10 +253,10 @@ class DailyQuestionRepository(BaseRepository):
                 & (DailyQuestionAnswer.user_firebase_uid == user_firebase_uid),  # type: ignore
             )
             .where(
-                DailyQuestion.question_date >= start_date,
                 DailyQuestion.question_date <= today,
             )
-            .order_by(DailyQuestion.question_date.asc())  # type: ignore
+            .order_by(DailyQuestion.question_date.desc())  # type: ignore
+            .limit(8)
         )
 
         result = await self.session.exec(statement)

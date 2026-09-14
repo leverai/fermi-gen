@@ -540,7 +540,7 @@ Located in `app/services/daily_question/`:
 | `/daily_question/answer` | POST | Submit answer within deadline | Request: `DQAnswerRequest`, Response: `DQSubmitResponse` |
 | `/daily_question/results` | GET | Get today's results (only when CLOSED) | Response: `DQResultsResponse` |
 | `/daily_question/results/{date}` | GET | Get results for a specific date | Query: `include_post_takes` (default: true), Response: `DQResultsResponse` |
-| `/daily_question/archive/week` | GET | Lite archive for carousel (past 7 days + today) | Response: `DQLiteArchiveResponse` |
+| `/daily_question/archive/week` | GET | Lite archive for carousel (latest 8 DQs through today) | Response: `DQLiteArchiveResponse` |
 | `/daily_question/archive/month` | GET | Lite archive for calendar view | Query: `year`, `month`, Response: `DQLiteArchiveResponse` |
 | `/daily_question/post_take/{date}/start` | POST | Start a post-take for a closed DQ | Response: `DQQuestionResponse` |
 | `/daily_question/post_take/{date}/answer` | POST | Submit post-take answer and get immediate results | Request: `DQPostTakeAnswerRequest`, Response: `DQPostTakeResultsResponse` |
