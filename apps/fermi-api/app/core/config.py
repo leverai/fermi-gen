@@ -2,6 +2,7 @@
 
 import datetime
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -58,9 +59,13 @@ class Settings(BaseSettings):
     # `smart_search_enabled` is exposed to clients (via GameConfigResponse); the
     # rest are server-side dials tuned from telemetry.
     smart_search_enabled: bool = False
-    smart_search_pool_size: int = 50
+    smart_search_pool_size: int = Field(default=50, ge=1)
     """Candidate pool size M: nearest questions kept before fairness."""
-    smart_search_pairwise_similarity_ceiling: float = 0.85
+    smart_search_pairwise_similarity_ceiling: float = Field(
+        default=0.85,
+        ge=-1.0,
+        le=1.0,
+    )
     """Maximum cosine similarity allowed between questions in one round."""
 
 
