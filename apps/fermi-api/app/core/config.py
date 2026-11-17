@@ -58,8 +58,10 @@ class Settings(BaseSettings):
     # `smart_search_enabled` is exposed to clients (via GameConfigResponse); the
     # rest are server-side dials tuned from telemetry.
     smart_search_enabled: bool = False
-    smart_search_pool_size: int = 25
+    smart_search_pool_size: int = 50
     """Candidate pool size M: nearest questions kept before fairness."""
+    smart_search_pairwise_similarity_ceiling: float = 0.85
+    """Maximum cosine similarity allowed between questions in one round."""
 
 
 settings = Settings()

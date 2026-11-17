@@ -35,11 +35,16 @@ class _FakeQuantiles:
         return dict(self._values)
 
 
-def _sample_question(text: str = 'Q') -> SimpleNamespace:
+def _sample_question(
+    text: str = 'Q',
+    *,
+    embedding: list[float] | None = None,
+) -> SimpleNamespace:
     """Build a minimal Fermi-like row with the fields the gateway/docs read."""
     return SimpleNamespace(
         uid=uuid.uuid4(),
         text=text,
+        embedding=embedding if embedding is not None else [1.0, 0.0],
         category=QuestionCategory.PLANET_EARTH,
         difficulty=QuestionDifficulty.MEDIUM,
         updated_at=datetime(2024, 1, 1, tzinfo=UTC),
@@ -542,9 +547,15 @@ def _patch_dials(
     monkeypatch: pytest.MonkeyPatch,
     *,
     pool: int = 25,
+    pairwise_similarity_ceiling: float = 0.85,
 ) -> None:
     """Override the smart-search dials the gateway reads from settings."""
     monkeypatch.setattr(gw_mod.settings, 'smart_search_pool_size', pool)
+    monkeypatch.setattr(
+        gw_mod.settings,
+        'smart_search_pairwise_similarity_ceiling',
+        pairwise_similarity_ceiling,
+    )
 
 
 def test_search_path_calls_similar_without_relevance_floor(
@@ -578,7 +589,7 @@ def test_search_path_calls_similar_without_relevance_floor(
     params = db.fermi.last_similar_params
     assert params is not None
     assert params['query_embedding'] == [0.5, 0.6]
-    assert params['count'] == 6
+    assert params['count'] == 25
     assert params['for_user_ids'] == ['u1']
     assert params['candidate_pool_size'] == 25
     assert params['similarity_floor'] == -1.0
@@ -685,7 +696,8 @@ def test_search_too_few_raises_no_results_and_records_event(
     event = db.fermi.events[0]
     assert event.outcome == 'too_few'
     assert event.game_id == 'g-1'
-    assert len(event.returned_similarities) == n_rows
+    assert event.returned_uids == []
+    assert event.returned_similarities == []
 
 
 def test_search_requires_every_requested_question(
@@ -746,7 +758,7 @@ def test_search_with_small_game_requires_only_requested_questions(
 
     params = db.fermi.last_similar_params
     assert params is not None
-    assert params['count'] == 2
+    assert params['count'] == 4
     assert params['candidate_pool_size'] == 4
     assert len(questions_docs) == 2
     assert len(answers_docs) == 2
@@ -798,6 +810,105 @@ def test_search_success_records_ok_event_with_similarities(
     # uids are recorded as strings (JSON-serializable), parallel to similarities.
     assert len(event.returned_uids) == 6
     assert all(isinstance(u, str) for u in event.returned_uids)
+
+
+def test_search_diversifies_ordered_candidates_and_records_only_served_rows(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A near-duplicate relevance cluster cannot dominate the served round."""
+    log: list[str] = []
+    db = _FakeDbClient(log)
+    clustered = [
+        (
+            _sample_question(
+                f'Cluster {i}',
+                embedding=[1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            ),
+            0.01 + i * 0.01,
+        )
+        for i in range(6)
+    ]
+    diverse = [
+        (
+            _sample_question(
+                f'Diverse {i}',
+                embedding=[0.0] * (i + 1) + [1.0] + [0.0] * (4 - i),
+            ),
+            0.20 + i * 0.01,
+        )
+        for i in range(5)
+    ]
+    db.fermi.similar_rows = clustered + diverse
+    _patch_embed(monkeypatch, [0.1])
+    _patch_dials(monkeypatch, pool=11, pairwise_similarity_ceiling=0.80)
+    gw = GameDataGateway(db_client=cast(Any, db))
+
+    questions_docs, _ = _run(
+        gw.get_questions_and_answers_docs(
+            user_ids=['u1'],
+            question_round_settings=QuestionRoundSettings(
+                n_questions=6,
+                categories=None,
+                difficulty=None,
+                search_query='how many X fit in Y',
+            ),
+            game_id='g-diverse',
+            host_user_id='host-1',
+        ),
+    )
+
+    assert [question['text'] for question in questions_docs] == [
+        'Cluster 0',
+        'Diverse 0',
+        'Diverse 1',
+        'Diverse 2',
+        'Diverse 3',
+        'Diverse 4',
+    ]
+    served_rows = [clustered[0], *diverse]
+    event = db.fermi.events[0]
+    assert event.returned_uids == [str(question.uid) for question, _ in served_rows]
+    assert event.returned_similarities == pytest.approx(
+        [1 - distance for _, distance in served_rows],
+    )
+
+
+def test_search_diversity_fallback_fills_round_deterministically(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Insufficient diversity falls back to the stable candidate order."""
+    log: list[str] = []
+    db = _FakeDbClient(log)
+    db.fermi.similar_rows = [
+        (_sample_question(f'Q{i}', embedding=[1.0, 0.0]), 0.01 * i) for i in range(8)
+    ]
+    _patch_embed(monkeypatch, [0.1])
+    _patch_dials(monkeypatch, pool=8, pairwise_similarity_ceiling=0.80)
+    gw = GameDataGateway(db_client=cast(Any, db))
+
+    questions_docs, _ = _run(
+        gw.get_questions_and_answers_docs(
+            user_ids=['u1'],
+            question_round_settings=QuestionRoundSettings(
+                n_questions=6,
+                categories=None,
+                difficulty=None,
+                search_query='how many X fit in Y',
+            ),
+            game_id='g-fallback',
+            host_user_id='host-1',
+        ),
+    )
+
+    assert [question['text'] for question in questions_docs] == [
+        'Q0',
+        'Q1',
+        'Q2',
+        'Q3',
+        'Q4',
+        'Q5',
+    ]
+    assert len(db.fermi.events[0].returned_uids) == 6
 
 
 def test_search_telemetry_failure_is_non_fatal(

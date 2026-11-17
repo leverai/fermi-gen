@@ -7,6 +7,7 @@ and HTTP semantics.
 """
 
 import logging
+import math
 import uuid
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
@@ -39,6 +40,74 @@ logger = logging.getLogger(__name__)
 # keeps every eligible embedded question in play while the repository still
 # ranks the candidate pool by distance.
 _MIN_COSINE_SIMILARITY = -1.0
+
+
+def _cosine_similarity(left: list[float], right: list[float]) -> float:
+    """Return cosine similarity, conservatively handling invalid embeddings."""
+    if len(left) != len(right):
+        return 1.0
+
+    left_norm = math.sqrt(math.fsum(value * value for value in left))
+    right_norm = math.sqrt(math.fsum(value * value for value in right))
+    denominator = left_norm * right_norm
+    if denominator == 0:
+        return 1.0
+
+    similarity = math.fsum(a * b for a, b in zip(left, right, strict=True))
+    return max(-1.0, min(1.0, similarity / denominator))
+
+
+def _maximum_similarity_to_selected(
+    candidate: 'Fermi',
+    selected: list[tuple['Fermi', float]],
+) -> float:
+    """Return a candidate's highest pairwise similarity to selected rows."""
+    if candidate.embedding is None:
+        return 1.0
+    return max(
+        _cosine_similarity(candidate.embedding, selected_fermi.embedding)
+        if selected_fermi.embedding is not None
+        else 1.0
+        for selected_fermi, _ in selected
+    )
+
+
+def _select_diverse_smart_search_rows(
+    rows: list[tuple['Fermi', float]],
+    *,
+    count: int,
+    pairwise_similarity_ceiling: float,
+) -> list[tuple['Fermi', float]]:
+    """Greedily diversify ordered rows, then deterministically fill any gap."""
+    selected: list[tuple[Fermi, float]] = []
+    rejected: list[tuple[int, tuple[Fermi, float]]] = []
+
+    for index, row in enumerate(rows):
+        if len(selected) == count:
+            break
+        candidate, _ = row
+        if not selected or (
+            _maximum_similarity_to_selected(candidate, selected)
+            <= pairwise_similarity_ceiling
+        ):
+            selected.append(row)
+        else:
+            rejected.append((index, row))
+
+    # If the ceiling is too restrictive, repeatedly choose the rejected question
+    # least similar to the current round. Original candidate order breaks ties.
+    while len(selected) < count and rejected:
+        rejected_index = min(
+            range(len(rejected)),
+            key=lambda index: (
+                _maximum_similarity_to_selected(rejected[index][1][0], selected),
+                rejected[index][0],
+            ),
+        )
+        _, row = rejected.pop(rejected_index)
+        selected.append(row)
+
+    return selected
 
 
 @dataclass(frozen=True, slots=True)
@@ -185,8 +254,9 @@ class GameDataGateway:
         """Run the semantic smart-search path and return the questions to serve.
 
         Embeds the query (same cleaning + model as the corpus), fetches the
-        similarity-ranked unseen-fairness pool, and requires enough results for
-        the requested game. Records best-effort telemetry on every outcome. Raises:
+        similarity-ranked unseen-fairness pool, diversifies that ordered pool,
+        and requires enough results for the requested game. Records best-effort
+        telemetry on every outcome. Raises:
 
         - ``SearchEmbeddingError`` if the embed call fails (transient -> 503).
         - ``SearchNoResultsError`` if fewer than ``n_questions`` eligible
@@ -198,6 +268,7 @@ class GameDataGateway:
         floor = _MIN_COSINE_SIMILARITY
         pool_size = settings.smart_search_pool_size
         effective_pool_size = max(pool_size, n_questions)
+        pairwise_similarity_ceiling = settings.smart_search_pairwise_similarity_ceiling
 
         # Embed the query. A failure here is transient (OpenAI down/timeout): the
         # same query may succeed on retry, so it becomes a retryable 503 upstream.
@@ -223,16 +294,12 @@ class GameDataGateway:
 
         rows = await self._db_client.fermi.get_unseen_similar_questions(
             query_embedding=vec,
-            count=n_questions,
+            count=effective_pool_size,
             for_user_ids=user_ids,
             candidate_pool_size=effective_pool_size,
             similarity_floor=floor,
             difficulty=question_round_settings.difficulty,
         )
-        questions = [fermi for fermi, _ in rows]
-        # Cosine similarity = 1 - distance; retained for relevance telemetry.
-        similarities = [1 - distance for _, distance in rows]
-
         # Preserve the full-game invariant. With the floor disabled, this only
         # fails when the eligible corpus itself has too few questions.
         if len(rows) < n_questions:
@@ -242,14 +309,24 @@ class GameDataGateway:
                     host_user_id=host_user_id,
                     query=query,
                     difficulty=question_round_settings.difficulty,
-                    returned_uids=[str(fermi.uid) for fermi in questions],
-                    returned_similarities=similarities,
+                    returned_uids=[],
+                    returned_similarities=[],
                     outcome=SmartSearchOutcome.TOO_FEW,
                     floor_used=floor,
                     pool_size_used=effective_pool_size,
                 ),
             )
             raise SearchNoResultsError(query=query, found=len(rows))
+
+        selected_rows = _select_diverse_smart_search_rows(
+            rows,
+            count=n_questions,
+            pairwise_similarity_ceiling=pairwise_similarity_ceiling,
+        )
+        questions = [fermi for fermi, _ in selected_rows]
+        # Cosine similarity = 1 - query distance; retained for served-question
+        # relevance telemetry only (not for every retrieved candidate).
+        similarities = [1 - distance for _, distance in selected_rows]
 
         # Success: record telemetry (game_id is the game being started).
         await self._record_smart_search_event(
