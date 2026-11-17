@@ -135,12 +135,10 @@ class AppTheme extends ThemeExtension<AppTheme> {
   /// Light theme with "Happy Light" colors
   factory AppTheme.lightTheme() {
     return AppTheme(
-      // Backgrounds - Warm Soft White
-      bgDark:
-          const HSLColor.fromAHSL(1.0, 40, 0.10, 0.87).toColor(), // Off-white
-      bg: const HSLColor.fromAHSL(1.0, 40, 0.10, 0.93).toColor(), // Near white
-      bgLight:
-          const HSLColor.fromAHSL(1.0, 0, 0.0, 0.98).toColor(), // Pure white
+      // Backgrounds - Bright warm whites
+      bgDark: const HSLColor.fromAHSL(1.0, 40, 0.10, 0.94).toColor(), // Canvas
+      bg: const HSLColor.fromAHSL(1.0, 40, 0.10, 0.98).toColor(), // Surface
+      bgLight: const HSLColor.fromAHSL(1.0, 0, 0.0, 1.0).toColor(), // White
 
       // Text - Dark Slate
       text: const HSLColor.fromAHSL(1.0, 220, 0.30, 0.15).toColor(),

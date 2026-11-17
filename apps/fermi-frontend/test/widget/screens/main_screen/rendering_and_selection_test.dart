@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
+import 'package:fermi_frontend/models/user_limits.dart';
 import 'package:fermi_frontend/screens/main/main_screen.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
 import '../../../helpers/test_helpers.dart';
@@ -28,6 +29,13 @@ void main() {
       // ARRANGE
       when(() => mockApi.getGameConfigTyped())
           .thenAnswer((_) async => throw Exception('Network error'));
+      when(() => mockApi.getUserLimitsTyped()).thenAnswer(
+        (_) async => const UserLimits(
+          partyHostingsRemaining: 2,
+          survivalRunsRemaining: 1,
+          precisionRushRunsRemaining: 1,
+        ),
+      );
       when(() => mockAuth.firebaseUid).thenReturn(null);
       when(() => mockAuth.lastRoundSettings).thenReturn(null);
       when(() => mockAuth.currentUser).thenReturn(null);

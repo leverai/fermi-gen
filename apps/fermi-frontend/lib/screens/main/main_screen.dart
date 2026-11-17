@@ -25,8 +25,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:fermi_frontend/services/daily_question_service.dart';
 import 'package:fermi_frontend/controllers/daily_question_controller.dart';
+import 'package:fermi_frontend/screens/daily_question/daily_question_screen.dart';
+import 'package:fermi_frontend/screens/daily_question/pre_daily_question_screen.dart';
 import 'package:fermi_frontend/screens/main/widgets/me_tab.dart';
 import 'package:fermi_frontend/screens/main/widgets/games_tab.dart';
+import 'package:fermi_frontend/screens/main/widgets/daily_question_archive_sheet.dart';
 import 'package:fermi_frontend/screens/main/widgets/party_bottom_sheet.dart';
 import 'package:fermi_frontend/screens/main/widgets/profile_sheet.dart';
 import 'package:fermi_frontend/screens/main/widgets/whats_new_bottom_sheet.dart';
@@ -201,6 +204,131 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       controller: _controller,
       onPrimaryAction: _onPrimaryAction,
       isAnonymous: widget.authService.isAnonymous,
+    );
+  }
+
+  GamesTabDailyAction _dailyQuestionAction(
+    DailyQuestionController daily,
+  ) {
+    final date = daily.todayDate;
+    if (daily.isLoading || date == null) {
+      return const GamesTabDailyAction(
+        shortLabel: 'Loading',
+        detail: 'Checking today’s challenge',
+        onTap: null,
+      );
+    }
+
+    final status = daily.todayDocument?.status ?? 'NOT_STARTED';
+    final participated = daily.hasParticipatedToday;
+    final resultsReady = daily.todayDocument?.resultsReady ?? false;
+
+    void open(Widget screen, {bool markSeen = false}) {
+      if (markSeen) daily.markResultsSeen(date);
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => screen))
+          .then((_) {
+        if (mounted) _controller.refreshInBackground(force: true);
+      });
+    }
+
+    if (status == 'ACTIVE' && !participated) {
+      return GamesTabDailyAction(
+        shortLabel: 'Play',
+        detail: 'Live now · compare your intuition with everyone else',
+        onTap: () => open(PreDailyQuestionScreen(questionDate: date)),
+      );
+    }
+    if (status == 'ACTIVE' && participated) {
+      return GamesTabDailyAction(
+        shortLabel: 'View',
+        detail: 'Answer locked · results arrive when the window closes',
+        onTap: () => open(const DailyQuestionScreen()),
+      );
+    }
+    if (status == 'CLOSED' && resultsReady && participated) {
+      return GamesTabDailyAction(
+        shortLabel: 'Results',
+        detail: 'Results are ready · see where your estimate landed',
+        onTap: () => open(
+          DailyQuestionScreen(questionDate: date),
+          markSeen: true,
+        ),
+      );
+    }
+    if (status == 'CLOSED' && resultsReady) {
+      return GamesTabDailyAction(
+        shortLabel: 'Play',
+        detail: 'The live window closed · you can still take the question',
+        onTap: () => open(
+          PreDailyQuestionScreen(questionDate: date, isPostTake: true),
+        ),
+      );
+    }
+    if (status == 'CLOSED') {
+      return const GamesTabDailyAction(
+        shortLabel: 'Pending',
+        detail: 'Today’s window closed · results will appear shortly',
+        onTap: null,
+      );
+    }
+    return const GamesTabDailyAction(
+      shortLabel: 'Soon',
+      detail: 'Today’s question has not opened yet',
+      onTap: null,
+    );
+  }
+
+  void _showDailyQuestionArchive(DailyQuestionController daily) {
+    final firstDate = daily.carouselDates.isEmpty
+        ? null
+        : DateTime.tryParse(daily.carouselDates.first);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => DailyQuestionArchiveSheet(
+        mainScreenController: _controller,
+        initialDate: firstDate,
+      ),
+    );
+  }
+
+  String get _partyMetadata {
+    final limits = _controller.userLimitsDto;
+    if (limits == null) return 'Checking access';
+    if (limits.isUnlimited) return 'Unlimited rooms';
+    if (!limits.canHost) return 'Weekly limit reached';
+    return '${limits.partyHostingsRemaining} free this week';
+  }
+
+  String _soloMetadata({
+    required bool isUnlimited,
+    required bool canPlay,
+    required int remaining,
+  }) {
+    if (isUnlimited) return 'Unlimited runs';
+    if (!canPlay) return 'Daily limit reached';
+    return '$remaining ${remaining == 1 ? 'run' : 'runs'} today';
+  }
+
+  String get _survivalMetadata {
+    final limits = _controller.userLimitsDto;
+    if (limits == null) return 'Checking access';
+    return _soloMetadata(
+      isUnlimited: limits.isSurvivalUnlimited,
+      canPlay: limits.canPlaySurvival,
+      remaining: limits.survivalRunsRemaining,
+    );
+  }
+
+  String get _precisionRushMetadata {
+    final limits = _controller.userLimitsDto;
+    if (limits == null) return 'Checking access';
+    return _soloMetadata(
+      isUnlimited: limits.isPrecisionRushUnlimited,
+      canPlay: limits.canPlayPrecisionRush,
+      remaining: limits.precisionRushRunsRemaining,
     );
   }
 
@@ -448,6 +576,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, _) {
+          final dailyController = context.watch<DailyQuestionController>();
           final AppTheme appTheme = Theme.of(context).extension<AppTheme>() ??
               AppTheme.defaultTheme();
 
@@ -505,6 +634,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                 child: GamesTab(
                                   displayName: widget
                                       .authService.currentUser?.displayName,
+                                  partyMetadata: _partyMetadata,
+                                  survivalMetadata: _survivalMetadata,
+                                  precisionRushMetadata: _precisionRushMetadata,
+                                  dailyAction:
+                                      _dailyQuestionAction(dailyController),
                                   onPartyCardTapped: _showPartySettings,
                                   onSurvivalCardTapped: () {
                                     context.push('/pre-survival').then((_) {
@@ -528,6 +662,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                       }
                                     });
                                   },
+                                  onArchiveTapped: () =>
+                                      _showDailyQuestionArchive(
+                                    dailyController,
+                                  ),
                                 ),
                               ),
                               ClipRect(
