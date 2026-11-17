@@ -76,11 +76,10 @@ apps/fermi-frontend/
     │   │       ├── games_tab.dart            # Games tab content
     │   │       ├── me_tab.dart               # Me tab with user profile
     │   │       ├── party_bottom_sheet.dart   # Party game settings sheet
-    │   │       ├── daily_question_carousel.dart
-    │   │       ├── daily_question_card.dart
     │   │       ├── daily_question_archive_sheet.dart
-    │   │       ├── primary_cta.dart
-    │   │       └── top_bar_lock_avatar.dart
+    │   │       ├── profile_sheet.dart
+    │   │       ├── settings_sheet.dart
+    │   │       └── whats_new_bottom_sheet.dart
     │   ├── lobby/
     │   │   ├── lobby_screen.dart
     │   │   └── lobby_screen_controller.dart

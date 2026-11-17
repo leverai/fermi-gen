@@ -57,7 +57,10 @@ class GamesTab extends StatelessWidget {
               metadata: partyMetadata,
             ),
             const SizedBox(height: 14),
-            _DailyQuestionCard(action: dailyAction),
+            _DailyQuestionCard(
+              action: dailyAction,
+              onArchiveTapped: onArchiveTapped,
+            ),
             const SizedBox(height: 24),
             const _SectionHeading(
               title: 'Flying solo?',
@@ -65,14 +68,16 @@ class GamesTab extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 176,
+              height: 208,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
                     child: _SoloTile(
                       title: 'Survival',
-                      subtitle: survivalMetadata,
+                      description:
+                          'Beat the average player. How long can you survive?',
+                      metadata: survivalMetadata,
                       icon: Icons.local_fire_department_rounded,
                       color: theme.survival,
                       onTap: onSurvivalCardTapped,
@@ -82,7 +87,8 @@ class GamesTab extends StatelessWidget {
                   Expanded(
                     child: _SoloTile(
                       title: 'Precision\nRush',
-                      subtitle: precisionRushMetadata,
+                      description: 'Speed meets accuracy.',
+                      metadata: precisionRushMetadata,
                       icon: Icons.bolt_rounded,
                       color: theme.precisionRush,
                       onTap: onPrecisionRushCardTapped,
@@ -90,12 +96,6 @@ class GamesTab extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 14),
-            TextButton.icon(
-              onPressed: onArchiveTapped,
-              icon: const Icon(Icons.history_rounded),
-              label: const Text('Daily question archive'),
             ),
           ],
         ),
@@ -342,9 +342,13 @@ class _Pill extends StatelessWidget {
 }
 
 class _DailyQuestionCard extends StatelessWidget {
-  const _DailyQuestionCard({required this.action});
+  const _DailyQuestionCard({
+    required this.action,
+    required this.onArchiveTapped,
+  });
 
   final GamesTabDailyAction action;
+  final VoidCallback onArchiveTapped;
 
   @override
   Widget build(BuildContext context) {
@@ -354,55 +358,72 @@ class _DailyQuestionCard extends StatelessWidget {
       color: theme.bg,
       borderRadius: BorderRadius.circular(20),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: action.onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: theme.primaryMuted,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Icon(Icons.calendar_today_rounded, color: theme.primary),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Daily question',
-                      style: AppFont.primaryTextStyle(
-                        context,
-                        color: theme.text,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InkWell(
+            onTap: action.onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: theme.primaryMuted,
+                      borderRadius: BorderRadius.circular(15),
                     ),
-                    Text(
-                      action.detail,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFont.secondaryTextStyle(
-                        context,
-                        color: theme.textMuted,
-                        fontSize: 11,
-                      ),
+                    child: Icon(
+                      Icons.calendar_today_rounded,
+                      color: theme.primary,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Daily question',
+                          style: AppFont.primaryTextStyle(
+                            context,
+                            color: theme.text,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          action.detail,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppFont.secondaryTextStyle(
+                            context,
+                            color: theme.textMuted,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: action.onTap,
+                    child: Text(action.shortLabel),
+                  ),
+                ],
               ),
-              TextButton(
-                onPressed: action.onTap,
-                child: Text(action.shortLabel),
-              ),
-            ],
+            ),
           ),
-        ),
+          Divider(height: 1, color: theme.bgLight),
+          Align(
+            alignment: Alignment.center,
+            child: TextButton.icon(
+              onPressed: onArchiveTapped,
+              icon: const Icon(Icons.history_rounded, size: 18),
+              label: const Text('Daily question archive'),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -447,14 +468,16 @@ class _SectionHeading extends StatelessWidget {
 class _SoloTile extends StatelessWidget {
   const _SoloTile({
     required this.title,
-    required this.subtitle,
+    required this.description,
+    required this.metadata,
     required this.icon,
     required this.color,
     required this.onTap,
   });
 
   final String title;
-  final String subtitle;
+  final String description;
+  final String metadata;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
@@ -474,7 +497,7 @@ class _SoloTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(icon, color: color, size: 34),
-              const SizedBox(height: 26),
+              const SizedBox(height: 14),
               SizedBox(
                 height: 36,
                 child: Text(
@@ -488,15 +511,27 @@ class _SoloTile extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
-                subtitle,
+                description,
                 maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppFont.primaryTextStyle(
+                  context,
+                  color: theme.textMuted,
+                  fontSize: 10,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                metadata,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppFont.secondaryTextStyle(
                   context,
-                  color: theme.textMuted,
+                  color: color,
                   fontSize: 9,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],

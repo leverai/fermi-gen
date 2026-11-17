@@ -30,6 +30,11 @@ void main() {
         expect(find.text('Bring the\nsmart friends.'), findsOneWidget);
         expect(find.text('2 free this week'), findsOneWidget);
         expect(find.text('1 run today'), findsNWidgets(2));
+        expect(
+          find.text('Beat the average player. How long can you survive?'),
+          findsOneWidget,
+        );
+        expect(find.text('Speed meets accuracy.'), findsOneWidget);
         expect(find.text('Daily question archive'), findsOneWidget);
         expect(find.text('Browse your question archive'), findsNothing);
         expect(tester.takeException(), isNull);
@@ -42,6 +47,10 @@ void main() {
         await tester.ensureVisible(find.text('Daily question'));
         await tester.tap(find.text('Daily question'));
         await tester.ensureVisible(find.text('Daily question archive'));
+        expect(
+          tester.getTopLeft(find.text('Daily question archive')).dy,
+          lessThan(tester.getTopLeft(find.text('Flying solo?')).dy),
+        );
         await tester.tap(find.text('Daily question archive'));
 
         expect(partyTaps, 1);
