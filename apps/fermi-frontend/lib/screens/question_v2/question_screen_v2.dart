@@ -66,7 +66,9 @@ class QuestionScreenV2 extends StatefulWidget {
 
 class _QuestionScreenV2State extends State<QuestionScreenV2> {
   late final QuestionScreenV2Controller _controller;
-  bool _hasTriggeredPartyWinRTA = false;
+  final RoundReviewPromptCoordinator _reviewPrompt =
+      RoundReviewPromptCoordinator();
+  bool _hasScheduledReviewPrompt = false;
   bool _isShowingLeaveDialog = false;
 
   @override
@@ -89,16 +91,25 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
     if (!mounted) return;
     setState(() {});
 
-    // Trigger RTA for party win (rank 1) once when review mode activates
-    if (!_hasTriggeredPartyWinRTA &&
-        _controller.isReviewMode &&
-        _controller.confettiRank == 1) {
-      _hasTriggeredPartyWinRTA = true;
-      // Delay slightly to let confetti animation show first
-      Future.delayed(const Duration(seconds: 2), () {
-        RateAppService.instance.maybePromptReview();
-      });
+    if (_controller.isReviewMode && _controller.confettiRank == 1) {
+      _reviewPrompt.markEligibleEvent();
     }
+    _scheduleReviewPromptAtRoundEnd();
+  }
+
+  void _scheduleReviewPromptAtRoundEnd() {
+    if (_hasScheduledReviewPrompt ||
+        !_controller.isReviewMode ||
+        !_reviewPrompt.hasEligibleEvent) {
+      return;
+    }
+
+    _hasScheduledReviewPrompt = true;
+    // Let the end-of-round confetti appear before the native prompt.
+    Future.delayed(const Duration(seconds: 2), () async {
+      if (!mounted || !_controller.isReviewMode) return;
+      await _reviewPrompt.maybePrompt(isRoundComplete: true);
+    });
   }
 
   @override
@@ -138,6 +149,12 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
         _controller.currentIndex == widget.questionCount - 1;
     final String? mainLabel =
         isHost ? (isLastQuestion ? 'Finish' : 'Next') : null;
+    final tier = PACard.getTierForPercentile(percentile);
+    if (tier == PAChiermontTier.top1 ||
+        tier == PAChiermontTier.top5 ||
+        tier == PAChiermontTier.top10) {
+      _reviewPrompt.markEligibleEvent();
+    }
 
     await showDialog(
       context: context,
@@ -166,18 +183,13 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
       },
     );
 
-    // Prompt for app review if this was a top-tier PA card
-    final tier = PACard.getTierForPercentile(percentile);
-    if (tier == PAChiermontTier.top1 ||
-        tier == PAChiermontTier.top5 ||
-        tier == PAChiermontTier.top10) {
-      await RateAppService.instance.maybePromptReview();
-    }
+    _scheduleReviewPromptAtRoundEnd();
   }
 
   Future<void> _handleLeave() async {
     if (_isShowingLeaveDialog) return;
     if (_controller.isReviewMode) {
+      await _reviewPrompt.maybePrompt(isRoundComplete: true);
       if (mounted) {
         // Pop Navigator stack first, then use go_router
         Navigator.of(context).popUntil((route) => route.isFirst);
@@ -232,11 +244,13 @@ class _QuestionScreenV2State extends State<QuestionScreenV2> {
     final bool isFinished = _getPaneState() == QuestionPaneState.finished;
 
     if (widget.onFinish != null && isLastQuestion && isFinished) {
-      widget.onFinish!();
+      await _reviewPrompt.maybePrompt(isRoundComplete: true);
+      if (mounted) widget.onFinish!();
       return;
     }
 
     if (_controller.isReviewMode) {
+      await _reviewPrompt.maybePrompt(isRoundComplete: true);
       if (mounted) {
         // Pop Navigator stack first, then use go_router
         Navigator.of(context).popUntil((route) => route.isFirst);

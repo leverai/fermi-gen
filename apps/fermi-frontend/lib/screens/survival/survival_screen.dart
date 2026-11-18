@@ -38,6 +38,8 @@ class SurvivalScreen extends StatefulWidget {
 
 class _SurvivalScreenState extends State<SurvivalScreen> {
   late SurvivalScreenController _controller;
+  final RoundReviewPromptCoordinator _reviewPrompt =
+      RoundReviewPromptCoordinator();
   bool _isPAPopupPending = false;
   bool _isShowingLeaveDialog = false;
 
@@ -76,6 +78,9 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
   Future<void> _handleLeave() async {
     // If already submitted, just navigate back
     if (_controller.isSubmitted) {
+      await _reviewPrompt.maybePrompt(
+        isRoundComplete: !_controller.passed,
+      );
       _navigateToMain();
       return;
     }
@@ -105,6 +110,9 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
 
       if (confirmed == true) {
         await _controller.submitBeforeLeave();
+        await _reviewPrompt.maybePrompt(
+          isRoundComplete: !_controller.passed,
+        );
         _navigateToMain();
       }
     } finally {
@@ -132,6 +140,7 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
       await _handleContinueWithAd();
     } else {
       // Failed and no ad save available
+      await _reviewPrompt.maybePrompt(isRoundComplete: true);
       _navigateToMain();
     }
   }
@@ -180,6 +189,13 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
       mainLabel = 'Finish';
     }
 
+    final tier = PACard.getTierForPercentile(percentile);
+    if (tier == PAChiermontTier.top1 ||
+        tier == PAChiermontTier.top5 ||
+        tier == PAChiermontTier.top10) {
+      _reviewPrompt.markEligibleEvent();
+    }
+
     await showDialog(
       context: context,
       barrierDismissible: false,
@@ -204,14 +220,6 @@ class _SurvivalScreenState extends State<SurvivalScreen> {
         );
       },
     );
-
-    // Prompt for app review if this was a top-tier PA card
-    final tier = PACard.getTierForPercentile(percentile);
-    if (tier == PAChiermontTier.top1 ||
-        tier == PAChiermontTier.top5 ||
-        tier == PAChiermontTier.top10) {
-      await RateAppService.instance.maybePromptReview();
-    }
   }
 
   /// Format an AnswerValue with a specific unit abbreviation override.

@@ -5,20 +5,25 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Service to manage in-app review prompts at "happy" events.
 ///
 /// ## Usage
-/// Call `maybePromptReview()` after any "happy event" to potentially show
-/// the native review prompt. The service handles:
+/// Call `maybePromptReview()` at a safe prompt boundary to potentially show
+/// the native review prompt. Game screens should use
+/// [RoundReviewPromptCoordinator] so a happy event cannot interrupt a round.
+/// The service handles:
 /// - Minimum session count before prompting (3 sessions)
 /// - Cooldown period between prompts (30 days)
 /// - Platform availability checks
 ///
 /// ## Adding New Happy Events
-/// To trigger review prompts at new happy events:
-/// 1. Import `RateAppService`
-/// 2. Call `RateAppService.instance.maybePromptReview()` after the event
+/// To trigger review prompts from a game:
+/// 1. Create one [RoundReviewPromptCoordinator] for the game screen
+/// 2. Call `markEligibleEvent()` after the happy event
+/// 3. Call `maybePrompt(isRoundComplete: true)` only at round completion
 ///
 /// Example:
 /// ```dart
-/// await RateAppService.instance.maybePromptReview();
+/// final reviewPrompt = RoundReviewPromptCoordinator();
+/// reviewPrompt.markEligibleEvent();
+/// await reviewPrompt.maybePrompt(isRoundComplete: isRoundComplete);
 /// ```
 ///
 /// ## Currently Supported Happy Events
@@ -111,5 +116,40 @@ class RateAppService {
         _keyLastPromptTime, DateTime.now().millisecondsSinceEpoch);
 
     return true;
+  }
+}
+
+typedef ReviewPromptCallback = Future<bool> Function();
+
+/// Keeps a review-worthy event pending until its game round is complete.
+///
+/// Create one coordinator per game screen. Frequency and platform eligibility
+/// remain the responsibility of [RateAppService]; this class only prevents a
+/// native prompt from interrupting an active round.
+class RoundReviewPromptCoordinator {
+  RoundReviewPromptCoordinator({ReviewPromptCallback? promptReview})
+      : _promptReview =
+            promptReview ?? RateAppService.instance.maybePromptReview;
+
+  final ReviewPromptCallback _promptReview;
+  bool _hasEligibleEvent = false;
+  bool _hasRequestedPrompt = false;
+
+  bool get hasEligibleEvent => _hasEligibleEvent;
+
+  void markEligibleEvent() {
+    _hasEligibleEvent = true;
+  }
+
+  /// Requests a review only after both a happy event and round completion.
+  Future<bool> maybePrompt({required bool isRoundComplete}) async {
+    if (!isRoundComplete || !_hasEligibleEvent || _hasRequestedPrompt) {
+      return false;
+    }
+
+    // Set this before awaiting to prevent duplicate requests from overlapping
+    // UI callbacks at the end of a round.
+    _hasRequestedPrompt = true;
+    return _promptReview();
   }
 }

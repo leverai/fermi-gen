@@ -35,6 +35,8 @@ class PrecisionRushScreen extends StatefulWidget {
 
 class _PrecisionRushScreenState extends State<PrecisionRushScreen> {
   late PrecisionRushScreenController _controller;
+  final RoundReviewPromptCoordinator _reviewPrompt =
+      RoundReviewPromptCoordinator();
   bool _isPAPopupPending = false;
   bool _isShowingLeaveDialog = false;
 
@@ -71,6 +73,9 @@ class _PrecisionRushScreenState extends State<PrecisionRushScreen> {
 
   Future<void> _handleLeave() async {
     if (_controller.isSubmitted) {
+      await _reviewPrompt.maybePrompt(
+        isRoundComplete: _controller.isFinal,
+      );
       _navigateToMain();
       return;
     }
@@ -99,6 +104,9 @@ class _PrecisionRushScreenState extends State<PrecisionRushScreen> {
 
       if (confirmed == true) {
         await _controller.submitBeforeLeave();
+        await _reviewPrompt.maybePrompt(
+          isRoundComplete: _controller.isFinal,
+        );
         _navigateToMain();
       }
     } finally {
@@ -119,6 +127,7 @@ class _PrecisionRushScreenState extends State<PrecisionRushScreen> {
     if (_isPAPopupPending) return;
 
     if (_controller.isFinal) {
+      await _reviewPrompt.maybePrompt(isRoundComplete: true);
       _navigateToMain();
     } else {
       await _controller.requestNext();
@@ -154,6 +163,12 @@ class _PrecisionRushScreenState extends State<PrecisionRushScreen> {
     if (!mounted) return;
 
     final String mainLabel = _controller.isFinal ? 'Done' : 'Next';
+    final tier = PACard.getTierForPercentile(percentile);
+    if (tier == PAChiermontTier.top1 ||
+        tier == PAChiermontTier.top5 ||
+        tier == PAChiermontTier.top10) {
+      _reviewPrompt.markEligibleEvent();
+    }
 
     await showDialog(
       context: context,
@@ -179,13 +194,6 @@ class _PrecisionRushScreenState extends State<PrecisionRushScreen> {
         );
       },
     );
-
-    final tier = PACard.getTierForPercentile(percentile);
-    if (tier == PAChiermontTier.top1 ||
-        tier == PAChiermontTier.top5 ||
-        tier == PAChiermontTier.top10) {
-      await RateAppService.instance.maybePromptReview();
-    }
   }
 
   String _formatAnswerWithUnit(AnswerValue value, String unitAbbreviation) {
